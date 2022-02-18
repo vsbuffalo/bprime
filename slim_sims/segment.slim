@@ -1,6 +1,6 @@
-function (void)assert(logical x, [string msg = "assertion failed"]) {
-  if (!x) stop(msg);
-}
+// function (void)assert(logical x, [string msg = "assertion failed"]) {
+//   if (!x) stop(msg);
+// }
 
 function (logical)contains(string x, string y) {
   assert(length(x) == 1 & length(y) == 1, "x and y must be length 1");
@@ -58,12 +58,13 @@ initialize() {
   initializeTreeSeq();
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
+  defineConstant("neutral_length", 100);
 
   if (exists("slimgui") | exists("defaults")) {
-    defineConstant("neutral_length", 1000);
     defineConstant("segment_length", 10000);
     defineConstant("rep", 0);
     defineConstant("rbp", 1e-8);
+    defineConstant("recfrac", 1e-8);
     defineConstant("N", 1000);
     defineConstant("s", -2e-2);
     defineConstant("mu", 1e-8);
@@ -83,12 +84,14 @@ initialize() {
   metadata.setValue("s", s);
   metadata.setValue("h", h);
   metadata.setValue("mu", mu);
+  metadata.setValue("recfrac", recfrac);
+  metadata.setValue("rbp", rbp);
   metadata.setValue("neutral_length", neutral_length);
   metadata.setValue("segment_length", segment_length);
   metadata.setValue("region_length", region_length);
 
   // == File Output
-  filestr = filename_str(c('rep', 'mu', 'rbp', 'N', 's', 'h', 
+  filestr = filename_str(c('rep', 'mu', 'rbp', 'recfrac', 'N', 's', 'h', 
                            'neutral_length', 'segment_length'));
   defineConstant("basename", "segment_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
@@ -108,7 +111,7 @@ initialize() {
   initializeGenomicElement(g1, neutral_length+1, neutral_length+segment_length);
 
   // recombination between segments
-  rec_rates = c(0, 0.5, rbp);
+  rec_rates = c(0, recfrac, rbp);
   rec_bins = c(neutral_length-1,               // neutral region
                neutral_length,                 // 1bp free recombinaton spacer
                neutral_length+segment_length);  // selected region

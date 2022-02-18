@@ -1,0 +1,115 @@
+from math import floor, log10
+import itertools 
+import numpy as np
+np.random.seed(1)
+from collections import defaultdict, namedtuple
+
+def filename_pattern(base, params, seed=False, rep=False):
+  param_str = [v + '{' + v + '}' for v in params]
+  if seed:
+    param_str.append('seed{seed}')
+  if rep:
+    param_str.append('rep{rep}')
+  pattern = base + '_'.join(param_str) + '_{{output}}'
+  return pattern
+
+def slim_call(params, slim_cmd="slim", rep=False):
+  call_args = []
+  for p in params:
+    is_str = isinstance(params[p][0], str) and params[p][0] not in ['T', 'F']
+    val = f"{{wildcards.{p}}}" if not is_str else f'\\"{{wildcards.{p}}}\\"'
+    if p == 'seed':
+      call_args.append(f"-s val")
+    else:
+      call_args.append(f"-d {p}={val}")
+  if rep:
+    call_args.append("-d rep={wildcards.rep}")
+  return f"{slim_cmd} " + " ".join(call_args)
+
+def param_grid(seed=False, **kwargs):
+  params = []
+  for param, values in kwargs.items():
+    if len(values):
+      params.append([(param, v) for v in values])
+    else:
+      params.append([(param, '')])
+  out = list(map(dict, itertools.product(*params)))
+  if not seed:
+    return out
+  for entry in out:
+    entry['seed'] = np.random.randint(0, 2**63)
+  return out
+
+def signif(x, digits=4):
+  return np.round(x, digits-int(floor(log10(abs(x))))-1)
+
+def uniform_samples(param_ranges, nreps, signif_digits=6, seed=False):
+  params = []
+  for rep in range(nreps):
+    param_set = dict()
+    for param, ranges in param_ranges.items():
+      lower, upper, typefunc, scale = ranges
+      use_log10 = scale == 'log10'
+      # not the most efficient way to do this but it's okay
+      x = np.random.uniform(lower, upper, 1)
+      if use_log10:
+        x = 10**x
+      param_set[param] = typefunc(signif(x, signif_digits))
+      if seed:
+        param_set['seed'] = np.random.randint(0, 2**63)
+    param_set['rep'] = rep
+    params.append(param_set)
+  return params
+
+
+# ------- Shared Parameters -------
+DATADIR = "../data/slim_sims/"
+NREPS = 100
+SLIM = '~/src/SLiM_build/slim'
+ 
+N_range = (2, 4, int, 'log10')
+mu_range = (5e-8, 5e-7, float, None)
+h_range = (0.5, 0.5, float, None)
+rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
+recfrac_range = (-8, np.log10(0.5), float, 'log10') # Morgans
+s_range = (-6, 0, float, 'log10')
+seglen_range = (10, 100000, int, None)
+
+# ------- BGS segments -------
+bgs_params = dict(N=N_range, 
+                  mu=mu_range, h=h_range, 
+                  s=s_range, rbp=rbp_range,
+                  recfrac=recfrac_range,
+                  segment_length=seglen_range) 
+                  
+bgs_basename = DATADIR + 'segment/segment_'
+bgs_pattern = filename_pattern(bgs_basename, bgs_params, rep=True)
+
+# bgs simulation results
+bgs_results = []
+
+bgs_grid = uniform_samples(bgs_params, nreps=NREPS, seed=False)
+
+print(bgs_grid)
+print(bgs_pattern)
+
+sim_outputs = ["treeseq.tree"]
+for params in list(bgs_grid):
+  for out in sim_outputs:
+    bgs_results.append(bgs_pattern.format(**params).format(output=out))
+
+print(
+    slim_call(bgs_params, SLIM, rep=True) + " {input} ")
+
+rule bgs:
+  input: "segment.slim"
+  output: 
+    [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
+  shell:
+    slim_call(bgs_params, SLIM, rep=True) + " {input} "
+ 
+rule all:
+  input:
+    bgs_results
+    
+
