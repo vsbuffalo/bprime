@@ -58,10 +58,10 @@ initialize() {
   initializeTreeSeq();
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
-  defineConstant("neutral_length", 100);
+  defineConstant("tracklen", 100);
 
   if (exists("slimgui") | exists("defaults")) {
-    defineConstant("segment_length", 10000);
+    defineConstant("seglen", 10000);
     defineConstant("rep", 0);
     defineConstant("rbp", 1e-8);
     defineConstant("recfrac", 1e-8);
@@ -74,7 +74,7 @@ initialize() {
 	defineConstant("datadir", '../data/slim_sims/segment/');
   }
 
-  defineConstant("region_length", neutral_length + segment_length);
+  defineConstant("region_length", tracklen + seglen);
 
   // == Runtime settings
   defineConstant("burnin", 10*N);
@@ -86,13 +86,14 @@ initialize() {
   metadata.setValue("mu", mu);
   metadata.setValue("recfrac", recfrac);
   metadata.setValue("rbp", rbp);
-  metadata.setValue("neutral_length", neutral_length);
-  metadata.setValue("segment_length", segment_length);
+  metadata.setValue("tracklen", tracklen);
+  metadata.setValue("seglen", seglen);
   metadata.setValue("region_length", region_length);
 
   // == File Output
-  filestr = filename_str(c('rep', 'mu', 'rbp', 'recfrac', 'N', 's', 'h', 
-                           'neutral_length', 'segment_length'));
+  // this must be the same order as the bgs_params in the Snakefile
+  filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 
+                           'recfrac', 'seglen', 'rep'));
   defineConstant("basename", "segment_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
@@ -102,19 +103,19 @@ initialize() {
   // segment deleterious mutations
   initializeMutationType("m1", h, "f", s);
 
-  // Neutral tracked region from [0, neutral_length-1] with no mutation
+  // Neutral tracked region from [0, tracklen-1] with no mutation
   // followed by a 1bp spacer (this is a bit silly but we don't want any
   // mutation or recombination in that 1bp)
 
   // gene segment under selection
   initializeGenomicElementType("g1", m1, 1);
-  initializeGenomicElement(g1, neutral_length+1, neutral_length+segment_length);
+  initializeGenomicElement(g1, tracklen+1, tracklen+seglen);
 
   // recombination between segments
   rec_rates = c(0, recfrac, rbp);
-  rec_bins = c(neutral_length-1,               // neutral region
-               neutral_length,                 // 1bp free recombinaton spacer
-               neutral_length+segment_length);  // selected region
+  rec_bins = c(tracklen-1,               // neutral region
+               tracklen,                 // 1bp free recombinaton spacer
+               tracklen+seglen);  // selected region
   initializeRecombinationRate(rec_rates, rec_bins);
 }
 
@@ -134,8 +135,8 @@ s2 late() {
   inds = p1.individuals;
   ndel_subs = inds.countOfMutationsOfType(m1);
   fixed_load = inds.sumOfMutationsOfType(m1);
-  metadata.setValue("ndel_subs", ndel_subs);
-  metadata.setValue("fixed_load", fixed_load);
+  metadata.setValue("ndel_subs", sum(ndel_subs));
+  metadata.setValue("fixed_load", sum(fixed_load));
   popfit = pop_fitness(m1);
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
