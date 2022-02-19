@@ -13,15 +13,16 @@ def trees_to_training_data(dir, params, windows, suffix="recap.tree"):
     for tree_file in tree_files:
         ts = tsk.load(tree_file)
         md = ts.metadata['SLiM']['user_metadata']
-        region_length = int(md['region_length'][0]) - 1
-        print(region_length, ts.sequence_length)
-        assert(region_length == ts.sequence_length)
-        X.append([converter(md[p][0]) for p, converter in params.items()])
-        pi = ts.diversity(mode='branch', windows=np.linspace(0, region_length, 10))
-        y.append(pi)
+        #region_length = int(md['region_length'][0]) + 1 # TODO fix we re-run sims
+        #assert(region_length  == ts.sequence_length)
+        X.append(tuple(converter(md[p][0]) for p, converter in params.items()))
+        wins = windows + [ts.sequence_length]
+        pi = ts.diversity(mode='branch', windows=wins)
+        y.append((pi[0], 0.25*pi[0]/float(md['N'][0])))
+        #y.append(pi[0])
 
     X_dtypes = list(params.items())
-    X = np.array(X, dtype=X_dtypes)
+    X = np.stack(X)
     y = np.array(y)
     return X, y
 
