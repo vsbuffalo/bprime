@@ -78,16 +78,19 @@ def uniform_samples(param_ranges, nsamples, nreps=1,
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
-NSAMPLES = 2000
+NSAMPLES = 500
 NREPS = 50
 SLIM = '~/src/SLiM_build/slim'
  
 #N_range = (2, 4, int, 'log10')
 N_range = (1000, 1000, int, None)
-mu_range = (5e-8, 5e-7, float, None)
+#mu_range = (5e-8, 5e-7, float, None)
+mu_range = (1e-8, 1e-8, float, None)
 h_range = (0.5, 0.5, float, None)
-rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
-recfrac_range = (-9, np.log10(0.5), float, 'log10') # Morgans
+#rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
+rbp_range = (1/1e8, 1/1e8, float, None) # cM/Mbp
+#recfrac_range = (-9, np.log10(0.5), float, 'log10') # Morgans
+recfrac_range = (-8, -8, float, 'log10') # Morgans
 s_range = (-5, np.log10(0.2), float, 'log10')
 seglen_range = (10000, 10000, int, None)
 
@@ -144,6 +147,13 @@ rule bgs_recap:
     rts = pyslim.recapitate(ts, recombination_rate=0,
                             ancestral_Ne=md['N'][0]).simplify()
     rts.dump(output.recap)
+
+#rule bgs_widetrack:
+#  input: "segment_widetrack.slim"
+#  output: [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
+#  shell:
+#    slim_call(bgs_params, SLIM, rep=True) + " {input} "
+
 
  
 #rule bgs_widetrack_recap:
