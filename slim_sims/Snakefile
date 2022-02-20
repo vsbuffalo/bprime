@@ -78,7 +78,7 @@ def uniform_samples(param_ranges, nsamples, nreps=1,
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
-NSAMPLES = 1000
+NSAMPLES = 5000
 NREPS = 30
 SLIM = '~/src/SLiM_build/slim'
  
