@@ -92,9 +92,8 @@ initialize() {
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 'track_rbp',
-                           'seglen', 'rep'));
-  defineConstant("basename", "segment_" + filestr);
+  filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 'seglen', 'rep'));
+  defineConstant("basename", "segwidetrack_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
   // == Mutations, Regions, and Recombination
@@ -109,12 +108,12 @@ initialize() {
 
   // gene segment under selection
   initializeGenomicElementType("g1", m1, 1);
-  initializeGenomicElement(g1, tracklen+1, tracklen+seglen);
+  initializeGenomicElement(g1, tracklen-1, tracklen+seglen-1);
 
   // recombination between segments
   rec_rates = c(track_rbp, rbp);
-  rec_bins = c(tracklen,          // neutral region
-               tracklen+seglen);  // selected region
+  rec_bins = c(tracklen-1,          // neutral region
+               tracklen+seglen-1);  // selected region
   initializeRecombinationRate(rec_rates, rec_bins);
 }
 
@@ -125,7 +124,7 @@ initialize() {
 }
 
 s1 {
-  if (sim.generation % 1000 == 0) 
+  if (sim.generation % N == 0) 
     print(sim.generation);
 }
 

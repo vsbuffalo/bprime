@@ -64,7 +64,7 @@ initialize() {
     defineConstant("seglen", 10000);
     defineConstant("rep", 0);
     defineConstant("rbp", 1e-8);
-    defineConstant("recfrac", 1e-8);
+    defineConstant("recfrac", 0.5);
     defineConstant("N", 1000);
     defineConstant("s", -2e-2);
     defineConstant("mu", 1e-8);
@@ -74,7 +74,7 @@ initialize() {
 	defineConstant("datadir", '../data/slim_sims/segment/');
   }
 
-  defineConstant("region_length", tracklen + seglen + 1);
+  defineConstant("region_length", tracklen + seglen);
 
   // == Runtime settings
   defineConstant("burnin", 10*N);
@@ -109,7 +109,7 @@ initialize() {
 
   // gene segment under selection
   initializeGenomicElementType("g1", m1, 1);
-  initializeGenomicElement(g1, tracklen, tracklen+seglen);
+  initializeGenomicElement(g1, tracklen+1, tracklen+seglen);
 
   // recombination between segments
   rec_rates = c(0, recfrac, rbp);
@@ -126,7 +126,7 @@ initialize() {
 }
 
 s1 {
-  if (sim.generation % 1000 == 0) 
+  if (sim.generation % N == 0) 
     print(sim.generation);
 }
 
