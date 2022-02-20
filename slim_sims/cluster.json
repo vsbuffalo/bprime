@@ -1,0 +1,15 @@
+{
+    "__default__" :
+    {
+        "time" : "2-00:00:00",
+        "n" : 1,
+        "account" : "kernlab",
+        "partition" : "kern,kerngpu",
+        "mem" : "10G",
+        "cores" : "1",
+        "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/",
+        "name" : "bprime_{rule}_{wildcards}",
+        "output" : "logs/out/{rule}_{wildcards}.out",
+        "error" : "logs/error/{rule}_{wildcards}.err"
+    }
+}
