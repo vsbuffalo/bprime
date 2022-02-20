@@ -109,12 +109,12 @@ initialize() {
 
   // gene segment under selection
   initializeGenomicElementType("g1", m1, 1);
-  initializeGenomicElement(g1, tracklen+1, tracklen+seglen);
+  initializeGenomicElement(g1, tracklen, tracklen+seglen);
 
   // recombination between segments
   rec_rates = c(0, recfrac, rbp);
-  rec_bins = c(tracklen-1,               // neutral region
-               tracklen,                 // 1bp free recombinaton spacer
+  rec_bins = c(tracklen-1,        // neutral region
+               tracklen,          // 1bp free recombinaton spacer
                tracklen+seglen);  // selected region
   initializeRecombinationRate(rec_rates, rec_bins);
 }

@@ -78,8 +78,8 @@ def uniform_samples(param_ranges, nsamples, nreps=1,
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
-NSAMPLES = 5000
-NREPS = 30
+NSAMPLES = 2000
+NREPS = 50
 SLIM = '~/src/SLiM_build/slim'
  
 #N_range = (2, 4, int, 'log10')
@@ -89,7 +89,7 @@ h_range = (0.5, 0.5, float, None)
 rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
 recfrac_range = (-9, np.log10(0.5), float, 'log10') # Morgans
 s_range = (-5, np.log10(0.2), float, 'log10')
-seglen_range = (10, 10000, int, None)
+seglen_range = (10000, 10000, int, None)
 
 # ------- BGS segments -------
 bgs_params = dict(N=N_range, 
@@ -146,6 +146,25 @@ rule bgs_recap:
     rts.dump(output.recap)
 
  
+#rule bgs_widetrack_recap:
+#  input: treeseq=bgs_pattern.replace("{{output}}", 'treeseq.tree')
+#  output: recap=bgs_pattern.replace("{{output}}", 'recap.tree')
+#  run:
+#    ts = pyslim.load(input.treeseq)
+#    md = ts.metadata['SLiM']['user_metadata']
+#    N = int(md['N'][0])
+#    track_rbp = float(md['track_rbp'][0])
+#    rbp = float(md['rbp'][0])
+#    tracklen = int(md['tracklen'][0])
+#    seglen = int(md['seglen'][0])
+#    rates = msprime.RateMap(position=[0, tracklen, tracklen+seglen],
+#                            rate=[track_rbp, rbp])
+#    rts = pyslim.recapitate(ts, 
+#                            #recombination_rate=0,
+#                            recombination_rate=rates,
+#                            ancestral_Ne=N).simplify()
+#    rts.dump(output.recap)
+
 rule all:
   input:
     bgs_sim_results, bgs_recap_results
