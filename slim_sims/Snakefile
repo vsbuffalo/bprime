@@ -88,7 +88,7 @@ mu_range = (5e-8, 5e-7, float, None)
 h_range = (0.5, 0.5, float, None)
 rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
 recfrac_range = (-9, np.log10(0.5), float, 'log10') # Morgans
-s_range = (-6, np.log10(0.2), float, 'log10')
+s_range = (-5, np.log10(0.2), float, 'log10')
 seglen_range = (10, 10000, int, None)
 
 # ------- BGS segments -------
