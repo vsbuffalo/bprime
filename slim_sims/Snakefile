@@ -48,9 +48,15 @@ def param_grid(seed=False, **kwargs):
 def signif(x, digits=4):
   return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
-def uniform_samples(param_ranges, nreps, signif_digits=6, seed=False):
+def uniform_samples(param_ranges, nsamples, nreps=1,
+                    signif_digits=6, seed=False):
+  """
+  Generate nsamples, with nreps per parameter. 
+  seed: include random seed
+  signif_digits: round the parametres to this many significant figures
+  """
   params = []
-  for rep in range(nreps):
+  for sample in range(nsamples):
     param_set = dict()
     for param, ranges in param_ranges.items():
       lower, upper, typefunc, scale = ranges
@@ -62,14 +68,18 @@ def uniform_samples(param_ranges, nreps, signif_digits=6, seed=False):
       param_set[param] = typefunc(signif(x, signif_digits))
       if seed:
         param_set['seed'] = np.random.randint(0, 2**63)
-    param_set['rep'] = rep
-    params.append(param_set)
+    param_set['sample'] = sample
+    for rep in range(nreps):
+        param_set_rep = dict(param_set)
+        param_set_rep['rep'] = rep
+        params.append(param_set_rep)
   return params
 
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
-NREPS = 10000
+NSAMPLES = 1000
+NREPS = 30
 SLIM = '~/src/SLiM_build/slim'
  
 #N_range = (2, 4, int, 'log10')
@@ -88,12 +98,12 @@ bgs_params = dict(N=N_range,
                   recfrac=recfrac_range,
                   seglen=seglen_range) 
 
-bgs_params_extra = dict(N=N_range, 
-                  mu=mu_range, h=h_range, 
-                  s=(-3, np.log10(0.2), float, 'log10'), 
-                  rbp=rbp_range,
-                  recfrac=(-9, -7, float, 'log10'),
-                  seglen=seglen_range) 
+#bgs_params_extra = dict(N=N_range, 
+#                  mu=mu_range, h=h_range, 
+#                  s=(-3, np.log10(0.2), float, 'log10'), 
+#                  rbp=rbp_range,
+#                  recfrac=(-9, -7, float, 'log10'),
+#                  seglen=seglen_range) 
                   
 bgs_basename = DATADIR + 'segment/segment_'
 bgs_pattern = filename_pattern(bgs_basename, bgs_params, rep=True)
@@ -102,9 +112,11 @@ bgs_pattern = filename_pattern(bgs_basename, bgs_params, rep=True)
 bgs_sim_results = []
 bgs_recap_results = []
 
-bgs_grid = uniform_samples(bgs_params, nreps=NREPS, seed=False)
+bgs_grid = uniform_samples(bgs_params, nsamples=NSAMPLES, nreps=NREPS, seed=False)
 
-bgs_grid_extra = uniform_samples(bgs_params_extra, nreps=NREPS, seed=False)
+bgs_grid_extra = []
+#bgs_grid_extra = uniform_samples(bgs_params_extra, nsamples=NSAMPLES, 
+#                                 nreps=NREPS, seed=False)
 
 #print(bgs_grid)
 #print(bgs_pattern)

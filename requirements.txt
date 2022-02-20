@@ -9,3 +9,6 @@ jupyterlab
 tqdm
 pandas
 statsmodels
+pyslim
+tskit
+msprime
