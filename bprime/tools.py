@@ -56,7 +56,7 @@ def trees_to_training_data(dir, params, windows, suffix="recap.tree",
         X.append(X_row)
 
     X_dtypes = list(params.items())
-    X = np.array(X, dtype=X_dtypes)
+    X = np.array(X)#, dtype=X_dtypes)
     y = np.array(y)
     return X, y
 
