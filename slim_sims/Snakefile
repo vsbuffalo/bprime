@@ -49,7 +49,7 @@ def signif(x, digits=4):
   return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
 def uniform_samples(param_ranges, nsamples, nreps=1,
-                    signif_digits=6, seed=False):
+                    signif_digits=3, seed=False):
   """
   Generate nsamples, with nreps per parameter. 
   seed: include random seed
