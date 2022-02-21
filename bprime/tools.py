@@ -40,7 +40,7 @@ def trees_to_training_data(dir, params, windows, suffix="recap.tree",
             ts = tsk.load(tree_file)
             md = ts.metadata['SLiM']['user_metadata']
             region_length = int(md['region_length'][0])
-            assert(region_length  == ts.sequence_length)
+            #assert(region_length  == ts.sequence_length)
             # all replicates should have the same parameters; we check that here
             param_row = tuple(converter(md[p][0]) for p, converter in params.items())
             if X_row is None:

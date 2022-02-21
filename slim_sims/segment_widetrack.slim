@@ -93,7 +93,7 @@ initialize() {
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
   filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 'seglen', 'rep'));
-  defineConstant("basename", "segwidetrack_" + filestr);
+  defineConstant("basename", "segmentwide_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
   // == Mutations, Regions, and Recombination

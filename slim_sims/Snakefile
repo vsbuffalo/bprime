@@ -79,13 +79,13 @@ def uniform_samples(param_ranges, nsamples, nreps=1,
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
 NSAMPLES = 500
-NREPS = 50
+NREPS = 100
 SLIM = '~/src/SLiM_build/slim'
  
 #N_range = (2, 4, int, 'log10')
 N_range = (1000, 1000, int, None)
 #mu_range = (5e-8, 5e-7, float, None)
-mu_range = (1e-8, 1e-8, float, None)
+mu_range = (1e-8, 1e-7, float, None)
 h_range = (0.5, 0.5, float, None)
 #rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
 rbp_range = (1/1e8, 1/1e8, float, None) # cM/Mbp
@@ -148,35 +148,68 @@ rule bgs_recap:
                             ancestral_Ne=md['N'][0]).simplify()
     rts.dump(output.recap)
 
-#rule bgs_widetrack:
-#  input: "segment_widetrack.slim"
-#  output: [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
-#  shell:
-#    slim_call(bgs_params, SLIM, rep=True) + " {input} "
-
-
+# ------- BGS wide tracking region segments -------
  
-#rule bgs_widetrack_recap:
-#  input: treeseq=bgs_pattern.replace("{{output}}", 'treeseq.tree')
-#  output: recap=bgs_pattern.replace("{{output}}", 'recap.tree')
-#  run:
-#    ts = pyslim.load(input.treeseq)
-#    md = ts.metadata['SLiM']['user_metadata']
-#    N = int(md['N'][0])
-#    track_rbp = float(md['track_rbp'][0])
-#    rbp = float(md['rbp'][0])
-#    tracklen = int(md['tracklen'][0])
-#    seglen = int(md['seglen'][0])
-#    rates = msprime.RateMap(position=[0, tracklen, tracklen+seglen],
-#                            rate=[track_rbp, rbp])
-#    rts = pyslim.recapitate(ts, 
-#                            #recombination_rate=0,
-#                            recombination_rate=rates,
-#                            ancestral_Ne=N).simplify()
-#    rts.dump(output.recap)
+#N_range = (2, 4, int, 'log10')
+N_range = (1000, 1000, int, None)
+mu_range = (5e-8, 5e-7, float, None)
+h_range = (0.5, 0.5, float, None)
+#rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
+rbp_range = (1/1e8, 1/1e8, float, None) # cM/Mbp
+s_range = (-5, np.log10(0.2), float, 'log10')
+seglen_range = (10000, 10000, int, None)
+
+bgswide_params = dict(N=N_range, 
+                      mu=mu_range, h=h_range, 
+                      s=s_range, rbp=rbp_range,
+                      recfrac=recfrac_range,
+                      seglen=seglen_range) 
+
+bgswide_basename = DATADIR + 'segmentwide/segmentwide_'
+bgswide_pattern = filename_pattern(bgswide_basename, bgswide_params, rep=True)
+
+# bgs simulation results
+bgswide_sim_results = []
+bgswide_recap_results = []
+
+bgswide_grid = uniform_samples(bgswide_params, nsamples=NSAMPLES, nreps=NREPS, seed=False)
+
+# for use if there are more than one sim output files, e.g. log files
+for params in bgswide_grid:
+  for out in sim_outputs:
+    bgswide_sim_results.append(bgs_pattern.format(**params).format(output=out))
+  bgswide_recap_results.append(bgs_pattern.format(**params).format(output='recap.tree'))
+
+
+rule bgs_widetrack:
+  input: "segment_widetrack.slim"
+  output: [bgswide_pattern.replace("{{output}}", out) for out in sim_outputs]
+  shell:
+    slim_call(bgswide_params, SLIM, rep=True) + " {input} "
+
+
+rule bgs_widetrack_recap:
+  input: treeseq=bgswide_pattern.replace("{{output}}", 'treeseq.tree')
+  output: recap=bgswide_pattern.replace("{{output}}", 'recap.tree')
+  run:
+    ts = pyslim.load(input.treeseq)
+    md = ts.metadata['SLiM']['user_metadata']
+    N = int(md['N'][0])
+    track_rbp = float(md['track_rbp'][0])
+    rbp = float(md['rbp'][0])
+    tracklen = int(md['tracklen'][0])
+    seglen = int(md['seglen'][0])
+    rates = msprime.RateMap(position=[0, tracklen, tracklen+seglen],
+                            rate=[track_rbp, rbp])
+    rts = pyslim.recapitate(ts, 
+                            #recombination_rate=0,
+                            recombination_rate=rates,
+                            ancestral_Ne=N).simplify()
+    rts.dump(output.recap)
 
 rule all:
   input:
+    #bgswide_sim_results, bgswide_recap_results
     bgs_sim_results, bgs_recap_results
     
 
