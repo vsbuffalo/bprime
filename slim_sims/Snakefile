@@ -4,6 +4,7 @@ import itertools
 import numpy as np
 import pyslim
 import tskit
+import msprime
 from collections import defaultdict, namedtuple
 
 np.random.seed(1)
@@ -152,8 +153,8 @@ rule bgs_recap:
  
 NREPS_SAMPLE = 5
 NSAMPLES = 1000
-N_range = (2, np.log10(20000), int, 'log10')
-#N_range = (1000, 1000, int, None)
+#N_range = (2, np.log10(20000), int, 'log10')
+N_range = (1000, 1000, int, None)
 mu_range = (5e-8, 5e-7, float, None)
 h_range = (0.5, 0.5, float, None)
 rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
@@ -169,12 +170,12 @@ bgschrom_uniform_params = dict(N=N_range,
 
 # grid samples
 NREPS_GRID = 5
-N_grid = 10**np.linspace(N_range[0], N_range[1], 10)
-mu_grid = np.linspace(mu_range[0], mu_range[1], 20)
+N_grid = 10**np.linspace(N_range[0], N_range[1], 10).astype('int')
+mu_grid = np.linspace(mu_range[0], mu_range[1], 10)
 h_grid = [0.5]
-rbp_grid = np.linspace(rbp_range[0], rbp_range[1], 20)
-s_grid = 10**np.linspace(s_range[0], s_range[1], 20)
-seglen_grid = np.arange(10, 10100, 200)
+rbp_grid = np.linspace(rbp_range[0], rbp_range[1], 10)
+s_grid = 10**np.linspace(s_range[0], s_range[1], 10)
+seglen_grid = np.linspace(10, 1000, 10).astype('int')
 
 bgschrom_grid_params = dict(N=N_grid, 
                             mu=mu_grid, h=h_grid, 
@@ -185,7 +186,7 @@ bgschrom_grid_params = dict(N=N_grid,
 
 
 bgschrom_basename = DATADIR + 'segchrom/segchrom_'
-bgschrom_pattern = filename_pattern(bgschrom_basename, bgschrom_grid_params, rep=True)
+bgschrom_pattern = filename_pattern(bgschrom_basename, bgschrom_uniform_params, rep=True)
 
 # bgs simulation results
 bgschrom_sim_results = []
@@ -195,7 +196,7 @@ bgschrom_uniform_samples = uniform_samples(bgschrom_uniform_params, nsamples=NSA
 bgschrom_grid_samples = param_grid(**bgschrom_grid_params)
 
 # for use if there are more than one sim output files, e.g. log files
-all_bgschrom_params = bgschrom_grid_samples #+ bgschrom_uniform_samples
+all_bgschrom_params = bgschrom_uniform_samples 
 print(f"total bgschrom sims: {len(all_bgschrom_params)}")
 for params in all_bgschrom_params:
   for out in sim_outputs:
