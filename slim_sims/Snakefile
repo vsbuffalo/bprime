@@ -174,7 +174,7 @@ mu_grid = np.linspace(mu_range[0], mu_range[1], 20)
 h_grid = [0.5]
 rbp_grid = np.linspace(rbp_range[0], rbp_range[1], 20)
 s_grid = 10**np.linspace(s_range[0], s_range[1], 20)
-seglen_grid = np.arange(10, 10100, 100)
+seglen_grid = np.arange(10, 10100, 200)
 
 bgschrom_grid_params = dict(N=N_grid, 
                             mu=mu_grid, h=h_grid, 
