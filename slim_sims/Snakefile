@@ -195,7 +195,7 @@ bgschrom_uniform_samples = uniform_samples(bgschrom_uniform_params, nsamples=NSA
 bgschrom_grid_samples = param_grid(**bgschrom_grid_params)
 
 # for use if there are more than one sim output files, e.g. log files
-all_bgschrom_params = bgschrom_grid_samples + bgschrom_uniform_samples
+all_bgschrom_params = bgschrom_grid_samples #+ bgschrom_uniform_samples
 print(f"total bgschrom sims: {len(all_bgschrom_params)}")
 for params in all_bgschrom_params:
   for out in sim_outputs:
@@ -231,7 +231,7 @@ rule bgs_chromtrack_recap:
 
 rule all:
   input:
-    #bgschrom_sim_results, bgschrom_recap_results
-    bgs_sim_results, bgs_recap_results
+    bgschrom_sim_results, bgschrom_recap_results
+    #bgs_sim_results, bgs_recap_results
     
 
