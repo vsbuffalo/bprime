@@ -60,7 +60,7 @@ initialize() {
   defineConstant("metadata", Dictionary());
   defineConstant("tracklen", 1000000);
   defineConstant("track_rbp", 1e-8);
-  defineConstant("remember_interval", 200);
+  defineConstant("remember_interval", 500);
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("seglen", 10000);
@@ -129,7 +129,7 @@ initialize() {
 s1 {
   if (sim.generation > burnin & (sim.generation % remember_interval == 0)) {
     sim.treeSeqRememberIndividuals(p1.individuals);
-    cat(sprintf("remember interval %d/%d", sim.generation, endsim));
+    cat(paste("remember interval ", sim.generation, "/", endsim, "\n"));
   }
 }
 
