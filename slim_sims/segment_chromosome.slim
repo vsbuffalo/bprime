@@ -128,7 +128,7 @@ initialize() {
 
 s1 {
   if (sim.generation > burnin & (sim.generation % remember_interval == 0)) {
-    sim.treeSeqRememberIndividuals();
+    sim.treeSeqRememberIndividuals(p1.individuals);
     cat(sprintf("remember interval %d/%d", sim.generation, endsim));
   }
 }
