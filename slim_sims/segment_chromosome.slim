@@ -60,7 +60,7 @@ initialize() {
   defineConstant("metadata", Dictionary());
   defineConstant("tracklen", 1000000);
   defineConstant("track_rbp", 1e-8);
-  defineConstant("remember_interval", 100);
+  defineConstant("remember_interval", 200);
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("seglen", 10000);
@@ -122,7 +122,7 @@ initialize() {
 
 1 {
   sim.addSubpop("p1", N);
-  sim.rescheduleScriptBlock(s1, start=2, end=burnin);
+  sim.rescheduleScriptBlock(s1, start=2, end=endsim);
   sim.rescheduleScriptBlock(s2, start=endsim, end=endsim);
 }
 

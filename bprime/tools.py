@@ -16,7 +16,7 @@ def param_basename(filename, suffix="recap.tree"):
     match = re.match(pattern, os.path.basename(filename)).groups()[0]
     return match
 
-def trees_to_aggregate_training_data(dir, params, windows, suffix="recap.tree",
+def trees_to_aggregate_training_data(dir, params, suffix="recap.tree",
                                       progress=False):
     """
     Load the tree files with a given suffix from a directory,
@@ -40,6 +40,8 @@ def trees_to_aggregate_training_data(dir, params, windows, suffix="recap.tree",
             ts = tsk.load(tree_file)
             md = ts.metadata['SLiM']['user_metadata']
             region_length = int(md['region_length'][0])
+            seglen = int(md['seglen'][0])
+            tracklen = int(md['tracklen'][0])
             #assert(region_length  == ts.sequence_length)
             # all replicates should have the same parameters; we check that here
             param_row = tuple(converter(md[p][0]) for p, converter in params.items())
@@ -47,12 +49,13 @@ def trees_to_aggregate_training_data(dir, params, windows, suffix="recap.tree",
                 X_row = param_row
             else:
                 assert(X_row == param_row)
-            wins = windows + [ts.sequence_length]
+            wins = [0, tracklen, tracklen + seglen, 2*tracklen + seglen]
+            wins = list(ts.breakpoints())
             pi = ts.diversity(mode='branch', windows=wins)
             Ef = float(md['Ef'][0])
             Vf = float(md['Vf'][0])
             load = float(md['fixed_load'][0])
-            y_row.append((pi[0], 0.25*pi[0]/float(md['N'][0]), Ef, Vf, load))
+            y_row.append((wins, pi, 0.25*pi/float(md['N'][0]), Ef, Vf, load))
         y_row_ave = np.stack(y_row).mean(axis=0).tolist()
         y_row_var = np.stack(y_row).var(axis=0).tolist()
         y.append(y_row_ave + y_row_var + [len(y_row)])
