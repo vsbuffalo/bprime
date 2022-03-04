@@ -1,0 +1,46 @@
+initialize() {
+	initializeMutationRate(1e-7);
+	
+	defineConstant("segment_length", 1000);
+	defineConstant("ntracking", 100);
+	defineConstant("tracklen", 2);
+	// region length = segment length + track regions + 1bp spacers
+	defineConstant("region_length", segment_length + ntracking*tracklen + ntracking);
+	defineConstant("rbp", 0.1);
+	
+	// m1 mutation type: neutral
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+	
+	// uniform chromosome of length 100 kb with uniform recombination
+	initializeGenomicElement(g1, 0, region_length-1);
+
+   defineConstant("rate", 0.0);
+	rates = c(rbp, rep(c(rate, 0), ntracking));
+	ends = c(segment_length, rep(c(1, tracklen), ntracking)); 
+	spacer_ends = cumSum(ends)[ends == 1];
+	spacer_ranges = sort(c(spacer_ends - 1, spacer_ends));
+	defineConstant("spacers", spacer_ends-1);
+	initializeRecombinationRate(rates, cumSum(ends));
+}
+
+// create a population of 500 individuals
+1 {
+	sim.addSubpop("p1", 500);
+}
+
+recombination() {
+  // we break this into figuring out the breakpoints for the 
+  // tracking regions and selected segment separately
+  X = 1-rbinom(ntracking, 1, rbp);
+  Y = 1-c(X[0], X[1:(length(X)-1)] == X[0:(length(X)-2)]);
+  breakpoints = spacers[which(asLogical(Y))];
+  return T;
+}
+
+// output samples of 10 genomes periodically, all fixed mutations at end
+1000 late() { p1.outputSample(10); }
+2000 late() { p1.outputSample(10); }
+2000 late() { sim.outputFixedMutations(); }
