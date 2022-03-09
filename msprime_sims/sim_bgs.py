@@ -46,16 +46,25 @@ class UniformSampler(object):
         self.samples.append(param)
         return param
 
+#bgs_ranges = {'mu': (-8, -7, True),
+#              's': (-3, -1, True),
+#              'r': (-8, -8, True),
+#              'N': (3, 3, True),
+#              'L': (2, 5, True),
+#              'nreps': (200, 200, False)}
+
 bgs_ranges = {'mu': (-8, -7, True),
               's': (-3, -1, True),
               'r': (-8, -8, True),
               'N': (3, 3, True),
-              'L': (2, 5, True),
-              'nreps': (200, 200, False)}
+              'L': (100, 100_000, False),
+              'nreps': (1, 1, False)}
+
+
 
 
 #bgs_sampler = UniformSampler(bgs_ranges, total=100, seed=1)
-bgs_sampler = UniformSampler(bgs_ranges, total=100_000, seed=1)
+bgs_sampler = UniformSampler(bgs_ranges, total=1_000_000, seed=1)
 
 def bgs_rec_runner(param):
     mu, s, r, N, L, nreps = param
@@ -65,9 +74,9 @@ def bgs_rec_runner(param):
     return Bhats
 
 
-NCORES = 70
+NCORES = 50
 with Pool(NCORES) as p:
     results = list(tqdm.tqdm(p.imap(bgs_rec_runner, bgs_sampler), total=bgs_sampler.total))
 
-with open("bgs_rec.pkl", 'wb') as f:
+with open("bgs_rec_1rep.pkl", 'wb') as f:
     pickle.dump((bgs_sampler.samples, results), f)
