@@ -55,9 +55,9 @@ class UniformSampler(object):
 
 bgs_ranges = {'mu': (-8, -7, True),
               's': (-3, -1, True),
-              'r': (-8, -8, True),
-              'N': (3, 3, True),
-              'L': (100, 100_000, False),
+              'r': (-7, -9, True),
+              'N': (np.log10(50), 5, True),
+              'L': (10, 100_000, False),
               'nreps': (1, 1, False)}
 
 
@@ -68,6 +68,8 @@ bgs_sampler = UniformSampler(bgs_ranges, total=1_000_000, seed=1)
 
 def bgs_rec_runner(param):
     mu, s, r, N, L, nreps = param
+    N = int(N)
+    L = int(L)
     B = bgs_rec(mu, s, r, L)
     Bhats = [msprime.sim_ancestry(N, population_size=B*N).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
@@ -78,5 +80,5 @@ NCORES = 50
 with Pool(NCORES) as p:
     results = list(tqdm.tqdm(p.imap(bgs_rec_runner, bgs_sampler), total=bgs_sampler.total))
 
-with open("bgs_rec_1rep.pkl", 'wb') as f:
+with open("bgs_rec_1rep_2.pkl", 'wb') as f:
     pickle.dump((bgs_sampler.samples, results), f)
