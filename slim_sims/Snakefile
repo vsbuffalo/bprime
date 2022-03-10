@@ -7,9 +7,6 @@ import tskit
 import msprime
 from collections import defaultdict, namedtuple
 
-np.random.seed(1)
-
-
 def filename_pattern(base, params, seed=False, rep=False):
   param_str = [v + '{' + v + '}' for v in params]
   if seed:
@@ -49,33 +46,73 @@ def param_grid(seed=False, **kwargs):
 def signif(x, digits=4):
   return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
-def uniform_samples(param_ranges, nsamples, nreps=1,
-                    signif_digits=3, seed=False):
-  """
-  Generate nsamples, with nreps per parameter. 
-  seed: include random seed
-  signif_digits: round the parametres to this many significant figures
-  """
-  params = []
-  for sample in range(nsamples):
-    param_set = dict()
-    for param, ranges in param_ranges.items():
-      lower, upper, typefunc, scale = ranges
-      use_log10 = scale == 'log10'
-      # not the most efficient way to do this but it's okay
-      x = np.random.uniform(lower, upper, 1)
-      if use_log10:
-        x = 10**x
-      param_set[param] = typefunc(signif(x, signif_digits))
-      if seed:
-        param_set['seed'] = np.random.randint(0, 2**63)
-    param_set['sample'] = sample
-    for rep in range(nreps):
-        param_set_rep = dict(param_set)
-        param_set_rep['rep'] = rep
-        params.append(param_set_rep)
-  return params
+class UniformSampler(object):
+    def __init__(self, ranges, total=None, seed=None, signif_digits=4, return_dict=True):
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
+        self.ranges = ranges
+        self.total = total
+        self.samples_remaining = total
+        self.samples = []
+        self.signif_digits = signif_digits
+        self.return_dict = return_dict
 
+    def __iter__(self):
+        return self
+
+    @property
+    def __len__(self):
+        return len(self.samples)
+
+    def __next__(self):
+        if self.total is not None and self.samples_remaining == 0:
+            raise StopIteration
+        assert(self.samples_remaining >= 0)
+        use_dict = self.return_dict
+        if use_dict:
+            param = {}
+        else:
+            param = []
+        for key, (lower, upper, log10, type) in self.ranges.items():
+            if lower == upper:
+                # fixed parameter
+                val = lower
+                if log10:
+                    val = 10**lower
+                if use_dict:
+                    param[key] = val
+                else:
+                    param.append(val)
+                continue
+            if type is int:
+            	sample = self.rng.integers(lower, upper)
+            elif type is float:
+                sample = self.rng.uniform(lower, upper)
+            else:
+                raise ValueError("type must be int or float")
+            if log10:
+                sample = signif(10**sample, self.signif_digits)
+            sample = signif(sample, self.signif_digits)
+            if use_dict:
+                param[key] = sample
+            else:
+                param.append(sample)
+        self.samples_remaining -= 1
+        self.samples.append(param)
+        return param
+
+    def __repr__(self):
+        rows = [f"{self.samples_remaining}/{self.total} samples remaining, seed={self.seed}"]
+        for key, (lower, upper, log10, type) in self.ranges.items():
+            scale = 'linear'
+            if log10:
+               scale = 'log10'
+            type_str = {float: 'float', int: 'int'}[type]
+            if isinstance(lower, float) or isinstance(upper, float):
+                lower, upper = [signif(lower, self.signif_digits), signif(upper, self.signif_digits)]
+            row = f"{key} ∈ [{lower}, {upper}] ({scale}, {type_str})"
+            rows.append(row)
+        return "\n".join(rows)
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
@@ -83,9 +120,7 @@ NSAMPLES = 1000
 NREPS = 500
 SLIM = '~/src/SLiM_build/slim'
  
-#N_range = (2, 4, int, 'log10')
 N_range = (1000, 1000, int, None)
-#mu_range = (5e-8, 5e-7, float, None)
 mu_range = (1e-8, 1e-7, float, None)
 h_range = (0.5, 0.5, float, None)
 #rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
@@ -96,39 +131,27 @@ s_range = (-5, np.log10(0.2), float, 'log10')
 seglen_range = (10000, 10000, int, None)
 
 # ------- BGS segments -------
-bgs_params = dict(N=N_range, 
-                  mu=mu_range, h=h_range, 
-                  s=s_range, rbp=rbp_range,
-                  recfrac=recfrac_range,
-                  seglen=seglen_range) 
+bgs_ranges = dict(N=(np.log10(50), 4, True, int),
+                  mu=(-9, -7, True, float), 
+                  h=(0.5, 0.5, False, float), 
+                  s=(-5, -1, True, float), 
+                  rbp=(0.01/1e8, 30/1e8, False, float),
+                  recfrac=(-9, np.log10(0.5), True, float), # Morgans,
+                  seglen=(10, 10_000, False, int)) 
 
-#bgs_params_extra = dict(N=N_range, 
-#                  mu=mu_range, h=h_range, 
-#                  s=(-3, np.log10(0.2), float, 'log10'), 
-#                  rbp=rbp_range,
-#                  recfrac=(-9, -7, float, 'log10'),
-#                  seglen=seglen_range) 
-                  
+bgs_sampler = UniformSampler(bgs_ranges, total=1_000_000, seed=12)
+bgs_params = list(bgs_sampler)
+
 bgs_basename = DATADIR + 'segment/segment_'
-bgs_pattern = filename_pattern(bgs_basename, bgs_params, rep=True)
+bgs_pattern = filename_pattern(bgs_basename, bgs_ranges, rep=False)
 
 # bgs simulation results
 bgs_sim_results = []
 bgs_recap_results = []
 
-bgs_grid = uniform_samples(bgs_params, nsamples=NSAMPLES, nreps=NREPS, seed=False)
-
-bgs_grid_extra = []
-#bgs_grid_extra = uniform_samples(bgs_params_extra, nsamples=NSAMPLES, 
-#                                 nreps=NREPS, seed=False)
-
-#print(bgs_grid)
-#print(bgs_pattern)
-#sys.exit(1)
-
 # for use if there are more than one sim output files, e.g. log files
 sim_outputs = ["treeseq.tree"]
-for params in bgs_grid + bgs_grid_extra:
+for params in bgs_params:
   for out in sim_outputs:
     bgs_sim_results.append(bgs_pattern.format(**params).format(output=out))
   bgs_recap_results.append(bgs_pattern.format(**params).format(output='recap.tree'))
@@ -137,7 +160,7 @@ rule bgs:
   input: "segment.slim"
   output: [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
   shell:
-    slim_call(bgs_params, SLIM, rep=True) + " {input} "
+    slim_call(bgs_ranges, SLIM, rep=False) + " {input} "
 
 rule bgs_recap:
   input: treeseq=bgs_pattern.replace("{{output}}", 'treeseq.tree')
@@ -149,90 +172,8 @@ rule bgs_recap:
                             ancestral_Ne=md['N'][0]).simplify()
     rts.dump(output.recap)
 
-# ------- BGS chromosome tracking region segments -------
- 
-NREPS_SAMPLE = 5
-NSAMPLES = 10000
-#N_range = (2, np.log10(20000), int, 'log10')
-N_range = (1000, 1000, int, None)
-mu_range = (5e-8, 5e-7, float, None)
-h_range = (0.5, 0.5, float, None)
-rbp_range = (0.001/1e8, 30/1e8, float, None) # cM/Mbp
-#rbp_range = (1/1e8, 1/1e8, float, None) # cM/Mbp
-s_range = (-5, np.log10(0.2), float, 'log10')
-seglen_range = (10000, 10000, int, None)
-
-# random samples
-bgschrom_uniform_params = dict(N=N_range, 
-                               mu=mu_range, h=h_range, 
-                               s=s_range, rbp=rbp_range,
-                               seglen=seglen_range) 
-
-# grid samples
-NREPS_GRID = 2
-N_grid = 10**np.linspace(N_range[0], N_range[1], 10).astype('int')
-mu_grid = np.linspace(mu_range[0], mu_range[1], 10)
-h_grid = [0.5]
-rbp_grid = np.linspace(rbp_range[0], rbp_range[1], 10)
-s_grid = 10**np.linspace(s_range[0], s_range[1], 10)
-seglen_grid = [10000]
-
-bgschrom_grid_params = dict(N=N_grid, 
-                            mu=mu_grid, h=h_grid, 
-                            s=s_grid, rbp=rbp_grid,
-                            seglen=seglen_grid, 
-                            rep=np.arange(NREPS_GRID)) 
-      
-
-
-bgschrom_basename = DATADIR + 'segchrom/segchrom_'
-bgschrom_pattern = filename_pattern(bgschrom_basename, bgschrom_uniform_params, rep=True)
-
-# bgs simulation results
-bgschrom_sim_results = []
-bgschrom_recap_results = []
-
-bgschrom_uniform_samples = uniform_samples(bgschrom_uniform_params, nsamples=NSAMPLES, nreps=NREPS_SAMPLE, seed=False)
-bgschrom_grid_samples = param_grid(**bgschrom_grid_params)
-
-# for use if there are more than one sim output files, e.g. log files
-all_bgschrom_params = bgschrom_uniform_samples 
-print(f"total bgschrom sims: {len(all_bgschrom_params)}")
-for params in all_bgschrom_params:
-  for out in sim_outputs:
-    bgschrom_sim_results.append(bgschrom_pattern.format(**params).format(output=out))
-  bgschrom_recap_results.append(bgschrom_pattern.format(**params).format(output='recap.tree'))
-
-
-rule bgs_chromtrack:
-  input: "segment_chromosome.slim"
-  output: [bgschrom_pattern.replace("{{output}}", out) for out in sim_outputs]
-  shell:
-    slim_call(bgschrom_grid_params, SLIM, rep=True) + " {input} "
-
-
-rule bgs_chromtrack_recap:
-  input: treeseq=bgschrom_pattern.replace("{{output}}", 'treeseq.tree')
-  output: recap=bgschrom_pattern.replace("{{output}}", 'recap.tree')
-  run:
-    ts = pyslim.load(input.treeseq)
-    md = ts.metadata['SLiM']['user_metadata']
-    N = int(md['N'][0])
-    track_rbp = float(md['track_rbp'][0])
-    rbp = float(md['rbp'][0])
-    tracklen = int(md['tracklen'][0])
-    seglen = int(md['seglen'][0])
-    rates = msprime.RateMap(position=[0, tracklen, tracklen+seglen, 2*tracklen+seglen],
-                            rate=[track_rbp, rbp, track_rbp])
-    rts = pyslim.recapitate(ts, 
-                            #recombination_rate=0,
-                            recombination_rate=rates,
-                            ancestral_Ne=N).simplify()
-    rts.dump(output.recap)
-
 rule all:
   input:
-    bgschrom_sim_results, bgschrom_recap_results
-    #bgs_sim_results, bgs_recap_results
+    bgs_sim_results, bgs_recap_results
     
 
