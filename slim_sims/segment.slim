@@ -58,7 +58,7 @@ initialize() {
   initializeTreeSeq();
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
-  defineConstant("tracklen", 100);
+  defineConstant("tracklen", 10);
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("seglen", 10000);
@@ -137,6 +137,7 @@ s2 late() {
   fixed_load = inds.sumOfMutationsOfType(m1);
   metadata.setValue("ndel_subs", sum(ndel_subs));
   metadata.setValue("fixed_load", sum(fixed_load));
+  metadata.setValue("generations", sim.generations);
   popfit = pop_fitness(m1);
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));

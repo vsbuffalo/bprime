@@ -160,7 +160,7 @@ h_range = (0.5, 0.5, float, None)
 rbp_range = (0.001/1e8, 30/1e8, float, None) # cM/Mbp
 #rbp_range = (1/1e8, 1/1e8, float, None) # cM/Mbp
 s_range = (-5, np.log10(0.2), float, 'log10')
-seglen_range = (10, 10000, int, None)
+seglen_range = (10000, 10000, int, None)
 
 # random samples
 bgschrom_uniform_params = dict(N=N_range, 
