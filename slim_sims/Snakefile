@@ -5,6 +5,7 @@ import numpy as np
 import pyslim
 import tskit
 import msprime
+from datetime import time
 from collections import defaultdict, namedtuple
 
 def filename_pattern(base, params, seed=False, rep=False):
@@ -150,15 +151,29 @@ for params in bgs_params:
     bgs_sim_results.append(bgs_pattern.format(**params).format(output=out))
   bgs_recap_results.append(bgs_pattern.format(**params).format(output='recap.tree'))
 
+def time_grower(start_time, factor=1.8):
+  def time_limit(wildcards, attempt):
+      new_time = start_time*(attempt + factor*(attempt-1))
+      days = int(new_time // 24)
+      time_left = new_time % 24
+      hours = int(time_left // 1)
+      minutes = int(60*(time_left - (time_left // 1)))
+      return f"{days:02d}-{hours}:{minutes}:00"
+  return time_limit
+
 rule bgs:
   input: "segment.slim"
   output: [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
+  resources: 
+    runtime = time_grower(1.5) # 1.5 hours that grows 1.8x after each failed attempt
   shell:
     slim_call(bgs_ranges, SLIM, rep=False) + " {input} "
 
 rule bgs_recap:
   input: treeseq=bgs_pattern.replace("{{output}}", 'treeseq.tree')
   output: recap=bgs_pattern.replace("{{output}}", 'recap.tree')
+  #resources:
+  #  time = "00-00:30:00"
   run:
     ts = pyslim.load(input.treeseq)
     md = ts.metadata['SLiM']['user_metadata']
