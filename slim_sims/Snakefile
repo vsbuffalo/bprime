@@ -84,15 +84,20 @@ class UniformSampler(object):
                 else:
                     param.append(val)
                 continue
-            if type is int:
-            	sample = self.rng.integers(lower, upper)
-            elif type is float:
+            # log10 or floats get uniform float
+            if type is float or log10:
                 sample = self.rng.uniform(lower, upper)
+            elif type is int and not log10:
+                # if the type is int and not log10, discrete uniform
+                sample = self.rng.integers(lower, upper)
             else:
-                raise ValueError("type must be int or float")
+                raise ValueError("type must be float or int")
             if log10:
                 sample = signif(10**sample, self.signif_digits)
-            sample = signif(sample, self.signif_digits)
+            if type is int:
+                sample = int(sample)
+            else:
+                sample = signif(sample, self.signif_digits)
             if use_dict:
                 param[key] = sample
             else:
@@ -102,7 +107,7 @@ class UniformSampler(object):
         return param
 
     def __repr__(self):
-        rows = [f"{self.samples_remaining}/{self.total} samples remaining, seed={self.seed}"]
+        rows = [f"UniformSampler with {self.samples_remaining}/{self.total} samples remaining, seed={self.seed}"]
         for key, (lower, upper, log10, type) in self.ranges.items():
             scale = 'linear'
             if log10:
@@ -116,31 +121,20 @@ class UniformSampler(object):
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
-NSAMPLES = 1000
-NREPS = 500
 SLIM = '~/src/SLiM_build/slim'
  
-N_range = (1000, 1000, int, None)
-mu_range = (1e-8, 1e-7, float, None)
-h_range = (0.5, 0.5, float, None)
-#rbp_range = (0.01/1e8, 30/1e8, float, None) # cM/Mbp
-rbp_range = (1/1e8, 1/1e8, float, None) # cM/Mbp
-#recfrac_range = (-9, np.log10(0.5), float, 'log10') # Morgans
-recfrac_range = (-8, -8, float, 'log10') # Morgans
-s_range = (-5, np.log10(0.2), float, 'log10')
-seglen_range = (10000, 10000, int, None)
-
 # ------- BGS segments -------
-bgs_ranges = dict(N=(np.log10(50), 4, True, int),
-                  mu=(-9, -7, True, float), 
+bgs_ranges = dict(N=(50, 20_000, False, int),
+                  mu=(1e-9, 1e-7, False, float), 
                   h=(0.5, 0.5, False, float), 
-                  s=(-5, -1, True, float), 
+                  s=(1e-5, 1e-1, False, float), 
                   rbp=(0.01/1e8, 30/1e8, False, float),
                   recfrac=(-9, np.log10(0.5), True, float), # Morgans,
                   seglen=(10, 10_000, False, int)) 
 
-bgs_sampler = UniformSampler(bgs_ranges, total=1_000_000, seed=12)
+bgs_sampler = UniformSampler(bgs_ranges, total=100_000, seed=12)
 bgs_params = list(bgs_sampler)
+print(bgs_sampler)
 
 bgs_basename = DATADIR + 'segment/segment_'
 bgs_pattern = filename_pattern(bgs_basename, bgs_ranges, rep=False)

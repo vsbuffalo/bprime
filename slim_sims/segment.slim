@@ -93,7 +93,7 @@ initialize() {
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
   filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 
-                           'recfrac', 'seglen', 'rep'));
+                           'recfrac', 'seglen'));
   defineConstant("basename", "segment_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
@@ -137,7 +137,7 @@ s2 late() {
   fixed_load = inds.sumOfMutationsOfType(m1);
   metadata.setValue("ndel_subs", sum(ndel_subs));
   metadata.setValue("fixed_load", sum(fixed_load));
-  metadata.setValue("generations", sim.generations);
+  metadata.setValue("generations", sim.generation);
   popfit = pop_fitness(m1);
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
