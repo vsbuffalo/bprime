@@ -1,0 +1,13 @@
+{
+  "name": "classicbgs",
+  "params":
+     {
+       "N": {"lower": 1000, "upper": 1000, "log10": false, "type": "int"},
+       "mu": {"lower": 1e-9, "upper": 1e-7, "log10": false, "type": "float"},
+       "s": {"lower": 1e-5, "upper": 1e-1, "log10": false, "type": "float"},
+       "h": {"lower": 0.5, "upper": 0.5, "log10": false, "type": "float"},
+       "rbp": {"lower": 1e-8, "upper": 1e-8, "log10": false, "type": "float"},
+       "seglen": {"lower": 1000, "upper": 1000, "log10": false, "type": "float"}
+     },
+   "init_runtime": 0.25
+}

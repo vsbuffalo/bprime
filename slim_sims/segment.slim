@@ -71,7 +71,7 @@ initialize() {
     defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", '');
   } else {
-	defineConstant("datadir", '../data/slim_sims/segment/');
+	defineConstant("datadir", '../data/slim_sims/'+config_name+'/');
   }
 
   defineConstant("region_length", tracklen + seglen + 1);
@@ -94,7 +94,7 @@ initialize() {
   // this must be the same order as the bgs_params in the Snakefile
   filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 
                            'recfrac', 'seglen'));
-  defineConstant("basename", "segment_" + filestr);
+  defineConstant("basename", config_name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
   // == Mutations, Regions, and Recombination

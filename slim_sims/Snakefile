@@ -1,4 +1,5 @@
 import sys
+import json
 from math import floor, log10
 import itertools 
 import numpy as np
@@ -17,7 +18,7 @@ def filename_pattern(base, params, seed=False, rep=False):
   pattern = base + '_'.join(param_str) + '_{{output}}'
   return pattern
 
-def slim_call(params, slim_cmd="slim", rep=False):
+def slim_call(params, slim_cmd="slim", rep=False, **kwargs):
   call_args = []
   for p in params:
     is_str = isinstance(params[p][0], str) and params[p][0] not in ['T', 'F']
@@ -28,7 +29,17 @@ def slim_call(params, slim_cmd="slim", rep=False):
       call_args.append(f"-d {p}={val}")
   if rep:
     call_args.append("-d rep={wildcards.rep}")
-  return f"{slim_cmd} " + " ".join(call_args)
+  add_on = ''
+  if len(kwargs):
+    # manual stuff
+    add_on = []
+    for key, val in kwargs.items():
+      if isinstance(val, str):
+        add_on.append(f'-d {key}=\\"{val}\\"')
+      else:
+        add_on.append(f'-d {key}={val}')
+    add_on = ' '.join(add_on)
+  return f"{slim_cmd} " + " ".join(call_args) + add_on
 
 def param_grid(seed=False, **kwargs):
   params = []
@@ -120,36 +131,48 @@ class UniformSampler(object):
             rows.append(row)
         return "\n".join(rows)
 
+
+def read_params(config):
+  params = {}
+  print(config)
+  for param, vals in config['params']:
+    lower, upper = vals['lower'], vals['upper']
+    log10, type = vals['log10'], {'float': float, 'int': int}[vals['type']]
+    params[param] = (lower, upper, log10, type)
+  return params
+  
+
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
  
 # ------- BGS segments -------
-bgs_ranges = dict(N=(50, 20_000, False, int),
-                  mu=(1e-9, 1e-7, False, float), 
-                  h=(0.5, 0.5, False, float), 
-                  s=(1e-5, 1e-1, False, float), 
-                  rbp=(0.01/1e8, 30/1e8, False, float),
-                  recfrac=(-9, np.log10(0.5), True, float), # Morgans,
-                  seglen=(10, 10_000, False, int)) 
+#bgs_ranges = dict(N=(50, 20_000, False, int),
+#                  mu=(1e-9, 1e-7, False, float), 
+#                  h=(0.5, 0.5, False, float), 
+#                  s=(1e-5, 1e-1, False, float), 
+#                  rbp=(0.01/1e8, 30/1e8, False, float),
+#                  recfrac=(-9, np.log10(0.5), True, float), # Morgans,
+#                  seglen=(10, 10_000, False, int)) 
 
-bgs_sampler = UniformSampler(bgs_ranges, total=100_000, seed=12)
-bgs_params = list(bgs_sampler)
-print(bgs_sampler)
+params = read_params(config)
 
-bgs_basename = DATADIR + 'segment/segment_'
-bgs_pattern = filename_pattern(bgs_basename, bgs_ranges, rep=False)
+sampler = UniformSampler(params, total=100_000, seed=12)
+samples = list(sampler)
+
+basename = DATADIR + f"{config['name']}/{config['name']}_"
+pattern = filename_pattern(basename, params, rep=False)
 
 # bgs simulation results
-bgs_sim_results = []
-bgs_recap_results = []
+sim_results = []
+recap_results = []
 
 # for use if there are more than one sim output files, e.g. log files
 sim_outputs = ["treeseq.tree"]
-for params in bgs_params:
+for params in samples:
   for out in sim_outputs:
-    bgs_sim_results.append(bgs_pattern.format(**params).format(output=out))
-  bgs_recap_results.append(bgs_pattern.format(**params).format(output='recap.tree'))
+    _sim_results.append(pattern.format(**params).format(output=out))
+  recap_results.append(pattern.format(**params).format(output='recap.tree'))
 
 def time_grower(start_time, factor=1.8):
   def time_limit(wildcards, attempt):
@@ -163,15 +186,16 @@ def time_grower(start_time, factor=1.8):
 
 rule bgs:
   input: "segment.slim"
-  output: [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
+  output: [pattern.replace("{{output}}", out) for out in sim_outputs]
   resources: 
-    runtime = time_grower(1.5) # 1.5 hours that grows 1.8x after each failed attempt
+    # 1.5 hours that grows 1.8x each failed attempt
+    runtime = time_grower(config['init_runtime'])
   shell:
-    slim_call(bgs_ranges, SLIM, rep=False) + " {input} "
+    slim_call(params, SLIM, rep=False, config_name=config['name']) + " {input} "
 
-rule bgs_recap:
-  input: treeseq=bgs_pattern.replace("{{output}}", 'treeseq.tree')
-  output: recap=bgs_pattern.replace("{{output}}", 'recap.tree')
+rule recap:
+  input: treeseq=pattern.replace("{{output}}", 'treeseq.tree')
+  output: recap=pattern.replace("{{output}}", 'recap.tree')
   #resources:
   #  time = "00-00:30:00"
   run:
@@ -183,6 +207,6 @@ rule bgs_recap:
 
 rule all:
   input:
-    bgs_sim_results, bgs_recap_results
+    sim_results, recap_results
     
 
