@@ -62,14 +62,14 @@ initialize() {
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("seglen", 10000);
-    defineConstant("rep", 0);
     defineConstant("rbp", 1e-8);
-    defineConstant("recfrac", 0.5);
+    defineConstant("recfrac", 1e-8);
     defineConstant("N", 1000);
-    defineConstant("s", -2e-2);
+    defineConstant("s", 1e-2);
     defineConstant("mu", 1e-8);
     defineConstant("h", 0.5);    // deleterious dominance
-	defineConstant("datadir", '');
+	defineConstant("datadir", 'tests/');
+	defineConstant("config_name", 'defaults');
   } else {
 	defineConstant("datadir", '../data/slim_sims/'+config_name+'/');
   }
@@ -133,8 +133,10 @@ s1 {
 s2 late() {
   // how many del mutations fixed?
   inds = p1.individuals;
-  ndel_subs = inds.countOfMutationsOfType(m1);
-  fixed_load = inds.sumOfMutationsOfType(m1);
+  ndel_subs = length(sim.substitutions.mutationType == m1);
+  fixed_load = sum(sim.substitutions[sim.substitutions.mutationType == m1].selectionCoeff);
+  print(ndel_subs);
+  print(fixed_load);
   metadata.setValue("ndel_subs", sum(ndel_subs));
   metadata.setValue("fixed_load", sum(fixed_load));
   metadata.setValue("generations", sim.generation);

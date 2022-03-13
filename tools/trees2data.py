@@ -2,9 +2,11 @@ import os
 import click
 import numpy as np
 import tskit
+import pyslim
 import tqdm
 
-def trees2training_data(dir, features, progress=True, suffix="recap.tree"):
+def trees2training_data(dir, features, recap='auto',
+                        progress=True, suffix="recap.tree"):
     tree_files = [os.path.join(dir, f) for f in os.listdir(dir) if f.endswith(suffix)]
     X, y = [], []
     if progress:
@@ -12,6 +14,12 @@ def trees2training_data(dir, features, progress=True, suffix="recap.tree"):
     for tree_file in tree_files:
         ts = tskit.load(tree_file)
         md = ts.metadata['SLiM']['user_metadata']
+        needs_recap = max(t.num_roots for t in ts.trees()) > 1
+        if (recap is True) or (recap == 'auto' and needs_recap):
+            ts = pyslim.slim_tree_sequence.SlimTreeSequence(ts)
+            rts = pyslim.recapitate(ts, recombination_rate=0,
+                                    ancestral_Ne=md['N'][0]).simplify()
+        assert(nroots == 1)
         region_length = int(md['region_length'][0])
         seglen = int(md['seglen'][0])
         tracklen = int(md['tracklen'][0])
