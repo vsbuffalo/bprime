@@ -101,7 +101,8 @@ initialize() {
   initializeMutationRate(mu);
   
   // segment deleterious mutations
-  initializeMutationType("m1", h, "f", -s);
+  initializeMutationType("m1", h, "f", 0.0);
+  initializeMutationType("m2", h, "f", -s);
 
   // Neutral tracked region from [0, tracklen-1] with no mutation
   // followed by a 1bp spacer (this is a bit silly but we don't want any
@@ -109,7 +110,9 @@ initialize() {
 
   // gene segment under selection
   initializeGenomicElementType("g1", m1, 1);
-  initializeGenomicElement(g1, tracklen+1, tracklen+seglen);
+  initializeGenomicElementType("g2", m2, 1);
+  initializeGenomicElement(g1, 0, tracklen);
+  initializeGenomicElement(g2, tracklen+1, tracklen+seglen);
 
   // recombination between segments
   rec_rates = c(0, recfrac, rbp);
@@ -133,14 +136,12 @@ s1 {
 s2 late() {
   // how many del mutations fixed?
   inds = p1.individuals;
-  ndel_subs = length(sim.substitutions.mutationType == m1);
-  fixed_load = sum(sim.substitutions[sim.substitutions.mutationType == m1].selectionCoeff);
-  print(ndel_subs);
-  print(fixed_load);
+  ndel_subs = length(sim.substitutions.mutationType == m2);
+  fixed_load = sum(sim.substitutions[sim.substitutions.mutationType == m2].selectionCoeff);
   metadata.setValue("ndel_subs", sum(ndel_subs));
   metadata.setValue("fixed_load", sum(fixed_load));
   metadata.setValue("generations", sim.generation);
-  popfit = pop_fitness(m1);
+  popfit = pop_fitness(m2);
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
   sim.treeSeqOutput(treeseq_file, metadata=metadata);

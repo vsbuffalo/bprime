@@ -72,14 +72,17 @@ class UniformSampler(object):
         for key, (lower, upper, log10, type) in self.ranges.items():
             if lower == upper:
                 # fixed parameter
-                val = lower
+                val = type(lower)
                 if log10:
                     val = 10**lower
                 param[key] = val
                 continue
             # log10 or floats get uniform float
             if type is float or log10:
-                sample = self.rng.uniform(lower, upper)
+                try:
+                   sample = self.rng.uniform(lower, upper)
+                except:
+                   import pdb;pdb.set_trace()
             elif type is int and not log10:
                 # if the type is int and not log10, discrete uniform
                 sample = self.rng.integers(lower, upper)
@@ -119,7 +122,7 @@ def read_params(config):
   for param, vals in config['params'].items():
     lower, upper = vals['lower'], vals['upper']
     log10, type = vals['log10'], {'float': float, 'int': int}[vals['type']]
-    params[param] = (lower, upper, log10, type)
+    params[param] = (type(lower), type(upper), log10, type)
   return params
   
 
