@@ -20,8 +20,8 @@ def filename_pattern(base, params, seed=False, rep=False):
 
 def slim_call(params, slim_cmd="slim", rep=False, **kwargs):
   call_args = []
-  for p in params:
-    is_str = isinstance(params[p][0], str) and params[p][0] not in ['T', 'F']
+  for p, (lower, upper, log10, type) in params.items():
+    is_str = type is str
     val = f"{{wildcards.{p}}}" if not is_str else f'\\"{{wildcards.{p}}}\\"'
     if p == 'seed':
       call_args.append(f"-s val")
@@ -40,20 +40,6 @@ def slim_call(params, slim_cmd="slim", rep=False, **kwargs):
         add_on.append(f'-d {key}={val}')
     add_on = ' '.join(add_on)
   return f"{slim_cmd} " + " ".join(call_args) + add_on
-
-def param_grid(seed=False, **kwargs):
-  params = []
-  for param, values in kwargs.items():
-    if len(values):
-      params.append([(param, v) for v in values])
-    else:
-      params.append([(param, '')])
-  out = list(map(dict, itertools.product(*params)))
-  if not seed:
-    return out
-  for entry in out:
-    entry['seed'] = np.random.randint(0, 2**63)
-  return out
 
 def signif(x, digits=4):
   return np.round(x, digits-int(floor(log10(abs(x))))-1)
@@ -134,8 +120,7 @@ class UniformSampler(object):
 
 def read_params(config):
   params = {}
-  print(config)
-  for param, vals in config['params']:
+  for param, vals in config['params'].items():
     lower, upper = vals['lower'], vals['upper']
     log10, type = vals['log10'], {'float': float, 'int': int}[vals['type']]
     params[param] = (lower, upper, log10, type)
@@ -169,10 +154,10 @@ recap_results = []
 
 # for use if there are more than one sim output files, e.g. log files
 sim_outputs = ["treeseq.tree"]
-for params in samples:
+for sample in samples:
   for out in sim_outputs:
-    _sim_results.append(pattern.format(**params).format(output=out))
-  recap_results.append(pattern.format(**params).format(output='recap.tree'))
+    sim_results.append(pattern.format(**sample).format(output=out))
+  recap_results.append(pattern.format(**sample).format(output='recap.tree'))
 
 def time_grower(start_time, factor=1.8):
   def time_limit(wildcards, attempt):

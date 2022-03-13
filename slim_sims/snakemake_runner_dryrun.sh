@@ -1,5 +1,5 @@
 snakemake -j 999 --rerun-incomplete --use-conda \
-   #--config config="./cluster_talapas.json" \
+   --config config="./cluster_talapas.json" \
    --configfile classic_bgs.json \
    --cluster-config cluster_talapas.json \
    --jobname='bgs_segment.{rulename}.{jobid}.sh' --scheduler greedy \
