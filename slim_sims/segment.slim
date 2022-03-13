@@ -92,8 +92,8 @@ initialize() {
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  filestr = filename_str(c('N', 'mu', 'h', 's', 'rbp', 
-                           'recfrac', 'seglen'));
+  filestr = filename_str(c('N', 'mu', 's', 'h', 'rbp', 
+                           'recfrac', 'seglen', 'seed'));
   defineConstant("basename", config_name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 

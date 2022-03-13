@@ -18,42 +18,44 @@ def filename_pattern(base, params, seed=False, rep=False):
   pattern = base + '_'.join(param_str) + '_{{output}}'
   return pattern
 
-def slim_call(params, slim_cmd="slim", rep=False, **kwargs):
+def slim_call(params, slim_cmd="slim", rep=False, seed=True, manual=None):
   call_args = []
   for p, (lower, upper, log10, type) in params.items():
     is_str = type is str
     val = f"{{wildcards.{p}}}" if not is_str else f'\\"{{wildcards.{p}}}\\"'
-    if p == 'seed':
-      call_args.append(f"-s val")
-    else:
-      call_args.append(f"-d {p}={val}")
+    call_args.append(f"-d {p}={val}")
   if rep:
     call_args.append("-d rep={wildcards.rep}")
   add_on = ''
-  if len(kwargs):
+  if manual is not None:
     # manual stuff
     add_on = []
-    for key, val in kwargs.items():
+    for key, val in manual.items():
       if isinstance(val, str):
         add_on.append(f'-d {key}=\\"{val}\\"')
       else:
         add_on.append(f'-d {key}={val}')
-    add_on = ' '.join(add_on)
-  return f"{slim_cmd} " + " ".join(call_args) + add_on
+    add_on = ' ' + ' '.join(add_on)
+  if seed:
+    call_args.append("-s {wildcards.seed}")
+  full_call = f"{slim_cmd} " + " ".join(call_args) + add_on
+  return full_call
 
 def signif(x, digits=4):
   return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
 class UniformSampler(object):
-    def __init__(self, ranges, total=None, seed=None, signif_digits=4, return_dict=True):
+    def __init__(self, ranges, total=None, seed=None, add_seed=True, 
+                 seed_max=2**32, signif_digits=4):
         self.seed = seed
+        self.add_seed = add_seed
+        self.seed_max = seed_max
         self.rng = np.random.default_rng(seed)
         self.ranges = ranges
         self.total = total
         self.samples_remaining = total
         self.samples = []
         self.signif_digits = signif_digits
-        self.return_dict = return_dict
 
     def __iter__(self):
         return self
@@ -66,21 +68,14 @@ class UniformSampler(object):
         if self.total is not None and self.samples_remaining == 0:
             raise StopIteration
         assert(self.samples_remaining >= 0)
-        use_dict = self.return_dict
-        if use_dict:
-            param = {}
-        else:
-            param = []
+        param = {}
         for key, (lower, upper, log10, type) in self.ranges.items():
             if lower == upper:
                 # fixed parameter
                 val = lower
                 if log10:
                     val = 10**lower
-                if use_dict:
-                    param[key] = val
-                else:
-                    param.append(val)
+                param[key] = val
                 continue
             # log10 or floats get uniform float
             if type is float or log10:
@@ -96,10 +91,11 @@ class UniformSampler(object):
                 sample = int(sample)
             else:
                 sample = signif(sample, self.signif_digits)
-            if use_dict:
-                param[key] = sample
-            else:
-                param.append(sample)
+            param[key] = sample
+        if self.add_seed:
+            seed = self.rng.integers(0, self.seed_max)
+            param['seed'] = seed
+ 
         self.samples_remaining -= 1
         self.samples.append(param)
         return param
@@ -140,13 +136,13 @@ SLIM = '~/src/SLiM_build/slim'
 #                  recfrac=(-9, np.log10(0.5), True, float), # Morgans,
 #                  seglen=(10, 10_000, False, int)) 
 
-params = read_params(config)
+run_params = read_params(config)
 
-sampler = UniformSampler(params, total=100_000, seed=12)
+sampler = UniformSampler(run_params, total=config['nsamples'], seed=12)
 samples = list(sampler)
 
 basename = DATADIR + f"{config['name']}/{config['name']}_"
-pattern = filename_pattern(basename, params, rep=False)
+pattern = filename_pattern(basename, run_params, rep=False, seed=True)
 
 # bgs simulation results
 sim_results = []
@@ -175,8 +171,8 @@ rule bgs:
   resources: 
     # 1.5 hours that grows 1.8x each failed attempt
     runtime = time_grower(config['init_runtime'])
-  shell:
-    slim_call(params, SLIM, rep=False, config_name=config['name']) + " {input} "
+  run:
+    shell(slim_call(run_params, SLIM, rep=False, manual={'config_name': config['name']}) + " {input} ")
 
 rule recap:
   input: treeseq=pattern.replace("{{output}}", 'treeseq.tree')
