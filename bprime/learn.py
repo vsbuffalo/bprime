@@ -119,7 +119,7 @@ class LearnedFunction(object):
     def predict_train(self):
         return self.model.predict(self.X_train).squeeze()
 
-    def domain_grids(self, n, fix_X=None):
+    def domain_grids(self, n, fix_X=None, log10=None):
         """
         TODO: could have an option to put this through the scaling inverse
         function.
@@ -128,6 +128,10 @@ class LearnedFunction(object):
         nx = n
         for feature, (lower, upper) in self.bounds.items():
             is_logscale = self.logscale[feature]
+            if log10 is not None and feature in log10:
+                is_logscale = True
+                lower = np.log10(lower)
+                upper = np.log10(upper)
             if fix_X is None or feature not in fix_X:
                 if isinstance(n, dict):
                     nx = n[feature]
@@ -141,12 +145,12 @@ class LearnedFunction(object):
             grids.append(grid)
         return grids
 
-    def predict_grid(self, n, fix_X=None):
+    def predict_grid(self, n, fix_X=None, log10=None):
         """
         Predict a grid of points (useful for visualizing learned function).
         This uses the domain specified by the model.
         """
-        domain_grids = self.domain_grids(n, fix_X = fix_X)
+        domain_grids = self.domain_grids(n, fix_X=fix_X, log10=log10)
         mesh = np.meshgrid(*domain_grids)
         mesh_array = np.stack(mesh)
         X_meshcols = np.stack([col.flatten() for col in mesh]).T
