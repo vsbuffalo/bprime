@@ -5,6 +5,15 @@ import tskit
 import pyslim
 import tqdm
 
+def Bhat(pi, N):
+    """
+    Branch statistics π is 4N (e.g. if μ --> 1)
+    If there's a reduction factor B, such that
+    E[π] = 4BN, a method of moments estimator of
+    B is Bhat = π / 4N.
+    """
+    return 0.25 * pi / N
+
 def trees2training_data(dir, features, recap='auto',
                         progress=True, suffix="recap.tree"):
     tree_files = [os.path.join(dir, f) for f in os.listdir(dir) if f.endswith(suffix)]
@@ -24,8 +33,11 @@ def trees2training_data(dir, features, recap='auto',
         region_length = int(md['region_length'][0])
         seglen = int(md['seglen'][0])
         tracklen = int(md['tracklen'][0])
+        N = int(md['N'][0])
         #assert(region_length  == ts.sequence_length)
 
+
+        # tracking vs selected regions
         wins = [0, tracklen, tracklen + seglen + 1]
         pi = ts.diversity(mode='branch', windows=wins)
         Ef = float(md['Ef'][0])
@@ -36,9 +48,10 @@ def trees2training_data(dir, features, recap='auto',
         # get features from metadata
         X.append(tuple(md[f][0] for f in features))
         # get targets and other data
-        y.append((pi[0], 0.25*pi[0]/float(md['N'][0]), Ef, Vf, load))
-    print(np.array(y).mean(axis=0))
-    return np.array(X), np.array(y), features
+        tracking_pi = pi[0]
+        y.append((tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load))
+    targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load')
+    return np.array(X), np.array(y), features, targets
 
 
 @click.command()
@@ -51,8 +64,8 @@ def trees2training_data(dir, features, recap='auto',
 @click.option('--features', default='N,s,h,mu,recfrac,rbp,seglen',
               help='features to extract from metadata')
 def main(dir, outfile, recap, suffix, features):
-    X, y, features = trees2training_data(dir, features=features.split(','), suffix=suffix)
-    np.savez(outfile, X=X, y=y, features=features)
+    X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix)
+    np.savez(outfile, X=X, y=y, features=features, targets=targets)
 
 if __name__ == "__main__":
     main()
