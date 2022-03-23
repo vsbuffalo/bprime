@@ -1,6 +1,10 @@
-all: sex-averaged.bed hg38_100kb.bed rec_100kb.bed rec_100kb_chr10.bed conserved.bed.gz conserved_chr10.bed neutral_chr10.bed \
-	HapmapII_GRCh37_RecombinationHotspots.tar.gz hapmap/genetic_map_GRCh37_chr10.txt conserved_by_chrom/conserved_chr10.bed.gz \
-	 hapmap_genetic_map.bed B_hapmap_exons_phastcons.pkl
+all: 
+	
+	hg38_100kb.bed conserved.bed.gz 
+
+HapmapII_GRCh37_RecombinationHotspots.tar.gz hapmap/genetic_map_GRCh37_chr10.txt sex-averaged.bed rec_100kb.bed hapmap_genetic_map.bed 
+
+rec_100kb_chr10.bed conserved_chr10.bed neutral_chr10.bed conserved_by_chrom/conserved_chr10.bed.gz 
 
 clean-all: clean-decode clean-hapmap clean-simplified clean-chr10 clean-simplified
  
@@ -45,8 +49,9 @@ hapmap/genetic_map_GRCh37_chr10.txt: HapmapII_GRCh37_RecombinationHotspots.tar.g
 	mkdir -p hapmap
 	tar -xvzf $< -C hapmap
 
+# this is just a placeholder file; this works on the whole directory
 hapmap_genetic_map.bed: hapmap/genetic_map_GRCh37_chr10.txt
-	find hapmap/ -name "genetic_map_GRCh37_chr*txt" | grep -P "chr[0-9]+.txt" | sort --version-sort | xargs -n 1 cat | grep -v Chromosome | bioawk -t '{ print $$1,$$2,$$3 }' > $<
+	find hapmap/ -name "genetic_map_GRCh37_chr*txt" | grep -P "chr[0-9]+.txt" | sort --version-sort | xargs -n 1 cat | grep -v Chromosome | bioawk -t '{ print $$1,$$2,$$3 }' > $@
 
 clean-hapmap:
 	rm -f HapmapII_GRCh37_RecombinationHotspots.tar.gz hapmap/* hapmap_genetic_map.bed

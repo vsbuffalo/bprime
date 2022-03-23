@@ -1,0 +1,184 @@
+
+AUTOS = list(range(1, 23))
+AUTOSEX = AUTOS + ['X', 'Y']
+
+
+## === Human Annotation Data
+annot = ["hg38_seqlens.tsv", "phastConsElements100way.bed.gz", "hg38.ncbiRefSeq_exons.bed.gz"]
+
+rule seqlens:
+  output: "hg38_seqlens.tsv"
+  shell:
+    "curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes > {output}"
+
+
+rule phastcons:
+  output: "phastConsElements100way.bed.gz"
+  shell:
+    """
+    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz | \
+      zcat | bioawk -t '{{print $2,$3,$4}}' | gzip > {output}
+    """
+
+
+rule exons:
+  output: "hg38.ncbiRefSeq_exons.bed.gz"
+  shell:
+    """
+    curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz | \
+      bioawk -cgff '{{ if ($feature == "exon") {{ print $seqname,$start,$end,$feature }} }}' | \
+      sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
+## === Genomic Windows
+rule human_100kb:
+  output: "hg38_100kb.bed"
+  input: "hg38_seqlens.tsv"
+  shell:
+     """
+     bedtools makewindows -g {input}  -w 100000 > {output}
+     """
+
+
+## === Human Recombination Maps
+
+## ==== DeCode Recombination Map
+decode = ["sex-averaged.rmap", "sex-averaged.bed", "rec_100kb.bed"]
+rule decode_map:
+  output: "sex-averaged.rmap"
+  shell:
+    """
+    wget https://www.decode.com/additional/sex-averaged.rmap
+    """
+
+rule decode_map_bed:
+  input: "sex-averaged.rmap"
+  output: "sex-averaged.bed"
+  shell:
+     """
+     # bioawk is picky about the numeric column being an integer, so we scale up
+     sed 1d {input} | bioawk -t '{{ print $1,$2,$2+10000,".",int($4*100000) }}' | sort -k1,1 -k2,2n > {output}
+     """
+
+# scales column back down to float
+rule decode_binned:
+  input: map="sex-averaged.bed", win="hg38_100kb.bed"
+  output: "rec_100kb.bed"
+  shell:
+     """
+     bedtools map -a {input.win} -b {input.map} -c 5 -o mean | bioawk -t '{{ print $1, $2, $3, $4/100000 }}' > {output}
+     """
+
+## ==== HapMap Recombination Map 
+hapmap_files = [f"hapmap/genetic_map_GRCh37_chr{chrom}.txt" for chrom in AUTOS + ['X', 'X_par1', 'X_par2']]
+hapmap = ["HapmapII_GRCh37_RecombinationHotspots.tar.gz"] + hapmap_files + ["hapmap_genetic_map.bed"]
+
+rule download_hapmap:
+  output: "HapmapII_GRCh37_RecombinationHotspots.tar.gz"
+  shell:
+    """
+    wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/HapmapII_GRCh37_RecombinationHotspots.tar.gz
+    """
+
+# this untars all chroms
+rule untar_hapmap:
+  input: "HapmapII_GRCh37_RecombinationHotspots.tar.gz"
+  output: hapmap_files + ["hapmap/README_hapmapII_GRCh37_map"]
+  shell:
+     """
+     mkdir -p hapmap
+     tar -xvzf {input} -C hapmap
+     """
+
+rule combine_hapmap:
+  input: hapmap_files
+  output: "hapmap_genetic_map.bed"
+  shell:
+      """
+      find hapmap/ -name "genetic_map_GRCh37_chr*txt" | grep -P "chr[0-9]+.txt" | sort --version-sort | \
+        xargs -n 1 cat | grep -v Chromosome | bioawk -t '{{ print $1,$2,$3 }}' > {output}
+      """
+
+## === Simplified Annotation Tracks for Sims
+# we want simple, example conservation tracks, but semi-realistic, e.g. exons
+conserved_tracks = [f"conserved_by_chrom/conserved_chr{chrom}.bed" for chrom in AUTOS]
+simtracks = ["conserved.bed.gz", "conserved_slop.bed.gz"] + conserved_tracks
+
+# merged exons/phastcons "conservation" track -- mostly a place holder for simulations
+rule conserved_track:
+  input: exons="hg38.ncbiRefSeq_exons.bed.gz", phastcons="phastConsElements100way.bed.gz"
+  output: "conserved.bed.gz"
+  shell: 
+      """
+      # combine the files, sort and merge overlapping tracks
+      (zcat {input.exons}; (zcat {input.phastcons} | \
+        bioawk -t '{{ print $1,$2,$3,"conserved" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+        sort  --version-sort -k 1,1 -k2,2n | \
+        bedtools merge  -c 4 -o distinct | gzip > {output}
+      """
+
+rule conserved_slop:
+  output: "conserved_slop.bed.gz"
+  input: conserved="conserved.bed.gz", seqlens="hg38_seqlens.tsv"
+  shell:
+     """
+     zgrep -P "^chr[0-9]+\t" {input.conserved} | sort --version-sort -k 1,1 -k2,2n | \
+       bedtools slop -g {input.seqlens} -b 1000 | bedtools merge -d 2  | gzip > {output}
+     """
+
+# sepearate out conserved tracks into separate chromosome files
+rule split_conserved:
+  output: conserved_tracks
+  input: "conserved_slop.bed.gz"
+  shell:
+      """
+      mkdir -p conserved_by_chrom/
+      for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom/conserved_chr$i.bed; done
+      """
+
+## === Rules for the chr10 SLiM Simulations
+chr10 = ["rec_100kb_chr10.bed", "conserved_chr10.bed", "chr10_seqlens.tsv", "neutral_chr10.bed"]
+
+# get chr10 from the tiled recomination file
+rule rec100kb_chr10:
+  output: "rec_100kb_chr10.bed" 
+  input: "rec_100kb.bed"
+  shell:
+      """
+      grep "^chr10" {input} | bioawk '{{ if ($3 <= 130000000) {{ print $0 }} }}' > {output}
+      """
+
+# extract chr10, add in a simple label, sort ranges, add slop, sort again (for safety)
+# merge overlapping
+rule conserved_chr10:
+  output: "conserved_chr10.bed"
+  input: conserved="conserved.bed.gz", seqlens="hg38_seqlens.tsv"
+  shell:
+     """
+     zgrep "chr10" {input.conserved} | bioawk -t '{{ if ($3 < 130000000) {{ print $1,$2,$3,"conserved" }} }}' | \
+       sort  --version-sort -k 1,1 -k2,2n | bedtools slop -g {input.seqlens} -b 1000 | \
+       sort  --version-sort -k 1,1 -k2,2n | bedtools merge -d 2 > {output}
+     """
+
+# simpler chr10 for sims -- approximation is fine
+rule chr10_seqlens:
+  output: "chr10_seqlens.tsv"
+  shell: "echo 'chr10	130000000' > {output}"
+
+
+# putatively neutral regions -- not conserved tracks
+rule neutral_chr10:
+   output: "neutral_chr10.bed"
+   input: conserved="conserved_chr10.bed", seqlens="chr10_seqlens.tsv"
+   shell:
+      """
+      bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
+      """
+
+rec = decode + hapmap + chr10 + simtracks
+
+## === Main target
+rule all:
+  input: annot + rec
+
+
