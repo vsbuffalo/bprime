@@ -8,63 +8,37 @@ from collections import defaultdict, namedtuple
 import pickle
 import pyslim
 import tskit
+from bprime.utils import signif
 from bprime.slim import filename_pattern, slim_call, param_grid
+from bprime.slim import infer_types, read_params
+
+if not len(config):
+    raise ValueError("config file not specified on command line, use --configfile config.json")
 
 # ------- Shared Parameters -------
 DATADIR = "../data/slim_sims/"
-NREPS = 10
 SLIM = '~/src/SLiM_build/slim'
-Ns = [1000]
-hs = [0.5]
-mus = [1e-8, 1.5e-8, 2e-8]
-reps = list(range(NREPS))
 
-# ------- Simple BGS Simulations -------
-# for chr10
-dsels = [0, -1e-1, -2e-1, -1e-2, -2e-2, -1e-3, -2e-3, -1e-4, -2e-4, -1e-5, -2e-5]
+# the output of one BGS slim sim (simple_bgs.slim)
+SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
 
-bgs_params = dict(rep=reps, 
-                  mu=mus, N=Ns, 
-                  s=dsels,
-                  h=hs, 
-                  chr=["10"])
-                  
+# ------- Get Sim Parameters -------
+run_params = read_params(config)
 
-bgs_basename = DATADIR + 'bgs/bgs_'
-bgs_pattern = filename_pattern(bgs_basename, bgs_params)
+# ------- Simple BGS for B Maps -------
 
-bgsfigs_basename = DATADIR + 'bgs_figs/bgs_'
-bgsfigs_pattern = filename_pattern(bgsfigs_basename, bgs_params)
+bgsmap_types = infer_types(bgsmap_params)
 
-# bgs simulation results
-bgs_results = []
-bgs_grid = param_grid(**bgs_params, seed=False)
-sim_outputs = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
-for params in list(bgs_grid):
-  for out in sim_outputs:
-    bgs_results.append(bgs_pattern.format(**params).format(output=out))
+bgsmap_basename = DATADIR + 'bgsmap/bgsmap_'
+bgsmap_pattern = filename_pattern(bgsmap_basename, bgsmap_params)
 
-  #  DAC file from treeseq
-  bgs_results.append(bgs_pattern.format(**params).format(output="dac.tsv.gz"))
+rule bgs_map:
+  input: "simple_bgs.slim"
+  output: 
+    [bgsmap_pattern.replace("{{output}}", out) for out in SIM_OUTPUTS]
+  shell:
+    slim_call(bgsmap_types, SLIM, seed=False, manual={'basename': 'bgsmap'}) + " {input} "
 
-
-# log likelihoods
-lls_results = []
-for params in list(bgs_grid):
-  lls_results.append(bgs_pattern.format(**params).format(output="freepi0ll.pkl"))
-  lls_results.append(bgs_pattern.format(**params).format(output="fixedpi0ll.pkl"))
-
-fig_results = []
-for params in list(bgs_grid):
-  fig_results.append(bgsfigs_pattern.format(**params).format(output="freepi0figs.pdf"))
-  fig_results.append(bgsfigs_pattern.format(**params).format(output="fixedpi0figs.pdf"))
- 
-# ------- All Results -------
-# all results
-sim_results = ["../data/annotation/B_chr10.pkl"] # pre-calc'd B
-sim_results.extend(bgs_results)
-
-# ------- BGS Rules -------
 rule bgs_dac:
   input:
     bgs_pattern.replace("{{output}}", "treeseq.tree")
@@ -78,119 +52,8 @@ rule bgs_dac:
         --mu 2.5e-7 {{input}}
       """
  
-rule bgs:
-  input: "simple_bgs.slim"
-  output: 
-    [bgs_pattern.replace("{{output}}", out) for out in sim_outputs]
-  shell:
-    slim_call(bgs_params, SLIM, seed=False) + " {input} "
 
-rule Bcalcs:
-  input:
-    recmap="../data/annotation/rec_100kb_chr10.bed", 
-    features="../data/annotation/conserved_chr10.bed",
-    seqlens="../data/annotation/chr10_seqlens.tsv"
-  output: "../data/annotation/B_chr10.pkl"
-  shell:
-     """
-     python ../bgspy/bgspy.py calcb --recmap {input.recmap} \
-       --features {input.features} --seqlens {input.seqlens} \
-       --tg '-6:-0.25:51' --wg '-10:-6:50' --ncores 60 --output {output}
-     """
- 
-rule Bliks:
-  input:
-    b="../data/annotation/B_chr10.pkl",
-    dac="../data/slim_sims/bgs/{dac_key}_dac.tsv.gz",
-    seqlens="../data/annotation/chr10_seqlens.tsv",
-    regions="../data/annotation/neutral_chr10.bed"
-  output: "../data/slim_sims/bgs/{dac_key}_freepi0ll.pkl"
-  shell:
-     """
-     python ../bgspy/bgspy.py loglik --b {input.b} --dac {input.dac} \
-        --seqlens {input.seqlens} \
-        --regions {input.regions} --output {output} --no-progress
-     """
-
-rule Bliks_pi0:
-  # fixed, known pi0
-  input:
-    b="../data/annotation/B_chr10.pkl",
-    dac="../data/slim_sims/bgs/{dac_key}_dac.tsv.gz",
-    seqlens="../data/annotation/chr10_seqlens.tsv",
-    regions="../data/annotation/neutral_chr10.bed"
-  output: "../data/slim_sims/bgs/{dac_key}_fixedpi0ll.pkl"
-  shell:
-     # pi0 is 4Nμ = 4*2.5e-7*1000 = 0.001
-     """
-     python ../bgspy/bgspy.py loglik --b {input.b} --dac {input.dac} \
-        --seqlens {input.seqlens} \
-        --pi0 0.001 \
-        --regions {input.regions} --output {output} --no-progress
-     """
-
-rule Bll_figs:
-  input: "../data/slim_sims/bgs/{dac_key}_{type}ll.pkl"
-  output: "../data/slim_sims/bgs_figs/{dac_key}_{type}figs.pdf"
-  shell:
-     """
-     python ../bgspy/bgspy.py llfig --lik {input} --output {output}
-     """
-
-rule bgs_sims:
-  input: 
-    sim_results
-
-
-# ------- BGS TreeSeq Rules -------
-
-def signif(x, n=3):
-    return np.array([float(f'{float(f"{x:.{n}g}"):g}') for x in x])
-
-#rbps = [0, 0.5e-7, 1e-8, 2e-8]
-rbps = [0]
-Ns = [1000]
-mus = [1e-8, 5e-8, 1e-7]
-#mus = [1e-8]
-#ss = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-ss = signif(10**np.linspace(-0.1, -6, 50))
-
-bgstrees_params = dict(rep=list(range(100)), 
-                       rbp=rbps,
-                       mu=mus, N=Ns,
-                       s=ss, h=[0.5])
-
-bgstrees_basename = DATADIR + 'bgstrees/bgstrees_'
-bgstrees_pattern = filename_pattern(bgstrees_basename, bgstrees_params)
-
-# bgs simulation results
-bgstrees_results = []
-bgstrees_grid = param_grid(**bgstrees_params, seed=False)
-sim_outputs = ["recap.trees", "treeseq.trees", "log.tsv.gz"]
-for params in list(bgstrees_grid):
-  for out in sim_outputs:
-    bgstrees_results.append(bgstrees_pattern.format(**params).format(output=out))
-
-rule bgstrees:
-  input: "bgs_trees.slim"
-  output: 
-    bgstrees_pattern.replace("{{output}}", 'treeseq.trees'),
-    bgstrees_pattern.replace("{{output}}", 'log.tsv.gz')
-  shell:
-    slim_call(bgstrees_params, SLIM, seed=False) + " {input} "
-
-rule bgstrees_recap:
-  input: treeseq=bgstrees_pattern.replace("{{output}}", 'treeseq.trees')
-  output: recap=bgstrees_pattern.replace("{{output}}", 'recap.trees')
-  run:
-    ts = pyslim.load(input.treeseq)
-    md = ts.metadata['SLiM']['user_metadata']
-    rts = pyslim.recapitate(ts, recombination_rate=md['rbp'][0], ancestral_Ne=md['N'][0]).simplify()
-    rts.dump(output.recap)
-
-rule bgstrees_all:
-  input: bgstrees_results
- 
 rule all:
   input:
-    sim_results, lls_results, fig_results, bgstrees_results
+    #sim_results, lls_results, fig_results, bgstrees_results
+    bgsmap_results

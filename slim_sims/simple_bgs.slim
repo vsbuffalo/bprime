@@ -65,7 +65,7 @@ initialize() {
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("rep", 0);
     defineConstant("N", 1000);
-    defineConstant("s", -2e-4);
+    defineConstant("s", 2e-4);
     defineConstant("mu", 1e-8);
     defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", '');
@@ -90,7 +90,9 @@ initialize() {
 
   // == File Output
   filestr = filename_str(c('rep', 'mu', 'N', 's', 'h', 'chr'));
-  defineConstant("basename", "bgs_" + filestr);
+  if (!exists("basename")) {
+    defineConstant("basename", "bgs_" + filestr);
+  }
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");
   defineConstant("sub_file", datadir + basename + "sub.tsv.gz");
@@ -103,7 +105,7 @@ initialize() {
   initializeMutationRate(mu);
   
   // neutral mutations
-  initializeMutationType("m2", h, "f", s);
+  initializeMutationType("m2", h, "f", -s);
   // gene
   initializeGenomicElementType("g2", m2, 1);
 
