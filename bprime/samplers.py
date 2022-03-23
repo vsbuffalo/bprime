@@ -24,10 +24,12 @@ class UniformSampler(object):
         return len(self.samples)
 
     def as_matrix(self, return_cols=True):
-        mat = np.array([row for row in self.samples.items()])
+        assert(len(self.samples) > 0, "No samples have been taken.")
+        mat = np.array([[row[k] for k in self.ranges.keys()] for row
+                        in self.samples])
         if not return_cols:
             return mat
-        return mat, list(self.samples.ranges.keys())
+        return mat, list(self.ranges.keys())
 
     def __next__(self):
         if self.total is not None and self.samples_remaining == 0:
@@ -60,6 +62,8 @@ class UniformSampler(object):
         if self.add_seed:
             seed = self.rng.integers(0, self.seed_max)
             param['seed'] = seed
+
+        #assert(len(param) == len(self.ranges.keys()) + int(self.add_seed))
 
         self.samples_remaining -= 1
         self.samples.append(param)

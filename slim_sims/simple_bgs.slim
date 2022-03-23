@@ -1,0 +1,158 @@
+// function (void)assert(logical x, [string msg = "assertion failed"]) {
+//   if (!x) stop(msg);
+// }
+
+
+// Notes
+//
+// == Mutation rate:
+
+
+
+function (logical)contains(string x, string y) {
+  assert(length(x) == 1 & length(y) == 1, "x and y must be length 1");
+  return length(strsplit(x, y)) > 1;
+}
+
+function (string)filename_str(string params) {
+  out = "";
+  for (i in seqAlong(params)) {
+    v = params[i];
+    val = executeLambda(v + ";");
+    assert(!contains(asString(val), "..") & !contains(asString(val), "/"),
+           "filename key/value cannot contain . or /!");
+    out = out + v + val + "_";
+  }
+  return out;
+}
+
+function (object)param_dict(string params) {
+  pd = Dictionary();
+  for (i in seqAlong(params)) {
+    v = params[i];
+    val = executeLambda(v + ";");
+    if (length(val) > 1) {
+      val = paste(val, sep=",");
+    }
+    pd.setValue(v, val);
+  }
+  return pd;
+}
+
+function (void)output_mutations(string chrom, string filename, object subpop) {
+  counts = sim.mutationCounts(subpop, mutations=sim.mutations);
+  for (i in seqAlong(sim.mutations)) {
+    mut = sim.mutations[i];
+    row = paste(chrom, mut.position, 2*subpop.individualCount, counts[i], mut.selectionCoeff, mut.mutationType.dominanceCoeff, sep="\t");
+    writeFile(filename, row, append=T, compress=T);
+  }
+}
+
+function (void)output_substitutions(string chrom, string filename, object subpop) {
+  for (i in seqAlong(sim.substitutions)) {
+    sub = sim.substitutions[i];
+    row = paste(chrom, sub.position, sub.selectionCoeff, sub.mutationType, sub.mutationType.dominanceCoeff, sep="\t");
+    writeFile(filename, row, append=T, compress=T);
+  }
+}
+
+initialize() {
+  initializeTreeSeq();
+  defineConstant("region_length", 130000000);
+  defineConstant("seed", getSeed());
+  defineConstant("metadata", Dictionary());
+
+  if (exists("slimgui") | exists("defaults")) {
+    defineConstant("rep", 0);
+    defineConstant("N", 1000);
+    defineConstant("s", -2e-4);
+    defineConstant("mu", 1e-8);
+    defineConstant("h", 0.5);    // deleterious dominance
+	defineConstant("datadir", '');
+  } else {
+	defineConstant("datadir", '../data/slim_sims/bgs/');
+  }
+  // sinerec, etc are for testing/debugging 
+  defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
+  defineConstant("annot_file", "../data/annotation/conserved_chr"+chr+".bed");
+
+  // == Runtime settings
+  defineConstant("burnin", 10*N);
+  defineConstant("endsim", burnin);
+
+  metadata.setValue("N", N);
+  metadata.setValue("s", s);
+  metadata.setValue("h", h);
+  metadata.setValue("mu", mu);
+  metadata.setValue("region_length", region_length);
+  metadata.setValue("recmap_file", recmap_file);
+  metadata.setValue("annot_file", annot_file);
+
+  // == File Output
+  filestr = filename_str(c('rep', 'mu', 'N', 's', 'h', 'chr'));
+  defineConstant("basename", "bgs_" + filestr);
+  defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
+  defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");
+  defineConstant("sub_file", datadir + basename + "sub.tsv.gz");
+
+  // log = sim.createLogFile(log_file, initialContents="#" + pd.serialize(), 
+                          // compress=T, sep="\t", logInterval=1);
+  // log.addGeneration();
+
+  // == Mutations
+  initializeMutationRate(mu);
+  
+  // neutral mutations
+  initializeMutationType("m2", h, "f", s);
+  // gene
+  initializeGenomicElementType("g2", m2, 1);
+
+  // == Recombination
+  // assumes cM/Mb rates 0.01 / 1e6
+  bins = c();
+  rates = c();
+  for (line in readFile(recmap_file)) {
+    parts = strsplit(line, "\t");
+    // rates are cM/Mbp per 100kb window
+    rates = c(rates, 1e-8 * asFloat(parts[3]));
+    bins = c(bins, asInteger(parts[2]));
+  }
+  defineConstant('rec_rates', rates);
+  defineConstant('rec_bins', bins);
+  initializeRecombinationRate(rec_rates, rec_bins);
+
+  pd = param_dict(c('rep', 'N', 's', 'h', 'mu',
+                    'recmap_file', 'annot_file'));
+  writeFile(dac_file, "#" + pd.serialize(), compress=T);
+  writeFile(sub_file, "#" + pd.serialize(), compress=T);
+
+  // == Genome
+  ngenes = 0;
+  for (line in readFile(annot_file)) {
+    parts = strsplit(line, "\t");
+    start = asInteger(parts[1]);
+    end = asInteger(parts[2]);
+    initializeGenomicElement(g2, start, end-1);
+    ngenes = ngenes + 1;
+  }
+  print("number of genes: " + ngenes);
+}
+
+// create a population of 500 individuals
+1 {
+  sim.addSubpop("p1", N);
+  sim.rescheduleScriptBlock(s1, start=2, end=burnin);
+  sim.rescheduleScriptBlock(s2, start=endsim, end=endsim);
+}
+
+s1 {
+  if (sim.generation % 1000 == 0) 
+    print(sim.generation);
+}
+
+s2 late() {
+  output_mutations(chr, dac_file, p1);
+  sim.treeSeqOutput(treeseq_file, metadata=metadata);
+  output_substitutions(chr, sub_file, p1);
+}
+

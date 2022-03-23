@@ -2,8 +2,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
-
-from bprime.utils import signif
+from bprime.utils import signif, index_cols
 
 class LearnedFunction(object):
     def __init__(self, X, y, domain):
@@ -37,6 +36,9 @@ class LearnedFunction(object):
             self.bounds[feature] = (lower, upper)
             assert(isinstance(log10, bool))
             self.logscale[feature] = log10
+
+    def col_indexer(self):
+        return index_cols(self.features.keys())
 
     @property
     def is_split(self):
@@ -115,6 +117,11 @@ class LearnedFunction(object):
 
     def predict_test(self):
         return self.model.predict(self.X_test).squeeze()
+
+    def predict(self, X, scale_input=True):
+        if scale_input:
+            X = self.X_test_scaler.transform(X)
+        return self.model.predict(X).squeeze()
 
     def predict_train(self):
         return self.model.predict(self.X_train).squeeze()

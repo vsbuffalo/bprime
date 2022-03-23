@@ -14,10 +14,6 @@ from bprime.utils import read_params, signif
 from bprime.theory import bgs_segment
 
 PARAMS = ('mu', 's', 'rbp', 'recfrac', 'N', 'L')
-# 4bp of tracking, 1bp recombination spacer, 4bp of selected region
-# (note though that the B function is modeling Lbp of selected region)
-WINS = [0, 4, 5, 10]
-
 #bgs_ranges = {'mu': (1e-8, 1e-7, False),
 #              's': (1e-3, 1e-1, False),
 #              'r': (1e-7, 1e-9, False),
@@ -34,13 +30,13 @@ def bgs_rec_runner(param, nreps=1):
     did not work as well as just drawing more from the sampler.
     """
     mu, s, rf, rbp, N, L = [param[k] for k in PARAMS]
+    s = 0.5*s # to match SliM, we treat s as the homozygous selcoef
     N = int(N)
     L = int(L)
     #B = bgs_rec(mu, s, r, L)
-    B = bgs_segment(mu, s, rf, rbp, L)
-    rate = msprime.RateMap(position=WINS, rate=[0, rf, 0])
+    B = bgs_segment(mu=mu, s=s, rf=rf, rbp=rbp, L=L)
     # get the π in the tracking region
-    Bhats = [msprime.sim_ancestry(N, population_size=B*N, recombination_rate=rate).diversity(windows=WINS, mode='branch')[0]/(4*N)
+    Bhats = [msprime.sim_ancestry(N, population_size=B*N).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
     return Bhats
 
@@ -83,9 +79,14 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
         basename = os.path.splitext(os.path.basename(configfile))[0]
         outfile = f"{basename}_sims.npz"
 
-    with Pool(ncores) as p:
-        y = np.array(list(tqdm.tqdm(p.imap(bgs_rec_runner, sampler),
-                                    total=sampler.total)))
+    if ncores > 1:
+        with Pool(ncores) as p:
+            y = np.array(list(tqdm.tqdm(p.imap(bgs_rec_runner, sampler),
+                                        total=sampler.total)))
+    else:
+        y = np.array(list(tqdm.tqdm((bgs_rec_runner(s) for s in sampler),
+                                     total=sampler.total)))
+
     X, features = sampler.as_matrix()
     assert(len(y) == X.shape[0])
     targets = ['Bhat']
