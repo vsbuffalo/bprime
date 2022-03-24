@@ -144,7 +144,18 @@ rule split_conserved:
       """
 
 ## === Rules for the chr10 SLiM Simulations
-chr10 = ["rec_100kb_chr10.bed", "conserved_chr10.bed", "chr10_seqlens.tsv", "neutral_chr10.bed"]
+chr10 = ["rec_100kb_chr10.bed", "conserved_chr10.bed", "chr10_seqlens.tsv", 
+         "neutral_chr10.bed", "hapmap_chr10.txt"]
+
+rule hapmap_chr10:
+  output: "hapmap_chr10.txt"
+  input: "hapmap/genetic_map_GRCh37_chr10.txt"
+  shell: 
+      """
+      sed 1d {input} | cut -f2,3 | \
+        bioawk '{{ if ($1 <= 130000000) {{ print $0 }} }}' > {output}
+      """
+
 
 # get chr10 from the tiled recomination file
 rule rec100kb_chr10:

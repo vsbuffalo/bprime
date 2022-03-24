@@ -497,3 +497,5 @@ def index_cols(cols):
     def get(*args):
         return tuple(index[c] for c in args)
     return get
+
+

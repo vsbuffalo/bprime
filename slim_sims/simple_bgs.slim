@@ -3,12 +3,6 @@
 // }
 
 
-// Notes
-//
-// == Mutation rate:
-
-
-
 function (logical)contains(string x, string y) {
   assert(length(x) == 1 & length(y) == 1, "x and y must be length 1");
   return length(strsplit(x, y)) > 1;
@@ -80,8 +74,8 @@ initialize() {
   } else {
 	defineConstant("datadir", '../data/slim_sims/' + name + '/');
   }
-  // sinerec, etc are for testing/debugging 
-  defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
+  //defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
+  defineConstant("recmap_file", "../data/annotation/hapmap_chr"+chr+".txt");
   defineConstant("annot_file", "../data/annotation/conserved_chr"+chr+".bed");
 
   // == Runtime settings
@@ -107,7 +101,7 @@ initialize() {
                           // compress=T, sep="\t", logInterval=1);
   // log.addGeneration();
 
-  // == Mutations
+  // == Mutations/
   initializeMutationRate(mu);
   
   // neutral mutations
@@ -122,12 +116,13 @@ initialize() {
   for (line in readFile(recmap_file)) {
     parts = strsplit(line, "\t");
     // rates are cM/Mbp per 100kb window
-    rates = c(rates, 1e-8 * asFloat(parts[3]));
-    bins = c(bins, asInteger(parts[2]));
+    rates = c(rates, 1e-8 * asFloat(parts[1]));
+    bins = c(bins, asInteger(parts[0]));
   }
+  bins = c(bins[1:(size(bins)-1)] - 2, region_length);
   defineConstant('rec_rates', rates);
   defineConstant('rec_bins', bins);
-  print(rec_bins);
+  //print(rec_bins);
   initializeRecombinationRate(rec_rates, rec_bins);
 
   pd = param_dict(c('rep', 'N', 's', 'h', 'mu',

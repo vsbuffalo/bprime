@@ -19,6 +19,7 @@ SLIM = '~/src/SLiM_build/slim'
 
 # the output of one BGS slim sim (simple_bgs.slim)
 SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
+ANNOT_FILES = ["../data/annotation/hapmap_chr10.txt", "../data/annotation/conserved_chr10.bed"]
 
 # ------- Simple BGS for B Maps -------
 bgs_run = SlimRuns(config, dir=DATADIR)
@@ -31,7 +32,7 @@ bgs_results = bgs_run.targets(SIM_OUTPUTS)
 print(list(itertools.islice(bgs_run.slim_commands(), 5)))
 
 rule bgs_map:
-  input: bgs_run.script
+  input: bgs_run.script, *ANNOT_FILES
   output: 
     bgs_run.wildcard_output(suffix=SIM_OUTPUTS)
   shell:
