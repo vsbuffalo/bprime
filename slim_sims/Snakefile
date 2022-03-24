@@ -8,9 +8,7 @@ from collections import defaultdict, namedtuple
 import pickle
 import pyslim
 import tskit
-from bprime.utils import signif
-from bprime.slim import filename_pattern, slim_call, param_grid
-from bprime.slim import infer_types, read_params
+from bprime.slim import SlimRuns, read_params
 
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
@@ -22,38 +20,34 @@ SLIM = '~/src/SLiM_build/slim'
 # the output of one BGS slim sim (simple_bgs.slim)
 SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
 
-# ------- Get Sim Parameters -------
-run_params = read_params(config)
-
 # ------- Simple BGS for B Maps -------
-
-bgsmap_types = infer_types(bgsmap_params)
-
-bgsmap_basename = DATADIR + 'bgsmap/bgsmap_'
-bgsmap_pattern = filename_pattern(bgsmap_basename, bgsmap_params)
+bgs_run = SlimRuns(config, dir=DATADIR)
+bgs_run.generate()
+bgs_results = bgs_run.targets(SIM_OUTPUTS)
+print(bgs_results)
 
 rule bgs_map:
-  input: "simple_bgs.slim"
+  input: bgs_run.script
   output: 
-    [bgsmap_pattern.replace("{{output}}", out) for out in SIM_OUTPUTS]
+    bgs_run.wildcard_output(suffix=SIM_OUTPUTS)
   shell:
-    slim_call(bgsmap_types, SLIM, seed=False, manual={'basename': 'bgsmap'}) + " {input} "
+    bgs_run.slim_call(slim_cmd=SLIM)
 
-rule bgs_dac:
-  input:
-    bgs_pattern.replace("{{output}}", "treeseq.tree")
-  output: 
-    bgs_pattern.replace("{{output}}", "dac.tsv.gz")
-  shell:
-      f"""
-      python  ../tools/treeseq2dac.py --regions \
-        ../data/annotation/neutral_chr{{wildcards.chr}}.bed \
-        --recmap ../data/annotation/rec_100kb_chr{{wildcards.chr}}.bed \
-        --mu 2.5e-7 {{input}}
-      """
+#rule bgs_dac:
+#  input:
+#    bgs_run.wildcard_output("treeseq.tree")
+#  output: 
+#    bgs_run.wildcard_output("dac.tsv.gz")
+#  shell:
+#      f"""
+#      python  ../tools/treeseq2dac.py --regions \
+#        ../data/annotation/neutral_chr{{wildcards.chr}}.bed \
+#        --recmap ../data/annotation/rec_100kb_chr{{wildcards.chr}}.bed \
+#        --mu 2.5e-7 {{input}}
+#      """
  
 
 rule all:
   input:
     #sim_results, lls_results, fig_results, bgstrees_results
-    bgsmap_results
+    bgs_results

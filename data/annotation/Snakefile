@@ -6,10 +6,17 @@ AUTOSEX = AUTOS + ['X', 'Y']
 ## === Human Annotation Data
 annot = ["hg38_seqlens.tsv", "phastConsElements100way.bed.gz", "hg38.ncbiRefSeq_exons.bed.gz"]
 
+
+# only keep autosomes
 rule seqlens:
   output: "hg38_seqlens.tsv"
   shell:
-    "curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes > {output}"
+    """
+    curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes | \
+      grep -w '^#\|chr[1-9]\|chr[1-2][0-9]' | \
+      sort --version-sort -k1,1 -k2,2n > {output}
+    """
+
 
 
 rule phastcons:
@@ -57,7 +64,7 @@ rule decode_map_bed:
   shell:
      """
      # bioawk is picky about the numeric column being an integer, so we scale up
-     sed 1d {input} | bioawk -t '{{ print $1,$2,$2+10000,".",int($4*100000) }}' | sort -k1,1 -k2,2n > {output}
+     sed 1d {input} | bioawk -t '{{ print $1,$2,$2+10000,".",int($4*100000) }}' | sort --version-sort -k1,1 -k2,2n > {output}
      """
 
 # scales column back down to float

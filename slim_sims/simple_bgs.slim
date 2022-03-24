@@ -61,6 +61,10 @@ initialize() {
   defineConstant("region_length", 130000000);
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
+  if (!exists("name")) {
+    defineConstant("name", "simplebgs");
+  }
+ 
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("rep", 0);
@@ -70,7 +74,7 @@ initialize() {
     defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", '');
   } else {
-	defineConstant("datadir", '../data/slim_sims/bgs/');
+	defineConstant("datadir", '../data/slim_sims/' + name + '/');
   }
   // sinerec, etc are for testing/debugging 
   defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
@@ -90,9 +94,7 @@ initialize() {
 
   // == File Output
   filestr = filename_str(c('rep', 'mu', 'N', 's', 'h', 'chr'));
-  if (!exists("basename")) {
-    defineConstant("basename", "bgs_" + filestr);
-  }
+  defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");
   defineConstant("sub_file", datadir + basename + "sub.tsv.gz");
@@ -121,6 +123,7 @@ initialize() {
   }
   defineConstant('rec_rates', rates);
   defineConstant('rec_bins', bins);
+  print(rec_bins);
   initializeRecombinationRate(rec_rates, rec_bins);
 
   pd = param_dict(c('rep', 'N', 's', 'h', 'mu',
