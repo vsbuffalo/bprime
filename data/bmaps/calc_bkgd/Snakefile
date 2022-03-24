@@ -1,0 +1,24 @@
+
+AUTOS = list(range(1, 23))
+BKGD = "~/src/bkgd/calc_bkgd"
+
+selcoefs = [0.01, 0.001, 1e-4, 1e-5]
+
+bkgd_files = [f"calc_bkgd_s{selcoef}/chr{chr}.bkgd" for chr in AUTOS for selcoef in selcoefs]
+
+print(bkgd_files)
+
+ANNOT = ([f"../../annotation/hapmap/genetic_map_GRCh37_chr{chr}.txt" for chr in AUTOS] + 
+        [f"../../annotation/conserved_by_chrom/chr{chr}.bed" for chr in AUTOS] + 
+        ["../../annotation/hg38_seqlens.tsv"])
+
+rule calc_bkgd:
+  input: conf="calc_bkgd.conf", annot=ANNOT
+  output: [f"calc_bkgd_s{{selcoef}}/chr{chr}.bkgd" for chr in AUTOS]
+  shell:
+     f"""
+     {BKGD} {{input.conf}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_s{{wildcards.selcoef}}
+     """
+
+rule all:
+  input: bkgd_files

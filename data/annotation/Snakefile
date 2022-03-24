@@ -108,7 +108,7 @@ rule combine_hapmap:
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. exons
-conserved_tracks = [f"conserved_by_chrom/conserved_chr{chrom}.bed" for chrom in AUTOS]
+conserved_tracks = [f"conserved_by_chrom/chr{chrom}.bed" for chrom in AUTOS]
 simtracks = ["conserved.bed.gz", "conserved_slop.bed.gz"] + conserved_tracks
 
 # merged exons/phastcons "conservation" track -- mostly a place holder for simulations
@@ -140,7 +140,7 @@ rule split_conserved:
   shell:
       """
       mkdir -p conserved_by_chrom/
-      for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom/conserved_chr$i.bed; done
+      for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom/chr$i.bed; done
       """
 
 ## === Rules for the chr10 SLiM Simulations

@@ -14,14 +14,36 @@ Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))
 
 def read_bkgd(file):
+    """
+    Read the B map output from McVicker's calc_bkgd.
+    """
     with open(file) as f:
         d = np.loadtxt(f)
     pos = np.cumsum(d[:, 1])
     B = d[:, 0]/1000
     return pos, B
 
+def midpoint(x):
+    return 0.5*(x[:-1, ...] + x[1:, ...])
+
 def nearest(x, val):
     return np.argmin(np.abs(x-val))
+
+def arg_nearest(val, array):
+    """
+    Get the index of the closest element in 'array' to 'val'.
+    """
+    i = np.argmin(np.abs(val-array))
+    return i
+
+def exact_indice(val, array, tol=1e-30):
+    """
+    Get the index of element of 'array' to the point within 'tol' to
+    'val'.
+    """
+    i = np.abs(val - array) < tol
+    assert(i.sum() == 1) # only one result
+    return i
 
 def sum_logliks_over_chroms(ll_dict):
     """
