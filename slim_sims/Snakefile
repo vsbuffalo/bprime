@@ -23,8 +23,12 @@ SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
 # ------- Simple BGS for B Maps -------
 bgs_run = SlimRuns(config, dir=DATADIR)
 bgs_run.generate()
+
+# to get param order for SLiM file
+#print(bgs_run.param_order)
+
 bgs_results = bgs_run.targets(SIM_OUTPUTS)
-print(bgs_results)
+print(list(itertools.islice(bgs_run.slim_commands(), 5)))
 
 rule bgs_map:
   input: bgs_run.script

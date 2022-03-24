@@ -19,6 +19,10 @@ function (string)filename_str(string params) {
   for (i in seqAlong(params)) {
     v = params[i];
     val = executeLambda(v + ";");
+    if (isFloat(val)) {
+      // float formatting correction to match python
+      val = format("%g", val);
+    }
     assert(!contains(asString(val), "..") & !contains(asString(val), "/"),
            "filename key/value cannot contain . or /!");
     out = out + v + val + "_";
@@ -93,7 +97,7 @@ initialize() {
   metadata.setValue("annot_file", annot_file);
 
   // == File Output
-  filestr = filename_str(c('rep', 'mu', 'N', 's', 'h', 'chr'));
+  filestr = filename_str(c('N', 'mu', 's', 'h', 'chr', 'rep'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");

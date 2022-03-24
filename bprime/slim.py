@@ -23,15 +23,6 @@ def filename_pattern(base, params, seed=False, rep=False):
     return pattern
 
 
-def infer_types(params):
-    """
-    Infer the types from a dictionary of parameters.
-    """
-    types = dict()
-    for param, values in params.items():
-        types[param] = type(values[0])
-    return types
-
 def slim_call(param_types, script, slim_cmd="slim", seed=False, manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
@@ -105,7 +96,7 @@ def read_params(config, add_rep=True):
     param_types = {}
     for param, vals in config['params'].items():
         assert param != "rep", "invalid param name 'rep'!"
-        val_type = {'float': float, 'int': int}.get(vals['type'], None)
+        val_type = {'float': float, 'int': int, 'str':str}.get(vals['type'], None)
         is_grid = "grid" in vals
         if is_grid:
             assert("lower" not in vals)
@@ -157,7 +148,8 @@ class SlimRuns(object):
                 warnings.warn("sampler specified but runtype is grid!")
             self.runs = param_grid(self.params)
         else:
-            self.sampler = self.sampler_func(self.params, total=self.nsamples, seed=self.seed)
+            self.sampler = self.sampler_func(self.params, total=self.nsamples,
+                                             seed=self.seed)
             self.runs = list(self.sampler)
 
     @property
@@ -213,8 +205,11 @@ class SlimRuns(object):
 
     @property
     def param_order(self):
-        "SLiM constructs filename automatically too; this is the param order"
-        return ', '.join(self.params.keys())
+        """
+        SLiM constructs filename automatically too; this is the order, as a
+        string of parameters, to use for the filename_str() function.
+        """
+        return ', '.join(f"'{v}'" for v in self.params.keys())
 
     def targets(self, suffix):
         """
