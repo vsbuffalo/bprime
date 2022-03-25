@@ -56,7 +56,16 @@ function (void)output_substitutions(string chrom, string filename, object subpop
 
 initialize() {
   initializeTreeSeq();
-  defineConstant("region_length", 130000000);
+  // get chromsome length
+  defineConstant("seqlen_file", "../data/annotation/hg38_seqlens.tsv");
+  for (line in readFile(seqlen_file)) {
+    parts = strsplit(line, "\t");
+    if (parts[0] == "chr10") {
+      chrom_length = asInteger(parts[1]);
+    }
+  }
+ 
+  defineConstant("region_length", chrom_length); 
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
   if (!exists("name")) {
@@ -75,8 +84,8 @@ initialize() {
 	defineConstant("datadir", '../data/slim_sims/' + name + '/');
   }
   //defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
-  defineConstant("recmap_file", "../data/annotation/hapmap_chr"+chr+".txt");
-  defineConstant("annot_file", "../data/annotation/conserved_chr"+chr+".bed");
+  defineConstant("recmap_file", "../data/annotation/hapmap/genetic_map_GRCh37_chr"+chr+".txt");
+  defineConstant("annot_file", "../data/annotation/conserved_by_chrom/chr"+chr+".bed");
 
   // == Runtime settings
   defineConstant("burnin", 10*N);
@@ -87,6 +96,7 @@ initialize() {
   metadata.setValue("h", h);
   metadata.setValue("mu", mu);
   metadata.setValue("region_length", region_length);
+  metadata.setValue("seqlen_file", seqlen_file);
   metadata.setValue("recmap_file", recmap_file);
   metadata.setValue("annot_file", annot_file);
 
@@ -115,11 +125,14 @@ initialize() {
   rates = c();
   for (line in readFile(recmap_file)) {
     parts = strsplit(line, "\t");
+    if (parts[0] == "Chromosome") {
+      next; // skip HapMap header
+    }
     // rates are cM/Mbp per 100kb window
-    rates = c(rates, 1e-8 * asFloat(parts[1]));
-    bins = c(bins, asInteger(parts[0]));
+    rates = c(rates, 1e-8 * asFloat(parts[2]));
+    bins = c(bins, asInteger(parts[1]));
   }
-  bins = c(bins[1:(size(bins)-1)] - 2, region_length-1);
+  print(bins[0:10]);
   defineConstant('rec_rates', rates);
   defineConstant('rec_bins', bins);
   //print(rec_bins);

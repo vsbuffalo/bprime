@@ -337,6 +337,27 @@ def process_feature_recombs(features, recmap):
     features = np.array([feature_map[x] for x in split_features])
     return Segments(ranges, rates, map_pos, features, feature_map, index)
 
+
+def rate_interpol(rate_dict, **kwargs):
+    """
+    Interpolate recombination rates given a dictionary of chrom->(ends, rates).
+    By default, it uses quadratic, and any values outside the range are given
+    the two end points.
+    """
+    defaults = {'kind': 'quadratic',
+                'assume_sorted': True,
+                'bounds_error': False,
+                'copy': False}
+    kwargs = {**defaults, **kwargs}
+    interpols = dict()
+    for chrom, (ends, rates) in rate_dict.items():
+        interpol = interpolate.interp1d(ends, rates,
+                                        fill_value=(rates[0], rates[-1]),
+                                        **kwargs)
+
+        interpols[chrom] = interpol
+    return interpols
+
 class RecMap(object):
     def __init__(self, mapfile, seqlens, conversion_factor=1e-8):
         self.mapfile = mapfile
@@ -405,41 +426,20 @@ class RecMap(object):
             cumm_rates[chrom] = RecPair(pos, pad_cumrates)
         self.rates = rates
         self.cumm_rates = cumm_rates
-        interpol = {c: interpolate.interp1d(ends, rates,
-                                            #kind='previous',
-                                            kind='cubic',
-                                            copy=True, assume_sorted=True, bounds_error=False)
-                    for c, (ends, rates) in self.cumm_rates.items()}
-        self.interpol = interpol
+        self.cumm_interpol = rate_interpol(cumm_rates)
+        self.rate_interpol = rate_interpol(rates)
+
 
     def lookup(self, chrom, pos, cummulative=False):
-        is_array = isinstance(pos, (np.ndarray, list))
         #assert(np.all(0 <= pos <= self.ends[chrom]))
         if np.any(pos > self.seqlens[chrom]):
             bad_pos = pos[pos > self.seqlens[chrom]]
             msg = f"some positions {bad_pos} are greater than sequence length ({self.seqlens[chrom]}"
             warnings.warn(msg)
         if not cummulative:
-            lookup_table = self.rates
-            if chrom not in lookup_table:
-                raise KeyError(f"'{chrom}' not in recombination map.")
-            idx = np.digitize(pos, lookup_table[chrom].end)
-            if isinstance(idx, np.int64):
-                return lookup_table[chrom].rate[idx]
-            # TODO, bound checking?
-            x = np.array([lookup_table[chrom].rate[i] for i in idx])
+            x = self.rate_interpol[chrom](pos)
         else:
-            x = self.interpol[chrom](pos)
-            # if there's overrun past the last marker, we just
-            # approximate this, saying the position is the last marker
-            overrun = pos > self.ends[chrom]
-            if is_array:
-                # to handle non-scalars
-                overrun = any(overrun)
-            if overrun:
-                x[overrun] = self.cumm_rates[chrom].rate[-1]
-        if is_array:
-            assert not any(np.isnan(x))
+            x = self.cumm_interpol[chrom](pos)
         return x
 
     @property

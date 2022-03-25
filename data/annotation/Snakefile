@@ -144,50 +144,12 @@ rule split_conserved:
       """
 
 ## === Rules for the chr10 SLiM Simulations
-chr10 = ["rec_100kb_chr10.bed", "conserved_chr10.bed", "chr10_seqlens.tsv", 
-         "neutral_chr10.bed", "hapmap_chr10.txt"]
-
-rule hapmap_chr10:
-  output: "hapmap_chr10.txt"
-  input: "hapmap/genetic_map_GRCh37_chr10.txt"
-  shell: 
-      """
-      sed 1d {input} | cut -f2,3 | \
-        bioawk '{{ if ($1 <= 130000000) {{ print $0 }} }}' > {output}
-      """
-
-
-# get chr10 from the tiled recomination file
-rule rec100kb_chr10:
-  output: "rec_100kb_chr10.bed" 
-  input: "rec_100kb.bed"
-  shell:
-      """
-      grep "^chr10" {input} | bioawk '{{ if ($3 <= 130000000) {{ print $0 }} }}' > {output}
-      """
-
-# extract chr10, add in a simple label, sort ranges, add slop, sort again (for safety)
-# merge overlapping
-rule conserved_chr10:
-  output: "conserved_chr10.bed"
-  input: conserved="conserved.bed.gz", seqlens="hg38_seqlens.tsv"
-  shell:
-     """
-     zgrep "chr10" {input.conserved} | bioawk -t '{{ if ($3 < 130000000) {{ print $1,$2,$3,"conserved" }} }}' | \
-       sort  --version-sort -k 1,1 -k2,2n | bedtools slop -g {input.seqlens} -b 1000 | \
-       sort  --version-sort -k 1,1 -k2,2n | bedtools merge -d 2 > {output}
-     """
-
-# simpler chr10 for sims -- approximation is fine
-rule chr10_seqlens:
-  output: "chr10_seqlens.tsv"
-  shell: "echo 'chr10	130000000' > {output}"
-
+chr10 = ["neutral_chr10.bed"]
 
 # putatively neutral regions -- not conserved tracks
 rule neutral_chr10:
    output: "neutral_chr10.bed"
-   input: conserved="conserved_chr10.bed", seqlens="chr10_seqlens.tsv"
+   input: conserved="conserved_by_chrom/chr10.bed", seqlens="hg38_seqlens.tsv"
    shell:
       """
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}

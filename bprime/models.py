@@ -583,7 +583,7 @@ class BGSModel(object):
         np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
         self.F = F
         self._segment_parts = B_segment_lazy(rbp, L, t)
-        print([x.shape for x in self._segment_parts])
+        #print([x.shape for x in self._segment_parts])
 
     @property
     def BScores(self):

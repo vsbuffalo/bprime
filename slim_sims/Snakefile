@@ -19,7 +19,9 @@ SLIM = '~/src/SLiM_build/slim'
 
 # the output of one BGS slim sim (simple_bgs.slim)
 SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
-ANNOT_FILES = ["../data/annotation/hapmap_chr10.txt", "../data/annotation/conserved_chr10.bed"]
+ANNOT_FILES = ["../data/annotation/hg38_seqlens.tsv", 
+               "../data/annotation/hapmap/genetic_map_GRCh37_chr10.txt", 
+               "../data/annotation/conserved_by_chrom/chr10.bed"]
 
 # ------- Simple BGS for B Maps -------
 bgs_run = SlimRuns(config, dir=DATADIR)
