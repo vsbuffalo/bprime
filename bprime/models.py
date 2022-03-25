@@ -42,6 +42,7 @@ from scipy.optimize import minimize_scalar
 from bprime.utils import bin_chrom
 from bprime.utils import RecMap, readfile, load_dacfile
 from bprime.utils import process_feature_recombs, load_bed_annotation
+from bprime.utils import process_feature_recombs2
 from bprime.utils import haldanes_mapfun, load_seqlens, chain_dictlist
 from bprime.utils import ranges_to_masks, sum_logliks_over_chroms
 
@@ -183,12 +184,23 @@ def calc_B_chunk_worker(args):
     a, b, c, d = segment_parts
     Bs = []
     for f in map_positions:
-        segment_posts = chrom_segments[:, 0] # TODO fix; this should be end-specific
+        # ---f-----L______R----------
+        # ---------L______R-------f--
+        is_left = (chrom_segments[:, 0] - f) > 0
+        is_right = (f - chrom_segments[:, 1]) > 0
+        is_contained = (~is_left) & (~is_right)
+        dists = np.zeros(is_left.shape)
+        dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
+        dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
+        assert len(dists) == chrom_segments.shape[0], (len(dists), chrom_segments.shape)
+        # TODO fix; this should be end-specific
         # Every segment left of this position (index less than this)
         # should have its distance to this position measured to its end
         # point.
 
-        rf = -0.5*np.expm1(-np.abs(segment_posts - f))[None, :]
+        #rf = -0.5*np.expm1(-dists)[None, :]
+        rf = dists
+        #rf[dists > 0.5] = 0.5
         if MIN_RF is not None:
             rf[rf < MIN_RF] = MIN_RF
         if np.any(b + rf*(rf*c + d) == 0):
@@ -316,7 +328,7 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
         # get the segments on this chromosome
         idx = segments.index[chrom]
         nsegs = len(idx)
-        segment_map_pos = segments.map_pos[idx, :]
+        chrom_segments = segments.map_pos[idx, :]
 
         # alias the segments parts to shorter names
         a, b, c, d = (segment_parts[0][:, idx], segment_parts[1],
@@ -329,7 +341,9 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
         if optimal_einsum_path is None:
             print(f"computing optimal contraction with np.einsum_path()")
             focal_map_pos = np.random.choice(map_pos)
-            rf = -0.5*np.expm1(-np.abs(segment_map_pos[:, 0] - focal_map_pos))[None, :]
+            # as an approx, this only considers dist to start of segement
+            #rf = -0.5*np.expm1(-np.abs(chrom_segments[:, 0] - focal_map_pos))[None, :]
+            rf = np.abs(chrom_segments[:, 0] - focal_map_pos)[None, :]
             if MIN_RF is not None:
                 rf[rf < MIN_RF] = MIN_RF
             x = a/(b*rf**2 + c*rf + d)
@@ -344,8 +358,16 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
         tq = tqdm.tqdm(zip(map_pos, positions), total=total_sites)
         #xs = list()
         for f, pos in tq:
-            segment_posts = segment_map_pos[:, 0] # TODO fix; this should be end-specific
-            rf = -0.5*np.expm1(-np.abs(segment_posts - f))[None, :]
+            is_left = (chrom_segments[:, 0] - f) > 0
+            is_right = (f - chrom_segments[:, 1]) > 0
+            is_contained = (~is_left) & (~is_right)
+            dists = np.zeros(is_left.shape)
+            dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
+            dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
+            assert(len(dists) == chrom_segments.shape[0])
+
+            #rf = -0.5*np.expm1(-dists)[None, :]
+            rf = dists
             assert(not np.any(np.isnan(rf)))
             #hrf = haldanes_mapfun(np.abs(segment_posts - f))
             #assert(np.allclose(rf, hrf))
@@ -549,8 +571,8 @@ class BGSModel(object):
         """
         L = np.diff(self.segments.ranges, axis=1).squeeze()
         rbp = self.segments.rates
-        min_rbp = 0 # here as test; doesn't make much of a difference
-        rbp[rbp == 0] = min_rbp
+        #min_rbp = 0 # here as test; doesn't make much of a difference
+        #rbp[rbp == 0] = min_rbp
         # turn this into a column vector for downstream
         # operations
         t = self.t[:, None]
@@ -561,6 +583,7 @@ class BGSModel(object):
         np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
         self.F = F
         self._segment_parts = B_segment_lazy(rbp, L, t)
+        print([x.shape for x in self._segment_parts])
 
     @property
     def BScores(self):

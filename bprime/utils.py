@@ -207,6 +207,44 @@ def index_dictlist(x):
         index[chrom] = np.array(index[chrom], dtype='uint32')
     return index
 
+def process_feature_recombs2(features, recmap):
+    """
+    This is for debugging purposes only!
+    This is process_feature_recombs() without splitting up features
+    by recombination rates.
+    """
+    all_features = set()
+    feature_types = list()
+    ranges = list()
+    rates = list()
+    chroms = list()
+    map_pos = list()
+    index = defaultdict(list)
+    i = 0
+    for chrom, feature_ranges in features.items():
+        for (start, end), feature_type in zip(*feature_ranges):
+            all_features.add(feature_type)
+            feature_types.append(feature_type)
+            ranges.append((start, end))
+            rates.append(recmap.lookup(chrom, 0.5*(start+end)))
+            map_start = recmap.lookup(chrom, start, cummulative=True)
+            map_end = recmap.lookup(chrom, end, cummulative=True)
+            map_pos.append((map_start, map_end))
+            index[chrom].append(i)
+            i += 1
+            chroms.append(chrom)
+
+    ranges = np.array(ranges, dtype='uint32')
+    assert(i == len(ranges))
+    print(f"looking up map positions...\t", end='')
+    map_pos = np.array(map_pos)
+    assert(map_pos.shape[0] == ranges.shape[0])
+    print(f"done.")
+    rates = np.array(rates, dtype='float32').squeeze()
+    feature_map = {f: i for i, f in enumerate(sorted(all_features))}
+    features = np.array([feature_map[x] for x in feature_types])
+    return Segments(ranges, rates, map_pos, features, feature_map, index)
+
 
 def process_feature_recombs(features, recmap):
     """
@@ -299,26 +337,6 @@ def process_feature_recombs(features, recmap):
     features = np.array([feature_map[x] for x in split_features])
     return Segments(ranges, rates, map_pos, features, feature_map, index)
 
-def create_annotation_grid(variants, variant_indices, annotation, dummy=False):
-    # DEPRECATED?
-    ranges, index_map, all_features = annotation
-    # put into an array
-    nfeatures = len(all_features)
-    nloci = len(list(itertools.chain(*variants.values())))
-    feature_map = {f: i for i, f in enumerate(sorted(all_features), 1)}
-    F = np.zeros((nloci, 1+nfeatures), dtype='bool')
-    for chrom, (chrom_ranges, chrom_features) in ranges.items():
-        chrom_variants = variants[chrom]
-        indices = [feature_map[f] for f in chrom_features]
-        var_classes = classify_sites(chrom_variants, chrom_ranges,
-                                        indices, missing_class=0)
-        i = variant_indices[chrom]
-        if dummy:
-            F[i, var_classes] = np.array(True)
-        else:
-            F = var_classes
-    return F, feature_map
-
 class RecMap(object):
     def __init__(self, mapfile, seqlens, conversion_factor=1e-8):
         self.mapfile = mapfile
@@ -387,11 +405,15 @@ class RecMap(object):
             cumm_rates[chrom] = RecPair(pos, pad_cumrates)
         self.rates = rates
         self.cumm_rates = cumm_rates
-        interpol = {c: interpolate.interp1d(ends, rates, copy=False, assume_sorted=True, bounds_error=False)
+        interpol = {c: interpolate.interp1d(ends, rates,
+                                            #kind='previous',
+                                            kind='cubic',
+                                            copy=True, assume_sorted=True, bounds_error=False)
                     for c, (ends, rates) in self.cumm_rates.items()}
         self.interpol = interpol
 
     def lookup(self, chrom, pos, cummulative=False):
+        is_array = isinstance(pos, (np.ndarray, list))
         #assert(np.all(0 <= pos <= self.ends[chrom]))
         if np.any(pos > self.seqlens[chrom]):
             bad_pos = pos[pos > self.seqlens[chrom]]
@@ -411,9 +433,13 @@ class RecMap(object):
             # if there's overrun past the last marker, we just
             # approximate this, saying the position is the last marker
             overrun = pos > self.ends[chrom]
-            if any(overrun):
+            if is_array:
+                # to handle non-scalars
+                overrun = any(overrun)
+            if overrun:
                 x[overrun] = self.cumm_rates[chrom].rate[-1]
-        assert(not any(np.isnan(x)))
+        if is_array:
+            assert not any(np.isnan(x))
         return x
 
     @property
