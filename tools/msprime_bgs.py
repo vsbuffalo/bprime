@@ -10,10 +10,12 @@ import pickle
 import click
 import json
 from bprime.samplers import UniformSampler
-from bprime.utils import read_params, signif
-from bprime.theory import bgs_segment
+from bprime.utils import signif
+from bprime.sim_utils import read_params
+from bprime.theory import bgs_segment, bgs_rec
 
-PARAMS = ('mu', 's', 'rbp', 'recfrac', 'N', 'L')
+#PARAMS = ('mu', 's', 'rbp', 'rf', 'L')
+PARAMS = ('mu', 's', 'r', 'L')
 #bgs_ranges = {'mu': (1e-8, 1e-7, False),
 #              's': (1e-3, 1e-1, False),
 #              'r': (1e-7, 1e-9, False),
@@ -22,21 +24,19 @@ PARAMS = ('mu', 's', 'rbp', 'recfrac', 'N', 'L')
 #              'nreps': (1, 1, False)}
 #
 
-def bgs_rec_runner(param, nreps=1):
+def bgs_runner(param, nreps=1):
     """
     Run msprime with N scaled by B.
 
     Note: nreps is set to 1, as exploring averaging over replicate runs
     did not work as well as just drawing more from the sampler.
     """
-    mu, s, rf, rbp, N, L = [param[k] for k in PARAMS]
-    s = 0.5*s # to match SliM, we treat s as the homozygous selcoef
-    N = int(N)
-    L = int(L)
+    N = int(param['N'])
     #B = bgs_rec(mu, s, r, L)
-    B = bgs_segment(mu=mu, s=s, rf=rf, rbp=rbp, L=L)
-    # get the π in the tracking region
-    Bhats = [msprime.sim_ancestry(N, population_size=B*N).diversity(mode='branch')/(4*N)
+    kwargs = {k: param[k] for k in PARAMS}
+    B = bgs_rec(**kwargs)
+    Ne = B*N
+    Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
     return Bhats
 
@@ -63,7 +63,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
     with open(configfile) as f:
         config = json.load(f)
 
-    ranges = read_params(config)
+    ranges = read_params(config, add_rep=False)
 
     try:
         total = nsamples if nsamples is not None else config['nsamples']
@@ -71,7 +71,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
         raise KeyError(f"configfile '{configfile}' does npt specify nsamples"
                         " and --nsamples not set via command line")
 
-    sampler = UniformSampler(ranges, total=total, seed=seed)
+    sampler = UniformSampler(ranges, total=total, seed=seed, add_seed=False)
 
     print(sampler)
 
@@ -81,10 +81,10 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
 
     if ncores > 1:
         with Pool(ncores) as p:
-            y = np.array(list(tqdm.tqdm(p.imap(bgs_rec_runner, sampler),
+            y = np.array(list(tqdm.tqdm(p.imap(bgs_runner, sampler),
                                         total=sampler.total)))
     else:
-        y = np.array(list(tqdm.tqdm((bgs_rec_runner(s) for s in sampler),
+        y = np.array(list(tqdm.tqdm((bgs_runner(s) for s in sampler),
                                      total=sampler.total)))
 
     X, features = sampler.as_matrix()
@@ -94,3 +94,4 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
 
 if __name__ == "__main__":
     sim_bgs()
+

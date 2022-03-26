@@ -20,6 +20,10 @@ class LearnedFunction(object):
         self.X_test = None
         self.y_train = None
         self.y_test = None
+        self.X_test_orig = None
+        self.X_train_orig = None
+        self.y_test_orig = None
+        self.y_train_orig = None
         i = 0
         # parse domains
         # note: not doing anythign with type currently

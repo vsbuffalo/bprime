@@ -23,6 +23,9 @@ def read_bkgd(file):
     B = d[:, 0]/1000
     return pos, B
 
+def signif(x, digits=4):
+    return np.round(x, digits-int(floor(log10(abs(x))))-1)
+
 def midpoint(x):
     return 0.5*(x[:-1, ...] + x[1:, ...])
 

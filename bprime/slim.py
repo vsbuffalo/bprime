@@ -1,8 +1,11 @@
 # slim.py -- helpers for snakemake/slim sims
+
 import os
 import itertools
 import warnings
 import numpy as np
+from bprime.utils import signif
+from bprime.sim_utils import param_grid, read_params, random_seed, infer_types
 
 def filename_pattern(base, params, seed=False, rep=False):
     """
@@ -58,64 +61,6 @@ def slim_call(param_types, script, slim_cmd="slim", seed=False, manual=None):
     full_call = f"{slim_cmd} " + " ".join(call_args) + add_on + " " + script
     return full_call
 
-def random_seed():
-    return np.random.randint(0, 2**63)
-
-def param_grid(params, seed=False):
-    """
-    Generate a Cartesian product parameter grid from a
-    dict of grids per parameter, optionally adding the seed.
-    """
-    grid = []
-    for param, values in params.items():
-        if len(values):
-            grid.append([(param, v) for v in values])
-        else:
-            grid.append([(param, '')])
-    out = list(map(dict, itertools.product(*grid)))
-    if not seed:
-        return out
-    for entry in out:
-        entry['seed'] = random_seed()
-    return out
-
-
-def read_params(config, add_rep=True):
-    """
-    Grab the parameter ranges from a configuration dictionary.
-
-    There is some polymorphic behavior here, depending on whether a
-    parameter grid is used, or whether sampling is done. For parameter
-    grids, entries have an array with name "grid". For sampling, "lower",
-    "upper", and "log10" are defined.
-
-    Returns a dict of either param->(lower, uppper, log10, type) tuples
-    (for sampling case) or param->[grid] for the grid case.
-    """
-    params = {}
-    param_types = {}
-    for param, vals in config['params'].items():
-        assert param != "rep", "invalid param name 'rep'!"
-        val_type = {'float': float, 'int': int, 'str':str}.get(vals['type'], None)
-        is_grid = "grid" in vals
-        if is_grid:
-            assert("lower" not in vals)
-            assert("upper" not in vals)
-            assert("log10" not in vals)
-            params[param] = vals['grid']
-            param_types[param] = val_type
-        else:
-            lower, upper = vals['lower'], vals['upper']
-            log10 = vals['log10']
-            params[param] = (val_type(lower), val_type(upper), log10)
-            param_types[param] = val_type
-    if add_rep and is_grid:
-        params["rep"] = list(range(config['nreps']))
-        param_types["rep"] = int
-    return params, param_types
-
-def signif(x, digits=4):
-    return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
 class SlimRuns(object):
     def __init__(self, config, dir='.', sampler=None, seed=None):
@@ -132,7 +77,8 @@ class SlimRuns(object):
         msg = f"SLiM file '{self.script}' does not exist"
         assert os.path.exists(self.script), msg
 
-        self.params, self.param_types = read_params(config)
+        self.params = read_params(config)
+        self.param_types = infer_types(self.params)
         self.dir = os.path.join(dir, self.name)
         self.basename = os.path.join(self.dir, f"{self.name}_")
         self.seed = seed if seed is not None else random_seed()
@@ -173,8 +119,9 @@ class SlimRuns(object):
             manual = {**name, **manual}
         else:
             manual = name
-        return slim_call(self.param_types, self.script,
-                         slim_cmd=slim_cmd, manual=manual)
+
+       return slim_call(self.param_types, self.script,
+                        slim_cmd=slim_cmd, manual=manual)
 
     def slim_commands(self, *args, **kwargs):
         call = self.slim_call(*args, **kwargs).replace("wildcards.", "")
