@@ -358,8 +358,10 @@ def rate_interpol(rate_dict, **kwargs):
         interpols[chrom] = interpol
     return interpols
 
+
 class RecMap(object):
-    def __init__(self, mapfile, seqlens, conversion_factor=1e-8):
+    def __init__(self, mapfile, seqlens, interpolation='quadratic',
+                 conversion_factor=1e-8):
         self.mapfile = mapfile
         self.conversion_factor = conversion_factor
         self.ends = dict()
@@ -367,6 +369,7 @@ class RecMap(object):
         self.seqlens = seqlens
         self.cumm_rates = None
         self.params = []
+        self.interpolation = interpolation
         self.readmap()
 
     def readmap(self):
@@ -426,8 +429,8 @@ class RecMap(object):
             cumm_rates[chrom] = RecPair(pos, pad_cumrates)
         self.rates = rates
         self.cumm_rates = cumm_rates
-        self.cumm_interpol = rate_interpol(cumm_rates)
-        self.rate_interpol = rate_interpol(rates)
+        self.cumm_interpol = rate_interpol(cumm_rates, kind=self.interpolation)
+        self.rate_interpol = rate_interpol(rates, kind=self.interpolation)
 
 
     def lookup(self, chrom, pos, cummulative=False):

@@ -590,6 +590,25 @@ class BGSModel(object):
         Bs = {c: b for c, b in self.Bs.items()}
         return BScores(Bs, self.B_pos, self.w, self.t, self.step)
 
+    def BScores_interpolater(self, feature_idx, **kwargs):
+        defaults = {'kind': 'quadratic',
+                    'assume_sorted': True,
+                    'bounds_error': False,
+                    'copy': False}
+        kwargs = {**defaults, **kwargs}
+        interpols = defaultdict(dict)
+        x = self.B_pos
+        Bs = {c: b for c, b in self.Bs.items()}
+        for i, w in enumerate(self.w):
+            for j, t in enumerate(self.t):
+                for chrom in Bs:
+                    y = Bs[chrom][:, i, j, feature_idx]
+                    func = interpolate.interp1d(x[chrom], y,
+                                                fill_value=(y[0], y[-1]),
+                                                **kwargs)
+                    interpols[chrom][(w, t)] = func
+        return interpols
+
     def save_B(self, filename):
         if self.Bs is None or self.B_pos is None:
             raise ValueError("B scores not yet calculated.")
