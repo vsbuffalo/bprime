@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['../']) # for bprime modules
+sys.path.extend(['../../']) # for bprime modules
 
 import json
 from math import floor, log10
@@ -17,7 +17,7 @@ if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
 # ------- Shared Parameters -------
-DATADIR = "../data/slim_sims/"
+DATADIR = "../../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
  
 # ------- BGS segments -------

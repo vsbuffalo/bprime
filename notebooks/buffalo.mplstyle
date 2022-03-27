@@ -183,6 +183,9 @@ axes.grid.axis      : y    ## which axis the grid should apply to
                                ## rather than hyphen.  See
                                ## http://en.wikipedia.org/wiki/Plus_and_minus_signs#Character_codes
 #axes.prop_cycle    : cycler('color', ['1f77b4', 'ff7f0e', '2ca02c', 'd62728', '9467bd', '8c564b', 'e377c2', '7f7f7f', 'bcbd22', '17becf'])
+
+# Custom cycler based on Open Colors, https://yeun.github.io/open-color/
+axes.prop_cycle     : cycler('color', ['1c7ed6', 'ff922b', '40c057', 'f03e3e', '9775fa', '82c91e', 'cc5de8', '22b8cf', 'f783ac', '495057'])
                       ## color cycle for plot lines  as list of string
                       ## colorspecs: single letter, long name, or web-style hex
 					  ## Note the use of string escapes here ('1f77b4', instead of 1f77b4)
