@@ -13,5 +13,5 @@
        "seglen": {"lower": 10, "upper": 1000, "log10": false, "type": "int"}
      },
    "init_runtime": 0.25,
-   "nsamples": 1
+   "nsamples": 100000
 }

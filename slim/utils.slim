@@ -1,0 +1,74 @@
+function (logical)contains(string x, string y) {
+  assert(length(x) == 1 & length(y) == 1, "x and y must be length 1");
+  return length(strsplit(x, y)) > 1;
+}
+
+function (string)filename_str(string params) {
+  out = "";
+  for (i in seqAlong(params)) {
+    v = params[i];
+    val = executeLambda(v + ";");
+    if (isFloat(val)) {
+      // float formatting correction to match python
+      val = format("%g", val);
+    }
+    assert(!contains(asString(val), "..") & !contains(asString(val), "/"),
+           "filename key/value cannot contain . or /!");
+    out = out + v + val + "_";
+  }
+  return out;
+}
+
+function (object)param_dict(string params) {
+  pd = Dictionary();
+  for (i in seqAlong(params)) {
+    v = params[i];
+    val = executeLambda(v + ";");
+    if (length(val) > 1) {
+      val = paste(val, sep=",");
+    }
+    pd.setValue(v, val);
+  }
+  return pd;
+}
+
+function (float) standard_fitness(object ind, object mut_type) {
+  muts = sim.mutationsOfType(mut_type);
+  hh = mut_type.dominanceCoeff;
+  ss = muts.selectionCoeff;
+  nmuts1 = ind.genome1.mutationCountsInGenomes(muts);
+  nmuts2 = ind.genome2.mutationCountsInGenomes(muts);
+  muts = nmuts1 + nmuts2;
+  hets = muts == 1;
+  homs = muts == 2;
+  return exp(sum(log(1 + hh*ss[hets])) + sum(log(1 + ss[homs])));
+}
+
+function (float) pop_fitness(object mut_type) {
+  inds = sim.subpopulations.individuals;
+  return sapply(inds, 'standard_fitness(applyValue, mut_type);');
+}
+
+function (float) pop_fitness(object mut_type) {
+  inds = sim.subpopulations.individuals;
+  return sapply(inds, 'standard_fitness(applyValue, mut_type);');
+}
+
+function (void)output_mutations(string chrom, string filename, object subpop) {
+  counts = sim.mutationCounts(subpop, mutations=sim.mutations);
+  for (i in seqAlong(sim.mutations)) {
+    mut = sim.mutations[i];
+    row = paste(chrom, mut.position, 2*subpop.individualCount, counts[i], mut.selectionCoeff, mut.mutationType.dominanceCoeff, sep="\t");
+    writeFile(filename, row, append=T, compress=T);
+  }
+}
+
+function (void)output_substitutions(string chrom, string filename, object subpop) {
+  for (i in seqAlong(sim.substitutions)) {
+    sub = sim.substitutions[i];
+    row = paste(chrom, sub.position, sub.selectionCoeff, sub.mutationType, sub.mutationType.dominanceCoeff, sep="\t");
+    writeFile(filename, row, append=T, compress=T);
+  }
+}
+
+
