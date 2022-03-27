@@ -6,6 +6,25 @@ import numpy as np
 def random_seed():
     return np.random.randint(0, 2**63)
 
+def fixed_params(params):
+    """
+    Iterate through the parameters and return the fixed parameters,
+    either because a grid only has one element or lower/upper are
+    the same.
+    """
+    fixed = dict()
+    for key, param in params.items():
+        if isinstance(param, tuple):
+            lower, upper, _ = param
+            if lower == upper:
+                fixed[key] = lower
+        elif isinstance(param, list):
+            if len(param) == 1:
+                fixed[key] = param[0]
+        else:
+            raise ValueError("param items must be tuple of list")
+    return fixed
+
 def param_grid(params, seed=False):
     """
     Generate a Cartesian product parameter grid from a

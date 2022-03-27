@@ -31,7 +31,9 @@ bgs_run.generate()
 #print(bgs_run.param_order)
 
 bgs_results = bgs_run.targets(SIM_OUTPUTS)
-print(list(itertools.islice(bgs_run.slim_commands(), 5)))
+
+# look at first slim runs
+#print(list(itertools.islice(bgs_run.slim_commands(), 5)))
 
 rule bgs_map:
   input: bgs_run.script, *ANNOT_FILES

@@ -59,6 +59,10 @@ initialize() {
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
   defineConstant("tracklen", 10);
+  if (!exists("name")) {
+    defineConstant("name", "segment");
+  }
+ 
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("seglen", 10000);
@@ -69,9 +73,9 @@ initialize() {
     defineConstant("mu", 1e-8);
     defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", 'tests/');
-	defineConstant("config_name", 'defaults');
+	defineConstant("name", 'defaults');
   } else {
-	defineConstant("datadir", '../data/slim_sims/'+config_name+'/');
+	defineConstant("datadir", '../data/slim_sims/'+name+'/');
   }
 
   defineConstant("region_length", tracklen + seglen + 1);
@@ -94,7 +98,7 @@ initialize() {
   // this must be the same order as the bgs_params in the Snakefile
   filestr = filename_str(c('N', 'mu', 's', 'h', 'rbp', 
                            'rf', 'seglen', 'seed'));
-  defineConstant("basename", config_name + "_" + filestr);
+  defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
   // == Mutations, Regions, and Recombination

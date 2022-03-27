@@ -10,9 +10,8 @@ import tskit
 import msprime
 from datetime import time
 from collections import defaultdict, namedtuple
+from bprime.slim import SlimRuns, read_params, time_grower
 from bprime.samplers import UniformSampler
-from bprime.utils import signif, read_params
-from bprime.slim import filename_pattern, slim_call
 
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
@@ -22,55 +21,35 @@ DATADIR = "../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
  
 # ------- BGS segments -------
-#bgs_ranges = dict(N=(50, 20_000, False, int),
-#                  mu=(1e-9, 1e-7, False, float), 
-#                  h=(0.5, 0.5, False, float), 
-#                  s=(1e-5, 1e-1, False, float), 
-#                  rbp=(0.01/1e8, 30/1e8, False, float),
-#                  recfrac=(-9, np.log10(0.5), True, float), # Morgans,
-#                  seglen=(10, 10_000, False, int)) 
+run = SlimRuns(config, dir=DATADIR, sampler=UniformSampler, seed=12)
+run.generate()
 
-run_params = read_params(config)
+# to get param order for SLiM file
+print(run.param_order)
 
-sampler = UniformSampler(run_params, total=config['nsamples'], seed=12)
-samples = list(sampler)
+# build the files to output 
+sim_results = run.targets(["treeseq.tree"])
+recap_results = run.targets(["recap.tree"])
 
-basename = DATADIR + f"{config['name']}/{config['name']}_"
-pattern = filename_pattern(basename, run_params, rep=False, seed=True)
+#print(sim_results + recap_results)
+#print(list(itertools.islice(run.slim_commands(), 5)))
 
-# bgs simulation results
-sim_results = []
-recap_results = []
-
-# for use if there are more than one sim output files, e.g. log files
-sim_outputs = ["treeseq.tree"]
-for sample in samples:
-  for out in sim_outputs:
-    sim_results.append(pattern.format(**sample).format(output=out))
-  recap_results.append(pattern.format(**sample).format(output='recap.tree'))
-
-def time_grower(start_time, factor=1.8):
-  def time_limit(wildcards, attempt):
-      new_time = start_time*(attempt + factor*(attempt-1))
-      days = int(new_time // 24)
-      time_left = new_time % 24
-      hours = int(time_left // 1)
-      minutes = int(60*(time_left - (time_left // 1)))
-      return f"{days:02d}-{hours}:{minutes}:00"
-  return time_limit
+rule all:
+  input:
+    sim_results, recap_results
 
 rule bgs:
-  input: "segment.slim"
-  output: [pattern.replace("{{output}}", out) for out in sim_outputs]
+  input: run.script
+  output: run.wildcard_output(suffix="treeseq.tree")
   resources: 
     # 1.5 hours that grows 1.8x each failed attempt
     runtime = time_grower(config['init_runtime'])
-  run:
-    shell(slim_call(run_params, SLIM, rep=False, manual={'config_name': config['name']}) + " {input} ")
+  shell:
+    run.slim_call(slim_cmd=SLIM)
 
 rule recap:
-  input: treeseq=pattern.replace("{{output}}", 'treeseq.tree')
-  output: recap=pattern.replace("{{output}}", 'recap.tree')
+  input: treeseq=run.wildcard_output(suffix="treeseq.tree")
+  output: recap=run.wildcard_output(suffix="recap.tree")
   #resources:
   #  time = "00-00:30:00"
   run:
@@ -79,9 +58,3 @@ rule recap:
     rts = pyslim.recapitate(ts, recombination_rate=0,
                             ancestral_Ne=md['N'][0]).simplify()
     rts.dump(output.recap)
-
-rule all:
-  input:
-    sim_results, recap_results
-    
-

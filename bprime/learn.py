@@ -21,7 +21,7 @@ class LearnedFunction(object):
         self.y_train = None
         self.y_test = None
         self.X_test_orig = None
-        self.X_train_orig = None
+        self.X_train_orig = Noneself.y_train
         self.y_test_orig = None
         self.y_train_orig = None
         i = 0
@@ -94,6 +94,8 @@ class LearnedFunction(object):
             raise ValueError("X, y must be split first")
         if self.normalized or not all(x is None for x in self.transform.values()):
             raise ValueError("X already transformed!")
+        if not all(t in self.features for t in transforms.keys()):
+            raise ValueError("'transforms' dict has key not in features")
         self.X_test_orig = self.X_test
         self.X_train_orig = self.X_train
         self.y_test_orig = self.y_test
@@ -160,6 +162,11 @@ class LearnedFunction(object):
         """
         Predict a grid of points (useful for visualizing learned function).
         This uses the domain specified by the model.
+
+        Returns:
+          - A list of the grid values for each column.
+          - A matrix of the mesh grid, flattened into columns (the total number
+             of columsn
         """
         domain_grids = self.domain_grids(n, fix_X=fix_X, log10=log10)
         mesh = np.meshgrid(*domain_grids)

@@ -26,7 +26,7 @@ def filename_pattern(base, params, seed=False, rep=False):
     return pattern
 
 
-def slim_call(param_types, script, slim_cmd="slim", seed=False, manual=None):
+def slim_call(param_types, script, slim_cmd="slim", add_seed=False, manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
     wildcards based on the provided parameter names and types (as a dict).
@@ -56,14 +56,33 @@ def slim_call(param_types, script, slim_cmd="slim", seed=False, manual=None):
             else:
                 add_on.append(f'-d {key}={val}')
         add_on = ' ' + ' '.join(add_on)
-    if seed:
+    if add_seed:
         call_args.append("-s {wildcards.seed}")
     full_call = f"{slim_cmd} " + " ".join(call_args) + add_on + " " + script
     return full_call
 
 
+def time_grower(start_time, factor=1.8):
+    """
+    Return a function that grows the time with the number of attempts,
+    made to be used with a Snakemake rule, e.g.:
+        resources:
+            runtime=time_grower(initial_runtime)
+    initial run time could be set in the config.json file, e.g.
+    use time_grower(config['initial_runtime'])
+    """
+    def time_limit(wildcards, attempt):
+        new_time = start_time*(attempt + factor*(attempt-1))
+        days = int(new_time // 24)
+        time_left = new_time % 24
+        hours = int(time_left // 1)
+        minutes = int(60*(time_left - (time_left // 1)))
+        return f"{days:02d}-{hours}:{minutes}:00"
+    return time_limit
+
+
 class SlimRuns(object):
-    def __init__(self, config, dir='.', sampler=None, seed=None):
+    def __init__(self, config, dir='.', sampler=None, add_seed=True, seed=None):
         msg = "runtype must be 'grid' or 'samples'"
         assert config['runtype'] in ['grid', 'samples'], msg
         self.runtype = config['runtype']
@@ -78,11 +97,14 @@ class SlimRuns(object):
         assert os.path.exists(self.script), msg
 
         self.params = read_params(config)
+        self.add_seed = add_seed
         self.param_types = infer_types(self.params)
         self.dir = os.path.join(dir, self.name)
         self.basename = os.path.join(self.dir, f"{self.name}_")
         self.seed = seed if seed is not None else random_seed()
         self.sampler_func = sampler
+        if sampler is None and self.is_samples:
+            raise ValueError("no sampler function specified and runtype='samples'")
         self.sampler = None
 
     def generate(self):
@@ -120,8 +142,8 @@ class SlimRuns(object):
         else:
             manual = name
 
-       return slim_call(self.param_types, self.script,
-                        slim_cmd=slim_cmd, manual=manual)
+        return slim_call(self.param_types, self.script, slim_cmd=slim_cmd,
+                         add_seed=self.add_seed, manual=manual)
 
     def slim_commands(self, *args, **kwargs):
         call = self.slim_call(*args, **kwargs).replace("wildcards.", "")
@@ -135,7 +157,8 @@ class SlimRuns(object):
         """
         Return the filename pattern with wildcards.
         """
-        return filename_pattern(self.basename, self.params.keys())
+        return filename_pattern(self.basename, self.params.keys(),
+                                seed=self.add_seed)
 
     def wildcard_output(self, suffix):
         """
@@ -160,7 +183,8 @@ class SlimRuns(object):
 
     def targets(self, suffix):
         """
-        Get all targets.
+        Create a list of targets by using the filename pattern, appending
+        the suffixes in 'suffix'.
         """
         if self.runs is None:
             raise ValueError("run SlimRuns.generate()")
