@@ -10,7 +10,7 @@ initialize() {
  
 
   if (exists("slimgui") | exists("defaults")) {
-    defineConstant("seglen", 10000);
+    defineConstant("L", 10000);
     defineConstant("rbp", 1e-8);
     defineConstant("rf", 1e-8);
     defineConstant("N", 1000);
@@ -23,7 +23,7 @@ initialize() {
 	defineConstant("datadir", '../../data/slim_sims/'+name+'/');
   }
 
-  defineConstant("region_length", tracklen + seglen + 1);
+  defineConstant("region_length", tracklen + L + 1);
 
   // == Runtime settings
   defineConstant("burnin", 10*N);
@@ -32,17 +32,18 @@ initialize() {
   metadata.setValue("N", N);
   metadata.setValue("s", s);
   metadata.setValue("h", h);
+  metadata.setValue("sh", s*h);
   metadata.setValue("mu", mu);
   metadata.setValue("rf", rf);
   metadata.setValue("rbp", rbp);
   metadata.setValue("tracklen", tracklen);
-  metadata.setValue("seglen", seglen);
+  metadata.setValue("L", L);
   metadata.setValue("region_length", region_length);
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
   filestr = filename_str(c('N', 'mu', 's', 'h', 'rbp', 
-                           'rf', 'seglen', 'seed'));
+                           'rf', 'L', 'seed'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
@@ -61,13 +62,13 @@ initialize() {
   initializeGenomicElementType("g1", m1, 1);
   initializeGenomicElementType("g2", m2, 1);
   initializeGenomicElement(g1, 0, tracklen);
-  initializeGenomicElement(g2, tracklen+1, tracklen+seglen);
+  initializeGenomicElement(g2, tracklen+1, tracklen+L);
 
   // recombination between segments
   rec_rates = c(0, rf, rbp);
   rec_bins = c(tracklen-1,        // neutral region
                tracklen,          // 1bp free recombinaton spacer
-               tracklen+seglen);  // selected region
+               tracklen+L);  // selected region
   initializeRecombinationRate(rec_rates, rec_bins);
 }
 

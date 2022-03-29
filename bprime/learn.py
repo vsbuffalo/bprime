@@ -21,7 +21,7 @@ class LearnedFunction(object):
         self.y_train = None
         self.y_test = None
         self.X_test_orig = None
-        self.X_train_orig = Noneself.y_train
+        self.X_train_orig = None
         self.y_test_orig = None
         self.y_train_orig = None
         i = 0
@@ -29,10 +29,10 @@ class LearnedFunction(object):
         # note: not doing anythign with type currently
         for feature, params in domain.items():
             if isinstance(params, dict):
-                attrs = 'lower', 'upper', 'log10', 'type'
+                attrs = 'lower', 'upper', 'log10'
                 lower, upper, log10, _ = [params[k] for k in attrs]
             elif isinstance(params, tuple):
-                lower, upper, log10, _ = params
+                lower, upper, log10 = params
             else:
                 raise ValueError("params must be dictionary or tuple")
             self.features[feature] = i

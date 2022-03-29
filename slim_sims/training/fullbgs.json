@@ -8,9 +8,9 @@
        "mu": {"lower": 5.5e-9, "upper": 1e-5, "log10": false, "type": "float"},
        "s": {"lower": -5, "upper": -1, "log10": true, "type": "float"},
        "h": {"lower": 0.5, "upper": 0.5, "log10": false, "type": "float"},
-       "rbp": {"lower": 1e-9, "upper": 0.5e-7, "log10": false, "type": "float"},
-       "rf": {"lower": -8, "upper": -6, "log10": true, "type": "float"},
-       "seglen": {"lower": 10, "upper": 1000, "log10": false, "type": "int"}
+       "rbp": {"lower": 1e-9, "upper": 5e-7, "log10": false, "type": "float"},
+       "rf": {"lower": -8, "upper": -0.301, "log10": true, "type": "float"},
+       "L": {"lower": 1, "upper": 1000, "log10": false, "type": "int"}
      },
    "init_runtime": 0.25,
    "nsamples": 100000

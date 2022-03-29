@@ -61,7 +61,7 @@ def trees2training_data(dir, features, recap='auto',
               help='path to save data to (exclude extension)')
 @click.option('--recap', default='auto', help='recapitate trees')
 @click.option('--suffix', default='recap.tree', help='tree file suffix')
-@click.option('--features', default='N,s,h,mu,recfrac,rbp,seglen',
+@click.option('--features', default='N,s,h,mu,rf,rbp,seglen',
               help='features to extract from metadata')
 def main(dir, outfile, recap, suffix, features):
     X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix)
