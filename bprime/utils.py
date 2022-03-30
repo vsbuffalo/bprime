@@ -23,6 +23,21 @@ def read_bkgd(file):
     B = d[:, 0]/1000
     return pos, B
 
+def read_centro(file):
+    """
+    Read a centromere file from UCSC.
+    """
+    chroms = defaultdict(list)
+    with open(file) as f:
+        for line in f:
+            chrom, start, end, arm, feature = line.strip().split('\t')
+            if feature != 'acen':
+                continue
+            chroms[chrom].append(int(start))
+            chroms[chrom].append(int(end))
+    return {k: tuple(sorted(set(v))) for k, v in chroms.items()}
+
+
 def signif(x, digits=4):
     return np.round(x, digits-int(floor(log10(abs(x))))-1)
 

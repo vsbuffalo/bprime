@@ -4,7 +4,7 @@ AUTOSEX = AUTOS + ['X', 'Y']
 
 
 ## === Human Annotation Data
-annot = ["hg38_seqlens.tsv", "phastConsElements100way.bed.gz", "hg38.ncbiRefSeq_exons.bed.gz"]
+annot = ["hg38_seqlens.tsv", "phastConsElements100way.bed.gz", "hg38.ncbiRefSeq_exons.bed.gz", "hg38_centro.bed"]
 
 # only keep autosomes
 rule seqlens:
@@ -16,6 +16,12 @@ rule seqlens:
       sort --version-sort -k1,1 -k2,2n > {output}
     """
 
+rule centro:
+  output: "hg38_centro.bed"
+  shell:
+    """
+    curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" > {output}
+    """
 
 
 rule phastcons:
