@@ -23,10 +23,20 @@ def share_array(x):
 
 class ChunkIterator(object):
     def __init__(self, seqlens, recmap, segments, features_matrix,
-                 segment_parts, mut_grid, step, nchunks):
+                 segment_parts, t_grid, mut_grid, step, nchunks):
+
         """
-        Split the main arrays into
+        An iterator for calculating B along the genome in parallel in 'step'
+        steps, by splitting the main objects necessary to calculate B (classic)
+        B' (DNN) into 'nchunks'. This class also has a method to collate the
+        results computed in parallel back into dicts.
+
+        Note that segment_parts is necessary only when calculating B, which are
+        pre-computed segment components that are used by the
+        calc_B_chunk_worker() to calc B efficiently. t_grid is not necessary
+        when classic B is being calculated.
         """
+
         # pre-compute the positions to calculate B at for all chromosomes
         # and the segment parts
 
@@ -53,20 +63,24 @@ class ChunkIterator(object):
         chrom_features = {c: share_array(features_matrix[idx, :]) for c, idx
                           in chrom_idx.items()}
 
-        # Group the segement parts (these are the parts of the pre-computed
-        # equation for calculating B quickly) into chromosomes by the indices
-        chrom_segparts = {}
-        for chrom in seqlens:
-            idx = chrom_idx[chrom]
-            # share the following arrays across processes, to save memory
-            # (these should not be changed!)
-            chrom_segparts[chrom] = tuple(map(share_array,
-                                              (segment_parts[0][:, idx], segment_parts[1],
-                                               segment_parts[2][:, idx], segment_parts[3][:, idx])))
+
+        if segment_parts is not None:
+            # Group the segement parts (these are the parts of the pre-computed
+            # equation for calculating B quickly) into chromosomes by the indices
+            chrom_segparts = {}
+            for chrom in seqlens:
+                idx = chrom_idx[chrom]
+                # share the following arrays across processes, to save memory
+                # (these should not be changed!)
+                chrom_segparts[chrom] = tuple(map(share_array,
+                                                (segment_parts[0][:, idx], segment_parts[1],
+                                                segment_parts[2][:, idx], segment_parts[3][:, idx])))
+
         self.mpos_iter = chain_dictlist(self.chrom_mpos_chunks)
         self.chrom_segments = chrom_segments
         self.chrom_features = chrom_features
         self.chrom_segparts = chrom_segparts
+        self.t_grid = t_grid
         self.mut_grid = mut_grid
         self.nchunks = nchunks
 
@@ -92,8 +106,9 @@ class ChunkIterator(object):
         """
         next_chunk = next(self.mpos_iter)
         chrom, mpos_chunk = next_chunk
-        return (mpos_chunk, self.chrom_segments[chrom], self.mut_grid,
-                self.chrom_features[chrom], self.chrom_segparts[chrom])
+        chrom_segparts = self.chrom_segparts.get(chrom, None)
+        return (mpos_chunk, self.chrom_segments[chrom], self.t_grid,
+                self.mut_grid, self.chrom_features[chrom], chrom_segparts)
 
     def collate(self, results):
         """

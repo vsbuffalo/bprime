@@ -1,5 +1,5 @@
 ## classic.py -- funcs for calculating B using McVicker approach and parallelizing stuff
-from colletions import defaultdict
+from collections import defaultdict
 import itertools
 import tqdm
 import numpy as np
@@ -135,10 +135,13 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
 
 
 def calc_B_chunk_worker(args):
-    map_positions, chrom_segments, mut_grid, features_matrix, segment_parts = args
+    map_positions, chrom_segments, _, mut_grid, features_matrix, segment_parts = args
     a, b, c, d = segment_parts
     Bs = []
     for f in map_positions:
+        # first, figure out for each segment if this map position is left, right
+        # or within the segment. This matters for calculating the distance to
+        # the segment
         # ---f-----L______R----------
         # ---------L______R-------f--
         is_left = (chrom_segments[:, 0] - f) > 0
@@ -148,10 +151,6 @@ def calc_B_chunk_worker(args):
         dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
         dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
         assert len(dists) == chrom_segments.shape[0], (len(dists), chrom_segments.shape)
-        # TODO fix; this should be end-specific
-        # Every segment left of this position (index less than this)
-        # should have its distance to this position measured to its end
-        # point.
 
         #rf = -0.5*np.expm1(-dists)[None, :]
         rf = dists
@@ -171,9 +170,9 @@ def calc_B_chunk_worker(args):
 
 def calc_B_parallel(segments, segment_parts, features_matrix, mut_grid,
                     recmap, seqlens, step, nchunks=1000, ncores=2):
-
+    t_grid = None # selection coefs are already in pre-calc'd segment_parts
     chunks = ChunkIterator(seqlens, recmap, segments, features_matrix,
-                           segment_parts, mut_grid, step, nchunks)
+                           segment_parts, t_grid, mut_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     debug = False
     if debug:

@@ -5,6 +5,33 @@ from sklearn.model_selection import train_test_split
 from bprime.utils import signif, index_cols
 from bprime.sim_utils import random_seed
 
+def calc_Bp_chunk_worker(args):
+    map_positions, chrom_segments, t_grid, mut_grid, features_matrix, _ = args
+    Bs = []
+    for f in map_positions:
+        # first, figure out for each segment if this map position is left, right
+        # or within the segment. This matters for calculating the distance to
+        # the segment
+        # ---f-----L______R----------
+        # ---------L______R-------f--
+        is_left = (chrom_segments[:, 0] - f) > 0
+        is_right = (f - chrom_segments[:, 1]) > 0
+        is_contained = (~is_left) & (~is_right)
+        dists = np.zeros(is_left.shape)
+        dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
+        dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
+        assert len(dists) == chrom_segments.shape[0], (len(dists), chrom_segments.shape)
+
+        rf = dists
+
+        B = np.einsum('ts,w,sf->wtf', x, mut_grid,
+                      features_matrix, optimize=BCALC_EINSUM_PATH)
+        #B = np.flip(np.flip(B, axis=0), axis=1)
+        Bs.append(B)
+    return Bs
+
+
+
 
 class LearnedFunction(object):
     """
