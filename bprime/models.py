@@ -26,6 +26,7 @@ annotation set i_B.
 """
 
 from collections import defaultdict, namedtuple, Counter
+import multiprocessing
 import pickle
 import itertools
 import tqdm
@@ -43,6 +44,8 @@ from bprime.utils import load_seqlens
 from bprime.utils import ranges_to_masks, sum_logliks_over_chroms
 from bprime.likelihood import calc_loglik_components, loglik
 from bprime.classic import B_segment_lazy, calc_B, calc_B_parallel
+from bprime.learn import LearnedB
+from bprime.parallel import BpChunkIterator
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
@@ -88,6 +91,7 @@ class BGSModel(object):
         if features is not None:
             # process the segments, e.g. splitting by rec rate
             self.segments = process_feature_recombs(features.ranges, self.recmap)
+            self._calc_features()
 
     def load_dacfile(self, dacfile, neut_regions):
         neut_masks = ranges_to_masks(neut_regions, self.seqlens)
@@ -212,6 +216,17 @@ class BGSModel(object):
         self.ll = ll
         return ll, pi0
 
+    def _calc_features(self):
+        """
+        Create a dummy matrix of features for each segment.
+        """
+        nfeats = len(self.segments.feature_map)
+        nsegs = len(self.segments.features)
+        F = np.zeros(shape=(nsegs, nfeats), dtype='bool')
+        # build a one-hot matrix of features
+        np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
+        self.F = F
+
     def _calc_segments(self):
         """
         Pre-calculate the segment contributions, for classic B approach
@@ -224,12 +239,6 @@ class BGSModel(object):
         # turn this into a column vector for downstream
         # operations
         t = self.t[:, None]
-        nfeats = len(self.segments.feature_map)
-        nsegs = len(self.segments.features)
-        F = np.zeros(shape=(nsegs, nfeats), dtype='bool')
-        # build a one-hot matrix of features
-        np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
-        self.F = F
         self._segment_parts = B_segment_lazy(rbp, L, t)
         #print([x.shape for x in self._segment_parts])
 
@@ -306,10 +315,21 @@ class BGSModel(object):
         """
         Calculate B', a B statistic using a learned B function.
         """
+        print(f"loading DNN model...\t", end='')
+        with open('../data/dnn_models/fullbgs.pkl', 'rb') as f:
+            learned_func = pickle.load(f)
+        print(f"done.")
+        dnnB = LearnedB(learned_func, self.t, self.w)
+        self.learned_B = dnnB
+        chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
+                                self.F, step, nchunks)
+        #res = []
+        #for chunk in tqdm.tqdm(chunks):
+        #    res.append(dnnB.calc_Bp_chunk_worker(chunk))
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
+            res = list(tqdm.tqdm(p.imap(dnnB.calc_Bp_chunk_worker, chunks),
                                  total=chunks.total))
-        self.learned_func.predict()
+        return chunks.collate(res)
 
 
 

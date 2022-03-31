@@ -4,15 +4,8 @@ import itertools
 import tqdm
 import numpy as np
 import multiprocessing
-from bprime.utils import bin_chrom, chain_dictlist
-from bprime.parallel import ChunkIterator
-
-# The rec fraction between the segment and the focal netural site.
-# If this is None, 0 rec fractions (fully linked) are allowed. This
-# looks to cause pathologies, where as t -> 0, for reasonable mutation,
-# etc parameters, B asymptotes to 1-e ~ 0.37.
-MIN_RF = None
-
+from bprime.utils import bin_chrom, chain_dictlist, dist_to_segment
+from bprime.parallel import BChunkIterator
 
 # pre-computed optimal einsum_path
 BCALC_EINSUM_PATH = ['einsum_path', (0, 2), (0, 1)]
@@ -56,7 +49,7 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
         # get the segments on this chromosome
         idx = segments.index[chrom]
         nsegs = len(idx)
-        chrom_segments = segments.map_pos[idx, :]
+        chrom_seg_mpos = segments.map_pos[idx, :]
 
         # alias the segments parts to shorter names
         a, b, c, d = (segment_parts[0][:, idx], segment_parts[1],
@@ -70,10 +63,8 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
             print(f"computing optimal contraction with np.einsum_path()")
             focal_map_pos = np.random.choice(map_pos)
             # as an approx, this only considers dist to start of segement
-            #rf = -0.5*np.expm1(-np.abs(chrom_segments[:, 0] - focal_map_pos))[None, :]
-            rf = np.abs(chrom_segments[:, 0] - focal_map_pos)[None, :]
-            if MIN_RF is not None:
-                rf[rf < MIN_RF] = MIN_RF
+            #rf = -0.5*np.expm1(-np.abs(chrom_seg_mpos[:, 0] - focal_map_pos))[None, :]
+            rf = np.abs(chrom_seg_mpos[:, 0] - focal_map_pos)[None, :]
             x = a/(b*rf**2 + c*rf + d)
             #__import__('pdb').set_trace()
             optimal_einsum_path = np.einsum_path('ts,w,sf->wtf', x,
@@ -86,16 +77,7 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
         tq = tqdm.tqdm(zip(map_pos, positions), total=total_sites)
         #xs = list()
         for f, pos in tq:
-            is_left = (chrom_segments[:, 0] - f) > 0
-            is_right = (f - chrom_segments[:, 1]) > 0
-            is_contained = (~is_left) & (~is_right)
-            dists = np.zeros(is_left.shape)
-            dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
-            dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
-            assert(len(dists) == chrom_segments.shape[0])
-
-            #rf = -0.5*np.expm1(-dists)[None, :]
-            rf = dists
+            rf = dist_to_segment(f, seg_mpos)
             assert(not np.any(np.isnan(rf)))
             #hrf = haldanes_mapfun(np.abs(segment_posts - f))
             #assert(np.allclose(rf, hrf))
@@ -135,44 +117,25 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
 
 
 def calc_B_chunk_worker(args):
-    map_positions, chrom_segments, _, mut_grid, features_matrix, segment_parts = args
+    map_positions, chrom_seg_mpos, features_matrix, segment_parts, mut_grid = args
     a, b, c, d = segment_parts
     Bs = []
     for f in map_positions:
-        # first, figure out for each segment if this map position is left, right
-        # or within the segment. This matters for calculating the distance to
-        # the segment
-        # ---f-----L______R----------
-        # ---------L______R-------f--
-        is_left = (chrom_segments[:, 0] - f) > 0
-        is_right = (f - chrom_segments[:, 1]) > 0
-        is_contained = (~is_left) & (~is_right)
-        dists = np.zeros(is_left.shape)
-        dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
-        dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
-        assert len(dists) == chrom_segments.shape[0], (len(dists), chrom_segments.shape)
-
-        #rf = -0.5*np.expm1(-dists)[None, :]
-        rf = dists
-        #rf[dists > 0.5] = 0.5
-        if MIN_RF is not None:
-            rf[rf < MIN_RF] = MIN_RF
+        rf = dist_to_segment(f, chrom_seg_mpos)
         if np.any(b + rf*(rf*c + d) == 0):
             raise ValueError("divide by zero in calc_B_chunk_worker")
         x = a/(b*rf**2 + c*rf + d)
         assert(not np.any(np.isnan(x)))
         B = np.einsum('ts,w,sf->wtf', x, mut_grid,
                       features_matrix, optimize=BCALC_EINSUM_PATH)
-        #B = np.flip(np.flip(B, axis=0), axis=1)
         Bs.append(B)
     return Bs
 
 
 def calc_B_parallel(segments, segment_parts, features_matrix, mut_grid,
                     recmap, seqlens, step, nchunks=1000, ncores=2):
-    t_grid = None # selection coefs are already in pre-calc'd segment_parts
-    chunks = ChunkIterator(seqlens, recmap, segments, features_matrix,
-                           segment_parts, t_grid, mut_grid, step, nchunks)
+    chunks = BChunkIterator(seqlens, recmap, segments, features_matrix,
+                            segment_parts, mut_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     debug = False
     if debug:

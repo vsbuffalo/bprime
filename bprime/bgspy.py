@@ -41,6 +41,7 @@ def cli():
               help='BED file with conserved regions, fourth column is optional feature class')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
+@click.option('--dnn', help='use DNN B', default=False)
 @click.option('--factor', default=1e-8,
               help='conversion factor to get rec rates in M/bp (for cM/Mb use 1e-8, the default)')
 @click.option('--tg', help='string of lower:upper:grid_size for log10 het sel coef', default='-6:-0.25:50')
@@ -51,7 +52,8 @@ def cli():
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
-def calcb(recmap, features, seqlens, factor, tg, wg, t, w, step, ncores, output):
+def calcb(recmap, features, seqlens, factor, dnn,
+          tg, wg, t, w, step, ncores, output):
     if t is not None and tg is not None:
         print(f"note: option --t is specified, ignoring --tg")
         tg = None
@@ -68,7 +70,10 @@ def calcb(recmap, features, seqlens, factor, tg, wg, t, w, step, ncores, output)
     if wg is not None:
         w = parse_gridstr(wg)
     m = BGSModel(rm, ft, sl, t, w)
-    m.calc_B(ncores=ncores, nchunks=100, step=step)
+    if not dnn:
+        m.calc_B(ncores=ncores, nchunks=100, step=step)
+    else:
+        m.calc_Bp(ncores=ncores, nchunks=100, step=step)
     m.save_B(output)
 
 @cli.command()

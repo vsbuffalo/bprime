@@ -73,9 +73,47 @@ def sum_logliks_over_chroms(ll_dict):
     return ll
 
 def bin_chrom(end, width, dtype='uint32'):
+    """
+    Bin a chromsome of length 'end' into bins of 'width', with the last
+    bin
+    """
     # assumes 0-indexed
     cend = width * np.ceil(end / width) + 1
-    return np.arange(0, cend, width, dtype=dtype)
+    bins = np.arange(0, cend, width, dtype=dtype)
+
+    # if there's overrun, make one short bin at the end
+    last_pos = end - 1
+    if bins[-1] > last_pos:
+        bins[-1] = last_pos
+    assert np.all(bins < end)
+    return bins
+
+
+def dist_to_segment(focal, seg_map_pos):
+    """
+    Return the map distance between a focal site (in map coords)
+    and the segments end and start positions (also in map coords).
+    This properly handles if the focal site is left, right or within
+    the segment. If it's within, the distance is zero.
+
+    focal: focal site in map coords
+    seg_map_pos: an n x 2 array of start, end map coords of each segment
+
+    First, figure out for each segment if this map position is left, right
+    or within the segment. This matters for calculating the distance to
+    the segment
+    ---f-----L______R----------
+    ---------L______R-------f--
+    """
+    f = focal
+    is_left = (seg_map_pos[:, 0] - f) > 0
+    is_right = (f - seg_map_pos[:, 1]) > 0
+    is_contained = (~is_left) & (~is_right)
+    dists = np.zeros(is_left.shape)
+    dists[is_left] = np.abs(f-seg_map_pos[is_left, 0])
+    dists[is_right] = np.abs(f-seg_map_pos[is_right, 1])
+    assert len(dists) == seg_map_pos.shape[0], (len(dists), seg_map_pos.shape)
+    return dists
 
 def haldanes_mapfun(dist):
     return 0.5*(1 - np.exp(-dist))

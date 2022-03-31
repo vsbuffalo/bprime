@@ -1,37 +1,12 @@
+## learn.py -- classes, etc for DNN learned B functions
+
+import itertools
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
-from bprime.utils import signif, index_cols
+from bprime.utils import signif, index_cols, dist_to_segment
 from bprime.sim_utils import random_seed
-
-def calc_Bp_chunk_worker(args):
-    map_positions, chrom_segments, t_grid, mut_grid, features_matrix, _ = args
-    Bs = []
-    for f in map_positions:
-        # first, figure out for each segment if this map position is left, right
-        # or within the segment. This matters for calculating the distance to
-        # the segment
-        # ---f-----L______R----------
-        # ---------L______R-------f--
-        is_left = (chrom_segments[:, 0] - f) > 0
-        is_right = (f - chrom_segments[:, 1]) > 0
-        is_contained = (~is_left) & (~is_right)
-        dists = np.zeros(is_left.shape)
-        dists[is_left] = np.abs(f-chrom_segments[is_left, 0])
-        dists[is_right] = np.abs(f-chrom_segments[is_right, 1])
-        assert len(dists) == chrom_segments.shape[0], (len(dists), chrom_segments.shape)
-
-        rf = dists
-
-        B = np.einsum('ts,w,sf->wtf', x, mut_grid,
-                      features_matrix, optimize=BCALC_EINSUM_PATH)
-        #B = np.flip(np.flip(B, axis=0), axis=1)
-        Bs.append(B)
-    return Bs
-
-
-
 
 class LearnedFunction(object):
     """
@@ -253,10 +228,44 @@ class LearnedFunction(object):
         predict = self.model.predict(X_meshcols).squeeze()
         return domain_grids, X_meshcols_orig, X_meshcols, predict.reshape(mesh[0].shape)
 
-class LearnedB(LearnedFunction):
+class LearnedB(object):
     """
     A general class that wraps a learned B function.
     """
-    def __init__(self, model):
-        self.model = model
+    def __init__(self, learned_func, w_grid, t_grid):
+        bgs_cols = ('sh', 'mu', 'rbp', 'rf', 'L')
+        assert tuple(learned_func.features.keys()) == bgs_cols
+        self.func = learned_func
+        self.t_w_mesh = None
+        self.w_grid = w_grid
+        self.t_grid = t_grid
+        self._make_grid_predictor(w_grid, t_grid)
+        self._dim = (w_grid.shape[0], t_grid.shape[0])
+
+    def _make_grid_predictor(self, w_grid, t_grid):
+        func = self.func
+        self.t_w_mesh = list(itertools.product(10**t_grid, 10**w_grid))
+
+    def predict(self, rf, rbp, L):
+        # TODO domain checking
+        X = np.array([rf, rbp, L]).T
+        n = X.shape[0]
+        m = []
+        t_w_mesh = self.t_w_mesh
+        assert t_w_mesh is not None
+        for t_w in t_w_mesh:
+            Xn = np.concatenate([np.repeat([t_w], n, axis=0), X], axis=1)
+            m.append(np.log10(self.func.model.predict(Xn)))
+        return np.array(m).reshape((n, *self._dim))
+
+    def calc_Bp_chunk_worker(self, args):
+        map_positions, seg_mpos, seg_rbp, seg_L, features_matrix = args
+        Bs = []
+        for f in map_positions:
+            rf = dist_to_segment(f, seg_mpos)
+            # TODO ignores features_matrix!
+            B = self.predict(rf, seg_rbp, seg_L)
+            Bs.append(B)
+        return Bs
+
 
