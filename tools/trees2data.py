@@ -31,14 +31,15 @@ def trees2training_data(dir, features, recap='auto',
         nroots = max(t.num_roots for t in ts.trees())
         assert(nroots == 1)
         region_length = int(md['region_length'][0])
-        seglen = int(md['seglen'][0])
+        L = int(md['L'][0])
         tracklen = int(md['tracklen'][0])
         N = int(md['N'][0])
-        #assert(region_length  == ts.sequence_length)
-
+        # the SLiM script metadata reports the het sel coef for convenience
+        s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
+        np.testing.assert_almost_equal(s*h, sh)
 
         # tracking vs selected regions
-        wins = [0, tracklen, tracklen + seglen + 1]
+        wins = [0, tracklen, tracklen + L + 1]
         pi = ts.diversity(mode='branch', windows=wins)
         Ef = float(md['Ef'][0])
         Vf = float(md['Vf'][0])
@@ -61,7 +62,7 @@ def trees2training_data(dir, features, recap='auto',
               help='path to save data to (exclude extension)')
 @click.option('--recap', default='auto', help='recapitate trees')
 @click.option('--suffix', default='recap.tree', help='tree file suffix')
-@click.option('--features', default='N,s,h,mu,rf,rbp,seglen',
+@click.option('--features', default='N,sh,mu,rf,rbp,L',
               help='features to extract from metadata')
 def main(dir, outfile, recap, suffix, features):
     X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix)

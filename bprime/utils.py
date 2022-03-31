@@ -25,7 +25,8 @@ def read_bkgd(file):
 
 def read_centro(file):
     """
-    Read a centromere file from UCSC.
+    Read a centromere file from UCSC. All features other than 'acen' are
+    discarded.
     """
     chroms = defaultdict(list)
     with open(file) as f:
@@ -224,44 +225,6 @@ def index_dictlist(x):
             i += 1
         index[chrom] = np.array(index[chrom], dtype='uint32')
     return index
-
-def process_feature_recombs2(features, recmap):
-    """
-    This is for debugging purposes only!
-    This is process_feature_recombs() without splitting up features
-    by recombination rates.
-    """
-    all_features = set()
-    feature_types = list()
-    ranges = list()
-    rates = list()
-    chroms = list()
-    map_pos = list()
-    index = defaultdict(list)
-    i = 0
-    for chrom, feature_ranges in features.items():
-        for (start, end), feature_type in zip(*feature_ranges):
-            all_features.add(feature_type)
-            feature_types.append(feature_type)
-            ranges.append((start, end))
-            rates.append(recmap.lookup(chrom, 0.5*(start+end)))
-            map_start = recmap.lookup(chrom, start, cummulative=True)
-            map_end = recmap.lookup(chrom, end, cummulative=True)
-            map_pos.append((map_start, map_end))
-            index[chrom].append(i)
-            i += 1
-            chroms.append(chrom)
-
-    ranges = np.array(ranges, dtype='uint32')
-    assert(i == len(ranges))
-    print(f"looking up map positions...\t", end='')
-    map_pos = np.array(map_pos)
-    assert(map_pos.shape[0] == ranges.shape[0])
-    print(f"done.")
-    rates = np.array(rates, dtype='float32').squeeze()
-    feature_map = {f: i for i, f in enumerate(sorted(all_features))}
-    features = np.array([feature_map[x] for x in feature_types])
-    return Segments(ranges, rates, map_pos, features, feature_map, index)
 
 
 def process_feature_recombs(features, recmap):
@@ -554,6 +517,10 @@ def read_seqlens(file):
     return {c: seqlens[c] for c in keep_seqs}
 
 def chain_dictlist(x):
+    """
+    Given a dict where values are lists, chain them into an iterator
+    of (key, value) tuples.
+    """
     for key, values in x.items():
         for value in values:
             yield (key, value)
