@@ -1,9 +1,12 @@
 ## learn.py -- classes, etc for DNN learned B functions
 
 import itertools
+import pickle
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+import tensorflow as tf
+import keras
 
 from bprime.utils import signif, index_cols, dist_to_segment
 from bprime.sim_utils import random_seed
@@ -25,7 +28,7 @@ class LearnedFunction(object):
         self.bounds = {}         # dict of lower, upper boundaries
         self.logscale = {}       # dict of which features are log10 scale
         self.normalized = None   # whether the features have been normalized
-        self.transform = None    # the dict of transforms for parameters
+        self.transforms = None    # the dict of transforms for parameters
 
         # Auxillary data
         self.X_train = None
@@ -81,7 +84,7 @@ class LearnedFunction(object):
         for feature in self.features:
             scale = 'linear' if not self.logscale[feature] else 'log10'
             lower, upper = (signif(b, 3) for b in self.bounds[feature])
-            trans_func = str(self.transform[feature]) if self.transform is not None else None
+            trans_func = str(self.transforms[feature]) if self.transforms is not None else None
             row = f"  - {feature} ∈ [{lower}, {upper}] ({scale}, {trans_func})"
             rows.append(row)
         normed = False if self.normalized is None else self.normalized
@@ -92,6 +95,10 @@ class LearnedFunction(object):
         return "\n".join(rows)
 
     def split(self, test_size=0.1, random_state=None):
+        """
+        Make a test/train split. This resets the state of the object
+        to initialization (any scale_feature transforms will be reset).
+        """
         self.test_size = test_size
         if random_state is None:
             random_state = random_seed()
@@ -104,7 +111,7 @@ class LearnedFunction(object):
         self.y_train = ytrn
         self.y_test = ytst
         self.normalized = False
-        self.transform = {f: None for f in self.features}
+        self.transforms = {f: None for f in self.features}
         return self
 
     def scale_features(self, normalize=True, transforms='match'):
@@ -122,7 +129,7 @@ class LearnedFunction(object):
         """
         if not self.is_split:
             raise ValueError("X, y must be split first")
-        if self.normalized or not all(x is None for x in self.transform.values()):
+        if self.normalized or not all(x is None for x in self.transforms.values()):
             raise ValueError("X already transformed!")
         if transforms not in (None, 'match'):
             valid_transforms = all(t in self.features for t in transforms.keys())
@@ -143,7 +150,7 @@ class LearnedFunction(object):
                 # do the transform with the given trans_func
                 self.X_train[:, col_idx] = trans_func(self.X_train[:, col_idx])
                 self.X_test[:, col_idx] = trans_func(self.X_test[:, col_idx])
-                self.transform[feature] = trans_func
+                self.transforms[feature] = trans_func
         if normalize:
             self.X_test_scaler = StandardScaler().fit(self.X_test)
             self.X_test = self.X_test_scaler.transform(self.X_test)
@@ -152,6 +159,29 @@ class LearnedFunction(object):
             self.normalized = True
         return self
 
+    def save(self, filepath):
+        """
+        Save the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
+        Pickle the LearnedFunction object, and the model is saved via that
+        object's save method.
+        """
+        model = self.model # store the reference
+        self.model = None
+        with open(f"{filepath}.pkl", 'wb') as f:
+            pickle.dump(self, f)
+        self.model = model
+        model.save(f"{filepath}.h5")
+
+    @classmethod
+    def load(cls, filepath):
+        """
+        Load the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
+        """
+        with open(f"{filepath}.pkl", 'rb') as f:
+            obj = pickle.load(f)
+        obj.model = keras.models.load_model(f"{filepath}.h5")
+        return obj
+
     def add_model(self, model):
         """
         Add a model (this needs to be trained outside the class).
@@ -159,14 +189,64 @@ class LearnedFunction(object):
         self.model = model
 
     def predict_test(self):
+        """
+        Predict the test data.
+        """
         return self.model.predict(self.X_test).squeeze()
 
-    def predict(self, X, scale_input=True):
+
+    def check_bounds(self, X, correct_bounds=False):
+        out_lowers, out_uppers = [], []
+        total = 0
+        for i, feature in enumerate(self.features):
+            lower, upper = self.bounds[feature]
+            log10 = self.logscale[feature]
+            if log10:
+                lower, upper = 10**lower, 10**upper
+            out_lower = X[:, i] < lower
+            out_upper = X[:, i] > upper
+            total += out_lower.sum() + out_upper.sum()
+            if np.any(out_lower) or np.any(out_upper):
+                #print(feature, 'lower', X[out_lower, i])
+                #print(feature, 'upper', X[out_upper, i])
+                if correct_bounds:
+                    X[out_lower, i] = lower
+                    X[out_upper, i] = upper
+                else:
+                    if np.any(out_lower):
+                        out_lowers.append(feature)
+                    if np.any(out_upper):
+                        out_uppers.append(feature)
+
+        out_of_bounds = len(out_lowers) or len(out_uppers)
+        if not correct_bounds and out_of_bounds:
+            lw = ', '.join(out_lowers)
+            up = ', '.join(out_uppers)
+            perc = 100*np.round(total / np.prod(X.shape), 2)
+            msg = f"out of bounds, lower ({lw}) upper ({up}), total = {total} ({perc}%)"
+            raise ValueError(msg)
+        return X
+
+
+    def predict(self, X, correct_bounds=True, transforms=True, scale_input=True):
+        """
+        Predict for an input function X (linear space). If transforms is True,
+        and transforms in LearnedFunction.transforms dict are applied to match
+        those applied from LearnedB.scale_features().
+        """
+        X = self.check_bounds(X, correct_bounds)
+        if transforms:
+            for i, (feature, trans_func) in enumerate(self.transforms.items()):
+                if trans_func is not None:
+                    X[:, i] = trans_func(X[:, i])
         if scale_input:
             X = self.X_test_scaler.transform(X)
         return self.model.predict(X).squeeze()
 
     def predict_train(self):
+        """
+        Predict the training data.
+        """
         return self.model.predict(self.X_train).squeeze()
 
     def domain_grids(self, n, fix_X=None, log10=None):
@@ -219,7 +299,7 @@ class LearnedFunction(object):
         X_meshcols_orig = X_meshcols[:]
         # transform/scale the new mesh
         for feature, col_idx in self.features.items():
-            trans_func = self.transform.get(feature, None)
+            trans_func = self.transforms.get(feature, None)
             if trans_func is not None:
                 X_meshcols[:, col_idx] = trans_func(X_meshcols[:, col_idx])
         if self.normalized:
@@ -244,18 +324,18 @@ class LearnedB(object):
 
     def _make_grid_predictor(self, w_grid, t_grid):
         func = self.func
-        self.t_w_mesh = list(itertools.product(10**t_grid, 10**w_grid))
+        self.t_w_mesh = list(itertools.product(t_grid, w_grid))
 
-    def predict(self, rf, rbp, L):
+    def predict_across_wtmesh(self, rf, rbp, L):
         # TODO domain checking
-        X = np.array([rf, rbp, L]).T
+        X = np.array([rbp, rf, L]).T
         n = X.shape[0]
         m = []
         t_w_mesh = self.t_w_mesh
         assert t_w_mesh is not None
         for t_w in t_w_mesh:
             Xn = np.concatenate([np.repeat([t_w], n, axis=0), X], axis=1)
-            m.append(np.log10(self.func.model.predict(Xn)))
+            m.append(np.log10(self.func.predict(Xn)))
         return np.array(m).reshape((n, *self._dim))
 
     def calc_Bp_chunk_worker(self, args):
@@ -263,8 +343,9 @@ class LearnedB(object):
         Bs = []
         for f in map_positions:
             rf = dist_to_segment(f, seg_mpos)
-            # TODO ignores features_matrix!
-            B = self.predict(rf, seg_rbp, seg_L)
+			# TODO ignores featuresfmatrix!
+            B = self.predict_across_wtmesh(rf, seg_rbp, seg_L).sum(axis=0)
+            print(B)
             Bs.append(B)
         return Bs
 

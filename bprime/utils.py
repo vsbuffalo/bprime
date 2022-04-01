@@ -1,7 +1,7 @@
 import sys
 import warnings
 import gzip
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, deque
 from functools import partial
 import itertools
 from math import floor, log10
@@ -265,17 +265,48 @@ def index_dictlist(x):
     return index
 
 
-def process_feature_recombs(features, recmap):
+def process_feature_recombs(features, recmap, split_length=None):
     """
     Split the features dictionary (values are a list of range tuples and feature
     labels) by the recombination rate ends. This effectively breaks segments
-    into two if the recombinatio rate changes. The recombination rates are also
-    added to each segment.
+    into two if the recombination rate changes. If split_length is not None, the
+    segments are further split to be a maximum length of split_length. The
+    recombination rates are also added to each segment.
     """
     try:
         assert(all(chrom in recmap.rates.keys() for chrom in features.keys()))
     except:
         raise ValueError(f"features contains sequences not in recmap.")
+
+    if split_length is not None:
+        split_features = dict()
+        for chrom, (ranges, feature_types) in features.items():
+            split_ranges, split_feature_types = [], []
+            ranges_deque = deque(ranges)
+            features_deque = deque(feature_types)
+            assert len(ranges) == len(feature_types)
+            while True:
+                try:
+                    row = ranges_deque.popleft()
+                    feature = features_deque.popleft()
+                except IndexError:
+                    break
+                start, end = row
+                if end - start > split_length:
+                    new_row = start, start+split_length
+                    split_ranges.append(new_row)
+                    split_feature_types.append(feature)
+                    # the leftover bit
+                    split_row = start+split_length, end
+                    ranges_deque.appendleft(split_row)
+                    features_deque.appendleft(feature)
+                    continue
+                split_ranges.append((start, end))
+                split_feature_types.append(feature)
+            assert len(split_ranges) == len(split_feature_types)
+            split_features[chrom] = (split_ranges, split_feature_types)
+        features = split_features
+
     recrates = recmap.rates
     all_features = set()
     index = defaultdict(list)

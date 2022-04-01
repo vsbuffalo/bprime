@@ -36,6 +36,7 @@ import allel
 from scipy import interpolate
 from scipy.stats import binned_statistic, binned_statistic_dd
 from scipy.optimize import minimize_scalar
+import tensorflow as tf
 
 from bprime.utils import bin_chrom
 from bprime.utils import RecMap, readfile, load_dacfile
@@ -44,7 +45,7 @@ from bprime.utils import load_seqlens
 from bprime.utils import ranges_to_masks, sum_logliks_over_chroms
 from bprime.likelihood import calc_loglik_components, loglik
 from bprime.classic import B_segment_lazy, calc_B, calc_B_parallel
-from bprime.learn import LearnedB
+from bprime.learn import LearnedB, LearnedFunction
 from bprime.parallel import BpChunkIterator
 
 # this dtype allows for simple metadata storage
@@ -54,7 +55,7 @@ BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
 
 class BGSModel(object):
     def __init__(self, recmap=None, features=None, seqlens=None,
-                 t_grid=None, w_grid=None):
+                 t_grid=None, w_grid=None, split_length=1000):
         # main genome data needed to calculate B
         self.recmap = recmap
         self.seqlens = seqlens
@@ -90,7 +91,7 @@ class BGSModel(object):
         self.pi0i_mle = None
         if features is not None:
             # process the segments, e.g. splitting by rec rate
-            self.segments = process_feature_recombs(features.ranges, self.recmap)
+            self.segments = process_feature_recombs(features.ranges, self.recmap, split_length)
             self._calc_features()
 
     def load_dacfile(self, dacfile, neut_regions):
@@ -315,20 +316,20 @@ class BGSModel(object):
         """
         Calculate B', a B statistic using a learned B function.
         """
-        print(f"loading DNN model...\t", end='')
-        with open('../data/dnn_models/fullbgs.pkl', 'rb') as f:
-            learned_func = pickle.load(f)
+        model_file = "../data/dnn_models/fullbgs"
+        print(f"loading DNN model from '{model_file}'...\t", end='')
+        learned_func = LearnedFunction.load(model_file)
         print(f"done.")
-        dnnB = LearnedB(learned_func, self.t, self.w)
+        dnnB = LearnedB(learned_func, self.w, self.t)
         self.learned_B = dnnB
         chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
                                 self.F, step, nchunks)
-        #res = []
-        #for chunk in tqdm.tqdm(chunks):
-        #    res.append(dnnB.calc_Bp_chunk_worker(chunk))
-        with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(dnnB.calc_Bp_chunk_worker, chunks),
-                                 total=chunks.total))
+        debug = False
+        with tf.device("cpu:0"):
+            with multiprocessing.Pool(ncores) as p:
+                mapfun = p.imap if not debug else map
+                res = list(tqdm.tqdm(mapfun(dnnB.calc_Bp_chunk_worker, chunks),
+                                            total=chunks.total))
         return chunks.collate(res)
 
 
