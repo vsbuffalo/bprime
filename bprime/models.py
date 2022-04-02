@@ -45,7 +45,7 @@ from bprime.utils import load_seqlens
 from bprime.utils import ranges_to_masks, sum_logliks_over_chroms
 from bprime.likelihood import calc_loglik_components, loglik
 from bprime.classic import B_segment_lazy, calc_B, calc_B_parallel
-from bprime.learn import LearnedB, LearnedFunction
+from bprime.learn import LearnedB, LearnedFunction, calc_Bp_chunk_worker
 from bprime.parallel import BpChunkIterator
 
 # this dtype allows for simple metadata storage
@@ -55,7 +55,7 @@ BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
 
 class BGSModel(object):
     def __init__(self, recmap=None, features=None, seqlens=None,
-                 t_grid=None, w_grid=None, split_length=1000):
+                 t_grid=None, w_grid=None, split_length=1_000):
         # main genome data needed to calculate B
         self.recmap = recmap
         self.seqlens = seqlens
@@ -323,13 +323,13 @@ class BGSModel(object):
         dnnB = LearnedB(learned_func, self.w, self.t)
         self.learned_B = dnnB
         chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
-                                self.F, step, nchunks)
+                                self.F, self.w, self.t, step, nchunks)
         debug = False
-        with tf.device("cpu:0"):
-            with multiprocessing.Pool(ncores) as p:
-                mapfun = p.imap if not debug else map
-                res = list(tqdm.tqdm(mapfun(dnnB.calc_Bp_chunk_worker, chunks),
-                                            total=chunks.total))
+        with multiprocessing.Pool(ncores) as p:
+            mapfun = p.imap if not debug else map
+            # return dnnB.calc_Bp_chunk_worker(next(chunks))
+            res = list(tqdm.tqdm(mapfun(calc_Bp_chunk_worker, chunks),
+                                        total=chunks.total))
         return chunks.collate(res)
 
 

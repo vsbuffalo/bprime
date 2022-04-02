@@ -6,7 +6,6 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
-import keras
 
 from bprime.utils import signif, index_cols, dist_to_segment
 from bprime.sim_utils import random_seed
@@ -177,6 +176,7 @@ class LearnedFunction(object):
         """
         Load the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
         """
+        import keras
         with open(f"{filepath}.pkl", 'rb') as f:
             obj = pickle.load(f)
         obj.model = keras.models.load_model(f"{filepath}.h5")
@@ -188,11 +188,11 @@ class LearnedFunction(object):
         """
         self.model = model
 
-    def predict_test(self):
+    def predict_test(self, **kwargs):
         """
         Predict the test data.
         """
-        return self.model.predict(self.X_test).squeeze()
+        return self.model.predict(self.X_test, **kwargs).squeeze()
 
 
     def check_bounds(self, X, correct_bounds=False):
@@ -228,7 +228,8 @@ class LearnedFunction(object):
         return X
 
 
-    def predict(self, X, correct_bounds=True, transforms=True, scale_input=True):
+    def predict(self, X, correct_bounds=True, transforms=True,
+                scale_input=True, **kwargs):
         """
         Predict for an input function X (linear space). If transforms is True,
         and transforms in LearnedFunction.transforms dict are applied to match
@@ -241,13 +242,13 @@ class LearnedFunction(object):
                     X[:, i] = trans_func(X[:, i])
         if scale_input:
             X = self.X_test_scaler.transform(X)
-        return self.model.predict(X).squeeze()
+        return self.model.predict(X, **kwargs).squeeze()
 
-    def predict_train(self):
+    def predict_train(self, **kwargs):
         """
         Predict the training data.
         """
-        return self.model.predict(self.X_train).squeeze()
+        return self.model.predict(self.X_train, **kwargs).squeeze()
 
     def domain_grids(self, n, fix_X=None, log10=None):
         """
@@ -256,7 +257,6 @@ class LearnedFunction(object):
         name is in log10 tuple, it will be log10'd.
         """
         valid_features = set(self.features)
-        print(valid_features)
         msg = "'fix_X' has a feature not in X's features"
         assert fix_X is None or all([(k in valid_features) for k in fix_X.keys()]), msg
         msg = "'log10' has a feature not in X's features"
@@ -282,7 +282,7 @@ class LearnedFunction(object):
             grids.append(grid)
         return grids
 
-    def predict_grid(self, n, fix_X=None, log10=None):
+    def predict_grid(self, n, fix_X=None, log10=None, verbose=True):
         """
         Predict a grid of points (useful for visualizing learned function).
         This uses the domain specified by the model.
@@ -293,7 +293,12 @@ class LearnedFunction(object):
              of columns.
         """
         domain_grids = self.domain_grids(n, fix_X=fix_X, log10=log10)
+        if verbose:
+            grid_dims = 'x'.join(map(str, n.values()))
+            print(f"making {grid_dims} grid...\t", end='')
         mesh = np.meshgrid(*domain_grids)
+        if verbose:
+            print("done.")
         mesh_array = np.stack(mesh)
         X_meshcols = np.stack([col.flatten() for col in mesh]).T
         X_meshcols_orig = X_meshcols[:]
@@ -305,7 +310,7 @@ class LearnedFunction(object):
         if self.normalized:
             X_meshcols = self.X_test_scaler.transform(X_meshcols)
 
-        predict = self.model.predict(X_meshcols).squeeze()
+        predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
         return domain_grids, X_meshcols_orig, X_meshcols, predict.reshape(mesh[0].shape)
 
 class LearnedB(object):
@@ -324,29 +329,75 @@ class LearnedB(object):
 
     def _make_grid_predictor(self, w_grid, t_grid):
         func = self.func
-        self.t_w_mesh = list(itertools.product(t_grid, w_grid))
+        self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
 
     def predict_across_wtmesh(self, rf, rbp, L):
         # TODO domain checking
+        ngrid = self.tw_mesh.shape[0]
         X = np.array([rbp, rf, L]).T
+        X = np.repeat(X, ngrid, axis=0)
+        Xg = np.repeat(self.tw_mesh, ngrid, axis=0)
+        __import__('pdb').set_trace()
+        X = np.concatenate((Xg, X), axis=1)
         n = X.shape[0]
         m = []
         t_w_mesh = self.t_w_mesh
         assert t_w_mesh is not None
+        i = 0
         for t_w in t_w_mesh:
+            print(f"mesh point {i}/{len(t_w_mesh)}")
+            i += 1
             Xn = np.concatenate([np.repeat([t_w], n, axis=0), X], axis=1)
-            m.append(np.log10(self.func.predict(Xn)))
+            print(t_w, X.shape, Xn.shape)
+            m.append(np.log10(self.func.model.predict(Xn)))
         return np.array(m).reshape((n, *self._dim))
 
     def calc_Bp_chunk_worker(self, args):
-        map_positions, seg_mpos, seg_rbp, seg_L, features_matrix = args
+        map_positions, seg_mpos, X = args
         Bs = []
+        nw, nt = len(self.w_grid), len(self.t_grid)
+        nseg = len(seg_mpos)
+        max_mpos = dist_to_segment(map_positions[-1], seg_mpos)
+        X[:, 3] = np.tile(max_mpos, self.tw_mesh.shape[0])
+        idx = X[:, 3] < 0.2
+        X = X[idx, :]
+        chop_idx = max_mpos < 0.2
+        nseg = np.sum(chop_idx)
+        seg_mpos = seg_mpos[chop_idx]
         for f in map_positions:
             rf = dist_to_segment(f, seg_mpos)
-			# TODO ignores featuresfmatrix!
-            B = self.predict_across_wtmesh(rf, seg_rbp, seg_L).sum(axis=0)
-            print(B)
-            Bs.append(B)
+            # return rf
+            # __import__('pdb').set_trace()
+            X[:, 3] = np.tile(rf, self.tw_mesh.shape[0])
+			# TODO ignores features matrix!
+            B = self.func.predict(X, verbose=True).reshape((nw, nt, nseg))
+            Bs.append(B.sum(axis=2))
+        print('done!')
         return Bs
 
+def calc_Bp_chunk_worker(args):
+    import keras
+    model_file = "../data/dnn_models/fullbgs.h5"
+    model = keras.models.load_model(model_file)
 
+    map_positions, seg_mpos, w_grid, t_grid, tw_mesh, X = args
+    Bs = []
+    nw, nt = len(w_grid), len(t_grid)
+    nseg = len(seg_mpos)
+    max_mpos = dist_to_segment(map_positions[-1], seg_mpos)
+    X[:, 3] = np.tile(max_mpos, tw_mesh.shape[0])
+    idx = X[:, 3] < 0.2
+    X = X[idx, :]
+    chop_idx = max_mpos < 0.2
+    nseg = np.sum(chop_idx)
+    seg_mpos = seg_mpos[chop_idx]
+    for f in map_positions:
+        rf = dist_to_segment(f, seg_mpos)
+        # return rf
+        # __import__('pdb').set_trace()
+        X[:, 3] = np.log10(np.tile(rf, tw_mesh.shape[0]))
+        # TODO ignores features matrix!
+        B = model.predict(X, verbose=True).reshape((nw, nt, nseg))
+        Bs.append(B.sum(axis=2))
+    print('done!')
+    return Bs

@@ -169,7 +169,8 @@ class BChunkIterator(MapPosChunkIterator):
 
 
 class BpChunkIterator(MapPosChunkIterator):
-    def __init__(self, seqlens, recmap, segments, features_matrix, step, nchunks):
+    def __init__(self, seqlens, recmap, segments, features_matrix,
+                 w_grid, t_grid, step, nchunks):
 
         """
 
@@ -177,8 +178,37 @@ class BpChunkIterator(MapPosChunkIterator):
         parallel.
 
         """
-        super().__init__(seqlens, recmap, segments, features_matrix, None,
-                         None, step, nchunks)
+        super().__init__(seqlens, recmap, segments, features_matrix, w_grid,
+                         t_grid, step, nchunks)
+        self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
+        self.X = self._build_pred_matrix('chr10')
+        # self.Y = _build_pred_tensor('chr10')
+
+    def _build_pred_matrix(self, chrom):
+        n = self.tw_mesh.shape[0]
+        nsegs = len(self.chrom_idx[chrom])
+        X = np.zeros((nsegs*n, 5))
+        # repeat the w/t element for each tile
+        X[:, 0:2] = np.repeat(self.tw_mesh, nsegs, axis=0)
+        # tile the annotation data
+        X[:, 3] = np.tile(self.chrom_seg_rbp[chrom], n)
+        X[:, 4] = np.tile(self.chrom_seg_L[chrom], n)
+        return X
+
+    def _build_pred_tensor(self, chrom):
+        n = self.tw_mesh.shape[0]
+        nsegs = len(self.chrom_idx[chrom])
+        X = np.zeros((n, nsegs, 5))
+        # repeat the w/t element for each tile
+        X[:, 0:2] = np.repeat(self.tw_mesh, nsegs, axis=0)
+        X[:, 0] = np.log10(X[:, ]) # sh is log'd
+        # tile the annotation data
+        X[:, 3] = np.tile(self.chrom_seg_rbp[chrom], n)
+        X[:, 4] = np.tile(self.chrom_seg_L[chrom], n)
+        return X
+
+
+
 
     def __next__(self):
         """
@@ -195,10 +225,7 @@ class BpChunkIterator(MapPosChunkIterator):
         """
         next_chunk = next(self.mpos_iter)
         chrom, mpos_chunk = next_chunk
-        return (mpos_chunk,
-                self.chrom_seg_mpos[chrom],
-                self.chrom_seg_rbp[chrom],
-                self.chrom_seg_L[chrom],
-                self.chrom_features[chrom])
+        return (mpos_chunk, self.chrom_seg_mpos[chrom],
+                self.w_grid, self.t_grid, self.tw_mesh, self.X)
 
 
