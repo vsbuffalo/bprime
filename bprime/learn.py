@@ -1,5 +1,6 @@
 ## learn.py -- classes, etc for DNN learned B functions
 
+import os
 import itertools
 import pickle
 import numpy as np
@@ -169,7 +170,8 @@ class LearnedFunction(object):
         with open(f"{filepath}.pkl", 'wb') as f:
             pickle.dump(self, f)
         self.model = model
-        model.save(f"{filepath}.h5")
+        if self.model is not None:
+            model.save(f"{filepath}.h5")
 
     @classmethod
     def load(cls, filepath):
@@ -318,7 +320,7 @@ class LearnedB(object):
     A general class that wraps a learned B function.
     """
     def __init__(self, learned_func, w_grid, t_grid):
-        bgs_cols = ('sh', 'mu', 'rbp', 'rf', 'L')
+        bgs_cols = ('sh', 'mu', 'rf', 'rbp', 'L')
         assert tuple(learned_func.features.keys()) == bgs_cols
         self.func = learned_func
         self.t_w_mesh = None
@@ -377,6 +379,7 @@ class LearnedB(object):
 
 def calc_Bp_chunk_worker(args):
     import keras
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
     model_file = "../data/dnn_models/fullbgs.h5"
     model = keras.models.load_model(model_file)
 

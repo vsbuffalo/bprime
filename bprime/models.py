@@ -319,17 +319,13 @@ class BGSModel(object):
         model_file = "../data/dnn_models/fullbgs"
         print(f"loading DNN model from '{model_file}'...\t", end='')
         learned_func = LearnedFunction.load(model_file)
+        self.dnnB = learned_func
         print(f"done.")
-        dnnB = LearnedB(learned_func, self.w, self.t)
-        self.learned_B = dnnB
         chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
-                                self.F, self.w, self.t, step, nchunks)
-        debug = False
-        with multiprocessing.Pool(ncores) as p:
-            mapfun = p.imap if not debug else map
-            # return dnnB.calc_Bp_chunk_worker(next(chunks))
-            res = list(tqdm.tqdm(mapfun(calc_Bp_chunk_worker, chunks),
-                                        total=chunks.total))
+                                self.F, self.w, np.log10(self.t),
+                                 learned_func.X_test_scaler, step, nchunks)
+        res = learned_func.model.predict(iter(chunks), use_multiprocessing=True,
+                                         workers=70)
         return chunks.collate(res)
 
 
