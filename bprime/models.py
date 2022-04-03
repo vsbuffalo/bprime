@@ -325,7 +325,7 @@ class BGSModel(object):
                                 self.F, self.w, np.log10(self.t),
                                  learned_func.X_test_scaler, step, nchunks)
         res = learned_func.model.predict(iter(chunks), use_multiprocessing=True,
-                                         workers=70)
+                                         workers=ncores)
         return chunks.collate(res)
 
 

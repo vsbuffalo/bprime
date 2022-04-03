@@ -225,27 +225,50 @@ class BpChunkIterator(MapPosChunkIterator):
         return X
 
     def _focal_iter(self):
-        with tqdm.tqdm(total=self.total) as progress_bar:
-            while True:
-                next_chunk = next(self.mpos_iter)
-                # get the next chunk of map positions to process
-                chrom, mpos_chunk = next_chunk
-                # chromosome segment positions
-                chrom_seg_mpos = self.chrom_seg_mpos[chrom]
-                # focal map positions
-                map_positions = self.chrom_mpos[chrom]
-                X = self.Xs[chrom]
-                for f in map_positions:
-                    # compute the rec frac to each segment's start or end
-                    rf = dist_to_segment(f, chrom_seg_mpos)
-                    # place rf in X, log10'ing it since that's what we train on
-                    # and tile it to repeat
-                    rf[rf < 1e-8] = 1e-8 # TODO
-                    X[:, 2] = np.log10(np.tile(rf, self.tw_mesh.shape[0]))
-                    assert np.all(np.isfinite(X)), "before scaler"
-                    if self.scaler is not None:
-                        X = self.scaler.transform(X)
-                    assert np.all(np.isfinite(X)), "after scaler"
+        import tqdm.notebook as tq
+        self.thresh = 0.25
+        outer_progress_bar = tq.tqdm(total=self.total)
+        inner_progress_bar = tq.tqdm(leave=True)
+        while True:
+            next_chunk = next(self.mpos_iter)
+            # get the next chunk of map positions to process
+            chrom, mpos_chunk = next_chunk
+            # chromosome segment positions
+            chrom_seg_mpos = self.chrom_seg_mpos[chrom]
+            # focal map positions
+            map_positions = mpos_chunk
+            X = self.Xs[chrom]
+            # chop off segments further than 0.2 recomb frac apart
+            # from last map position in chunk
+            if self.thresh:
+                # rec frac to the last position in chunk (furthest right)
+                rf = dist_to_segment(map_positions[-1], chrom_seg_mpos)
+                idx = rf < self.thresh
+                n = idx.sum() # total number of surviving segments
+                # we want to wipe out block of the X matrix from segments
+                # too far away
+                rf_Xcol = np.tile(rf, self.tw_mesh.shape[0])
+                Xidx = rf_Xcol < self.thresh
+                # redefine X for this chunk
+                X = X[Xidx, :]
+                # redefine the segment map positions for this chunk
+                chrom_seg_mpos = chrom_seg_mpos[idx]
+                assert np.all(np.isfinite(X))
+            inner_progress_bar.total = len(map_positions)
+            for f in map_positions:
+                # compute the rec frac to each segment's start or end
+                rf = dist_to_segment(f, chrom_seg_mpos)
+                # place rf in X, log10'ing it since that's what we train on
+                # and tile it to repeat
+                rf[rf < 1e-8] = 1e-8 # TODO
+                X[:, 2] = np.log10(np.tile(rf, self.tw_mesh.shape[0]))
+                assert np.all(np.isfinite(X)), "before scaler"
+                print('.', end='\r')
+                inner_progress_bar.update(1)
+                if self.scaler is not None:
+                    yield self.scaler.transform(X)
+                else:
                     yield X
-                progress_bar.update(1)
+            outer_progress_bar.update(1)
+            inner_progress_bar.reset()
 
