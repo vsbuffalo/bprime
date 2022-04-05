@@ -324,9 +324,15 @@ class BGSModel(object):
         chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
                                 self.F, self.w, np.log10(self.t),
                                  learned_func.X_test_scaler, step, nchunks)
-        res = learned_func.model.predict(iter(chunks), use_multiprocessing=True,
-                                         workers=ncores)
-        return chunks.collate(res)
+        for chrom, X in chunks.Xs.items():
+            np.savez(f"../data/dnn_chunks/{chrom}_X.npz",
+                     chunks.scaler.transform(X))
+        for i, chunk in enumerate(chunks):
+            chrom, X = chunk
+            np.savez(f"../data/dnn_chunks/{chrom}_{i}.npz", X)
+        # res = learned_func.model.predict(iter(chunks), use_multiprocessing=True,
+                                         # workers=ncores)
+        # return chunks.collate(res)
 
 
 

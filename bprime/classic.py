@@ -117,12 +117,11 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
 
 
 def calc_B_chunk_worker(args):
-    # chrom_seg_X cols are segment map position, rec rates, and lengths
-    map_positions, chrom_seg_X, segment_parts, features_matrix, mut_grid = args
+    map_positions, chrom_seg_mpos, features_matrix, segment_parts, mut_grid = args
     a, b, c, d = segment_parts
     Bs = []
     for f in map_positions:
-        rf = dist_to_segment(f, chrom_seg_X[:, 0])
+        rf = dist_to_segment(f, chrom_seg_mpos)
         if np.any(b + rf*(rf*c + d) == 0):
             raise ValueError("divide by zero in calc_B_chunk_worker")
         x = a/(b*rf**2 + c*rf + d)

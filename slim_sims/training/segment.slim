@@ -42,8 +42,7 @@ initialize() {
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  filestr = filename_str(c('N', 'mu', 's', 'h', 'rbp', 
-                           'rf', 'L', 'seed'));
+  filestr = filename_str(c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
@@ -79,8 +78,8 @@ initialize() {
 }
 
 s1 {
-  if (sim.generation % N == 0) 
-    print(sim.generation);
+  // if (sim.generation % N == 0) 
+  //   print(sim.generation);
 }
 
 s2 late() {

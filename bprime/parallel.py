@@ -226,9 +226,9 @@ class BpChunkIterator(MapPosChunkIterator):
 
     def _focal_iter(self):
         import tqdm.notebook as tq
-        self.thresh = 0.25
+        self.thresh = 0
         outer_progress_bar = tq.tqdm(total=self.total)
-        inner_progress_bar = tq.tqdm(leave=True)
+        # inner_progress_bar = tq.tqdm(leave=True)
         while True:
             next_chunk = next(self.mpos_iter)
             # get the next chunk of map positions to process
@@ -240,7 +240,7 @@ class BpChunkIterator(MapPosChunkIterator):
             X = self.Xs[chrom]
             # chop off segments further than 0.2 recomb frac apart
             # from last map position in chunk
-            if self.thresh:
+            if self.thresh > 0:
                 # rec frac to the last position in chunk (furthest right)
                 rf = dist_to_segment(map_positions[-1], chrom_seg_mpos)
                 idx = rf < self.thresh
@@ -254,7 +254,7 @@ class BpChunkIterator(MapPosChunkIterator):
                 # redefine the segment map positions for this chunk
                 chrom_seg_mpos = chrom_seg_mpos[idx]
                 assert np.all(np.isfinite(X))
-            inner_progress_bar.total = len(map_positions)
+            # inner_progress_bar.total = len(map_positions)
             for f in map_positions:
                 # compute the rec frac to each segment's start or end
                 rf = dist_to_segment(f, chrom_seg_mpos)
@@ -263,12 +263,12 @@ class BpChunkIterator(MapPosChunkIterator):
                 rf[rf < 1e-8] = 1e-8 # TODO
                 X[:, 2] = np.log10(np.tile(rf, self.tw_mesh.shape[0]))
                 assert np.all(np.isfinite(X)), "before scaler"
-                print('.', end='\r')
-                inner_progress_bar.update(1)
+                # print('.', end='\r')
+                # inner_progress_bar.update(1)
                 if self.scaler is not None:
-                    yield self.scaler.transform(X)
+                    yield chrom, self.scaler.transform(X)[:, 2]
                 else:
-                    yield X
+                    yield chrom, X
             outer_progress_bar.update(1)
-            inner_progress_bar.reset()
+            # inner_progress_bar.reset()
 
