@@ -115,7 +115,6 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
     return Bs, Bpos#, xs
 
 
-
 def calc_B_chunk_worker(args):
     map_positions, chrom_seg_mpos, features_matrix, segment_parts, mut_grid = args
     a, b, c, d = segment_parts
@@ -132,10 +131,8 @@ def calc_B_chunk_worker(args):
     return Bs
 
 
-def calc_B_parallel(segments, segment_parts, features_matrix, mut_grid,
-                    recmap, seqlens, step, nchunks=1000, ncores=2):
-    chunks = BChunkIterator(seqlens, recmap, segments, features_matrix,
-                            segment_parts, mut_grid, step, nchunks)
+def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
+    chunks = BChunkIterator(genome, segment_parts, mut_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     debug = False
     if debug:

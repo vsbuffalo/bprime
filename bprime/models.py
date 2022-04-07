@@ -39,13 +39,11 @@ from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
 from bprime.utils import bin_chrom
-from bprime.utils import RecMap, readfile, load_dacfile
-from bprime.utils import process_feature_recombs, load_bed_annotation
+from bprime.utils import readfile, load_dacfile
 from bprime.utils import load_seqlens
 from bprime.utils import ranges_to_masks, sum_logliks_over_chroms
 from bprime.likelihood import calc_loglik_components, loglik
 from bprime.classic import B_segment_lazy, calc_B, calc_B_parallel
-from bprime.learn import LearnedB, LearnedFunction, calc_Bp_chunk_worker
 from bprime.parallel import BpChunkIterator
 
 # this dtype allows for simple metadata storage
@@ -54,12 +52,11 @@ BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
 BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
 
 class BGSModel(object):
-    def __init__(self, recmap=None, features=None, seqlens=None,
-                 t_grid=None, w_grid=None, split_length=1_000):
+    def __init__(self, genome, t_grid=None, w_grid=None, split_length=1_000):
         # main genome data needed to calculate B
-        self.recmap = recmap
-        self.seqlens = seqlens
-        self.segments = None
+        self.genome = genome
+        assert self.genome.is_complete(), "genome is missing data!"
+        assert self.genome.segments is not None, "genome missing segments, run Genome.create_segments()"
         self._segment_parts = None
         # stuff for B
         self.Bs = None
@@ -89,10 +86,19 @@ class BGSModel(object):
         self.pi0_ll = None
         self.pi0_grid = None
         self.pi0i_mle = None
-        if features is not None:
-            # process the segments, e.g. splitting by rec rate
-            self.segments = process_feature_recombs(features.ranges, self.recmap, split_length)
-            self._calc_features()
+        self._calc_features()  # TODO, not full implemented
+
+    @property
+    def seqlens(self):
+        return self.genome.seqlens
+
+    @property
+    def recmap(self):
+        return self.genome.recmap
+
+    @property
+    def segments(self):
+        return self.genome.segments
 
     def load_dacfile(self, dacfile, neut_regions):
         neut_masks = ranges_to_masks(neut_regions, self.seqlens)
@@ -327,6 +333,7 @@ class BGSModel(object):
         chunk, and the last two columns are rbp and L for the segments (these
         are fixed by chromosome).
         """
+        pass
 
 
 

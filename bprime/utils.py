@@ -163,9 +163,9 @@ def load_bed_annotation(file):
     """
     ranges = dict()
     params = []
-    nloci = 0
+    # nloci = 0
     all_features = set()
-    index_map = defaultdict(list)
+    # index_map = defaultdict(list)
     with readfile(file) as f:
         for line in f:
             if line.startswith('#'):
@@ -182,11 +182,11 @@ def load_bed_annotation(file):
                 ranges[chrom] = ([], [])
             ranges[chrom][0].append((int(start), int(end)))
             ranges[chrom][1].append(feature)
-            index_map[chrom].append(nloci)
+            # index_map[chrom].append(nloci)
             all_features.add(feature)
-            nloci += 1
-    Annotation = namedtuple('Annotation', ('ranges', 'index_map', 'features'))
-    return Annotation(ranges, index_map, all_features)
+            # nloci += 1
+    Annotation = namedtuple('Annotation', ('ranges', 'features'))
+    return Annotation(ranges, all_features)
 
 def load_seqlens(file):
     seqlens = dict()
@@ -265,126 +265,127 @@ def index_dictlist(x):
     return index
 
 
-
-def rate_interpol(rate_dict, **kwargs):
+def process_feature_recombs(features, recmap, split_length=None):
     """
-    Interpolate recombination rates given a dictionary of chrom->(ends, rates).
-    By default, it uses quadratic, and any values outside the range are given
-    the two end points.
+    Split the features dictionary (values are a list of range tuples and feature
+    labels) by the recombination rate ends. This effectively breaks segments
+    into two if the recombination rate changes. If split_length is not None, the
+    segments are further split to be a maximum length of split_length. The
+    recombination rates are also added to each segment.
     """
-    defaults = {'kind': 'quadratic',
-                'assume_sorted': True,
-                'bounds_error': False,
-                'copy': False}
-    kwargs = {**defaults, **kwargs}
-    interpols = dict()
-    for chrom, (ends, rates) in rate_dict.items():
-        interpol = interpolate.interp1d(ends, rates,
-                                        fill_value=(rates[0], rates[-1]),
-                                        **kwargs)
+    try:
+        assert(all(chrom in recmap.rates.keys() for chrom in features.keys()))
+    except:
+        raise ValueError(f"features contains sequences not in recmap.")
 
-        interpols[chrom] = interpol
-    return interpols
-
-
-class RecMap(object):
-    def __init__(self, mapfile, seqlens, interpolation='quadratic',
-                 conversion_factor=1e-8):
-        self.mapfile = mapfile
-        self.conversion_factor = conversion_factor
-        self.ends = dict()
-        self.rates = None
-        self.seqlens = seqlens
-        self.cumm_rates = None
-        self.params = []
-        self.interpolation = interpolation
-        self.readmap()
-
-    def readmap(self):
-        rates = defaultdict(list)
-        last_chrom, last_end = None, None
-        first_bin = True
-        first = True
-        is_hapmap = False
-        with readfile(self.mapfile) as f:
-            for line in f:
-                if line.startswith('Chromosome'):
-                    print(f"ignoring HapMap header...")
-                    is_hapmap = True
+    if split_length is not None:
+        split_features = dict()
+        for chrom, (ranges, feature_types) in features.items():
+            split_ranges, split_feature_types = [], []
+            ranges_deque = deque(ranges)
+            features_deque = deque(feature_types)
+            assert len(ranges) == len(feature_types)
+            while True:
+                try:
+                    row = ranges_deque.popleft()
+                    feature = features_deque.popleft()
+                except IndexError:
+                    break
+                start, end = row
+                if end - start > split_length:
+                    new_row = start, start+split_length
+                    split_ranges.append(new_row)
+                    split_feature_types.append(feature)
+                    # the leftover bit
+                    split_row = start+split_length, end
+                    ranges_deque.appendleft(split_row)
+                    features_deque.appendleft(feature)
                     continue
-                if line.startswith('#'):
-                    self.params.append(line.strip().lstrip('#'))
-                cols = line.strip().split("\t")
-                is_hapmap = is_hapmap or len(cols) == 3
-                if is_hapmap:
-                    if first:
-                        print("parsing recmap as HapMap formatted (chrom, end, rate)")
-                        first = False
-                    chrom, end, rate = line.strip().split("\t")[:3]
-                    start = -1
-                else:
-                    # BED file version
-                    if first:
-                        print("parsing recmap as BED formatted (chrom, start, end, rate)")
-                        first = False
-                    chrom, start, end, rate = line.strip().split("\t")[:4]
-                if last_chrom is not None and chrom != last_chrom:
-                    # propagate the ends list
-                    self.ends[last_chrom] = last_end
-                    first_bin = True
-                if first_bin and start != 0:
-                    # missing data up until this point, fill in with an nan
-                    start = start if not is_hapmap else 0
-                    rates[chrom].append((int(start), np.nan))
-                    first_bin = False
-                rates[chrom].append((int(end), float(rate)))
-                last_chrom = chrom
-                last_end = int(end)
+                split_ranges.append((start, end))
+                split_feature_types.append(feature)
+            assert len(split_ranges) == len(split_feature_types)
+            split_features[chrom] = (split_ranges, split_feature_types)
+        features = split_features
 
-        # end of loop, put the last position in ends
-        self.ends[last_chrom] = last_end
+    recrates = recmap.rates
+    all_features = set()
+    index = defaultdict(list)
+    chroms = list()
+    split_ranges = list()
+    split_features = list()
+    split_rates = list()
 
-        cumm_rates = dict()
-        for chrom, data in rates.items():
-            pos = np.array([p for p, _ in data])
-            rate = np.array([r for _, r in data])
-            rbp = rate * self.conversion_factor
-            rates[chrom] = RecPair(pos, rbp)
-            widths = np.diff(pos)
-            cumrates = np.nancumsum(rbp[1:]*widths)
-            pad_cumrates = np.zeros(cumrates.shape[0]+1)
-            pad_cumrates[1:] = cumrates
-            cumm_rates[chrom] = RecPair(pos, pad_cumrates)
-        self.rates = rates
-        self.cumm_rates = cumm_rates
-        self.cumm_interpol = rate_interpol(cumm_rates, kind=self.interpolation)
-        self.rate_interpol = rate_interpol(rates, kind=self.interpolation)
+    i = 0
+    for chrom, feature_ranges in features.items():
+        # feature_ranges is a (range, feature type) tuple
+        if chrom not in recrates:
+            print(f"{chrom} not in recombination map, skipping.")
+            continue
+        rec_ends = iter(zip(recrates[chrom].end, recrates[chrom].rate))
+        rec_end, rec_rate = next(rec_ends)
+        for (start, end), feature_type in zip(*feature_ranges):
+            all_features.add(feature_type)
+            while rec_end <= start:
+                # the <= prevents 0-width'd features (TODO check)
+                try:
+                     rec_end, rec_rate = next(rec_ends)
+                except StopIteration:
+                     break
+                #print(f"bumping up rec ends ({start}, {end}; {rec_end})")
+            if rec_end >= end:
+                # this range is not to be split
+                split_ranges.append((start, end))
+                split_features.append(feature_type)
+                split_rates.append(rec_rate)
+                index[chrom].append(i)
+                chroms.append(chrom)
+                i += 1
+                continue
 
+            overlaps = start <= rec_end < end
+            # this feature overlaps a switch in recombinatino rate
+            while overlaps:
+                new_ranges = [(start, rec_end)]
+                split_ranges.append((start, rec_end))
+                split_features.append(feature_type)
+                split_rates.append(rec_rate)
+                index[chrom].append(i)
+                chroms.append(chrom)
+                i += 1
+                start = rec_end
+                try:
+                    rec_end, rec_rate = next(rec_ends)
+                except StopIteration:
+                    break
+                overlaps = start <= rec_end < end
 
-    def lookup(self, chrom, pos, cummulative=False):
-        #assert(np.all(0 <= pos <= self.ends[chrom]))
-        if np.any(pos > self.seqlens[chrom]):
-            bad_pos = pos[pos > self.seqlens[chrom]]
-            msg = f"some positions {bad_pos} are greater than sequence length ({self.seqlens[chrom]}"
-            warnings.warn(msg)
-        if not cummulative:
-            x = self.rate_interpol[chrom](pos)
-        else:
-            x = self.cumm_interpol[chrom](pos)
-        return x
+            split_ranges.append((start, end))
+            split_features.append(feature_type)
+            split_rates.append(rec_rate)
+            index[chrom].append(i)
+            chroms.append(chrom)
+            i += 1
 
-    @property
-    def map_lengths(self):
-        return {chrom: x.rate[-1] for chrom, x in self.cumm_rates.items()}
+        print(f"completed segmenting {chrom}.")
 
-    def build_recmaps(self, positions, cummulative=False):
-        map_positions = defaultdict(list)
-        for chrom in positions:
-            for pos in positions[chrom]:
-                map_positions[chrom].append(self.lookup(chrom, pos,
-                                                        cummulative=cummulative))
-            map_positions[chrom] = np.array(map_positions[chrom])
-        return map_positions
+    feature_map = {f: i for i, f in enumerate(sorted(all_features))}
+    rm = recmap
+    ranges = np.array(split_ranges, dtype='uint32')
+    assert(i == len(split_ranges))
+    print(f"looking up map positions...\t", end='')
+    map_pos = []
+    for chrom in index:
+        idx = index[chrom]
+        map_start = rm.lookup(chrom, ranges[idx, 0], cummulative=True)
+        map_end = rm.lookup(chrom, ranges[idx, 1], cummulative=True)
+        assert(len(map_start) == len(idx))
+        map_pos.append(np.stack((map_start, map_end)).T)
+    map_pos = np.concatenate(map_pos, axis=0)
+    assert(map_pos.shape[0] == ranges.shape[0])
+    print(f"done.")
+    rates = np.array(split_rates, dtype='float32')
+    features = np.array([feature_map[x] for x in split_features])
+    return Segments(ranges, rates, map_pos, features, feature_map, index)
 
 def parse_param_str(x):
     assert(len(x) == 1)

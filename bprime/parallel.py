@@ -33,12 +33,8 @@ class MapPosChunkIterator(object):
     This class also has a method to collate the results computed in
     parallel back into dicts.
     """
-    def __init__(self, seqlens, recmap, segments, features_matrix, w_grid=None,
-                 t_grid=None, step=100, nchunks=100):
-        self.seqlens = seqlens
-        self.recmap = recmap
-        self.segments = segments
-        self.features_matrix = features_matrix
+    def __init__(self, genome, w_grid=None, t_grid=None, step=100, nchunks=100):
+        self.genome = genome
         self.step = step
         self.nchunks = nchunks
 
@@ -90,6 +86,18 @@ class MapPosChunkIterator(object):
         self.chrom_seg_rbp = chrom_seg_rbp
         self.chrom_seg_L = chrom_seg_L
 
+    @property
+    def seqlens(self):
+        return self.genome.seqlens
+
+    @property
+    def recmap(self):
+        return self.genome.recmap
+
+    @property
+    def segments(self):
+        return self.genome.segments
+
     def __iter__(self):
         return self
 
@@ -121,8 +129,7 @@ class MapPosChunkIterator(object):
 
 
 class BChunkIterator(MapPosChunkIterator):
-    def __init__(self, seqlens, recmap, segments, features_matrix,
-                 segment_parts, w_grid, step, nchunks):
+    def __init__(self, genome, segment_parts, w_grid, step, nchunks):
 
         """
         An iterator for chunk the components to calculate B' along the genome in
@@ -131,8 +138,7 @@ class BChunkIterator(MapPosChunkIterator):
         segment_parts have the selection coefficient grid in them (for
         efficiency), which is why this is not necessary for this class.
         """
-        super().__init__(seqlens, recmap, segments, features_matrix, w_grid,
-                         None, step, nchunks)
+        super().__init__(genome, w_grid, None, step, nchunks)
         # Group the segement parts (these are the parts of the pre-computed
         # equation for calculating B quickly) into chromosomes by the indices
         chrom_segparts = {}
@@ -171,9 +177,8 @@ class BChunkIterator(MapPosChunkIterator):
 
 
 class BpChunkIterator(MapPosChunkIterator):
-    def __init__(self, seqlens, recmap, segments, features_matrix,
-                 w_grid, t_grid, scaler, step, nchunks, rf_thresh=None,
-                 progress=True):
+    def __init__(self, genome, w_grid, t_grid, scaler, step,
+                 nchunks, rf_thresh=None, progress=True):
 
         """
 
@@ -181,8 +186,7 @@ class BpChunkIterator(MapPosChunkIterator):
         parallel.
 
         """
-        super().__init__(seqlens, recmap, segments, features_matrix, w_grid,
-                         t_grid, step, nchunks)
+        super().__init__(genome, w_grid, t_grid, step, nchunks)
         self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
         self.features = ('sh', 'mu', 'rf', 'rbp', 'L')
         self.Xs = dict()
