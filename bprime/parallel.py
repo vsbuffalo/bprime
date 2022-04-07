@@ -72,7 +72,7 @@ class MapPosChunkIterator(object):
         chrom_seg_rbp = {c: share_array(segments.rates[idx]) for c, idx
                           in chrom_idx.items()}
         # group by chrom and share segment lengths
-        L = np.diff(segments.ranges, axis=1).squeeze()
+        L = segments.lengths
         chrom_seg_L = {c: share_array(L[idx]) for c, idx in chrom_idx.items()}
         # group by chrom and share features matrix
         chrom_features = {c: share_array(features_matrix[idx, :]) for c, idx

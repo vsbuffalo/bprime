@@ -239,7 +239,7 @@ class BGSModel(object):
         Pre-calculate the segment contributions, for classic B approach
         approach.
         """
-        L = np.diff(self.segments.ranges, axis=1).squeeze()
+        L = self.segments.lengths
         rbp = self.segments.rates
         #min_rbp = 0 # here as test; doesn't make much of a difference
         #rbp[rbp == 0] = min_rbp

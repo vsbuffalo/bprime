@@ -6,6 +6,16 @@ from bprime.recmap import RecMap
 
 @dataclass
 class Segments:
+    """
+    A dataclass for the conserved segment details.
+    Contains:
+        - ranges
+        - rec rates within each segment
+        - map positions of start and end
+        - features (indexed)
+        - map of feature names to indices
+        - index, a dict of chrom->indices of the ranges array
+    """
     ranges: np.ndarray
     rates: np.ndarray
     map_pos: np.ndarray
@@ -19,6 +29,10 @@ class Segments:
 
     def __len__(self):
         return self.ranges.shape[0]
+
+    @property
+    def lengths(self):
+        return np.diff(self.ranges, axis=1).squeeze()
 
 def process_annotation(features, recmap, split_length=None):
     """

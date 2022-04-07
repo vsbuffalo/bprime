@@ -27,6 +27,14 @@ def rate_interpol(rate_dict, **kwargs):
 
 
 class RecMap(object):
+    """
+    Recombination Map Class
+
+    Loads a HapMap or BED recombination map and builds rate and cummulative
+    rate interpolators. Note that a conversion_factor of 1e-8 is the default
+    for cM/Mb rates (1cM = 0.01M, 1Mb = 10^6 bases, 0.01 / 1e6 = 1e-8).
+
+    """
     def __init__(self, mapfile, seqlens, interpolation='quadratic',
                  conversion_factor=1e-8):
         self.mapfile = mapfile
@@ -37,9 +45,9 @@ class RecMap(object):
         self.cumm_rates = None
         self.params = []
         self.interpolation = interpolation
-        self.readmap()
+        self._readmap()
 
-    def readmap(self):
+    def _readmap(self):
         rates = defaultdict(list)
         last_chrom, last_end = None, None
         first_bin = True
