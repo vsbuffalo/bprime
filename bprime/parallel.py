@@ -172,7 +172,8 @@ class BChunkIterator(MapPosChunkIterator):
 
 class BpChunkIterator(MapPosChunkIterator):
     def __init__(self, seqlens, recmap, segments, features_matrix,
-                 w_grid, t_grid, scaler, step, nchunks, progress=True):
+                 w_grid, t_grid, scaler, step, nchunks, rf_thresh=None,
+                 progress=True):
 
         """
 
@@ -186,6 +187,7 @@ class BpChunkIterator(MapPosChunkIterator):
         self.features = ('sh', 'mu', 'rf', 'rbp', 'L')
         self.Xs = dict()
         self.scaler = scaler
+        self.rf_thresh = rf_thresh
         for chrom in self.seqlens:
             self.Xs[chrom] = self._build_pred_matrix(chrom)
 
@@ -224,10 +226,21 @@ class BpChunkIterator(MapPosChunkIterator):
         X[:, 4] = np.tile(self.chrom_seg_L[chrom], n)
         return X
 
+    def write_chrom_Xs(self, dir, scale=True):
+        """
+        Write the X chromosome segment data.
+        The columns are sh, mu, rf, rbp, and L -- note that rf is blank,
+        as this is filled in depending on what the focal position is.
+        """
+        for chrom, X in self.Xs.items():
+            if scale:
+                X = self.scaler.transform(X)
+            np.save(os.path.join(f"chrom_data_{chrom}.npy", X))
+
     def _focal_iter(self):
         import tqdm.notebook as tq
-        self.thresh = 0
-        outer_progress_bar = tq.tqdm(total=self.total)
+        if self.progress:
+            outer_progress_bar = tq.tqdm(total=self.total)
         # inner_progress_bar = tq.tqdm(leave=True)
         while True:
             next_chunk = next(self.mpos_iter)
@@ -237,24 +250,6 @@ class BpChunkIterator(MapPosChunkIterator):
             chrom_seg_mpos = self.chrom_seg_mpos[chrom]
             # focal map positions
             map_positions = mpos_chunk
-            X = self.Xs[chrom]
-            # chop off segments further than 0.2 recomb frac apart
-            # from last map position in chunk
-            if self.thresh > 0:
-                # rec frac to the last position in chunk (furthest right)
-                rf = dist_to_segment(map_positions[-1], chrom_seg_mpos)
-                idx = rf < self.thresh
-                n = idx.sum() # total number of surviving segments
-                # we want to wipe out block of the X matrix from segments
-                # too far away
-                rf_Xcol = np.tile(rf, self.tw_mesh.shape[0])
-                Xidx = rf_Xcol < self.thresh
-                # redefine X for this chunk
-                X = X[Xidx, :]
-                # redefine the segment map positions for this chunk
-                chrom_seg_mpos = chrom_seg_mpos[idx]
-                assert np.all(np.isfinite(X))
-            # inner_progress_bar.total = len(map_positions)
             for f in map_positions:
                 # compute the rec frac to each segment's start or end
                 rf = dist_to_segment(f, chrom_seg_mpos)
@@ -271,4 +266,23 @@ class BpChunkIterator(MapPosChunkIterator):
                     yield chrom, X
             outer_progress_bar.update(1)
             # inner_progress_bar.reset()
+
+# # chop off segments further than 0.2 recomb frac apart
+# # from last map position in chunk
+# if self.rf_thresh is not None:
+#     assert isinstance(self.rf_thresh, float)
+#     # rec frac to the last position in chunk (furthest right)
+#     rf = dist_to_segment(map_positions[-1], chrom_seg_mpos)
+#     idx = rf < self.rf_thresh
+#     n = idx.sum() # total number of surviving segments
+#     # we want to wipe out block of the X matrix from segments
+#     # too far away
+#     rf_Xcol = np.tile(rf, self.tw_mesh.shape[0])
+#     Xidx = rf_Xcol < self.rf_thresh
+#     # redefine X for this chunk
+#     X = X[Xidx, :]
+#     # redefine the segment map positions for this chunk
+#     chrom_seg_mpos = chrom_seg_mpos[idx]
+#     assert np.all(np.isfinite(X))
+# # inner_progress_bar.total = len(map_positions)
 

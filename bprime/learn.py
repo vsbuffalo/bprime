@@ -319,88 +319,89 @@ class LearnedB(object):
     """
     A general class that wraps a learned B function.
     """
-    def __init__(self, learned_func, w_grid, t_grid):
+    def __init__(self, genome, learned_func, t_grid, w_grid):
         bgs_cols = ('sh', 'mu', 'rf', 'rbp', 'L')
         assert tuple(learned_func.features.keys()) == bgs_cols
         self.func = learned_func
-        self.t_w_mesh = None
+        assert tuple(self.func.features.keys()) == bgs_cols, "invalid learned func"
         self.w_grid = w_grid
         self.t_grid = t_grid
-        self._make_grid_predictor(w_grid, t_grid)
-        self._dim = (w_grid.shape[0], t_grid.shape[0])
-
-    def _make_grid_predictor(self, w_grid, t_grid):
-        func = self.func
         self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
+        self.dim = (w_grid.shape[0], t_grid.shape[0])
 
-    def predict_across_wtmesh(self, rf, rbp, L):
-        # TODO domain checking
-        ngrid = self.tw_mesh.shape[0]
-        X = np.array([rbp, rf, L]).T
-        X = np.repeat(X, ngrid, axis=0)
-        Xg = np.repeat(self.tw_mesh, ngrid, axis=0)
-        __import__('pdb').set_trace()
-        X = np.concatenate((Xg, X), axis=1)
-        n = X.shape[0]
-        m = []
-        t_w_mesh = self.t_w_mesh
-        assert t_w_mesh is not None
-        i = 0
-        for t_w in t_w_mesh:
-            print(f"mesh point {i}/{len(t_w_mesh)}")
-            i += 1
-            Xn = np.concatenate([np.repeat([t_w], n, axis=0), X], axis=1)
-            print(t_w, X.shape, Xn.shape)
-            m.append(np.log10(self.func.model.predict(Xn)))
-        return np.array(m).reshape((n, *self._dim))
+    def _build_pred_matrix(self, chrom):
+        """
 
-    def calc_Bp_chunk_worker(self, args):
-        map_positions, seg_mpos, X = args
-        Bs = []
-        nw, nt = len(self.w_grid), len(self.t_grid)
-        nseg = len(seg_mpos)
-        max_mpos = dist_to_segment(map_positions[-1], seg_mpos)
-        X[:, 3] = np.tile(max_mpos, self.tw_mesh.shape[0])
-        idx = X[:, 3] < 0.2
-        X = X[idx, :]
-        chop_idx = max_mpos < 0.2
-        nseg = np.sum(chop_idx)
-        seg_mpos = seg_mpos[chop_idx]
-        for f in map_positions:
-            rf = dist_to_segment(f, seg_mpos)
-            # return rf
-            # __import__('pdb').set_trace()
-            X[:, 3] = np.tile(rf, self.tw_mesh.shape[0])
-			# TODO ignores features matrix!
-            B = self.func.predict(X, verbose=True).reshape((nw, nt, nseg))
-            Bs.append(B.sum(axis=2))
-        print('done!')
-        return Bs
+        Build a prediction matrix for an entire chromosome. This takes the
+        segment annotation data (map position recomb rates, segment length) and
+        tiles them so a group of data called A repeats,
 
-def calc_Bp_chunk_worker(args):
-    import keras
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    model_file = "../data/dnn_models/fullbgs.h5"
-    model = keras.models.load_model(model_file)
+          X = [[w1, t1, A],
+               [w1, t2, A],
+               ...
 
-    map_positions, seg_mpos, w_grid, t_grid, tw_mesh, X = args
-    Bs = []
-    nw, nt = len(w_grid), len(t_grid)
-    nseg = len(seg_mpos)
-    max_mpos = dist_to_segment(map_positions[-1], seg_mpos)
-    X[:, 3] = np.tile(max_mpos, tw_mesh.shape[0])
-    idx = X[:, 3] < 0.2
-    X = X[idx, :]
-    chop_idx = max_mpos < 0.2
-    nseg = np.sum(chop_idx)
-    seg_mpos = seg_mpos[chop_idx]
-    for f in map_positions:
-        rf = dist_to_segment(f, seg_mpos)
-        # return rf
-        # __import__('pdb').set_trace()
-        X[:, 3] = np.log10(np.tile(rf, tw_mesh.shape[0]))
-        # TODO ignores features matrix!
-        B = model.predict(X, verbose=True).reshape((nw, nt, nseg))
-        Bs.append(B.sum(axis=2))
-    print('done!')
-    return Bs
+        The columns are the features of the B' training data:
+               0,    1,    2,     3,   4
+            'sh', 'mu', 'rf', 'rbp', 'L'
+
+        The third column is the recombination fraction away from the
+        focal site and needs to change each time the position changes.
+        This is done externally; it's set to zero here.
+        """
+        # size of mesh; all pairwise combinations
+        n = self.tw_mesh.shape[0]
+        # number of segments
+        nsegs = len(self.chrom_idx[chrom])
+        X = np.zeros((nsegs*n, 5))
+        # repeat the w/t element for each block of segments
+        X[:, 0:2] = np.repeat(self.tw_mesh, nsegs, axis=0)
+        # tile the annotation data
+        X[:, 3] = np.tile(self.chrom_seg_rbp[chrom], n)
+        X[:, 4] = np.tile(self.chrom_seg_L[chrom], n)
+        return X
+
+    def write_chrom_Xs(self, dir, scale=True):
+        """
+        Write the X chromosome segment data.
+        The columns are sh, mu, rf, rbp, and L -- note that rf is blank,
+        as this is filled in depending on what the focal position is.
+        """
+        for chrom, X in self.Xs.items():
+            if scale:
+                X = self.scaler.transform(X)
+            np.save(os.path.join(f"chrom_data_{chrom}.npy", X))
+
+    def focal_positions(self, progress=True):
+        """
+        Focal site by chunk.
+        """
+        if progress:
+            outer_progress_bar = tq.tqdm(total=self.total)
+        # inner_progress_bar = tq.tqdm(leave=True)
+        while True:
+            next_chunk = next(self.mpos_iter)
+            # get the next chunk of map positions to process
+            chrom, mpos_chunk = next_chunk
+            # chromosome segment positions
+            chrom_seg_mpos = self.chrom_seg_mpos[chrom]
+            # focal map positions
+            map_positions = mpos_chunk
+            for f in map_positions:
+                # compute the rec frac to each segment's start or end
+                rf = dist_to_segment(f, chrom_seg_mpos)
+                # place rf in X, log10'ing it since that's what we train on
+                # and tile it to repeat
+                rf[rf < 1e-8] = 1e-8 # TODO
+                X[:, 2] = np.log10(np.tile(rf, self.tw_mesh.shape[0]))
+                assert np.all(np.isfinite(X)), "before scaler"
+                # print('.', end='\r')
+                # inner_progress_bar.update(1)
+                if self.scaler is not None:
+                    yield chrom, self.scaler.transform(X)[:, 2]
+                else:
+                    yield chrom, X
+            if progress:
+                outer_progress_bar.update(1)
+            # inner_progress_bar.reset()
+
+

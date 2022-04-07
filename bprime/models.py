@@ -312,17 +312,35 @@ class BGSModel(object):
         """
         self.learned_func = learned_func
 
-    def calc_Bp(self, step=10_000, ncores=None, nchunks=None):
+    def write_BpX_chunks(self, dir):
+        """
+        Write the B' X chunks (all the features X for a chromosome
+        needed to predict B') to a directory for distributed prediction.
+        There are two types of tiles:
+
+            1. 'chrom_data_{chrom}.npy'
+            2. 'chunk_data_{id}.npy'
+
+        The chromosome data contains the feature matrix X. The first two columns
+        are the sh (t) and mu (w) (fixed by the grids), the third is the
+        recombination fraction column that is filled in by the chunk data per
+        chunk, and the last two columns are rbp and L for the segments (these
+        are fixed by chromosome).
+        """
+
+
+
+    def calc_Bp(self, step=10_000, rf_thresh=None, ncores=None, nchunks=None):
         """
         Calculate B', a B statistic using a learned B function.
         """
         model_file = "../data/dnn_models/fullbgs"
         print(f"loading DNN model from '{model_file}'...\t", end='')
         learned_func = LearnedFunction.load(model_file)
-        self.dnnB = learned_func
+        self.learned_func = learned_func
         print(f"done.")
         chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
-                                self.F, self.w, np.log10(self.t),
+                                 self.F, self.w, np.log10(self.t),
                                  learned_func.X_test_scaler, step, nchunks)
         for chrom, X in chunks.Xs.items():
             np.savez(f"../data/dnn_chunks/{chrom}_X.npz",
