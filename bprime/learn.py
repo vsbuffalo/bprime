@@ -152,10 +152,9 @@ class LearnedFunction(object):
                 self.X_test[:, col_idx] = trans_func(self.X_test[:, col_idx])
                 self.transforms[feature] = trans_func
         if normalize:
-            self.X_test_scaler = StandardScaler().fit(self.X_test)
-            self.X_test = self.X_test_scaler.transform(self.X_test)
-            self.X_train_scaler = StandardScaler().fit(self.X_train)
-            self.X_train = self.X_train_scaler.transform(self.X_train)
+            self.scaler = StandardScaler().fit(self.X_test)
+            self.X_test = self.scaler.transform(self.X_test)
+            self.X_train = self.scaler.transform(self.X_train)
             self.normalized = True
         return self
 
@@ -196,15 +195,20 @@ class LearnedFunction(object):
         """
         return self.model.predict(self.X_test, **kwargs).squeeze()
 
+    def get_bounds(self, feature):
+        "Get the bounds, rescaling to linear if log-transformed"
+        log10 = self.logscale[feature]
+        lower, upper = self.bounds[feature]
+        if log10:
+            lower, upper = 10**lower, 10**upper
+        return lower, upper
+
 
     def check_bounds(self, X, correct_bounds=False):
         out_lowers, out_uppers = [], []
         total = 0
         for i, feature in enumerate(self.features):
-            lower, upper = self.bounds[feature]
-            log10 = self.logscale[feature]
-            if log10:
-                lower, upper = 10**lower, 10**upper
+            lower, upper = self.get_bounds(feature)
             out_lower = X[:, i] < lower
             out_upper = X[:, i] > upper
             total += out_lower.sum() + out_upper.sum()
@@ -243,7 +247,7 @@ class LearnedFunction(object):
                 if trans_func is not None:
                     X[:, i] = trans_func(X[:, i])
         if scale_input:
-            X = self.X_test_scaler.transform(X)
+            X = self.scaler.transform(X)
         return self.model.predict(X, **kwargs).squeeze()
 
     def predict_train(self, **kwargs):
@@ -265,12 +269,8 @@ class LearnedFunction(object):
         assert log10 is None or all([(k in valid_features) for k in log10]), msg
         grids = []
         nx = n
-        for feature, (lower, upper) in self.bounds.items():
-            is_logscale = self.logscale[feature]
-            if log10 is not None and feature in log10:
-                is_logscale = True
-                lower = np.log10(lower)
-                upper = np.log10(upper)
+        for feature in self.features.keys():
+            lower, upper = self.get_bounds(feature)
             if fix_X is None or feature not in fix_X:
                 if isinstance(n, dict):
                     nx = n[feature]
@@ -310,7 +310,7 @@ class LearnedFunction(object):
             if trans_func is not None:
                 X_meshcols[:, col_idx] = trans_func(X_meshcols[:, col_idx])
         if self.normalized:
-            X_meshcols = self.X_test_scaler.transform(X_meshcols)
+            X_meshcols = self.scaler.transform(X_meshcols)
 
         predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
         return domain_grids, X_meshcols_orig, X_meshcols, predict.reshape(mesh[0].shape)
@@ -322,12 +322,30 @@ class LearnedB(object):
     def __init__(self, genome, learned_func, t_grid, w_grid):
         bgs_cols = ('sh', 'mu', 'rf', 'rbp', 'L')
         assert tuple(learned_func.features.keys()) == bgs_cols
+        self.genome = genome
         self.func = learned_func
         assert tuple(self.func.features.keys()) == bgs_cols, "invalid learned func"
         self.w_grid = w_grid
         self.t_grid = t_grid
         self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
         self.dim = (w_grid.shape[0], t_grid.shape[0])
+        self.is_valid_grid()
+
+    def is_valid_grid(self):
+        """
+        Check that all elements of the X features matrix (minus rec frac)
+        are valid and within the bounds of the simulations the function was trained on.
+        """
+        t_lower, t_upper = self.func.get_bounds('sh')
+        w_lower, w_upper = self.func.get_bounds('mu')
+        assert np.all(t_lower < self.t_grid) and np.all(t_upper > self.t_grid)
+        assert np.all(w_lower < self.w_grid) and np.all(w_upper > self.w_grid)
+        Ls = list(itertools.chain(self.chrom_seg_L))
+        l_lower, l_upper = self.func.get_bounds('L')
+        assert np.all(l_lower < Ls) and np.all(l_upper > Ls)
+        rbps = list(itertools.chain(self.chrom_seg_rbp))
+        rbp_lower, rbp_upper = self.func.get_bounds('rbp')
+        assert np.all(rbp_lower < rbps) and np.all(rbp_upper > rbps)
 
     def _build_pred_matrix(self, chrom):
         """
@@ -391,11 +409,10 @@ class LearnedB(object):
                 rf = dist_to_segment(f, chrom_seg_mpos)
                 # place rf in X, log10'ing it since that's what we train on
                 # and tile it to repeat
-                rf[rf < 1e-8] = 1e-8 # TODO
-                X[:, 2] = np.log10(np.tile(rf, self.tw_mesh.shape[0]))
-                assert np.all(np.isfinite(X)), "before scaler"
-                # print('.', end='\r')
-                # inner_progress_bar.update(1)
+                Xrf_col = np.tile(rf, self.tw_mesh.shape[0])
+                if self.func.logscale['rf']:
+                    Xrf_col = np.log10(Xrf_col)
+                assert np.all(np.isfinite(Xrf_col)), "rec frac column not all finite!"
                 if self.scaler is not None:
                     yield chrom, self.scaler.transform(X)[:, 2]
                 else:

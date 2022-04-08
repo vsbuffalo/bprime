@@ -336,7 +336,6 @@ class BGSModel(object):
         pass
 
 
-
     def calc_Bp(self, step=10_000, rf_thresh=None, ncores=None, nchunks=None):
         """
         Calculate B', a B statistic using a learned B function.
