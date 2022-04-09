@@ -13,5 +13,5 @@
        "L": {"lower": 1, "upper": 1100, "log10": false, "type": "int"}
      },
    "init_runtime": 0.25,
-   "nsamples": 200
+   "nsamples": 1000000
 }
