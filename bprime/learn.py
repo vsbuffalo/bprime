@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 
 from bprime.utils import signif, index_cols, dist_to_segment
-from bprime.sim_utils import random_seed
 
 class LearnedFunction(object):
     """
@@ -18,9 +17,15 @@ class LearnedFunction(object):
     functions of the ML model class. By default LearnedFunction.models is a list
     for ensemble/averaging appraoches.
     """
-    def __init__(self, X, y, domain):
+    def __init__(self, X, y, domain, seed=None, permute=True):
+        self.rng = np.random.RandomState(seed)
         assert(len(domain) == X.shape[1])
         assert(X.shape[0] == y.shape[0])
+        n = X.shape[0]
+        if permute:
+            idx = self.rng.randint(low=0, high=n, size=n)
+            X = X[idx, :]
+            y = y[idx, :]
         self.X = X
         self.y = y
         self.test_size = None
@@ -91,20 +96,17 @@ class LearnedFunction(object):
         rows.append(f"Features normalized? {normed}")
         rows.append(f"Features split? {self.is_split}")
         if self.is_split:
-            rows[-1] += f", test size: {100*np.round(self.test_size, 2)}%"
+            rows[-1] += f", test size: {100*np.round(self.test_size, 2)}% (n={self.X_test.shape[0]:,})"
         return "\n".join(rows)
 
-    def split(self, test_size=0.1, random_state=None):
+    def split(self, test_size=0.2):
         """
         Make a test/train split. This resets the state of the object
         to initialization (any scale_feature transforms will be reset).
         """
         self.test_size = test_size
-        if random_state is None:
-            random_state = random_seed()
         dat = train_test_split(self.X, self.y, test_size=test_size,
-                               random_state=random_state)
-        self.split_random_state = random_state
+                               random_state=self.rng)
         Xtrn, Xtst, ytrn, ytst = dat
         self.X_train = Xtrn
         self.X_test = Xtst
@@ -152,7 +154,7 @@ class LearnedFunction(object):
                 self.X_test[:, col_idx] = trans_func(self.X_test[:, col_idx])
                 self.transforms[feature] = trans_func
         if normalize:
-            self.scaler = StandardScaler().fit(self.X_test)
+            self.scaler = StandardScaler().fit(self.X_train)
             self.X_test = self.scaler.transform(self.X_test)
             self.X_train = self.scaler.transform(self.X_train)
             self.normalized = True
@@ -269,8 +271,12 @@ class LearnedFunction(object):
         assert log10 is None or all([(k in valid_features) for k in log10]), msg
         grids = []
         nx = n
-        for feature in self.features.keys():
-            lower, upper = self.get_bounds(feature)
+        for feature, (lower, upper) in self.bounds.items():
+            is_logscale = self.logscale[feature]
+            if log10 is not None and feature in log10:
+                is_logscale = True
+                lower = np.log10(lower)
+                upper = np.log10(upper)
             if fix_X is None or feature not in fix_X:
                 if isinstance(n, dict):
                     nx = n[feature]
@@ -378,6 +384,9 @@ class LearnedB(object):
         X[:, 4] = np.tile(self.chrom_seg_L[chrom], n)
         return X
 
+    def transform(self, *arg, **kwargs):
+        return self.func.scaler.transform(*args, **kwargs)
+
     def write_chrom_Xs(self, dir, scale=True):
         """
         Write the X chromosome segment data.
@@ -386,7 +395,7 @@ class LearnedB(object):
         """
         for chrom, X in self.Xs.items():
             if scale:
-                X = self.scaler.transform(X)
+                X = self.transform(X)
             np.save(os.path.join(f"chrom_data_{chrom}.npy", X))
 
     def focal_positions(self, progress=True):
@@ -413,10 +422,7 @@ class LearnedB(object):
                 if self.func.logscale['rf']:
                     Xrf_col = np.log10(Xrf_col)
                 assert np.all(np.isfinite(Xrf_col)), "rec frac column not all finite!"
-                if self.scaler is not None:
-                    yield chrom, self.scaler.transform(X)[:, 2]
-                else:
-                    yield chrom, X
+                yield chrom, self.transform(X)[:, 2]
             if progress:
                 outer_progress_bar.update(1)
             # inner_progress_bar.reset()

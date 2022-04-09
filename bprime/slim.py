@@ -7,7 +7,7 @@ import numpy as np
 from bprime.utils import signif
 from bprime.sim_utils import param_grid, read_params, random_seed, infer_types
 
-def filename_pattern(base, params, seed=False, rep=False):
+def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False):
     """
     Create a filename pattern with wildcares in braces (for Snakemake)
     from a basename 'base' and list of parameters. If 'seed' or 'rep' are
@@ -22,6 +22,10 @@ def filename_pattern(base, params, seed=False, rep=False):
         param_str.append('seed{seed}')
     if rep:
         param_str.append('rep{rep}')
+    if split_dirs:
+        base = os.path.join(dir, '{subdir}', base)
+    else:
+        base = os.path.join(dir, base)
     pattern = base + '_'.join(param_str)
     return pattern
 
@@ -82,7 +86,8 @@ def time_grower(start_time, factor=1.8):
 
 
 class SlimRuns(object):
-    def __init__(self, config, dir='.', sampler=None, add_seed=True, seed=None):
+    def __init__(self, config, dir='.', sampler=None, split_dirs=False,
+                 seed=None):
         msg = "runtype must be 'grid' or 'samples'"
         assert config['runtype'] in ['grid', 'samples'], msg
         self.runtype = config['runtype']
@@ -97,10 +102,15 @@ class SlimRuns(object):
         assert os.path.exists(self.script), msg
 
         self.params = read_params(config)
-        self.add_seed = add_seed
+        self.add_seed = True
         self.param_types = infer_types(self.params)
+        if split_dirs is not None:
+            assert isinstance(split_dirs, int), "split_dirs needs to be int"
+            # we need to pass in the subdir
+            self.param_types = {'subdir': str, **self.param_types}
         self.dir = os.path.join(dir, self.name)
-        self.basename = os.path.join(self.dir, f"{self.name}_")
+        self.split_dirs = split_dirs
+        self.basename = f"{self.name}_"
         self.seed = seed if seed is not None else random_seed()
         self.sampler_func = sampler
         if sampler is None and self.is_samples:
@@ -119,6 +129,15 @@ class SlimRuns(object):
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              seed=self.seed)
             self.runs = list(self.sampler)
+
+        if self.split_dirs is not None:
+            runs = []
+            for run in self.runs:
+                dir_seed = str(run['seed'])[:self.split_dirs]
+                new_run = dict(subdir=dir_seed)
+                new_run = {**new_run, **run}
+                runs.append(new_run)
+            self.runs = runs
 
     @property
     def is_grid(self):
@@ -157,7 +176,8 @@ class SlimRuns(object):
         """
         Return the filename pattern with wildcards.
         """
-        return filename_pattern(self.basename, self.params.keys(),
+        return filename_pattern(self.dir, self.basename, self.params.keys(),
+                                split_dirs=self.split_dirs is not None,
                                 seed=self.add_seed)
 
     def wildcard_output(self, suffix):

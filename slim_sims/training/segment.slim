@@ -7,7 +7,12 @@ initialize() {
   if (!exists("name")) {
     defineConstant("name", "segment");
   }
- 
+
+  if (!exists("subdir")) {
+    subdir = "";
+  } else {
+    defineConstant("subdir_", subdir + '/');
+  }
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("L", 10000);
@@ -20,7 +25,7 @@ initialize() {
 	defineConstant("datadir", 'tests/');
 	defineConstant("name", 'defaults');
   } else {
-	defineConstant("datadir", '../../data/slim_sims/'+name+'/');
+	defineConstant("datadir", '../../data/slim_sims/'+name+'/'+subdir_);
   }
 
   defineConstant("region_length", tracklen + L + 1);

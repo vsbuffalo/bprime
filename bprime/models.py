@@ -333,7 +333,6 @@ class BGSModel(object):
         chunk, and the last two columns are rbp and L for the segments (these
         are fixed by chromosome).
         """
-        pass
 
 
     def calc_Bp(self, step=10_000, rf_thresh=None, ncores=None, nchunks=None):
