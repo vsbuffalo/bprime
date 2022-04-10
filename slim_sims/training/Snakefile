@@ -21,7 +21,7 @@ DATADIR = "../../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
  
 # ------- BGS segments -------
-run = SlimRuns(config, dir=DATADIR, sampler=UniformSampler, split_dirs=4, seed=12)
+run = SlimRuns(config, dir=DATADIR, sampler=UniformSampler, split_dirs=3, seed=12)
 run.generate()
 
 # to get param order for SLiM file

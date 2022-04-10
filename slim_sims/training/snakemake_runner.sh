@@ -3,6 +3,7 @@ DRY=""
 MAXJOBS=999 # submit a ton of jobs, let the job scheduler handler it
 CLUSTER_CONFIG="./cluster_talapas.json"
 NBATCHES=1
+GROUPS=0
 
 usage() { echo "Usage: $0 -c <config.json> [-n <nbatches>] [-d (dry-run)] [-g (group)]" 1>&2; exit 1; }
 
@@ -19,7 +20,7 @@ done
 
 GROUPLINE=""
 
-if [ $GROUPS ]; then
+if [ $GROUPS -eq 1 ]; then
     CLUSTER_CONFIG="./cluster_talapas_group.json"
     GROUPLINE="--groups bgs=group0 recap=group0 --group-components group0=50"
 fi
