@@ -14,9 +14,22 @@ def Bhat(pi, N):
     """
     return 0.25 * pi / N
 
+def get_files(dir, suffix):
+    """
+    Recursively get files.
+    """
+    all_files = set()
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            if suffix is not None:
+                if not file.endswith(suffix):
+                    continue
+            all_files.add(os.path.join(root, *dirs, file))
+    return all_files
+
 def trees2training_data(dir, features, recap='auto',
                         progress=True, suffix="recap.tree"):
-    tree_files = [os.path.join(dir, f) for f in os.listdir(dir) if f.endswith(suffix)]
+    tree_files = get_files(dir, suffix)
     X, y = [], []
     if progress:
         tree_files = tqdm.tqdm(tree_files)
