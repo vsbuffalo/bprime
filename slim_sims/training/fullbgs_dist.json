@@ -1,0 +1,16 @@
+{
+  "name": "fullbgs_dist",
+  "runtype": "samples",
+  "slim": "segment.slim",
+  "params":
+     {
+         "N": {"dist": {"name": "fixed", "val": 1000}, "type": "int"},
+         "mu": {"dist": {"name": "uniform", "low": 1e-10, "high": 1e-5}, "type": "float"},
+         "s": {"dist": {"name": "log10_uniform", "low": -5, "high": -1}, "type": "float"},
+         "h": {"dist": {"name": "fixed", "val": 0.5}, "type": "float"},
+         "rf": {"dist": {"name": "uniform", "low": 0, "high": 0.5}, "type": "float"},
+         "rbp": {"dist": {"name":"log10_truncnormal", "low": -12, "high": -6, "loc": -8.54, "scale": 1.31}, "type": "float"},
+         "L": {"dist": {"name": "discrete_uniform", "low": 1, "high": 1101}, "type": "int"}
+     },
+     "nsamples": 100000
+}
