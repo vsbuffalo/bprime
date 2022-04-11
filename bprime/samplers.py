@@ -12,7 +12,7 @@ def uniform(rng, low, high):
         return rng.uniform(low, high)
     return func
 
-def log_uniform(rng, low, high):
+def log10_uniform(rng, low, high):
     def func():
         return 10**rng.uniform(low, high)
     return func
@@ -49,7 +49,7 @@ DISTS = {"fixed": fixed,
          "trunc_normal": trunc_normal,
          "trunc_log10normal": trunc_log10normal,
          "discrete_uniform": discrete_uniform,
-         "log_uniform": log_uniform}
+         "log10_uniform": log10_uniform}
 
 TYPES = {"float": float, "int": int}
 
@@ -116,6 +116,19 @@ class Sampler(object):
         if not return_cols:
             return mat
         return mat, list(self.params.keys())
+
+    def __getitem__(self, key):
+        """
+        Get the sampled values of key as an array.
+        """
+        assert len(self.samples) > 0, "No samples have been taken."
+        return np.array([x[key] for x in self.samples])
+
+    def generate(self):
+        """
+        Generate all the samples in place.
+        """
+        _ = list(self)
 
     def __next__(self):
         if self.total is not None and self.samples_remaining == 0:

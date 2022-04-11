@@ -29,10 +29,6 @@ run.generate()
 
 # build the files to output 
 sim_results = run.targets(["treeseq.tree"])
-#recap_results = run.targets(["recap.tree"])
-
-#print(sim_results + recap_results)
-#print(list(itertools.islice(run.slim_commands(), 5)))
 
 rule all:
   input:
@@ -41,20 +37,6 @@ rule all:
 rule bgs:
   input: run.script
   output: run.wildcard_output(suffix="treeseq.tree")
-  resources: 
-    # 1.5 hours that grows 1.8x each failed attempt
-    runtime = time_grower(config['init_runtime'])
   shell:
     run.slim_call(slim_cmd=SLIM)
 
-#rule recap:
-#  input: treeseq=run.wildcard_output(suffix="treeseq.tree")
-#  output: recap=run.wildcard_output(suffix="recap.tree")
-#  #resources:
-#  #  time = "00-00:30:00"
-#  run:
-#    ts = pyslim.load(input.treeseq)
-#    md = ts.metadata['SLiM']['user_metadata']
-#    rts = pyslim.recapitate(ts, recombination_rate=0,
-#                            ancestral_Ne=md['N'][0]).simplify()
-#    rts.dump(output.recap)

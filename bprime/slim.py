@@ -5,7 +5,7 @@ import itertools
 import warnings
 import numpy as np
 from bprime.utils import signif
-from bprime.sim_utils import param_grid, read_params, random_seed, infer_types
+from bprime.sim_utils import param_grid, read_params, random_seed
 
 def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False):
     """
@@ -101,9 +101,8 @@ class SlimRuns(object):
         msg = f"SLiM file '{self.script}' does not exist"
         assert os.path.exists(self.script), msg
 
-        self.params = read_params(config)
+        self.params, self.param_types = read_params(config)
         self.add_seed = True
-        self.param_types = infer_types(self.params)
         if split_dirs is not None:
             assert isinstance(split_dirs, int), "split_dirs needs to be int"
             # we need to pass in the subdir

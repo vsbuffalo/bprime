@@ -1,16 +1,16 @@
 import os
 
 
-fullbgs_dir = "fullbgs"
+fullbgs_dir = "fullbgs_dist"
 #fullbgs_avail = [os.path.join(fullbgs_dir, f) for f in os.listdir(fullbgs_dir) if f.endswith("recap.tree")]
 
 rule fullbgs_data:
-  input: "fullbgs/"
-  output: "fullbgs_data.npz"
+  input: fullbgs_dir
+  output: f"{fullbgs_dir}_data.npz"
   shell:
       """
-      python ../../tools/trees2data.py --suffix "recap.tree" --outfile {output} fullbgs
+      python ../../tools/trees2data.py --suffix "treeseq.tree" --outfile {output} {input}
       """
 
 rule all:
-  input: "fullbgs_data.npz"
+  input: f"{fullbgs_dir}_data.npz"
