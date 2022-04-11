@@ -1,7 +1,7 @@
 import os
 
 
-fullbgs_dir = "fullbgs"
+fullbgs_dir = "fullbgs_dist"
 #fullbgs_avail = [os.path.join(fullbgs_dir, f) for f in os.listdir(fullbgs_dir) if f.endswith("recap.tree")]
 
 rule fullbgs_data:

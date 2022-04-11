@@ -65,11 +65,32 @@ def read_params(config, add_rep=True):
             params[param] = [val_type(v) for v in vals['grid']]
         else:
             # distribution functions specified
+            assert 'dist' in vals
+            if vals['dist']['name'] != 'fixed':
+                assert 'low' in vals['dist'], f"'low' bound of dist must be set in key '{param}'"
+                assert 'high' in vals['dist'], f"'high' bound of dist must be set in key '{param}'"
             params[param] = vals
         types[param] = val_type
     if add_rep and is_grid:
         nreps = int(config['nreps'])
         params["rep"] = list(range(nreps))
     return params, types
+
+def get_bounds(params):
+    """
+    Get the domain and scale (log10 or linear) for each parameter,
+    from the type of density it is.
+    """
+    domain = dict()
+    for key, param in params.items():
+        is_fixed = param['dist']['name'] == 'fixed'
+        is_log10 = param['dist']['name'].startswith('log10_')
+        if is_fixed:
+            low, high = param['dist']['val'], param['dist']['val']
+        else:
+            low, high = param['dist']['low'], param['dist']['high']
+        domain[key] = (low, high, is_log10)
+    return domain
+
 
 

@@ -4,13 +4,13 @@
   "slim": "segment.slim",
   "params":
      {
-       "N": {"lower": 1000, "upper": 1000, "log10": false, "type": "int"},
-       "mu": {"lower": 1e-10, "upper": 1e-5, "log10": false, "type": "float"},
-       "s": {"lower": -5, "upper": -1, "log10": true, "type": "float"},
-       "h": {"lower": 0.5, "upper": 0.5, "log10": false, "type": "float"},
-       "rf": {"lower": -10, "upper": -0.301, "log10": true, "type": "float"},
-       "rbp": {"lower": 1e-10, "upper": 1e-6, "log10": false, "type": "float"},
-       "L": {"lower": 1, "upper": 1100, "log10": false, "type": "int"}
+       "N": {"dist": {"name": "fixed", "val": 1000}, "type": "int"},
+       "mu": {"dist": {"name": "uniform", "low": 1e-10, "high": 1e-5}, "type": "float"},
+       "s": {"dist": {"name": "log10_uniform", "low": -5, "high": -1}, "type": "float"},
+       "h": {"dist": {"name": "fixed", "val": 0.5}, "type": "float"},
+       "rf": {"dist": {"name": "log10_uniform", "low": -10, "high": -0.301}, "type": "float"},
+       "rbp": {"dist": {"name": "uniform", "low": 1e-10, "high": 1e-6}, "type": "float"},
+       "L": {"dist": {"name": "discrete_uniform", "low": 1, "high": 1110}, "type": "float"}
      },
    "init_runtime": 0.25,
    "nsamples": 1000000

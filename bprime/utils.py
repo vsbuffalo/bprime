@@ -40,6 +40,8 @@ def read_centro(file):
 
 
 def signif(x, digits=4):
+    if x == 0:
+        return 0.
     return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
 def midpoint(x):

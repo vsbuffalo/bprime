@@ -17,7 +17,7 @@ def log10_uniform(rng, low, high):
         return 10**rng.uniform(low, high)
     return func
 
-def trunc_log10normal(rng, low, high, loc, scale):
+def log10_truncnormal(rng, low, high, loc, scale):
     "Have to use stats.trucnorm here -- careful to pass on random state"
     a = (low - loc)/scale
     b = (high - loc)/scale
@@ -26,7 +26,7 @@ def trunc_log10normal(rng, low, high, loc, scale):
     return func
 
 
-def trunc_normal(rng, low, high, loc, scale):
+def truncnormal(rng, low, high, loc, scale):
     "Have to use stats.trucnorm here -- careful to pass on random state"
     def func():
         return stats.truncnorm.rvs(a=low, b=high, loc=loc, scale=scale, random_state=rng)
@@ -46,8 +46,8 @@ def fixed(rng, val):
 DISTS = {"fixed": fixed,
          "uniform": uniform,
          "normal": normal,
-         "trunc_normal": trunc_normal,
-         "trunc_log10normal": trunc_log10normal,
+         "truncnormal": truncnormal,
+         "log10_truncnormal": log10_truncnormal,
          "discrete_uniform": discrete_uniform,
          "log10_uniform": log10_uniform}
 
@@ -145,6 +145,6 @@ class Sampler(object):
         for key, params in self.params.items():
             dist_name = params['dist']['name']
             dist_params = ', '.join([f"{k}={v}" for k, v in params['dist'].items() if k != 'name'])
-            row = f"{key} ~ {dist_name}({dist_params})"
+            row = f"  {key} ~ {dist_name}({dist_params})"
             rows.append(row)
         return "\n".join(rows)
