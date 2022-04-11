@@ -11,7 +11,7 @@ import msprime
 from datetime import time
 from collections import defaultdict, namedtuple
 from bprime.slim import SlimRuns, read_params, time_grower
-from bprime.samplers import UniformSampler
+from bprime.samplers import Sampler
 
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
@@ -21,7 +21,7 @@ DATADIR = "../../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
  
 # ------- BGS segments -------
-run = SlimRuns(config, dir=DATADIR, sampler=UniformSampler, split_dirs=3, seed=12)
+run = SlimRuns(config, dir=DATADIR, sampler=Sampler, split_dirs=3, seed=12)
 run.generate()
 
 # to get param order for SLiM file
@@ -29,14 +29,14 @@ run.generate()
 
 # build the files to output 
 sim_results = run.targets(["treeseq.tree"])
-recap_results = run.targets(["recap.tree"])
+#recap_results = run.targets(["recap.tree"])
 
 #print(sim_results + recap_results)
 #print(list(itertools.islice(run.slim_commands(), 5)))
 
 rule all:
   input:
-    sim_results, recap_results
+    sim_results
 
 rule bgs:
   input: run.script
@@ -47,14 +47,14 @@ rule bgs:
   shell:
     run.slim_call(slim_cmd=SLIM)
 
-rule recap:
-  input: treeseq=run.wildcard_output(suffix="treeseq.tree")
-  output: recap=run.wildcard_output(suffix="recap.tree")
-  #resources:
-  #  time = "00-00:30:00"
-  run:
-    ts = pyslim.load(input.treeseq)
-    md = ts.metadata['SLiM']['user_metadata']
-    rts = pyslim.recapitate(ts, recombination_rate=0,
-                            ancestral_Ne=md['N'][0]).simplify()
-    rts.dump(output.recap)
+#rule recap:
+#  input: treeseq=run.wildcard_output(suffix="treeseq.tree")
+#  output: recap=run.wildcard_output(suffix="recap.tree")
+#  #resources:
+#  #  time = "00-00:30:00"
+#  run:
+#    ts = pyslim.load(input.treeseq)
+#    md = ts.metadata['SLiM']['user_metadata']
+#    rts = pyslim.recapitate(ts, recombination_rate=0,
+#                            ancestral_Ne=md['N'][0]).simplify()
+#    rts.dump(output.recap)

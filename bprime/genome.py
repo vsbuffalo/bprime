@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, deque
 from bprime.utils import load_seqlens, load_bed_annotation
 from bprime.recmap import RecMap
 

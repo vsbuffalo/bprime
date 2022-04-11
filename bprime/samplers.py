@@ -1,21 +1,106 @@
 import numpy as np
+import scipy.stats as stats
 from bprime.utils import signif
 
-class UniformSampler(object):
-    def __init__(self, ranges, total=None, seed=None, add_seed=True,
+def discrete_uniform(rng, low, high):
+    def func():
+        return rng.integers(low, high)
+    return func
+
+def uniform(rng, low, high):
+    def func():
+        return rng.uniform(low, high)
+    return func
+
+def log_uniform(rng, low, high):
+    def func():
+        return 10**rng.uniform(low, high)
+    return func
+
+def trunc_log10normal(rng, low, high, loc, scale):
+    "Have to use stats.trucnorm here -- careful to pass on random state"
+    a = (low - loc)/scale
+    b = (high - loc)/scale
+    def func():
+        return 10**stats.truncnorm.rvs(a=a, b=b, loc=loc, scale=scale, random_state=rng)
+    return func
+
+
+def trunc_normal(rng, low, high, loc, scale):
+    "Have to use stats.trucnorm here -- careful to pass on random state"
+    def func():
+        return stats.truncnorm.rvs(a=low, b=high, loc=loc, scale=scale, random_state=rng)
+    return func
+
+def normal(rng, loc, scale):
+    def func():
+        return rng.normal(loc, scale)
+    return func
+
+def fixed(rng, val):
+    # rng is ignored
+    def func():
+        return val
+    return func
+
+DISTS = {"fixed": fixed,
+         "uniform": uniform,
+         "normal": normal,
+         "trunc_normal": trunc_normal,
+         "trunc_log10normal": trunc_log10normal,
+         "discrete_uniform": discrete_uniform,
+         "log_uniform": log_uniform}
+
+TYPES = {"float": float, "int": int}
+
+def sampler_factory(rng, params, add_seed=False, signif_digits=None, seed_max=2**32):
+    samplers = dict()
+    types = dict()
+    assert 'seed' not in params.keys(), "seed cannot be a parameter name"
+    for key, parameters in params.items():
+        dist = parameters['dist']['name']
+        try:
+            distfunc = DISTS[dist]
+        except KeyError:
+            raise KeyError(f"'{dist}' not in dist functions, {', '.join(DISTS)}")
+        dist_params = {k: v for k, v in parameters['dist'].items() if k != 'name'}
+        samplers[key] = distfunc(rng=rng, **dist_params)
+        try:
+            types[key] = TYPES[parameters['type']]
+        except KeyError:
+            raise KeyError(f"invalid type {parameters['type']}")
+
+    def func():
+        sample = {}
+        for key, sampler in samplers.items():
+            type_converter = types[key]
+            s = type_converter(sampler())
+            if signif_digits is not None and types[key] is float:
+                s = signif(s, signif_digits)
+            sample[key] = s
+        if add_seed:
+            sample['seed'] = rng.integers(0, seed_max)
+        return sample
+    return func
+
+class Sampler(object):
+    def __init__(self, params, total, seed=None, add_seed=True,
                  seed_max=2**32, signif_digits=4):
         assert isinstance(total, int) or total is None
         assert isinstance(seed, int) or seed is None
-        assert isinstance(ranges, dict), "'ranges' must be a dict"
+        assert isinstance(params, dict), "'params' must be a dict"
+        self.rng = np.random.default_rng(seed)
         self.seed = seed
         self.add_seed = add_seed
         self.seed_max = seed_max
-        self.rng = np.random.default_rng(seed)
-        self.ranges = ranges
+        self.params = params
         self.total = total
         self.samples_remaining = total
         self.samples = []
         self.signif_digits = signif_digits
+        self.sampler = sampler_factory(self.rng, self.params, add_seed=add_seed,
+                                       signif_digits=signif_digits,
+                                       seed_max=seed_max)
 
     def __iter__(self):
         return self
@@ -26,65 +111,27 @@ class UniformSampler(object):
 
     def as_matrix(self, return_cols=True):
         assert len(self.samples) > 0, "No samples have been taken."
-        mat = np.array([[row[k] for k in self.ranges.keys()] for row
+        mat = np.array([[row[k] for k in self.params.keys()] for row
                         in self.samples])
         if not return_cols:
             return mat
-        return mat, list(self.ranges.keys())
+        return mat, list(self.params.keys())
 
     def __next__(self):
         if self.total is not None and self.samples_remaining == 0:
             raise StopIteration
-        assert(self.samples_remaining >= 0)
-        param = {}
-        for key, (lower, upper, log10) in self.ranges.items():
-            val_type = type(lower)
-            assert type(lower) is type(upper)
-            if lower == upper:
-                # fixed parameter
-                val = val_type(lower)
-                if log10:
-                    val = 10**lower
-                param[key] = val
-                continue
-            # log10 or floats get uniform float
-            if val_type is float or log10:
-                sample = self.rng.uniform(lower, upper)
-            elif val_type is int and not log10:
-                # if the type is int and not log10, discrete uniform
-                sample = self.rng.integers(lower, upper)
-            else:
-                raise ValueError("val_type must be float or int")
-            if log10:
-                sample = signif(10**sample, self.signif_digits)
-            if val_type is int:
-                sample = int(sample)
-            else:
-                sample = signif(sample, self.signif_digits)
-            param[key] = sample
-        if self.add_seed:
-            seed = self.rng.integers(0, self.seed_max)
-            param['seed'] = seed
-
-        #assert(len(param) == len(self.ranges.keys()) + int(self.add_seed))
-
+        assert self.total is not None, "total not set"
+        assert self.samples_remaining >= 0
+        sample = self.sampler()
         self.samples_remaining -= 1
-        self.samples.append(param)
-        return param
+        self.samples.append(sample)
+        return sample
 
     def __repr__(self):
-        rows = [f"UniformSampler with {self.samples_remaining}/{self.total} samples remaining, seed={self.seed}"]
-        for key, (lower, upper, log10) in self.ranges.items():
-            val_type = type(lower)
-            assert type(lower) is type(upper)
-            scale = 'linear'
-            if log10:
-               scale = 'log10'
-            type_str = {float: 'float', int: 'int'}[val_type]
-            if isinstance(lower, float) or isinstance(upper, float):
-                lower, upper = [signif(lower, self.signif_digits), signif(upper, self.signif_digits)]
-            row = f"{key} ∈ [{lower}, {upper}] ({scale}, {type_str})"
+        rows = [f"Sampler with {self.samples_remaining}/{self.total} samples remaining, seed={self.seed}"]
+        for key, params in self.params.items():
+            dist_name = params['dist']['name']
+            dist_params = ', '.join([f"{k}={v}" for k, v in params['dist'].items() if k != 'name'])
+            row = f"{key} ~ {dist_name}({dist_params})"
             rows.append(row)
         return "\n".join(rows)
-
-

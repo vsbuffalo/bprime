@@ -56,7 +56,7 @@ class BGSModel(object):
         # main genome data needed to calculate B
         self.genome = genome
         assert self.genome.is_complete(), "genome is missing data!"
-        assert self.genome.segments is not None, "genome missing segments, run Genome.create_segments()"
+        self.genome.create_segments(split_length=split_length)
         self._segment_parts = None
         # stuff for B
         self.Bs = None
