@@ -1,7 +1,7 @@
 import os
 
 
-fullbgs_dir = "fullbgs_dist"
+fullbgs_dir = "fullbgs"
 #fullbgs_avail = [os.path.join(fullbgs_dir, f) for f in os.listdir(fullbgs_dir) if f.endswith("recap.tree")]
 
 rule fullbgs_data:
@@ -9,7 +9,7 @@ rule fullbgs_data:
   output: f"{fullbgs_dir}_data.npz"
   shell:
       """
-      python ../../tools/trees2data.py --suffix "treeseq.tree" --outfile {output} {input}
+      python ../../tools/trees2data.py --suffix "treeseq.tree" --ncores 10 --outfile {output} {input}
       """
 
 rule all:

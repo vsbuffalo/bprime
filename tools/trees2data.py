@@ -1,8 +1,12 @@
+from functools import partial
+import multiprocessing
+import warnings
 import os
 import click
 import numpy as np
 import tskit
 import pyslim
+import msprime
 import tqdm
 
 def Bhat(pi, N):
@@ -27,13 +31,10 @@ def get_files(dir, suffix):
             all_files.add(os.path.join(root, *dirs, file))
     return all_files
 
-def trees2training_data(dir, features, recap='auto',
-                        progress=True, suffix="recap.tree"):
-    tree_files = get_files(dir, suffix)
-    X, y = [], []
-    if progress:
-        tree_files = tqdm.tqdm(tree_files)
-    for tree_file in tree_files:
+def process_tree_file(tree_file, features, recap='auto'):
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore") # so many warnings
         ts = tskit.load(tree_file)
         md = ts.metadata['SLiM']['user_metadata']
         needs_recap = max(t.num_roots for t in ts.trees()) > 1
@@ -41,29 +42,45 @@ def trees2training_data(dir, features, recap='auto',
             ts = pyslim.slim_tree_sequence.SlimTreeSequence(ts)
             ts = pyslim.recapitate(ts, recombination_rate=0,
                                    ancestral_Ne=md['N'][0]).simplify()
-        nroots = max(t.num_roots for t in ts.trees())
-        assert(nroots == 1)
-        region_length = int(md['region_length'][0])
-        L = int(md['L'][0])
-        tracklen = int(md['tracklen'][0])
-        N = int(md['N'][0])
-        # the SLiM script metadata reports the het sel coef for convenience
-        s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
-        np.testing.assert_almost_equal(s*h, sh)
+    nroots = max(t.num_roots for t in ts.trees())
+    assert(nroots == 1)
+    region_length = int(md['region_length'][0])
+    L = int(md['L'][0])
+    tracklen = int(md['tracklen'][0])
+    N = int(md['N'][0])
+    # the SLiM script metadata reports the het sel coef for convenience
+    s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
+    np.testing.assert_almost_equal(s*h, sh)
 
-        # tracking vs selected regions
-        wins = [0, tracklen, tracklen + L + 1]
-        pi = ts.diversity(mode='branch', windows=wins)
-        Ef = float(md['Ef'][0])
-        Vf = float(md['Vf'][0])
-        ngens = int(md['generations'][0])
-        load = float(md['fixed_load'][0])
+    # tracking vs selected regions
+    wins = [0, tracklen, tracklen + L + 1]
+    pi = ts.diversity(mode='branch', windows=wins)
+    Ef = float(md['Ef'][0])
+    Vf = float(md['Vf'][0])
+    ngens = int(md['generations'][0])
+    load = float(md['fixed_load'][0])
 
-        # get features from metadata
-        X.append(tuple(md[f][0] for f in features))
-        # get targets and other data
-        tracking_pi = pi[0]
-        y.append((tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load))
+    # get features from metadata
+    X = tuple(md[f][0] for f in features)
+    # get targets and other data
+    tracking_pi = pi[0]
+    y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load)
+    return X, y
+
+def trees2training_data(dir, features, recap='auto', progress=True, 
+                        ncores=None, suffix="recap.tree"):
+    # this will recap automatically with rec rate 0
+    tree_files = get_files(dir, suffix)
+    X, y = [], []
+    if progress:
+        tree_files = tqdm.tqdm(tree_files)
+    func = partial(process_tree_file, features=features, recap=recap)
+    if ncores in (None, 1):
+        X, y = zip(*map(func, tree_files))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            X, y = zip(*list(tqdm.tqdm(p.imap(func, tree_files),
+                                       total=len(tree_files))))
     targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load')
     return np.array(X), np.array(y), features, targets
 
@@ -73,12 +90,17 @@ def trees2training_data(dir, features, recap='auto',
 @click.option('--outfile', default='B_data',
               type=click.Path(writable=True),
               help='path to save data to (exclude extension)')
+@click.option('--suffix', default='treeseq.tree', help='tree file suffix')
+@click.option('--ncores', default=1, help='number of cores for parallel processing')
 @click.option('--recap', default='auto', help='recapitate trees')
-@click.option('--suffix', default='recap.tree', help='tree file suffix')
 @click.option('--features', default='N,sh,mu,rf,rbp,L',
               help='features to extract from metadata')
-def main(dir, outfile, recap, suffix, features):
-    X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix)
+def main(dir, outfile, suffix, ncores, recap, features):
+    """
+    Extract features and targets from tree sequences. If the treeseq isn't recapitated, 
+    it will be recapitated with the pop size in the SLiM metadata, and rec rate = 0.
+    """
+    X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix, ncores=ncores)
     np.savez(outfile, X=X, y=y, features=features, targets=targets)
 
 if __name__ == "__main__":
