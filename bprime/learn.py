@@ -160,6 +160,16 @@ class LearnedFunction(object):
             self.normalized = True
         return self
 
+    @property
+    def X_train_orig_linear(self):
+        "Return LearnedFunction.X_train_orig, transforming log10'd columns back to linear"
+        X = np.copy(self.X_train_orig)
+        for i, feature in enumerate(self.features):
+            if self.logscale[feature]:
+                X[:, i] = 10**X[:, i]
+
+        return X
+
     def save(self, filepath):
         """
         Save the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
