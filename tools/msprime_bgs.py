@@ -4,12 +4,13 @@ sys.path.extend(['../']) # for bprime modules
 import os
 from multiprocessing import Pool
 import numpy as np
+from math import floor
 import msprime
 import tqdm
 import pickle
 import click
 import json
-from bprime.samplers import UniformSampler
+from bprime.samplers import Sampler
 from bprime.utils import signif
 from bprime.sim_utils import read_params
 from bprime.theory import bgs_segment, bgs_rec
@@ -35,6 +36,8 @@ def bgs_runner(param, nreps=1):
     #B = bgs_rec(mu, s, r, L)
     kwargs = {k: param[k] for k in PARAMS}
     B = bgs_rec(**kwargs)
+    #B = bgs_segment(**kwargs)
+    #Ne = max(1, floor(B*N))
     Ne = B*N
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
@@ -63,7 +66,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
     with open(configfile) as f:
         config = json.load(f)
 
-    ranges = read_params(config, add_rep=False)
+    ranges, _ = read_params(config, add_rep=False)
 
     try:
         total = nsamples if nsamples is not None else config['nsamples']
@@ -71,7 +74,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, seed=1):
         raise KeyError(f"configfile '{configfile}' does npt specify nsamples"
                         " and --nsamples not set via command line")
 
-    sampler = UniformSampler(ranges, total=total, seed=seed, add_seed=False)
+    sampler = Sampler(ranges, total=total, seed=seed, add_seed=False)
 
     print(sampler)
 

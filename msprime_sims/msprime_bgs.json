@@ -2,11 +2,12 @@
   "name": "msprime_bgs",
   "params":
      {
-       "N": {"lower": 1000, "upper": 1000, "log10": false, "type": "int"},
-       "mu": {"lower": 5.5e-9, "upper": 1e-5, "log10": false, "type": "float"},
-       "s": {"lower": -4, "upper": -1, "log10": true, "type": "float"},
-       "rbp": {"lower": 1e-9, "upper": 5e-7, "log10": false, "type": "float"},
-       "rf": {"lower": -8, "upper": -6, "log10": true, "type": "float"},
-       "L": {"lower": 1000, "upper": 1000, "log10": false, "type": "int"}
+       "N": {"dist": {"name": "fixed", "val": 1000}, "type": "int"},
+       "mu": {"dist": {"name": "uniform", "low": 1e-10, "high": 1e-5}, "type": "float"},
+       "s": {"dist": {"name": "log10_uniform", "low": -5, "high": -1}, "type": "float"},
+       "h": {"dist": {"name": "fixed", "val": 0.5}, "type": "float"},
+       "rf": {"dist": {"name": "log10_uniform", "low": -10, "high": -0.301}, "type": "float"},
+       "rbp": {"dist": {"name":"log10_truncnormal", "low": -10, "high": -6, "loc": -8.54, "scale": 1.31}, "type": "float"},
+       "L": {"dist": {"name": "discrete_uniform", "low": 1, "high": 1101}, "type": "float"}
      }
 }
