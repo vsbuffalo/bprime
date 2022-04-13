@@ -7,8 +7,27 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 
 from bprime.utils import signif, index_cols, dist_to_segment
+
+def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
+    # build network
+    model = keras.Sequential()
+    model.add(tf.keras.Input(shape=(input_size,)))
+    for i in range(n64):
+        model.add(layers.Dense(64, activation='elu'))
+    for i in range(n32):
+        model.add(layers.Dense(32, activation='elu'))
+    model.add(tf.keras.layers.Dense(1, activation=output_activation))
+    model.compile(
+        optimizer='Adam',
+        loss=tf.keras.losses.MeanSquaredError(),
+        metrics=['MeanAbsoluteError'],
+        )
+    return model
+
 
 class LearnedFunction(object):
     """
@@ -110,8 +129,8 @@ class LearnedFunction(object):
         Xtrn, Xtst, ytrn, ytst = dat
         self.X_train = Xtrn
         self.X_test = Xtst
-        self.y_train = ytrn
-        self.y_test = ytst
+        self.y_train = ytrn.squeeze()
+        self.y_test = ytst.squeeze()
         self.normalized = False
         self.transforms = {f: None for f in self.features}
         return self

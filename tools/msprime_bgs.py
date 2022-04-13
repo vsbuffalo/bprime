@@ -86,8 +86,14 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', 
 
     ranges, _ = read_params(config, add_rep=False)
 
-    json_params = sorted(tuple(k for k in ranges.keys() if k != 'N'))
-    assert json_params == sorted(PARAMS[func]), "invalid params in JSON"
+    json_params = set(tuple(k for k in ranges.keys() if k != 'N'))
+    needed_params = set(PARAMS[func])
+    missing = needed_params.difference(json_params)
+    excess = json_params.difference(needed_params)
+    if len(missing):
+        raise ValueError(f"missing params in JSON for '{func}': {missing}")
+    if len(excess):
+        raise ValueError(f"excess params in JSON for '{func}': {excess}")
 
     try:
         total = nsamples if nsamples is not None else config['nsamples']
