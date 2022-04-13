@@ -22,11 +22,13 @@ out_file = sys.argv[2].replace('.npz', '_dnn.pkl')
 TEST_SPLIT_PROP = 0.3
 MATCH = True
 VALIDATION_SPLIT = 0.3
-NFITS = 3
-ARCHS = [{'n64': 4, 'n32': 0}]
-# ARCHS = [{'n64': 4, 'n32': 0},
-#          {'n64': 4, 'n32': 4},
-#          {'n64': 8, 'n32': 4}]
+NFITS = 4
+#ARCHS = [{'n64': 4, 'n32': 0}]
+ARCHS = [{'n64': 4, 'n32': 0},
+         {'n64': 4, 'n32': 4},
+         {'n64': 8, 'n32': 0},
+         {'n64': 8, 'n32': 4},
+         {'n64': 10, 'n32': 0}]
 
 ## load data
 
@@ -64,10 +66,10 @@ else:
     func.scale_features(transforms = 'match')
 
 ## DNN
-models = defaultdict()
-histories = defaultdict()
+models = defaultdict(list)
+histories = defaultdict(list)
 for arch in ARCHS:
-    key = tuple(arch.keys())
+    key = tuple(arch.items())
     for f in range(NFITS):
         model = network(input_size=5, output_activation='sigmoid', **arch)
         es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
