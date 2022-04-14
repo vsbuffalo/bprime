@@ -12,3 +12,7 @@ statsmodels
 pyslim
 tskit
 msprime
+ipykernel
+tensorflow
+tensorflow_addons
+tensorflow-gpu
