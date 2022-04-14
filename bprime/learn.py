@@ -9,6 +9,11 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+try:
+    import tensorflow_addons as tfa
+    PROGRESS_BAR_ENABLED = True
+except ImportError:
+    PROGRESS_BAR_ENABLED = False
 
 from bprime.utils import signif, index_cols, dist_to_segment
 
@@ -28,6 +33,91 @@ def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
         )
     return model
 
+def load_data(jsonfile, npzfile):
+    """
+    Load the JSON file with the parameters (and other details) of a simulation,
+    and the NPZ file containing the features and targets matrices.
+    """
+    with open(jsonfile) as f:
+        sim_params = json.load(f)['params']
+    sim_data = np.load(npzfile, allow_pickle=True)
+    assert(len(sim_data['features']) == sim_data['X'].shape[1])
+    return sim_params, sim_data
+
+def process_data(sim_params, sim_data, test_size=0.3,
+                 seed=None, match_logscale=True):
+    """
+    Get the bounds of parameters from the sim_params dictionary,
+    find all fixed and variable parameters, subset the data to include
+    only variable (non-fixed) params that go into the training as features.
+    If match_logscale=True, the features are log10-transformed if they're
+    simulated on a log10-scale; then all features are normalized.
+
+    Returns a LearnedFunction.
+    """
+    sim_bounds = get_bounds(sim_params)
+
+    # raw (original) data
+    Xo, y = np.array(sim_data['X']), sim_data['y']
+
+    # get the fixed columns
+    cols = sim_data['features'].tolist()
+    fixed_cols = fixed_params(sim_params)
+    # checking validity
+    variable_cols = sorted(set(cols).difference(fixed_cols.keys()))
+    variable_cols_idx = [cols.index(c) for c in variable_cols]
+    # using np.unique because np.var is less numerically stable
+    var_nonzero = [i for i in range(Xo.shape[1]) if len(np.unique(Xo[:, i])) > 1]
+    msg = "mismatch in JSON params and data! some fixed columns are variable."
+    assert var_nonzero == variable_cols_idx, msg
+    # the new feature set is all variable columns
+    features = variable_cols
+
+    # subset the data to use only columns specified
+    Xo_cols = index_cols(sim_data['features'])
+    X = Xo[:, Xo_cols(*features)]
+
+    ## build the learn func object
+    sim_bounds = get_bounds(sim_params)
+    domain = {p: sim_bounds[p] for p in features}
+    func = LearnedFunction(X, y, domain=domain, seed=seed)
+
+    # build a column indexer -- maps feature names to column indices
+    Xcols = func.col_indexer()
+
+    # split the data into test/train
+    func.split(test_size=test_size)
+
+    # transform the features using log10 if the simulation scale is log10
+    if match_logscale:
+        func.scale_features(transforms = 'match')
+    else:
+        # just normalize
+        func.scale_features(transforms=None)
+
+    return func
+
+def fit_dnn(func, n64, n32, valid_split=0.3, batch_size=64,
+            epochs=400, progress=False):
+    """
+    Fit a DNN based on data in a LearnedFunction.
+    """
+    input_size = len(func.features)
+    model = network(input_size=input_size, output_activation='sigmoid',
+                    n64=n64, n32=n32)
+    es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
+                                       patience=50, restore_best_weights=True)
+    callbacks = [es]
+    if progress and PROGRESS_BAR_ENABLED:
+        callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
+
+    history = model.fit(func.X_train, func.y_train,
+                        validation_split=valid_split,
+                        batch_size=batch_size, epochs=epochs, verbose=0,
+                        callbacks=callbacks)
+    return model, history
+
+
 
 class LearnedFunction(object):
     """
@@ -36,15 +126,11 @@ class LearnedFunction(object):
     functions of the ML model class. By default LearnedFunction.models is a list
     for ensemble/averaging appraoches.
     """
-    def __init__(self, X, y, domain, seed=None, permute=True):
+    def __init__(self, X, y, domain, seed=None):
         self.rng = np.random.RandomState(seed)
         assert(len(domain) == X.shape[1])
         assert(X.shape[0] == y.shape[0])
         n = X.shape[0]
-        if permute:
-            idx = self.rng.randint(low=0, high=n, size=n)
-            X = X[idx, :]
-            y = y[idx, :]
         self.X = X
         self.y = y
         self.test_size = None
@@ -66,6 +152,17 @@ class LearnedFunction(object):
 
         # parse the data domains
         self._parse_domains(domain)
+
+        # storage for model/history
+        self.model = None
+        self.history = None
+
+    def reseed(self, seed=None):
+        """
+        Reset the RandomState with seed, and resplit the data.
+        """
+        self.rng = np.random.RandomState(seed)
+        self.split(test_size=self.test_size)
 
     def _parse_domains(self, domain):
         """
@@ -195,6 +292,8 @@ class LearnedFunction(object):
         Pickle the LearnedFunction object, and the model is saved via that
         object's save method.
         """
+        if filepath.endswith('.pkl'):
+            filepath = filepath.replace('.pkl', '')
         model = self.model # store the reference
         self.model = None
         with open(f"{filepath}.pkl", 'wb') as f:
@@ -204,26 +303,29 @@ class LearnedFunction(object):
             model.save(f"{filepath}.h5")
 
     @classmethod
-    def load(cls, filepath):
+    def load(cls, filepath, load_model=True):
         """
         Load the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
         """
         import keras
+        if filepath.endswith('.pkl'):
+            filepath = filepath.replace('.pkl', '')
         with open(f"{filepath}.pkl", 'rb') as f:
             obj = pickle.load(f)
-        obj.model = keras.models.load_model(f"{filepath}.h5")
+        model_path = f"{filepath}.h5"
+        if load_model and os.path.exists(model_path):
+            obj.model = keras.models.load_model(model_path)
         return obj
 
-    def add_model(self, model):
-        """
-        Add a model (this needs to be trained outside the class).
-        """
-        self.model = model
+    @property
+    def has_model(self):
+        return self.model is not None
 
     def predict_test(self, **kwargs):
         """
         Predict the test data.
         """
+        assert self.has_model
         return self.model.predict(self.X_test, **kwargs).squeeze()
 
     def get_bounds(self, feature):
@@ -272,6 +374,7 @@ class LearnedFunction(object):
         and transforms in LearnedFunction.transforms dict are applied to match
         those applied from LearnedB.scale_features().
         """
+        assert self.has_model
         X = self.check_bounds(X, correct_bounds)
         if transforms:
             for i, (feature, trans_func) in enumerate(self.transforms.items()):
@@ -285,6 +388,7 @@ class LearnedFunction(object):
         """
         Predict the training data.
         """
+        assert self.has_model
         return self.model.predict(self.X_train, **kwargs).squeeze()
 
     def domain_grids(self, n, fix_X=None, log10=None):
@@ -329,6 +433,7 @@ class LearnedFunction(object):
           - A matrix of the mesh grid, flattened into columns (the total number
              of columns.
         """
+        assert self.has_model
         domain_grids = self.domain_grids(n, fix_X=fix_X, log10=log10)
         if verbose:
             grid_dims = 'x'.join(map(str, n.values()))

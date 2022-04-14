@@ -1,5 +1,5 @@
 ## sim_utils.py -- common utility functions for msprime and slim
-
+import warnings
 import itertools
 import numpy as np
 
@@ -14,15 +14,12 @@ def fixed_params(params):
     """
     fixed = dict()
     for key, param in params.items():
-        if isinstance(param, tuple):
-            lower, upper, _ = param
-            if lower == upper:
-                fixed[key] = lower
-        elif isinstance(param, list):
-            if len(param) == 1:
-                fixed[key] = param[0]
+        if param['dist']['name'] == 'fixed':
+            fixed[key] = param['dist']['val']
         else:
-            raise ValueError("param items must be tuple of list")
+            if param['dist']['low'] == param['dist']['high']:
+                warnings.warn(f"parameter '{key}' is fixed implicitly!")
+                fixed[key] = param['dist']['low']
     return fixed
 
 def param_grid(params, seed=False):
