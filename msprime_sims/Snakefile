@@ -1,12 +1,12 @@
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
-print(configfile)
-
+# config file should have filename pattern mprime_bgs_{name}.json, 
+# as it's loaded elsewhere here
 name = config['name']
 
 all_files = [f"../data/msprime_sims/msprime_bgs_{name}.npz", 
-             f"../data/msprime_sims/msprime_bgs_{name}_data.pkl", 
+             f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"]
 
 archs = [dict(n64=0, n32=2),
          dict(n64=0, n32=4),
@@ -42,9 +42,9 @@ rule process_data:
      python ../tools/fit_sims.py data {input.json} {input.npz}
      """
 
-rule fit_fnn:
+rule fit_dnn:
   input: f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
-  output: f"../data/msprime_sims/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_{{rep}}_fit_{{rep}}rep.pkl"
+  output: f"../data/msprime_sims/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl"
   shell:
      """
      python ../tools/fit_sims.py fit --outfile {output} --n64 {wildcards.n64} --n32 {wildcards.n32} {input} 

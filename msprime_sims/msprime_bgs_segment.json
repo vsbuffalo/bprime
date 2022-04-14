@@ -1,5 +1,5 @@
 {
-  "name": "msprime_bgs",
+  "name": "segment",
   "params":
      {
        "N": {"dist": {"name": "fixed", "val": 1000}, "type": "int"},
