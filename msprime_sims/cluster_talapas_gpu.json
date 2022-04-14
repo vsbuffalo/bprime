@@ -12,5 +12,20 @@
         "output": "logs/out/{rule}_{jobid}.out",
         "gres": "gpu:1",
         "error" : "logs/error/{rule}_{jobid}.err"
+    },
+    "msprime" :
+    {
+        "time" : "0-04:00:00",
+        "n" : 1,
+        "account" : "kernlab",
+        "partition" : "kern",
+        "mem" : "3G",
+        "cores" : "70",
+        "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/msprime/",
+        "name" : "msprime_{rule}_{wildcards}",
+        "output": "logs/out/{rule}_{jobid}.out",
+        "error" : "logs/error/{rule}_{jobid}.err"
     }
+
 }
+
