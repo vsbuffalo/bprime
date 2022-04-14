@@ -1,0 +1,12 @@
+{
+  "name": "simple_varL",
+  "type": "simple",
+  "params":
+     {
+       "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},
+       "mu": {"dist": {"name": "uniform", "low": 5.5e-9, "high": 1e-5}, "type": "float"},
+       "s": {"dist": {"name": "log10_uniform", "low": -4, "high": -1}, "type": "float"},
+       "r": {"dist": {"name": "fixed", "val": 1e-8}, "type": "float"},
+       "L": {"dist": {"name": "uniform", "low": 1, "high": 1000}, "type": "int"}
+     }
+}

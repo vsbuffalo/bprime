@@ -25,7 +25,7 @@ fits = []
 for arch in archs:
     for rep in range(NREPS):
         kwargs = {**arch, 'rep': rep}
-        fits.append(f"../data/msprime_sims/fits/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl".format(**kwargs))
+        fits.append(f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl".format(**kwargs))
 
 all_files.extend(fits)
 
@@ -49,7 +49,7 @@ rule process_data:
 
 rule fit_dnn:
   input: f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
-  output: f"../data/msprime_sims/fits/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl"
+  output: f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl"
   shell:
      """
      python ../tools/fit_sims.py fit --outfile {output} --n64 {wildcards.n64} --n32 {wildcards.n32} {input} 
