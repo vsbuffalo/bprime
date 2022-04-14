@@ -32,11 +32,10 @@ all_files.extend(fits)
 rule msprime:
   input: f"msprime_bgs_{name}.json"
   output: f"../data/msprime_sims/msprime_bgs_{name}.npz"
-  params: nsamples=500_000
-  threads: 30
+  params: nsamples=500_000, ncores=70
   shell:
     """
-    python ../tools/msprime_bgs.py --nsamples {params.nsamples} --ncores {threads} --outfile {output} --func {type} {input}
+    python ../tools/msprime_bgs.py --nsamples {params.nsamples} --ncores {params.ncores} --outfile {output} --func {type} {input}
     """
 
 rule process_data:
