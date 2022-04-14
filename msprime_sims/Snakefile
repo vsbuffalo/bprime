@@ -4,10 +4,9 @@ if not len(config):
 # config file should have filename pattern mprime_bgs_{name}.json, 
 # as it's loaded elsewhere here
 name = config['name']
+type = config['type']
 
-all_files = [f"../data/msprime_sims/msprime_bgs_{name}.npz", 
-             f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"]
-
+# network architectures to try
 archs = [dict(n64=0, n32=2),
          dict(n64=0, n32=4),
          dict(n64=4, n32=2),
@@ -15,6 +14,11 @@ archs = [dict(n64=0, n32=2),
          dict(n64=8, n32=8),
          dict(n64=8, n32=0),
          ]
+
+sim_file = f"../data/msprime_sims/msprime_bgs_{name}.npz", 
+
+# minus sim_file, which I run on a different machine
+all_files = [f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"]
 
 NREPS = 2
 fits = []
@@ -31,7 +35,7 @@ rule msprime:
   params: nsamples=500_000, ncores=70
   shell:
     """
-    python ../tools/msprime_bgs.py --nsamples {params.nsamples} --ncores {params.ncores} --outfile {output} --func 'segment' {input}
+    python ../tools/msprime_bgs.py --nsamples {params.nsamples} --ncores {params.ncores} --outfile {output} --func {type} {input}
     """
 
 rule process_data:
@@ -50,9 +54,9 @@ rule fit_dnn:
      python ../tools/fit_sims.py fit --outfile {output} --n64 {wildcards.n64} --n32 {wildcards.n32} {input} 
      """
 
-rule all:
-  input: all_files
+rule sims:
+  input: sim_file 
 
-rule clean:
-  shell: f"rm -f {' '.join(all_files)}"
+rule train:
+  input: all_files
 

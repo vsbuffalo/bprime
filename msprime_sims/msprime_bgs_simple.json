@@ -1,5 +1,6 @@
 {
   "name": "simple",
+  "type": "simple",
   "params":
      {
        "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},
