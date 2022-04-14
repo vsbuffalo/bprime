@@ -17,11 +17,8 @@ except ImportError:
 
 
 from bprime.utils import index_cols
-from bprime.sim_utils import fixed_params, get_bounds
-from bprime.learn import LearnedFunction, network
-from bprime.theory import bgs_segment, bgs_rec
 from bprime.learn import load_data, process_data, fit_dnn
-
+from bprime.learn import LearnedFunction
 
 
 @click.group()
@@ -53,7 +50,7 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--progress/--no-progress', default=True, help="show progress")
 @click.option('--reshuffle/--no-reshuffle', default=True, help="reshuffle (e.g. resplit) the data")
 def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
-        epochs=400, progress=True):
+        epochs=400, reshuffle=True, progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_fit.pkl')
     func = LearnedFunction.load(funcfile)

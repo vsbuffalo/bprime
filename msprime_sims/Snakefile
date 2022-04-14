@@ -43,7 +43,7 @@ rule process_data:
   output: f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
   shell:
      """
-     python ../tools/fit_sims.py data {input.json} {input.npz}
+     python ../tools/fit_sims.py data --outfile {output} {input.json} {input.npz}
      """
 
 rule fit_dnn:

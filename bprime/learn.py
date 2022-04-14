@@ -1,6 +1,7 @@
 ## learn.py -- classes, etc for DNN learned B functions
 
 import os
+import json
 import itertools
 import pickle
 import numpy as np
@@ -16,6 +17,8 @@ except ImportError:
     PROGRESS_BAR_ENABLED = False
 
 from bprime.utils import signif, index_cols, dist_to_segment
+from bprime.sim_utils import fixed_params, get_bounds
+from bprime.theory import bgs_segment, bgs_rec
 
 def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
     # build network
@@ -64,8 +67,8 @@ def process_data(sim_params, sim_data, test_size=0.3,
     cols = sim_data['features'].tolist()
     fixed_cols = fixed_params(sim_params)
     # checking validity
-    variable_cols = sorted(set(cols).difference(fixed_cols.keys()))
-    variable_cols_idx = [cols.index(c) for c in variable_cols]
+    variable_cols = set(cols).difference(fixed_cols.keys())
+    variable_cols_idx = sorted([cols.index(c) for c in variable_cols])
     # using np.unique because np.var is less numerically stable
     var_nonzero = [i for i in range(Xo.shape[1]) if len(np.unique(Xo[:, i])) > 1]
     msg = "mismatch in JSON params and data! some fixed columns are variable."
