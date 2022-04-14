@@ -42,7 +42,9 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 
 @cli.command()
 @click.argument('funcfile', required=True)
-@click.option('--outfile', default=None, help="output file (default <funcfile>_dnn.pkl>")
+@click.option('--outfile', default=None, 
+              help="output filepath (default <funcfile>, "
+                   "creating <_dnn.pkl> and <funcfile>_dnn.h5")
 @click.option('--n64', default=4, help="number of 64 dense layers")
 @click.option('--n32', default=2, help="number of 32 dense layers")
 @click.option('--batch-size', default=64, help="batch size")
@@ -52,16 +54,16 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
         epochs=400, reshuffle=True, progress=True):
     if outfile is None:
-        outfile = funcfile.replace('_data.pkl', '_fit.pkl')
+        outfile = funcfile.replace('_data.pkl', '_dnn')
     func = LearnedFunction.load(funcfile)
     if reshuffle:
         func.reshuffle()
     model, history = fit_dnn(func, n64, n32, batch_size=batch_size,
                              epochs=epochs,
                              progress=(progress and PROGRESS_BAR_ENABLED))
-    with open(outfile, 'wb') as f:
-        res = {'func': func, 'model': model, 'history': history}
-        pickle.dump(res, f)
+    func.model = model
+    func.history = history.history
+    func.save(outfile)
 
 if __name__ == "__main__":
     cli()

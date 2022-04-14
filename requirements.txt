@@ -14,5 +14,5 @@ tskit
 msprime
 ipykernel
 tensorflow
-tensorflow_addons
 tensorflow-gpu
+keras
