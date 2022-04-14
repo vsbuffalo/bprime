@@ -1,7 +1,12 @@
-all_files = ["../data/msprime_sims/msprime_bgs_simple.npz", 
-             "../data/msprime_sims/msprime_bgs_segment.npz", 
-             "../data/msprime_sims/msprime_bgs_simple_data.pkl", 
-             "../data/msprime_sims/msprime_bgs_segment_data.pkl"]
+if not len(config):
+    raise ValueError("config file not specified on command line, use --configfile config.json")
+
+print(configfile)
+
+name = config['name']
+
+all_files = [f"../data/msprime_sims/msprime_bgs_{name}.npz", 
+             f"../data/msprime_sims/msprime_bgs_{name}_data.pkl", 
 
 archs = [dict(n64=0, n32=2),
          dict(n64=0, n32=4),
@@ -16,14 +21,13 @@ fits = []
 for arch in archs:
     for rep in range(NREPS):
         kwargs = {**arch, 'rep': rep}
-        fits.append("../data/msprime_sims/msprime_bgs_simple_{n64}n64_{n32}n32_{rep}_fit_{rep}rep.pkl".format(**kwargs))
-        fits.append("../data/msprime_sims/msprime_bgs_segment_{n64}n64_{n32}n32_{rep}_fit_{rep}rep.pkl".format(**kwargs))
+        fits.append(f"../data/msprime_sims/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl".format(**kwargs))
 
 all_files.extend(fits)
 
 rule msprime:
-  input: "msprime_bgs_{run}.json"
-  output: "../data/msprime_sims/msprime_bgs_{run}.npz"
+  input: f"msprime_bgs_{name}.json"
+  output: f"../data/msprime_sims/msprime_bgs_{name}.npz"
   params: nsamples=500_000, ncores=70
   shell:
     """
@@ -31,17 +35,16 @@ rule msprime:
     """
 
 rule process_data:
-  input: json="msprime_bgs_{run}.json", npz="../data/msprime_sims/msprime_bgs_{run}.npz"
-  output: "../data/msprime_sims/msprime_bgs_{run}_data.pkl"
+  input: json=f"msprime_bgs_{name}.json", npz=f"../data/msprime_sims/msprime_bgs_{name}.npz"
+  output: f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
   shell:
      """
      python ../tools/fit_sims.py data {input.json} {input.npz}
      """
 
-
 rule fit_fnn:
-  input: "../data/msprime_sims/msprime_bgs_{run}_data.pkl"
-  output: "../data/msprime_sims/msprime_bgs_{run}_{n64}n64_{n32}n32_{rep}_fit_{rep}rep.pkl"
+  input: f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
+  output: f"../data/msprime_sims/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_{{rep}}_fit_{{rep}}rep.pkl"
   shell:
      """
      python ../tools/fit_sims.py fit --outfile {output} --n64 {wildcards.n64} --n32 {wildcards.n32} {input} 
