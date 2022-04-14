@@ -339,6 +339,12 @@ class LearnedFunction(object):
         assert self.has_model
         return self.model.predict(self.X_test, **kwargs).squeeze()
 
+    def test_mae(self):
+        return np.mean(np.abs(self.model.predict(self.X_test).squeeze() - self.y_test))
+
+    def test_mse(self):
+        return np.mean((self.model.predict(self.X_test).squeeze() - self.y_test)**2)
+
     def get_bounds(self, feature):
         "Get the bounds, rescaling to linear if log-transformed"
         log10 = self.logscale[feature]
