@@ -30,4 +30,4 @@ snakemake -j $MAXJOBS --rerun-incomplete --use-conda \
   $GROUPLINE \
   --jobname=$NAME'.{rulename}.{jobid}.sh' --scheduler greedy \
   --cluster 'sbatch --error {cluster.error} --output {cluster.output} -A {cluster.account} -p {cluster.partition} -n {cluster.n} -t {cluster.time} --mem-per-cpu {cluster.mem} -c {cluster.cores}' \
-  $DRY all
+  $DRY train
