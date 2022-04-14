@@ -158,14 +158,18 @@ class LearnedFunction(object):
         self.model = None
         self.history = None
 
-    def reseed_and_split(self, seed=None):
+    def reshuffle(self, seed=None):
         """
-        Reset the RandomState with seed, and resplit the data.
+        Reset the RandomState with seed, resplit the data,
+        and rescale the features using the arguments used previously.
         """
         self.seed = seed
         self.rng = np.random.RandomState(seed)
+        # store existing transforms (reset during split)
+        normalize = self.normalized
+        transforms = self.transforms
         self.split(test_size=self.test_size)
-        self.scale_features(self.normalized, self.transforms)
+        self.scale_features(normalize, transforms)
         return self
 
     def _parse_domains(self, domain):

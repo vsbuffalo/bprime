@@ -51,16 +51,19 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--batch-size', default=64, help="batch size")
 @click.option('--epochs', default=400, help="number of epochs to run")
 @click.option('--progress/--no-progress', default=True, help="show progress")
+@click.option('--reshuffle/--no-reshuffle', default=True, help="reshuffle (e.g. resplit) the data")
 def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
         epochs=400, progress=True):
     if outfile is None:
-        outfile = funcfile.replace('_data.pkl', '_dnn.pkl')
+        outfile = funcfile.replace('_data.pkl', '_fit.pkl')
     func = LearnedFunction.load(funcfile)
+    if reshuffle:
+        func.reshuffle()
     model, history = fit_dnn(func, n64, n32, batch_size=batch_size,
                              epochs=epochs,
                              progress=(progress and PROGRESS_BAR_ENABLED))
     with open(outfile, 'wb') as f:
-        res = {'model': model, 'history': history}
+        res = {'func': func, 'model': model, 'history': history}
         pickle.dump(res, f)
 
 if __name__ == "__main__":
