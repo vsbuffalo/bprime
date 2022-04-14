@@ -48,14 +48,19 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--outfile', default=None, help="output file (default <funcfile>_dnn.pkl>")
 @click.option('--n64', default=4, help="number of 64 dense layers")
 @click.option('--n32', default=2, help="number of 32 dense layers")
+@click.option('--batch-size', default=64, help="batch size")
+@click.option('--epochs', default=400, help="number of epochs to run")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def fit(funcfile, outfile=None, n64=4, n32=2, progress=True):
+def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
+        epochs=400, progress=True):
     if outfile is None:
-        outfile = funcfile.replace('.pkl', '_dnn.pkl')
+        outfile = funcfile.replace('_data.pkl', '_dnn.pkl')
     func = LearnedFunction.load(funcfile)
-    model, history = fit_dnn(func, n64, n32, progress=(progress and PROGRESS_BAR_ENABLED))
+    model, history = fit_dnn(func, n64, n32, batch_size=batch_size,
+                             epochs=epochs,
+                             progress=(progress and PROGRESS_BAR_ENABLED))
     with open(outfile, 'wb') as f:
-        res = {'models': models, 'histories': histories}
+        res = {'model': model, 'history': history}
         pickle.dump(res, f)
 
 if __name__ == "__main__":

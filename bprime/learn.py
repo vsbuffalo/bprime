@@ -127,6 +127,7 @@ class LearnedFunction(object):
     for ensemble/averaging appraoches.
     """
     def __init__(self, X, y, domain, seed=None):
+        self.seed = seed
         self.rng = np.random.RandomState(seed)
         assert(len(domain) == X.shape[1])
         assert(X.shape[0] == y.shape[0])
@@ -157,12 +158,15 @@ class LearnedFunction(object):
         self.model = None
         self.history = None
 
-    def reseed(self, seed=None):
+    def reseed_and_split(self, seed=None):
         """
         Reset the RandomState with seed, and resplit the data.
         """
+        self.seed = seed
         self.rng = np.random.RandomState(seed)
         self.split(test_size=self.test_size)
+        self.scale_features(self.normalized, self.transforms)
+        return self
 
     def _parse_domains(self, domain):
         """
