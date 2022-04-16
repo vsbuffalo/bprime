@@ -28,7 +28,7 @@ def bgs_segment_runner(param, nreps=1):
     N = int(param['N'])
     kwargs = {k: param[k] for k in PARAMS['segment']}
     B = bgs_segment(**kwargs)
-    Ne = max(1, B*N) # minimum pop size
+    Ne = B*N
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
     return Bhats
@@ -44,7 +44,7 @@ def bgs_simple_runner(param, nreps=1):
     N = int(param['N'])
     kwargs = {k: param[k] for k in PARAMS['simple']}
     B = bgs_rec(**kwargs)
-    Ne = max(1, B*N) # minimum pop size
+    Ne = B*N
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
     return Bhats
