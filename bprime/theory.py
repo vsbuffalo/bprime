@@ -1,11 +1,11 @@
 import numpy as np
 
-BGS_MODEL_PARAMS = {'bgs_rec': ('mu', 's', 'L', 'rbp'),
-                    'bgs_segment': ('mu', 's', 'L', 'rbp', 'rf')}
+BGS_MODEL_PARAMS = {'bgs_rec': ('mu', 's', 'L', 'rbp', 'h'),
+                    'bgs_segment': ('mu', 's', 'L', 'rbp', 'rf', 'h')}
 
 
 @np.vectorize
-def bgs_rec(mu, s, L, rbp, log=False):
+def bgs_rec(mu, s, L, rbp, h=1/2, log=False):
     """
     The BGS function of McVicker et al (2009) and Elyashiv et al. (2016).
     """
@@ -15,7 +15,7 @@ def bgs_rec(mu, s, L, rbp, log=False):
     return np.exp(val)
 
 @np.vectorize
-def bgs_segment(mu, s, L, rbp, rf, log=False):
+def bgs_segment(mu, s, L, rbp, rf, h=1/2, log=False):
     """
     Return reduction factor B of a segment L basepairs long with recombination
     rate rbp, with deleterious mutation rate with selection coefficient s. This

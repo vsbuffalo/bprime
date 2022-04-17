@@ -13,7 +13,7 @@ import json
 from bprime.samplers import Sampler
 from bprime.utils import signif
 from bprime.sim_utils import read_params
-from bprime.theory import bgs_segment, bgs_rec, BGS_PARAMS
+from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS
 
 def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
     """

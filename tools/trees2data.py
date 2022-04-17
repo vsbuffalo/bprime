@@ -67,7 +67,7 @@ def process_tree_file(tree_file, features, recap='auto'):
     y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load)
     return X, y
 
-def trees2training_data(dir, features, recap='auto', progress=True, 
+def trees2training_data(dir, features, recap='auto', progress=True,
                         ncores=None, suffix="recap.tree"):
     # this will recap automatically with rec rate 0
     tree_files = get_files(dir, suffix)
@@ -93,11 +93,11 @@ def trees2training_data(dir, features, recap='auto', progress=True,
 @click.option('--suffix', default='treeseq.tree', help='tree file suffix')
 @click.option('--ncores', default=1, help='number of cores for parallel processing')
 @click.option('--recap', default='auto', help='recapitate trees')
-@click.option('--features', default='N,sh,mu,rf,rbp,L',
-              help='features to extract from metadata')
+@click.option('--features', default='N,mu,s,L,rbp,rf,h',
+              help='features to extract from SLiM metadata')
 def main(dir, outfile, suffix, ncores, recap, features):
     """
-    Extract features and targets from tree sequences. If the treeseq isn't recapitated, 
+    Extract features and targets from tree sequences. If the treeseq isn't recapitated,
     it will be recapitated with the pop size in the SLiM metadata, and rec rate = 0.
     """
     X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix, ncores=ncores)

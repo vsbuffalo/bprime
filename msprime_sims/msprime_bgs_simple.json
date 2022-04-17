@@ -1,6 +1,6 @@
 {
-  "name": "simple",
-  "type": "simple",
+  "name": "rec",
+  "type": "rec",
   "params":
      {
        "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},

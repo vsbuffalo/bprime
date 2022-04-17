@@ -18,7 +18,7 @@ except ImportError:
 
 from bprime.utils import signif, index_cols, dist_to_segment
 from bprime.sim_utils import fixed_params, get_bounds
-from bprime.theory import bgs_segment, bgs_rec
+from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS
 
 
 def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
@@ -48,56 +48,66 @@ def load_data(jsonfile, npzfile):
     assert(len(sim_data['features']) == sim_data['X'].shape[1])
     return sim_params, sim_data
 
-def process_data(sim_params, sim_data, test_size=0.3,
-                 seed=None, match_logscale=True):
+def fixed_cols(X, colnames=None):
     """
-    Get the bounds of parameters from the sim_params dictionary,
+    Return which columns are fixed.
+    """
+    assert X.shape[1] == len(colnames)
+    # using np.unique because np.var is less numerically stable
+    idx = [i for i in range(X.shape[1]) if len(np.unique(X[:, i])) > 1]
+    if colnames is None:
+        return [columns[i] for i in idx]
+    return idx
+
+def match_features(sim_params, data, features):
+    """
+    For a set of parameters for simulations (msprime or SLiM) from a JSON
+    file, match to the data we received from the simulations (with the feature
+    column names provided). They key parts are the data and the column
+    labels (which should match the JSON file).
+
+    Returns fixed values dict and variable columns
+    """
+    assert data.shape[1] == len(features), "number of columsn in 'data' ≠ number of features"
+    assert set(sim_params.keys()) == set(features), "sim parameters don't match data features"
+
+    # get the fixed columns from sims and data, seed if they match
+    param_fixed_cols = fixed_params(sim_params)
+    data_fixed_cols = fixed_cols(data, colnames=features)
+    msg = "mismatching fixed columns in parameters and data!"
+    assert set(param_fixed_cols) == set(data_fixed_cols), msg
+
+    return fixed_vals, features.difference(data_fixed_cols)
+
+
+def data_to_learnedfunc(sim_params, sim_data, seed):
+    """
+    Get the bounds of parameters from the simulation parameters dictionary,
     find all fixed and variable parameters, subset the data to include
     only variable (non-fixed) params that go into the training as features.
-    If match_logscale=True, the features are log10-transformed if they're
-    simulated on a log10-scale; then all features are normalized.
 
-    Returns a LearnedFunction.
+    Returns a LearnedFunction, with the fixed attributes set.
     """
+
+    # raw (original) data -- this contains extraneous columns, e.g.
+    # ones that aren't fixed
+    Xo, y = np.array(sim_data['X']), sim_data['y']
+    all_features = sim_data['features']
+
+    # get the fixed columns/features
+    fixed_vals, var_cols = match_features(sim_params, data=Xo, features=features)
+    features = var_cols # the real feature set is fixed columns
+
+    # get the parameter boundaries from params
     sim_bounds = get_bounds(sim_params)
 
-    # raw (original) data
-    Xo, y = np.array(sim_data['X']), sim_data['y']
-
-    # get the fixed columns
-    cols = sim_data['features'].tolist()
-    fixed_cols = fixed_params(sim_params)
-    # checking validity
-    variable_cols = set(cols).difference(fixed_cols.keys())
-    variable_cols_idx = sorted([cols.index(c) for c in variable_cols])
-    # using np.unique because np.var is less numerically stable
-    var_nonzero = [i for i in range(Xo.shape[1]) if len(np.unique(Xo[:, i])) > 1]
-    msg = "mismatch in JSON params and data! some fixed columns are variable."
-    assert var_nonzero == variable_cols_idx, msg
-    # the new feature set is all variable columns
-    features = variable_cols
-
     # subset the data to use only columns specified
-    Xo_cols = index_cols(sim_data['features'])
+    Xo_cols = index_cols(all_features)
     X = Xo[:, Xo_cols(*features)]
 
     ## build the learn func object
-    sim_bounds = get_bounds(sim_params)
     domain = {p: sim_bounds[p] for p in features}
-    func = LearnedFunction(X, y, domain=domain, seed=seed)
-
-    # build a column indexer -- maps feature names to column indices
-    Xcols = func.col_indexer()
-
-    # split the data into test/train
-    func.split(test_size=test_size)
-
-    # transform the features using log10 if the simulation scale is log10
-    if match_logscale:
-        func.scale_features(transforms = 'match')
-    else:
-        # just normalize
-        func.scale_features(transforms=None)
+    func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
 
     return func
 
@@ -122,23 +132,21 @@ def fit_dnn(func, n64, n32, valid_split=0.3, batch_size=64,
     return model, history
 
 
-BGS_PARAMS = {'simple': ('mu', 's', 'rbp', 'L'),
-             'segment': ('mu', 's', 'rbp', 'rf', 'L')}
-
-
-
 class LearnedFunction(object):
     """
     A class for storing a learned function from an ML algorithm. Stores the
     domain of the function, split test/training data, and wraps prediction
     functions of the ML model class. By default LearnedFunction.models is a list
     for ensemble/averaging appraoches.
+
+    LearnedFunction.fixed is a dict of fixed parameters, which doesn't effect
+    the learning, etc -- just storange.
     """
-    def __init__(self, X, y, domain, seed=None):
+    def __init__(self, X, y, domain, fixed=None, seed=None):
         self.seed = seed
         self.rng = np.random.RandomState(seed)
-        assert(len(domain) == X.shape[1])
-        assert(X.shape[0] == y.shape[0])
+        assert len(domain) == X.shape[1]
+        assert X.shape[0] == y.shape[0]
         n = X.shape[0]
         self.X = X
         self.y = y
@@ -495,22 +503,18 @@ class LearnedB(object):
     """
     A general class that wraps a learned B function.
     """
-    def __init__(self, genome, t_grid, w_grid):
-        assert tuple(learned_func.features.keys()) == BGS_COLS
-        self.genome = genome
-        self.func = learned_func
-        assert tuple(self.func.features.keys()) == BGS_COLS, "invalid learned func"
+    def __init__(self, t_grid, w_grid, genome=None, mode='segment'):
+        bgs_model =
+        self.genome = None
+        self.func = None
         self.w_grid = w_grid
         self.t_grid = t_grid
         self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
         self.dim = (w_grid.shape[0], t_grid.shape[0])
-        self.is_valid_grid()
 
-
-
-
-    def load_model(self, filepath):
-        pass
+    def load_func(self, filepath):
+        func = LearnedFunction.load(filepath)
+        self.func = func
 
     def train_model(self, filepath):
         pass
