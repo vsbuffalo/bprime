@@ -20,6 +20,7 @@ from bprime.utils import signif, index_cols, dist_to_segment
 from bprime.sim_utils import fixed_params, get_bounds
 from bprime.theory import bgs_segment, bgs_rec
 
+
 def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
     # build network
     model = keras.Sequential()
@@ -119,6 +120,10 @@ def fit_dnn(func, n64, n32, valid_split=0.3, batch_size=64,
                         batch_size=batch_size, epochs=epochs, verbose=0,
                         callbacks=callbacks)
     return model, history
+
+
+BGS_PARAMS = {'simple': ('mu', 's', 'rbp', 'L'),
+             'segment': ('mu', 's', 'rbp', 'rf', 'L')}
 
 
 
@@ -286,6 +291,17 @@ class LearnedFunction(object):
             self.X_train = self.scaler.transform(self.X_train)
             self.normalized = True
         return self
+
+    @property
+    def X_test_orig_linear(self):
+        "Return LearnedFunction.X_train_orig, transforming log10'd columns back to linear"
+        X = np.copy(self.X_test_orig)
+        for i, feature in enumerate(self.features):
+            if self.logscale[feature]:
+                X[:, i] = 10**X[:, i]
+
+        return X
+
 
     @property
     def X_train_orig_linear(self):
@@ -472,21 +488,32 @@ class LearnedFunction(object):
         predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
         return domain_grids, X_meshcols_orig, X_meshcols, predict.reshape(mesh[0].shape)
 
+
+
+
 class LearnedB(object):
     """
     A general class that wraps a learned B function.
     """
-    def __init__(self, genome, learned_func, t_grid, w_grid):
-        bgs_cols = ('sh', 'mu', 'rf', 'rbp', 'L')
-        assert tuple(learned_func.features.keys()) == bgs_cols
+    def __init__(self, genome, t_grid, w_grid):
+        assert tuple(learned_func.features.keys()) == BGS_COLS
         self.genome = genome
         self.func = learned_func
-        assert tuple(self.func.features.keys()) == bgs_cols, "invalid learned func"
+        assert tuple(self.func.features.keys()) == BGS_COLS, "invalid learned func"
         self.w_grid = w_grid
         self.t_grid = t_grid
         self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
         self.dim = (w_grid.shape[0], t_grid.shape[0])
         self.is_valid_grid()
+
+
+
+
+    def load_model(self, filepath):
+        pass
+
+    def train_model(self, filepath):
+        pass
 
     def is_valid_grid(self):
         """

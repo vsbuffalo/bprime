@@ -13,12 +13,9 @@ import json
 from bprime.samplers import Sampler
 from bprime.utils import signif
 from bprime.sim_utils import read_params
-from bprime.theory import bgs_segment, bgs_rec
+from bprime.theory import bgs_segment, bgs_rec, BGS_PARAMS
 
-PARAMS = {'simple': ('mu', 's', 'r', 'L'),
-          'segment': ('mu', 's', 'rbp', 'rf', 'L')}
-
-def bgs_segment_runner(param, nreps=1):
+def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
     """
     Run msprime with N scaled by B.
 
@@ -26,31 +23,12 @@ def bgs_segment_runner(param, nreps=1):
     did not work as well as just drawing more from the sampler.
     """
     N = int(param['N'])
-    kwargs = {k: param[k] for k in PARAMS['segment']}
-    B = bgs_segment(**kwargs)
-    Ne = B*N
-    Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
-             for _ in range(nreps)]
-    return Bhats
-
-
-def bgs_simple_runner(param, nreps=1):
-    """
-    Run msprime with N scaled by B.
-
-    Note: nreps is set to 1, as exploring averaging over replicate runs
-    did not work as well as just drawing more from the sampler.
-    """
-    N = int(param['N'])
-    kwargs = {k: param[k] for k in PARAMS['simple']}
+    kwargs = {k: param[k] for k in BGS_PARAMS['bgs_rec']}
     B = bgs_rec(**kwargs)
     Ne = B*N
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
     return Bhats
-
-FUNCS = {'simple': bgs_simple_runner,
-         'segment': bgs_segment_runner}
 
 @click.command()
 @click.argument('configfile', required=True)
@@ -59,7 +37,7 @@ FUNCS = {'simple': bgs_simple_runner,
               help='output file (default: <configfile>_sims.npz)')
 @click.option('--nsamples', default=None, type=int, help='number of samples')
 @click.option('--ncores', default=1, help='number of cores to use')
-@click.option('--func', default='simple', help="the BGS function to use ('segment', 'simple')")
+@click.option('--func', default='simple', help="the BGS function to use ('segment', 'rec')")
 @click.option('--seed', default=1, help='random seed to use')
 def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', seed=1):
     """
@@ -80,14 +58,14 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', 
         config = json.load(f)
 
     try:
-        runner_func = FUNCS[func]
+        func_params = BGS_MODEL_PARAMS[func]
     except KeyError:
-        raise KeyError("--func must be either 'simple' or 'segment'")
+        raise KeyError("--func must be either ', '.join(BGS_MODEL_PARAMS.keys())")
 
     ranges, _ = read_params(config, add_rep=False)
 
     json_params = set(tuple(k for k in ranges.keys() if k != 'N'))
-    needed_params = set(PARAMS[func])
+    needed_params = set(BGS_MODEL_PARAMS[func])
     missing = needed_params.difference(json_params)
     excess = json_params.difference(needed_params)
     if len(missing):
@@ -109,6 +87,8 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', 
         basename = os.path.splitext(os.path.basename(configfile))[0]
         outfile = f"{basename}_sims.npz"
 
+    # get the right BGS simulation function
+    runner_func = partial(bgs_msprime_runner, func=func)
     if ncores > 1:
         with Pool(ncores) as p:
             y = np.array(list(tqdm.tqdm(p.imap(runner_func, sampler),
