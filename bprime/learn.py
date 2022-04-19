@@ -175,6 +175,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
     else:
         low, high = h_low * s_low, h_low * s_high
     sim_bounds['sh'] = low, high, s_log10
+    fixed_vals.pop('h') # we don't need this anymore, h is included in sh
 
     # Now, subset the features matrix with sh merged to include only variable
     # columns
@@ -232,7 +233,8 @@ class LearnedFunction(object):
         self.bounds = {}         # dict of lower, upper boundaries
         self.logscale = {}       # dict of which features are log10 scale
         self.normalized = None   # whether the features have been normalized
-        self.transforms = None    # the dict of transforms for parameters
+        self.transforms = None   # the dict of transforms for parameters
+        self.fixed = fixed       # the dict of fixed values
 
         # Auxillary data
         self.X_train = None
