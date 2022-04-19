@@ -7,6 +7,7 @@ import pickle
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+import scipy.stats as stats
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -511,27 +512,19 @@ class LearnedFunction(object):
         assert self.has_model
         return self.model.predict(self.X_train, **kwargs).squeeze()
 
-    def domain_grids(self, n, fix_X=None, log10=None):
+    def domain_grids(self, n, fix_X=None):
         """
         Create a grid of values across the domain for all features.
         fix_X is a dict of fixed values for the grids. If a feature
         name is in log10 tuple, it will be log10'd.
         """
-        if log10 == 'match':
-            log10 = self.logscale
         valid_features = set(self.features)
         msg = "'fix_X' has a feature not in X's features"
         assert fix_X is None or all([(k in valid_features) for k in fix_X.keys()]), msg
-        msg = "'log10' has a feature not in X's features"
-        assert log10 is None or all([(k in valid_features) for k in log10]), msg
         grids = []
         nx = n
         for feature, (lower, upper) in self.bounds.items():
             is_logscale = self.logscale[feature]
-            if log10 is not None and feature in log10:
-                is_logscale = True
-                lower = np.log10(lower)
-                upper = np.log10(upper)
             if fix_X is None or feature not in fix_X:
                 if isinstance(n, dict):
                     nx = n[feature]
@@ -539,13 +532,13 @@ class LearnedFunction(object):
             elif feature in fix_X:
                 grid = fix_X[feature]
             else:
-                assert(False)
+                assert False, "should not reach this point"
             if is_logscale:
                 grid = 10**grid
             grids.append(grid)
         return grids
 
-    def predict_grid(self, n, fix_X=None, log10=None, verbose=True):
+    def predict_grid(self, n, fix_X=None, verbose=True):
         """
         Predict a grid of points (useful for visualizing learned function).
         This uses the domain specified by the model.
@@ -553,10 +546,12 @@ class LearnedFunction(object):
         Returns:
           - A list of the grid values for each column.
           - A matrix of the mesh grid, flattened into columns (the total number
-             of columns.
+             of columns, *before* the transformations.
+          - A meshgrid that's been normalized and transformed as the original
+            data has.
         """
         assert self.has_model
-        domain_grids = self.domain_grids(n, fix_X=fix_X, log10=log10)
+        domain_grids = self.domain_grids(n, fix_X=fix_X)
         if verbose:
             grid_dims = 'x'.join(map(str, n.values()))
             print(f"making {grid_dims} grid...\t", end='')
@@ -565,7 +560,7 @@ class LearnedFunction(object):
             print("done.")
         mesh_array = np.stack(mesh)
         X_meshcols = np.stack([col.flatten() for col in mesh]).T
-        X_meshcols_orig = X_meshcols[:]
+        X_meshcols_orig = X_meshcols.copy()
         # transform/scale the new mesh
         for feature, col_idx in self.features.items():
             trans_func = self.transforms.get(feature, None)
@@ -607,8 +602,13 @@ class LearnedB(object):
     def tw_mesh(self):
         return np.array(list(itertools.product(self.t_grid, self.w_grid)))
 
-    def theory_B(self):
-        X = self.func.X_test_orig_linear
+    def theory_B(self, X):
+        """
+        Compute the BGS theory given the right function ('segment' or 'rec')
+        on the feature matrix X. E.g. use for X_test_orig_linear or using
+        meshgrids.
+        """
+        assert np.shape[1] == len(self.func.features)
         features = self.func.features
         kwargs = {}
         for i, feature in enumerate(features):
@@ -616,7 +616,21 @@ class LearnedB(object):
 
         # merge in the fixed params
         kwargs = {**kwargs, **self.func.fixed}
+        # we tweak s, and h since sh is set
+        kwargs['h'] = 1
+        kwargs['s'] = kwargs.pop('sh')
+        kwargs.pop('N') # not needed for theory
         return self.bgs_model(**kwargs)
+
+    def binned_Bhats(self, bins):
+        predict = self.func.predict_test()
+        if isinstance(bins, int):
+            bins = np.linspace(predict.min(), predict.max(), bins)
+        ytest_bins = stats.binned_statistic(predict, self.func.y_test.squeeze(),
+                                            bins=bins)
+        edges = ytest_bins.bin_edges
+        return edges, 0.5*(edges[:-1]+edges[1:]), ytest_bins.statistic
+
 
     def load_func(self, filepath):
         func = LearnedFunction.load(filepath)
