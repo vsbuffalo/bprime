@@ -26,7 +26,8 @@ def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
     N = int(param['N'])
     kwargs = {k: param[k] for k in BGS_MODEL_PARAMS['bgs_rec']}
     B = bgs_rec(**kwargs)
-    Ne = B*N
+    # protect against B = 0 leading to Ne = 0
+    Ne = max(B*N, np.finfo(float).tiny)
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
              for _ in range(nreps)]
     return Bhats

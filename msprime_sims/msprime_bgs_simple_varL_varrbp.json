@@ -1,6 +1,6 @@
 {
-  "name": "simple_varL_varr",
-  "type": "bgs_rec",
+  "name": "simple_varL_varrbp",
+  "model": "bgs_rec",
   "params":
      {
        "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},
