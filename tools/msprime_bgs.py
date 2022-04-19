@@ -10,6 +10,7 @@ import tqdm
 import pickle
 import click
 import json
+from functools import partial
 from bprime.samplers import Sampler
 from bprime.utils import signif
 from bprime.sim_utils import read_params
@@ -23,7 +24,7 @@ def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
     did not work as well as just drawing more from the sampler.
     """
     N = int(param['N'])
-    kwargs = {k: param[k] for k in BGS_PARAMS['bgs_rec']}
+    kwargs = {k: param[k] for k in BGS_MODEL_PARAMS['bgs_rec']}
     B = bgs_rec(**kwargs)
     Ne = B*N
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
@@ -37,19 +38,15 @@ def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
               help='output file (default: <configfile>_sims.npz)')
 @click.option('--nsamples', default=None, type=int, help='number of samples')
 @click.option('--ncores', default=1, help='number of cores to use')
-@click.option('--func', default='simple', help="the BGS function to use ('segment', 'rec')")
+@click.option('--model', default='simple', help="the BGS function to use ('bgs_segment', 'bgs_rec')")
 @click.option('--seed', default=1, help='random seed to use')
-def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', seed=1):
+def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple', seed=1):
     """
     Simulate BGS under a rescaled neutral coalescent model with msprime.
 
     This is separate from (1) proper forward sims, and (2) simulating a
     two deme structured coalescent model. This is meant as a minimum test
     of learning a function from coalescent times.
-
-    Note: s here is the homozygous selection coefficient. It is automatically
-    rescaled to s/2 in the simulations to match the case where h=1/2. BGS
-    theory only considers the heterozygous selection coefficient.
 
     There are two BGS functions that can be used. Setting --segment uses the
     'segment' BGS model which is more complicated than then simple model.
@@ -58,20 +55,20 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', 
         config = json.load(f)
 
     try:
-        func_params = BGS_MODEL_PARAMS[func]
+        func_params = BGS_MODEL_PARAMS[model]
     except KeyError:
         raise KeyError("--func must be either ', '.join(BGS_MODEL_PARAMS.keys())")
 
     ranges, _ = read_params(config, add_rep=False)
 
     json_params = set(tuple(k for k in ranges.keys() if k != 'N'))
-    needed_params = set(BGS_MODEL_PARAMS[func])
+    needed_params = set(BGS_MODEL_PARAMS[model])
     missing = needed_params.difference(json_params)
     excess = json_params.difference(needed_params)
     if len(missing):
-        raise ValueError(f"missing params in JSON for '{func}': {missing}")
+        raise ValueError(f"missing params in JSON for '{model}': {missing}")
     if len(excess):
-        raise ValueError(f"excess params in JSON for '{func}': {excess}")
+        raise ValueError(f"excess params in JSON for '{model}': {excess}")
 
     try:
         total = nsamples if nsamples is not None else config['nsamples']
@@ -88,7 +85,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, func='simple', 
         outfile = f"{basename}_sims.npz"
 
     # get the right BGS simulation function
-    runner_func = partial(bgs_msprime_runner, func=func)
+    runner_func = partial(bgs_msprime_runner, func=model)
     if ncores > 1:
         with Pool(ncores) as p:
             y = np.array(list(tqdm.tqdm(p.imap(runner_func, sampler),

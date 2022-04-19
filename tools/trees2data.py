@@ -1,3 +1,6 @@
+import sys
+sys.path.extend(['..', '../bprime'])
+
 from functools import partial
 import multiprocessing
 import warnings
@@ -8,6 +11,10 @@ import tskit
 import pyslim
 import msprime
 import tqdm
+from bprime.theory import BGS_MODEL_PARAMS
+
+# we mirror the BGS segment model
+DEFAULT_FEATURES = BGS_MODEL_PARAMS['bgs_segment']
 
 def Bhat(pi, N):
     """
@@ -49,6 +56,7 @@ def process_tree_file(tree_file, features, recap='auto'):
     tracklen = int(md['tracklen'][0])
     N = int(md['N'][0])
     # the SLiM script metadata reports the het sel coef for convenience
+    # let's check s h = reported sh
     s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
     np.testing.assert_almost_equal(s*h, sh)
 
@@ -93,7 +101,7 @@ def trees2training_data(dir, features, recap='auto', progress=True,
 @click.option('--suffix', default='treeseq.tree', help='tree file suffix')
 @click.option('--ncores', default=1, help='number of cores for parallel processing')
 @click.option('--recap', default='auto', help='recapitate trees')
-@click.option('--features', default='N,mu,s,L,rbp,rf,h',
+@click.option('--features', default=','.join(DEFAULT_FEATURES),
               help='features to extract from SLiM metadata')
 def main(dir, outfile, suffix, ncores, recap, features):
     """

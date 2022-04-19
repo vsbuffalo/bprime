@@ -9,7 +9,8 @@ def bgs_rec(mu, s, L, rbp, h=1/2, log=False):
     """
     The BGS function of McVicker et al (2009) and Elyashiv et al. (2016).
     """
-    val = -L * mu/(s*(1+(1-s)*rbp/s)**2)
+    sh = s*h
+    val = -L * mu/(sh*(1+(1-sh)*rbp/sh)**2)
     if log:
         return val
     return np.exp(val)
@@ -23,11 +24,12 @@ def bgs_segment(mu, s, L, rbp, rf, h=1/2, log=False):
     over the BGS formula after dividing up the recombination distance between
     the focal neutral site and each basepair in the segment into rf and rbp.
     """
+    sh = s*h
     r = rbp*L
-    a = -s*mu*L
-    b = (1-s)**2 # rf^2 terms
-    c = 2*s*(1-s)+r*(1-s)**2 # rf terms
-    d = s**2 + r*s*(1-s) # constant terms
+    a = -sh*mu*L
+    b = (1-sh)**2 # rf^2 terms
+    c = 2*sh*(1-sh)+r*(1-sh)**2 # rf terms
+    d = sh**2 + r*sh*(1-sh) # constant terms
     val = a / (b*rf**2 + c*rf + d)
     if log:
         return val
