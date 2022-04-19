@@ -47,6 +47,8 @@ def bhat_plot(bfunc, bins, figax=None):
     ax.set_ylabel('$\hat{B}$')
     ax.set_xlabel('binned $B_\mathrm{ML}$')
     ax.axline((0.4, 0.4), slope=1, c='r')
+    mse = signif(bfunc.Bhat_mse(bins), 4)
+    ax.text(0.4, 0.05, f"$MSE(\hat{{B}}, B_\mathrm{{ML}})$ = {mse}")
     return fig, ax
 
 def loss_plot(bfunc, figax=None):
@@ -77,15 +79,23 @@ def loss_limits_plot(bfunc, N=None, mu=1, add_lowess=True, figax=None):
     ax.set_ylabel('validation loss')
     ax.set_xlabel('predicted')
 
-def rate_plot(bfunc, c=None, figax=None, **kwargs):
+def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs):
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
-    Xgrids, Xmesh, Xmeshcols, predict_grid = bfunc.func.predict_grid(**kwargs)
-    rate = (Xmesh[:, Xcols('mu')]/Xmesh[:, Xcols('sh')]).squeeze()
-    predict = bfunc.theory_B(Xmesh)
+
+    X_test = bfunc.func.X_test_orig_linear
+    test_rate = (X_test[:, Xcols('mu')]/X_test[:, Xcols('sh')]).squeeze()
     if c is not None:
-        c = Xmesh[:, Xcols(c)]
-    ax.scatter(rate, predict, c=c)
+        c = bfunc.func.X_test_orig_linear[:, Xcols(c)]
+    test_predict = bfunc.predict_test()
+    ax.scatter(test_rate, test_predict, c=c, s=3)
+
+    if add_theory:
+        Xgrids, Xmesh, Xmeshcols, predict_grid = bfunc.func.predict_grid(**predict_grid_kwargs)
+        rate = (Xmesh[:, Xcols('mu')]/Xmesh[:, Xcols('sh')]).squeeze()
+        theory = bfunc.theory_B(Xmesh)
+        idx = np.argsort(rate)
+        ax.plot(rate[idx], theory[idx], c='r', linestyle='dashed')
     ax.semilogx()
 
 def arch_loss_plot(results, ncols=3):
@@ -121,7 +131,13 @@ def arch_loss_plot(results, ncols=3):
     plt.tight_layout()
 
 
-
-def b_learn_diagnostic_plot(func, figsize=(10, 7)):
+def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), **rate_kwargs):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
+    rate_plot(bfunc, **rate_kwargs, figax=(fig, ax1))
+    loss_plot(bfunc, figax=(fig, ax2))
+    bhat_plot(bfunc, bins=bins, figax=(fig, ax3))
+    loss_limits_plot(bfunc, figax=(fig, ax4))
+    plt.tight_layout()
+    return fig, ((ax1, ax2), (ax3, ax4))
+
 
