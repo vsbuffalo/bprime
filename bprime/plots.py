@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import statsmodels.api as sm
+import itertools
 from bprime.theory import B_var_limit
+from bprime.utils import signif
 
 lowess = sm.nonparametric.lowess
 
@@ -85,6 +87,39 @@ def rate_plot(bfunc, c=None, figax=None, **kwargs):
         c = Xmesh[:, Xcols(c)]
     ax.scatter(rate, predict, c=c)
     ax.semilogx()
+
+def arch_loss_plot(results, ncols=3):
+    """
+    Visualize all the losses on separate panels for each architecture.
+    Different replicates are shown as different colored lines.
+    """
+    nrows = len(results) // ncols
+    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, sharey=True)
+    cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    panels = itertools.product(range(nrows), range(ncols))
+    labs = set()
+    for i, (arch, funcs) in enumerate(results.items()):
+        arch_lab = f"n64 = {arch[0]}, n32 = {arch[1]}"
+        panel = next(panels)
+        mses = []
+        ax = axs[panel[0], panel[1]]
+        for j, func in enumerate(funcs):
+            history = func.history
+            line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')
+            ax.plot(history['val_loss'][1:], c=line.get_color(), label=None, linestyle='dashed')
+            mses.append(signif(func.test_mse(), 6))
+            if panel[1] == 0:
+                ax.set_ylabel("loss")
+            if panel[0] == 1:
+                ax.set_xlabel("epoch")
+            else:
+                ax.set_title(arch_lab)
+        mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
+        ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
+    #ax.legend()
+    plt.tight_layout()
+
 
 
 def b_learn_diagnostic_plot(func, figsize=(10, 7)):
