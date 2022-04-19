@@ -18,7 +18,7 @@ except ImportError:
 
 from bprime.utils import signif, index_cols, dist_to_segment
 from bprime.sim_utils import fixed_params, get_bounds
-from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS
+from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 
 
 def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
@@ -517,6 +517,8 @@ class LearnedFunction(object):
         fix_X is a dict of fixed values for the grids. If a feature
         name is in log10 tuple, it will be log10'd.
         """
+        if log10 == 'match':
+            log10 = self.logscale
         valid_features = set(self.features)
         msg = "'fix_X' has a feature not in X's features"
         assert fix_X is None or all([(k in valid_features) for k in fix_X.keys()]), msg
@@ -582,18 +584,39 @@ class LearnedB(object):
     """
     A general class that wraps a learned B function.
     """
-    def __init__(self, t_grid, w_grid, genome=None, mode='segment'):
+    def __init__(self, t_grid=None, w_grid=None, genome=None, model='segment'):
         try:
-            bgs_model = BGS_MODEL_PARAMS[mode]
+            model = 'bgs_' + model if not model.startswith('bgs_') else model
+            params = BGS_MODEL_PARAMS[model]
+            bgs_model = BGS_MODEL_FUNCS[model]
         except KeyError:
             allow = ["'"+x.replace('bgs_', '')+"'" for x in BGS_MODEL_PARAMS.keys()]
-            raise KeyError(f"mode ('{mode}') must be either {', '.join(allow)}")
+            raise KeyError(f"model ('{model}') must be either {', '.join(allow)}")
         self.genome = None
         self.func = None
+        self.bgs_model = bgs_model
+        self.params = params
         self.w_grid = w_grid
         self.t_grid = t_grid
-        self.tw_mesh = np.array(list(itertools.product(t_grid, w_grid)))
-        self.dim = (w_grid.shape[0], t_grid.shape[0])
+
+    @property
+    def dim(self):
+        return self.w_grid.shape[0], self.t_grid.shape[0]
+
+    @property
+    def tw_mesh(self):
+        return np.array(list(itertools.product(self.t_grid, self.w_grid)))
+
+    def theory_B(self):
+        X = self.func.X_test_orig_linear
+        features = self.func.features
+        kwargs = {}
+        for i, feature in enumerate(features):
+            kwargs[feature] = X[:, i]
+
+        # merge in the fixed params
+        kwargs = {**kwargs, **self.func.fixed}
+        return self.bgs_model(**kwargs)
 
     def load_func(self, filepath):
         func = LearnedFunction.load(filepath)

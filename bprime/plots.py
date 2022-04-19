@@ -33,6 +33,6 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     return fig, ax
 
 
-def b_learn_diagnostic_plot(func, (10, 7)):
+def b_learn_diagnostic_plot(func, figsize=(10, 7)):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
 

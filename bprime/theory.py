@@ -3,7 +3,6 @@ import numpy as np
 BGS_MODEL_PARAMS = {'bgs_rec': ('mu', 's', 'L', 'rbp', 'h'),
                     'bgs_segment': ('mu', 's', 'L', 'rbp', 'rf', 'h')}
 
-
 @np.vectorize
 def bgs_rec(mu, s, L, rbp, h=1/2, log=False):
     """
@@ -34,5 +33,9 @@ def bgs_segment(mu, s, L, rbp, rf, h=1/2, log=False):
     if log:
         return val
     return np.exp(val)
+
+BGS_MODEL_FUNCS = {'bgs_rec': bgs_rec,
+                   'bgs_segment': bgs_segment}
+
 
 
