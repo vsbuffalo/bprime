@@ -589,6 +589,8 @@ class LearnedB(object):
             raise KeyError(f"model ('{model}') must be either {', '.join(allow)}")
         self.genome = None
         self.func = None
+        self._predict = None
+        self._X_test_hash = None
         self.bgs_model = bgs_model
         self.params = params
         self.w_grid = w_grid
@@ -608,7 +610,7 @@ class LearnedB(object):
         on the feature matrix X. E.g. use for X_test_orig_linear or using
         meshgrids.
         """
-        assert np.shape[1] == len(self.func.features)
+        assert X.shape[1] == len(self.func.features)
         features = self.func.features
         kwargs = {}
         for i, feature in enumerate(features):
@@ -622,8 +624,22 @@ class LearnedB(object):
         kwargs.pop('N') # not needed for theory
         return self.bgs_model(**kwargs)
 
+    def predict_test(self):
+        """
+        Predict X_test, caching the results (invalidation based on hash of
+        X_test).
+        """
+        X_test_hash = hash(self.func.X_test.data.tobytes())
+        if self._predict is None or X_test_hash != self._X_test_hash:
+            self._X_test_hash = X_test_hash
+            predict = self.func.predict_test()
+            self._predict = predict
+        else:
+            print("using cached predictions")
+        return self._predict
+
     def binned_Bhats(self, bins):
-        predict = self.func.predict_test()
+        predict = self.predict_test()
         if isinstance(bins, int):
             bins = np.linspace(predict.min(), predict.max(), bins)
         ytest_bins = stats.binned_statistic(predict, self.func.y_test.squeeze(),
@@ -631,6 +647,9 @@ class LearnedB(object):
         edges = ytest_bins.bin_edges
         return edges, 0.5*(edges[:-1]+edges[1:]), ytest_bins.statistic
 
+    def Bhat_mse(self, bins):
+        _, x, y = self.binned_Bhats(bins)
+        return np.mean((x - y)**2)
 
     def load_func(self, filepath):
         func = LearnedFunction.load(filepath)
