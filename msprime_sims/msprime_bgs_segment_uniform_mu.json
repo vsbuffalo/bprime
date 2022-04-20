@@ -1,5 +1,5 @@
 {
-  "name": "segment",
+  "name": "segment_uniform_mu",
   "model": "bgs_segment",
   "params":
      {
@@ -10,5 +10,6 @@
        "rf": {"dist": {"name": "log10_uniform", "low": -10, "high": -0.301}, "type": "float"},
        "rbp": {"dist": {"name":"log10_uniform", "low": -10, "high": -6}, "type": "float"},
        "L": {"dist": {"name": "discrete_uniform", "low": 1, "high": 1101}, "type": "float"}
-     }
+     },
+  "nsamples": 500000
 }
