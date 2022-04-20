@@ -1,9 +1,3 @@
 #!/bin/bash
 
-bash snakemake_runner.sh -c msprime_bgs_simple.json &&
- bash snakemake_runner.sh -c msprime_bgs_segment.json &&
- bash snakemake_runner.sh -c msprime_bgs_simple_varL.json && 
- bash snakemake_runner.sh -c msprime_bgs_simple_varL_varrbp.json &&
- bash snakemake_runner.sh -c msprime_bgs_segment_uniform_mu.json &&
- bash snakemake_runner.sh -c msprime_bgs_segment_best.json &&
- bash snakemake_runner.sh -c msprime_bgs_segment_best_largesample.json
+find . -name "msprime*json"  | xargs -n1 -P10 -I{} bash snakemake_runner.sh -c {}
