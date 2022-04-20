@@ -187,7 +187,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
     # get the domain of non-fixed parameters
     domain = {p: sim_bounds[p] for p in features}
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
-    func.metadata = {'model': model}
+    func.metadata = {'model': model, 'params': sim_params}
 
     return func
 
@@ -254,6 +254,7 @@ class LearnedFunction(object):
         # storage for model/history
         self.model = None
         self.history = None
+        self.metadata = None
 
     def reshuffle(self, seed=None):
         """
@@ -305,7 +306,7 @@ class LearnedFunction(object):
         ntarg = self.y.shape[1]
         rows = [
             f"LearnedFunction with {nfeat} feature(s) and {ntarg} target(s)",
-            f" feature(s):"
+            f" variable feature(s):"
         ]
         for feature in self.features:
             scale = 'linear' if not self.logscale[feature] else 'log10'
@@ -313,11 +314,16 @@ class LearnedFunction(object):
             trans_func = str(self.transforms[feature]) if self.transforms is not None else None
             row = f"  - {feature} ∈ [{lower}, {upper}] ({scale}, {trans_func})"
             rows.append(row)
+        rows.append(f" fixed fixed(s) (based on metadata):")
+        for fixed, val in self.fixed.items():
+            rows.append(f"  - {fixed} = {val}")
         normed = False if self.normalized is None else self.normalized
         rows.append(f"Features normalized? {normed}")
         rows.append(f"Features split? {self.is_split}")
         if self.is_split:
             rows[-1] += f", test size: {100*np.round(self.test_size, 2)}% (n={self.X_test.shape[0]:,})"
+
+        rows.append(f"Total size: {self.X.shape[0]:,}")
         return "\n".join(rows)
 
     def split(self, test_size=0.2):
@@ -605,12 +611,14 @@ class LearnedB(object):
     def tw_mesh(self):
         return np.array(list(itertools.product(self.t_grid, self.w_grid)))
 
-    def theory_B(self, X):
+    def theory_B(self, X=None):
         """
         Compute the BGS theory given the right function ('segment' or 'rec')
         on the feature matrix X. E.g. use for X_test_orig_linear or using
         meshgrids.
         """
+        if X is None:
+            X = self.func.X_test_orig_linear
         assert X.shape[1] == len(self.func.features)
         features = self.func.features
         kwargs = {}
@@ -624,6 +632,7 @@ class LearnedB(object):
         kwargs['s'] = kwargs.pop('sh')
         kwargs.pop('N') # not needed for theory
         return self.bgs_model(**kwargs)
+
 
     def predict_test(self):
         """

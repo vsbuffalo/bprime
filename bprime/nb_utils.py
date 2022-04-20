@@ -1,7 +1,7 @@
 import re
 import os
 from collections import defaultdict
-from bprime.learn import LearnedFunction
+from bprime.learn import LearnedFunction, LearnedB
 
 def stem(x):
     return x.replace('.h5', '')
@@ -22,7 +22,8 @@ def load_learnedfuncs_in_dir(dir):
         file_stem = stem(file)
         key = parse_fitname(file_stem, run='simple')
         lf = LearnedFunction.load(os.path.join(dir, file_stem))
-        b = LearnedB(model=lf.metadata['model'])
-        out[(int(key['n64']), int(key['n32']))].append(lf)
+        bf = LearnedB(model=lf.metadata['model'])
+        bf.func = lf
+        out[(int(key['n64']), int(key['n32']))].append(bf)
     return out
 

@@ -2,15 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import statsmodels.api as sm
+import scipy.stats as stats
 import itertools
 from bprime.theory import B_var_limit
 from bprime.utils import signif
+from bprime.learn import LearnedB
 
 lowess = sm.nonparametric.lowess
 
-def get_figax(figax):
+def get_figax(figax, **kwargs):
     if figax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(**kwargs)
     else:
         fig, ax = figax
     return fig, ax
@@ -58,7 +60,23 @@ def loss_plot(bfunc, figax=None):
     ax.plot(history['val_loss'][1:], label='validation loss')
     ax.set_ylabel("MSE")
     ax.set_xlabel("epoch")
+    ax.legend()
     return fig, ax
+
+def rate_density_plot(bfunc, figax=None):
+    fig, ax = get_figax(figax, ncols=2)
+    Xcols = bfunc.func.col_indexer()
+    X_test = bfunc.func.X_test_orig_linear
+    B_theory = bfunc.theory_B(X_test)
+    ax[0].hist(np.log10(X_test[:, Xcols('mu')]/X_test[:, Xcols('sh')]))
+    ax[0].set_xlabel("$\mu/s$")
+    ax[0].set_ylabel("density")
+    ax[1].hist(B_theory)
+    ax[1].set_xlabel("$B_\mathrm{theory}$")
+    ax[1].set_ylabel("density")
+    ax[1].set_yscale('log')
+    return fig, ax
+
 
 def loss_limits_plot(bfunc, N=None, mu=1, add_lowess=True, figax=None):
     fig, ax = get_figax(figax)
@@ -125,6 +143,7 @@ def arch_loss_plot(results, ncols=3):
         mses = []
         ax = axs[panel[0], panel[1]]
         for j, func in enumerate(funcs):
+            func = func.func
             history = func.history
             line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')
             ax.plot(history['val_loss'][1:], c=line.get_color(), label=None, linestyle='dashed')
@@ -139,6 +158,43 @@ def arch_loss_plot(results, ncols=3):
     #ax.legend()
     plt.tight_layout()
     return fig, ax
+
+def rate_loss_plot(bfunc, bins, figax=None):
+    fig, ax = get_figax(figax)
+    Xcols = bfunc.func.col_indexer()
+    X_test = bfunc.func.X_test_orig_linear
+    test_theory = bfunc.theory_B(X_test)
+    rate = np.log10(X_test[:, Xcols('mu')] / X_test[:, Xcols('sh')]).squeeze()
+    if isinstance(bins, int):
+        bins = np.linspace(rate.min(), rate.max(), bins)
+    predict = bfunc.predict_test()
+    se_loss = (predict - test_theory)**2
+    binned_mse_loss = stats.binned_statistic(rate, se_loss, bins=bins)
+    mids = 0.5*(binned_mse_loss.bin_edges[1:] + binned_mse_loss.bin_edges[:-1])
+    ax.scatter(10**mids, binned_mse_loss.statistic)
+    ax.loglog()
+    ax.set_ylabel("binned MSE between\ntheory/predicted")
+    ax.set_xlabel("$\mu/s$")
+    return fig, ax
+
+def B_loss_plot(bfunc, bins, figax=None):
+    fig, ax = get_figax(figax)
+    Xcols = bfunc.func.col_indexer()
+    X_test = bfunc.func.X_test_orig_linear
+    B = bfunc.theory_B(X_test)
+    if isinstance(bins, int):
+        bins = np.linspace(B.min(), B.max(), bins)
+    predict = bfunc.predict_test()
+    se_loss = (predict - B)**2
+    binned_mse_loss = stats.binned_statistic(B, se_loss, bins=bins)
+    mids = 0.5*(binned_mse_loss.bin_edges[1:] + binned_mse_loss.bin_edges[:-1])
+    ax.scatter(mids, binned_mse_loss.statistic)
+    ax.set_ylabel("binned MSE between\ntheory/predicted")
+    ax.set_xlabel("$B$")
+    #ax.semilogy()
+    return fig, ax
+
+
 
 
 def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), **rate_kwargs):
