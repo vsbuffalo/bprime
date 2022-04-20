@@ -58,6 +58,7 @@ def loss_plot(bfunc, figax=None):
     ax.plot(history['val_loss'][1:], label='validation loss')
     ax.set_ylabel("MSE")
     ax.set_xlabel("epoch")
+    return fig, ax
 
 def loss_limits_plot(bfunc, N=None, mu=1, add_lowess=True, figax=None):
     fig, ax = get_figax(figax)
@@ -78,6 +79,7 @@ def loss_limits_plot(bfunc, N=None, mu=1, add_lowess=True, figax=None):
     ax.semilogy()
     ax.set_ylabel('validation loss')
     ax.set_xlabel('predicted')
+    return fig, ax
 
 def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs):
     fig, ax = get_figax(figax)
@@ -86,7 +88,12 @@ def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs)
     X_test = bfunc.func.X_test_orig_linear
     test_rate = (X_test[:, Xcols('mu')]/X_test[:, Xcols('sh')]).squeeze()
     if c is not None:
-        c = bfunc.func.X_test_orig_linear[:, Xcols(c)]
+        if c == 'rate':
+            c = np.log10(X_test[:, Xcols('mu')]/X_test[:, Xcols('sh')])
+        elif c == 'theory':
+            c = bfunc.theory_B(X_test)
+        else:
+            c = X_test[:, Xcols(c)]
     test_predict = bfunc.predict_test()
     ax.scatter(test_rate, test_predict, c=c, s=3)
 
@@ -96,7 +103,10 @@ def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs)
         theory = bfunc.theory_B(Xmesh)
         idx = np.argsort(rate)
         ax.plot(rate[idx], theory[idx], c='r', linestyle='dashed')
+    ax.set_ylabel("predicted")
+    ax.set_xlabel("$\mu/s$")
     ax.semilogx()
+    return fig, ax
 
 def arch_loss_plot(results, ncols=3):
     """
@@ -123,12 +133,12 @@ def arch_loss_plot(results, ncols=3):
                 ax.set_ylabel("loss")
             if panel[0] == 1:
                 ax.set_xlabel("epoch")
-            else:
-                ax.set_title(arch_lab)
+            ax.set_title(arch_lab)
         mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
         ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
     #ax.legend()
     plt.tight_layout()
+    return fig, ax
 
 
 def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), **rate_kwargs):
