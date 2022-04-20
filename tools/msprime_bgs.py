@@ -14,9 +14,9 @@ from functools import partial
 from bprime.samplers import Sampler
 from bprime.utils import signif
 from bprime.sim_utils import read_params
-from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS
+from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 
-def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
+def bgs_msprime_runner(param, model, nreps=1):
     """
     Run msprime with N scaled by B.
 
@@ -24,8 +24,9 @@ def bgs_msprime_runner(param, func='bgs_segment', nreps=1):
     did not work as well as just drawing more from the sampler.
     """
     N = int(param['N'])
-    kwargs = {k: param[k] for k in BGS_MODEL_PARAMS['bgs_rec']}
-    B = bgs_rec(**kwargs)
+    kwargs = {k: param[k] for k in BGS_MODEL_PARAMS[model]}
+    B_func = BGS_MODEL_FUNCS[model]
+    B = B_func(**kwargs)
     # protect against B = 0 leading to Ne = 0
     Ne = max(B*N, np.finfo(float).tiny)
     Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
@@ -85,8 +86,8 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple',
         basename = os.path.splitext(os.path.basename(configfile))[0]
         outfile = f"{basename}_sims.npz"
 
-    # get the right BGS simulation function
-    runner_func = partial(bgs_msprime_runner, func=model)
+    # get the right BGS simulation function and wrap it
+    runner_func = partial(bgs_msprime_runner, model=model)
     if ncores > 1:
         with Pool(ncores) as p:
             y = np.array(list(tqdm.tqdm(p.imap(runner_func, sampler),

@@ -8,6 +8,6 @@
        "s": {"dist": {"name": "log10_uniform", "low": -4, "high": -1}, "type": "float"},
        "h": {"dist": {"name": "fixed", "val": 0.5}, "type": "float"},
        "rbp": {"dist": {"name": "fixed", "val": 1e-8}, "type": "float"},
-       "L": {"dist": {"name": "uniform", "low": 1, "high": 1000}, "type": "int"}
+       "L": {"dist": {"name": "uniform", "low": 0, "high": 1000}, "type": "int"}
      }
 }
