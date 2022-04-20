@@ -187,6 +187,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
     # get the domain of non-fixed parameters
     domain = {p: sim_bounds[p] for p in features}
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
+    func.metadata = {'model': model}
 
     return func
 
