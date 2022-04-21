@@ -148,3 +148,4 @@ class Sampler(object):
             row = f"  {key} ~ {dist_name}({dist_params})"
             rows.append(row)
         return "\n".join(rows)
+

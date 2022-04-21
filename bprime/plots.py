@@ -8,7 +8,7 @@ from math import ceil
 from bprime.theory import B_var_limit
 from bprime.utils import signif
 from bprime.learn import LearnedB
-from bprime.learn_utils import get_loss_func
+from bprime.loss import get_loss_func
 
 def center_scale(x):
     return (x-x.mean())/x.std()

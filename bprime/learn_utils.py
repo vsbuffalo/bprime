@@ -1,49 +1,23 @@
+import json
 import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
 
-MEAN_LOSS_FUNCS = {'mae': mean_absolute_error,
-                   'mape': mean_absolute_percentage_error,
-                   'mse': mean_squared_error}
+from bprime.utils import index_cols
+from bprime.sim_utils import fixed_params, get_bounds
+from bprime.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
+from bprime.learn import LearnedFunction
 
-
-def get_loss_func(loss):
-    try:
-        return LOSS_FUNCS[loss.lower()]
-    except KeyError:
-        opts = ', '.join(LOSS_FUNCS)
-        raise KeyError(f"'{loss}' is not a loss function (options: {opts})")
-
-
-def absolute_error(y_true, y_pred):
-    assert y_true.shape == y_pred.shape
-    return np.abs(y_true - y_pred)
-
-def bias(y_true, y_pred):
-    # B(T, θ) = E(T) - θ; this is averaged later, e.g. by bins
-    assert y_true.shape == y_pred.shape
-    return y_pred - y_true
-
-def absolute_percentage_error(y_true, y_pred):
-    assert y_true.shape == y_pred.shape
-    return np.abs(y_true - y_pred) / y_pred
-
-def squared_error(y_true, y_pred):
-    assert y_true.shape == y_pred.shape
-    return (y_true - y_pred)**2
-
-LOSS_FUNCS = {'mae': absolute_error,
-              'mape': absolute_percentage_error,
-              'bias': bias,
-              'mse': squared_error}
-
-def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
+def network(input_size=2, n64=4, n32=2, output_activation='sigmoid', activation='elu'):
     # build network
     model = keras.Sequential()
     model.add(tf.keras.Input(shape=(input_size,)))
     for i in range(n64):
-        model.add(layers.Dense(64, activation='elu'))
+        model.add(layers.Dense(64, activation=activation))
     for i in range(n32):
-        model.add(layers.Dense(32, activation='elu'))
+        model.add(layers.Dense(32, activation=activation))
     model.add(tf.keras.layers.Dense(1, activation=output_activation))
     model.compile(
         optimizer='Adam',
@@ -205,14 +179,14 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
 
     return func
 
-def fit_dnn(func, n64, n32, valid_split=0.3, batch_size=64,
+def fit_dnn(func, n64, n32, activation='elu', valid_split=0.3, batch_size=64,
             epochs=400, progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
     """
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation='sigmoid',
-                    n64=n64, n32=n32)
+                    n64=n64, n32=n32, activation=activation)
     es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                        patience=50, restore_best_weights=True)
     callbacks = [es]

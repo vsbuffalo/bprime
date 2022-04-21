@@ -44,13 +44,14 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
                    "creating <_dnn.pkl> and <funcfile>_dnn.h5")
 @click.option('--n64', default=4, help="number of 64 dense layers")
 @click.option('--n32', default=2, help="number of 32 dense layers")
+@click.option('--activation', default='tanh', help="layer activation")
 @click.option('--batch-size', default=64, help="batch size")
 @click.option('--epochs', default=400, help="number of epochs to run")
 @click.option('--test-size', default=0.2, help="proportion to use as test data set")
 @click.option('--reshuffle/--no-reshuffle', default=True, help="reshuffle with new seed")
 @click.option('--match/--no-match', default=True, help="transform X to match if log10 scale")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
+def fit(funcfile, outfile=None, n64=4, n32=2, activation='elu', batch_size=64,
         epochs=400, test_size=0.2, reshuffle=True, match=True, progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_dnn')
@@ -70,7 +71,8 @@ def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
         # just normalize
         func.scale_features(transforms=None)
 
-    model, history = fit_dnn(func, n64, n32, batch_size=batch_size,
+    model, history = fit_dnn(func, n64=n64, n32=n32, activation=activation,
+                             batch_size=batch_size,
                              epochs=epochs,
                              progress=(progress and PROGRESS_BAR_ENABLED))
     func.model = model

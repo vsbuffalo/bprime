@@ -7,7 +7,7 @@ def stem(x):
     return x.replace('.h5', '')
 
 def parse_fitname(file, run):
-    match = re.match(r'msprime_bgs_\w+_(?P<n64>\d+)n64_(?P<n32>\d+)n32_fit_(?P<rep>\d+)rep'.format(run=run), file)
+    match = re.match(r'msprime_bgs_\w+_(?P<n64>\d+)n64_(?P<n32>\d+)n32_(?P<activ>(relu|elu|tanh))activ_fit_(?P<rep>\d+)rep'.format(run=run), file)
     assert match is not None, file
     return match.groupdict()
 

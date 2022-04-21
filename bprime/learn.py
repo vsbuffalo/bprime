@@ -8,19 +8,12 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import scipy.stats as stats
-import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
-try:
-    import tensorflow_addons as tfa
-    PROGRESS_BAR_ENABLED = True
-except ImportError:
-    PROGRESS_BAR_ENABLED = False
 
 from bprime.utils import signif, index_cols, dist_to_segment
-from bprime.sim_utils import fixed_params, get_bounds, random_seed
+from bprime.sim_utils import random_seed
 from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
-from bprime.learn_utils import get_loss_func
+from bprime.loss import get_loss_func
 
 
 class LearnedFunction(object):
@@ -244,7 +237,6 @@ class LearnedFunction(object):
         """
         Load the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
         """
-        import keras
         if filepath.endswith('.pkl'):
             filepath = filepath.replace('.pkl', '')
         with open(f"{filepath}.pkl", 'rb') as f:
