@@ -17,13 +17,13 @@ def load_learnedfuncs_in_dir(dir):
     after a batch of training replicates are run across different architectures.
     """
     files = [f for f in os.listdir(dir) if f.endswith('.h5')]
-    out = defaultdict(list)
+    out = defaultdict(lambda: defaultdict(list))
     for file in files:
         file_stem = stem(file)
         key = parse_fitname(file_stem, run='simple')
         lf = LearnedFunction.load(os.path.join(dir, file_stem))
         bf = LearnedB(model=lf.metadata['model'])
         bf.func = lf
-        out[(int(key['n64']), int(key['n32']))].append(bf)
+        out[(int(key['n64']), int(key['n32']))][key['activ'].append(bf)
     return out
 
