@@ -1,10 +1,10 @@
 import numpy as np
+from math import ceil
 import itertools
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import statsmodels.api as sm
 import scipy.stats as stats
-from math import ceil
 from bprime.theory import B_var_limit
 from bprime.utils import signif
 from bprime.learn import LearnedB
@@ -132,23 +132,30 @@ def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs)
     ax.semilogx()
     return fig, ax
 
-def arch_loss_plot(results, ncols=3):
+def sorted_arch(results):
+    def capacity(item):
+        key, _ = item
+        a, b, c, d = key
+        return 128**a + 64**b + 32**c + 8**d
+    return sorted(results.items(), key=capacity)
+
+def arch_loss_plot(results, ncols=3, sharey=True):
     """
     Visualize all the losses on separate panels for each architecture.
     Different replicates are shown as different colored lines.
     """
-    nrows = len(results) // ncols
-    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, sharey=True)
+    nrows = ceil(len(results) / ncols)
+    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, sharey=sharey)
     cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
+    lays = [128, 64, 32, 8]
     panels = itertools.product(range(nrows), range(ncols))
     labs = set()
-    for i, (activ, arches) in enumerate(results.items()):
+    for i, (arch, activs) in enumerate(sorted_arch(results)):
         panel = next(panels)
         mses = []
         ax = axs[panel[0], panel[1]]
-        for j, (arch, funcs) in enumerate(arches.items()):
-            arch_lab = f"n64 = {arch[0]}, n32 = {arch[1]}"
+        for j, (activ, funcs) in enumerate(activs.items()):
+            arch_lab = ", ".join(f"n{lays[i]}={n}" for i, n in enumerate(arch))
             for k, func in enumerate(funcs):
                 func = func.func
                 history = func.history
@@ -159,7 +166,7 @@ def arch_loss_plot(results, ncols=3):
                     ax.set_ylabel("loss")
                 if panel[0] == 1:
                     ax.set_xlabel("epoch")
-                ax.set_title(arch_lab)
+                ax.set_title(arch_lab, fontsize=8)
         mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
         ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
     #ax.legend()
