@@ -17,7 +17,7 @@ except ImportError:
 
 
 from bprime.utils import index_cols
-from bprime.learn import load_data, data_to_learnedfunc, fit_dnn
+from bprime.learn_utils import load_data, data_to_learnedfunc, fit_dnn
 from bprime.learn import LearnedFunction
 
 
