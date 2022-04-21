@@ -30,7 +30,7 @@ for arch in archs:
     for activ in activations:
         for rep in range(NREPS):
             kwargs = {**arch, 'rep': rep, 'activ': activ}
-            dnn_files.append(f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_{{activ}}activ_fit_{{rep}}rep.pkl".format(**kwargs))
+            dnn_files.append(f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{activ}}activ_fit_{{rep}}rep.pkl".format(**kwargs))
 
 rule msprime:
   input: f"msprime_bgs_{name}.json" # same as config file
@@ -51,10 +51,10 @@ rule process_data:
 
 rule fit_dnn:
   input: f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
-  output: f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_{{activ}}activ_fit_{{rep}}rep.pkl"
+  output: f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{activ}}activ_fit_{{rep}}rep.pkl"
   shell:
      """
-     python ../tools/fit_sims.py fit --outfile {output} --batch-size 128 --n64 {wildcards.n64} --n32 {wildcards.n32} --activation {activ} {input} 
+     python ../tools/fit_sims.py fit --outfile {output} --batch-size 128 --n128 {wildcards.n128} --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --activation {activ} {input} 
      """
 
 rule sims:

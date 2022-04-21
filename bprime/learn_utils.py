@@ -183,14 +183,14 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
 
     return func
 
-def fit_dnn(func, n64, n32, activation='elu', valid_split=0.3, batch_size=64,
+def fit_dnn(func, n128, n64, n32, n8, activation='elu', valid_split=0.3, batch_size=64,
             epochs=400, progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
     """
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation='sigmoid',
-                    n64=n64, n32=n32, activation=activation)
+                    n128=n128, n64=n64, n32=n32, n8=n8, activation=activation)
     es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                        patience=50, restore_best_weights=True)
     callbacks = [es]
