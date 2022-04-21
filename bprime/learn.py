@@ -673,11 +673,14 @@ class LearnedB(object):
     def train_model(self, filepath):
         pass
 
-    def theory_loss(self, loss='mae'):
+    def theory_loss(self, loss='mae', raw=False):
         lossfunc = get_loss_func(loss)
         B = self.theory_B()
         predict = self.predict_test()
-        return lossfunc(B, predict).mean()
+        lossvals = lossfunc(B, predict)
+        if raw:
+            return B, lossvals
+        return lossvals.mean()
 
     def is_valid_grid(self):
         """
