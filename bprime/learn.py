@@ -18,8 +18,9 @@ except ImportError:
     PROGRESS_BAR_ENABLED = False
 
 from bprime.utils import signif, index_cols, dist_to_segment
-from bprime.sim_utils import fixed_params, get_bounds
+from bprime.sim_utils import fixed_params, get_bounds, random_seed
 from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
+from bprime.learn_utils import get_loss_func
 
 
 def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
@@ -223,6 +224,8 @@ class LearnedFunction(object):
     the learning, etc -- just storange.
     """
     def __init__(self, X, y, domain, fixed=None, seed=None):
+        if seed is None:
+            seed = random_seed()
         self.seed = seed
         self.rng = np.random.RandomState(seed)
         assert len(domain) == X.shape[1]
@@ -261,6 +264,8 @@ class LearnedFunction(object):
         Reset the RandomState with seed, resplit the data,
         and rescale the features using the arguments used previously.
         """
+        if seed is None:
+            seed = random_seed()
         self.seed = seed
         self.rng = np.random.RandomState(seed)
         # store existing transforms (reset during split)
@@ -667,6 +672,12 @@ class LearnedB(object):
 
     def train_model(self, filepath):
         pass
+
+    def theory_loss(self, loss='mae'):
+        lossfunc = get_loss_func(loss)
+        B = self.theory_B()
+        predict = self.predict_test()
+        return lossfunc(B, predict).mean()
 
     def is_valid_grid(self):
         """

@@ -18,6 +18,11 @@ def absolute_error(y_true, y_pred):
     assert y_true.shape == y_pred.shape
     return np.abs(y_true - y_pred)
 
+def bias(y_true, y_pred):
+    # B(T, θ) = E(T) - θ; this is averaged later
+    assert y_true.shape == y_pred.shape
+    return y_pred - y_true
+
 def absolute_percentage_error(y_true, y_pred):
     assert y_true.shape == y_pred.shape
     return np.abs(y_true - y_pred) / y_pred
@@ -28,6 +33,7 @@ def squared_error(y_true, y_pred):
 
 LOSS_FUNCS = {'mae': absolute_error,
               'mape': absolute_percentage_error,
+              'bias': bias,
               'mse': squared_error}
 
 

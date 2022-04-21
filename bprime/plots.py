@@ -4,10 +4,14 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import statsmodels.api as sm
 import scipy.stats as stats
+from math import ceil
 from bprime.theory import B_var_limit
 from bprime.utils import signif
 from bprime.learn import LearnedB
 from bprime.learn_utils import get_loss_func
+
+def center_scale(x):
+    return (x-x.mean())/x.std()
 
 
 lowess = sm.nonparametric.lowess
@@ -80,7 +84,7 @@ def rate_density_plot(bfunc, figax=None):
     return fig, ax
 
 
-def loss_limits_plot(bfunc, N=None, mu=1, add_lowess=True, figax=None):
+def loss_limits_plot(bfunc, add_lowess=True, figax=None):
     fig, ax = get_figax(figax)
     predict = bfunc.predict_test()
     y_test = bfunc.func.y_test_orig
@@ -91,8 +95,8 @@ def loss_limits_plot(bfunc, N=None, mu=1, add_lowess=True, figax=None):
     if add_lowess:
         z = lowess(y, x, frac=1/10, it=0)
         ax.plot(z[:, 0], z[:, 1], c='r', linewidth=2)
-    if N is not None:
-        ax.axhline(B_var_limit(1, N, mu), c='0.22', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
+    b = np.linspace(x.min(), x.max(), 100)
+    ax.plot(b, B_var_limit(b), c='0.22', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
         # ax.plot(xnew, B_var_limit(xnew, N, mu), c='cornflowerblue', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
     #ax.text(0.03, 0.88, "$\sigma^2 = \\frac{3 \mu + 8 B N \mu}{36 B N}$", size=13, rotation=-1.5, transform=ax4.transAxes)
     #ax.text(0.03, 0.88, "$\sigma^2 \\approx \\frac{2}{9}$", size=13, rotation=-1.5, transform=ax.transAxes)
@@ -162,8 +166,7 @@ def arch_loss_plot(results, ncols=3):
     return fig, ax
 
 def feature_loss_plot(bfunc, feature, bins, log10=True, loss='mae',
-                       logx=True, logy=False,
-                       figax=None):
+                      logx=True, logy=False, figax=None):
     lossfunc = get_loss_func(loss)
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
@@ -177,20 +180,22 @@ def feature_loss_plot(bfunc, feature, bins, log10=True, loss='mae',
     predict = bfunc.predict_test()
     lossvals = lossfunc(test_theory, predict)
     binned_loss = stats.binned_statistic(rate, lossvals, bins=bins)
+    binned_counts = stats.binned_statistic(rate, lossvals, statistic=len, bins=bins)
     mids = 0.5*(binned_loss.bin_edges[1:] + binned_loss.bin_edges[:-1])
     if log10:
         mids = 10**mids
-    ax.scatter(mids, binned_loss.statistic)
+    ax.scatter(mids, binned_loss.statistic, c=binned_counts.statistic)
     if logx:
         ax.set_xscale('log')
     if logy:
         ax.set_yscale('log')
-    ax.set_ylabel(f"binned {loss.upper()} between\ntheory/predicted")
+    loss_lab = loss.upper() if loss != 'bias' else loss
+    ax.set_ylabel(f"binned {loss_lab}")
     ax.set_xlabel(feature)
     return fig, ax
 
 
-def rate_loss_plot(bfunc, bins, loss='mae', figax=None):
+def rate_loss_plot(bfunc, bins, loss='mae', logx=True, logy=True, figax=None):
     lossfunc = get_loss_func(loss)
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
@@ -202,10 +207,15 @@ def rate_loss_plot(bfunc, bins, loss='mae', figax=None):
     predict = bfunc.predict_test()
     lossvals = lossfunc(test_theory, predict)
     binned_loss = stats.binned_statistic(rate, lossvals, bins=bins)
+    binned_counts = stats.binned_statistic(rate, lossvals, statistic=len, bins=bins)
     mids = 0.5*(binned_loss.bin_edges[1:] + binned_loss.bin_edges[:-1])
-    ax.scatter(10**mids, binned_loss.statistic)
-    ax.loglog()
-    ax.set_ylabel(f"binned {loss.upper()} between\ntheory/predicted")
+    ax.scatter(10**mids, binned_loss.statistic, c=binned_counts.statistic)
+    if logx:
+        ax.set_xscale('log')
+    if logy:
+        ax.set_yscale('log')
+    loss_lab = loss.upper() if loss != 'bias' else loss
+    ax.set_ylabel(f"binned {loss_lab}")
     ax.set_xlabel("$\mu/s$")
     return fig, ax
 
@@ -213,21 +223,45 @@ def B_loss_plot(bfunc, bins, loss='mae', relative=False, figax=None):
     lossfunc = get_loss_func(loss)
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
-    X_test = bfunc.func.X_test_orig_linear
-    B = bfunc.theory_B(X_test)
+    B = bfunc.theory_B()
     if isinstance(bins, int):
         bins = np.linspace(B.min(), B.max(), bins)
     predict = bfunc.predict_test()
     lossvals = lossfunc(B, predict)
     binned_loss = stats.binned_statistic(B, lossvals, bins=bins)
+    binned_counts = stats.binned_statistic(B, lossvals, statistic=len, bins=bins)
     mids = 0.5*(binned_loss.bin_edges[1:] + binned_loss.bin_edges[:-1])
-    ax.scatter(mids, binned_loss.statistic)
-    ax.set_ylabel(f"binned {loss.upper()} between\ntheory/predicted")
+    ax.scatter(mids, binned_loss.statistic, c=binned_counts.statistic)
+    loss_lab = loss.upper() if loss != 'bias' else loss
+    ax.set_ylabel(f"binned {loss_lab}")
     ax.set_xlabel("$B$")
     #ax.semilogy()
     return fig, ax
 
 
+def feature_loss_plots(bfunc, bins, loss='mae', figax=None):
+    ncols = 2
+    features = ['rate', 'B'] + list(bfunc.func.features.keys())
+    nrows = ceil(len(features) / ncols)
+    fig, axs = get_figax(figax, ncols=ncols, nrows=nrows, figsize=(7, 8))
+    panels = list(itertools.product(range(nrows), range(ncols)))
+    for i, feature in enumerate(features):
+        panel = panels[i]
+        ax = axs[panel[0], panel[1]]
+        figax = (fig, ax)
+        if feature == 'B':
+            B_loss_plot(bfunc, bins, loss, figax=figax)
+        elif feature == 'rate':
+            rate_loss_plot(bfunc, bins, loss, figax=figax)
+        else:
+            feature_loss_plot(bfunc, feature, bins=bins, loss=loss, figax=figax)
+        if panel[1] > 0:
+            ax.set_ylabel("")
+        ax.axhline(0, c='0.55', linestyle='dashed')
+        ax.axhline(bfunc.theory_loss(loss=loss), c='cornflowerblue', linestyle='dashed')
+
+    plt.tight_layout()
+    return fig, axs
 
 
 def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), **rate_kwargs):

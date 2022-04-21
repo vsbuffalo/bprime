@@ -47,14 +47,18 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--batch-size', default=64, help="batch size")
 @click.option('--epochs', default=400, help="number of epochs to run")
 @click.option('--test-size', default=0.3, help="proportion to use as test data set")
+@click.option('--reshuffle/--no-reshuffle', default=True, help="reshuffle with new seed")
 @click.option('--match/--no-match', default=True, help="transform X to match if log10 scale")
 @click.option('--progress/--no-progress', default=True, help="show progress")
 def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
-        epochs=400, test_size=0.3, match=True, progress=True):
+        epochs=400, test_size=0.3, reshuffle=True, match=True, progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_dnn')
 
     func = LearnedFunction.load(funcfile)
+
+    if reshuffle:
+        func.reshuffle()
 
     # split the data into test/train
     func.split(test_size=test_size)

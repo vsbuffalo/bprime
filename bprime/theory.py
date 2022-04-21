@@ -35,9 +35,10 @@ def bgs_segment(mu, s, L, rbp, rf, h=1/2, log=False):
     return np.exp(val)
 
 @np.vectorize
-def B_var_limit(B, N, mu=1):
-    return (8 - 27/(B*N) + 46/(-1 + B*N))/36.
-    return (3*mu + 8*B*N*mu**2)/(36*B*N)
+def B_var_limit(B, N=None, mu=1):
+    if N is None:
+        return 2/9 * B**2
+    return B/(12 * N * mu) + 2/9 * B**2 + B**2/N
 
 
 BGS_MODEL_FUNCS = {'bgs_rec': bgs_rec,
