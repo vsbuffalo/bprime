@@ -7,15 +7,17 @@ name = config['name']
 model = config['model']
 
 # network architectures to try
-archs = [dict(n64=0, n32=2),
-         dict(n64=0, n32=4),
-         dict(n64=4, n32=2),
-         dict(n64=8, n32=4),
-         dict(n64=8, n32=8),
-         dict(n64=8, n32=0),
+archs = [dict(n128=0, n64=0, n32=0, n8=1),
+         dict(n128=0, n64=0, n32=1, n8=0),
+         dict(n128=0, n64=1, n32=0, n8=0),
+         dict(n128=1, n64=8, n32=8, n8=8),
+
+         dict(n128=8, n64=8, n32=0, n8=0),
+         dict(n128=8, n64=8, n32=0, n8=0),
+
          ]
 
-activations = ['elu', 'relu', 'tanh']
+activations = ['elu'] #, 'relu', 'tanh']
 
 sim_file = f"../data/msprime_sims/msprime_bgs_{name}.npz", 
 

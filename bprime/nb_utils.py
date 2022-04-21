@@ -24,6 +24,6 @@ def load_learnedfuncs_in_dir(dir):
         lf = LearnedFunction.load(os.path.join(dir, file_stem))
         bf = LearnedB(model=lf.metadata['model'])
         bf.func = lf
-        out[(int(key['n64']), int(key['n32']))][key['activ'].append(bf)
+        out[(int(key['n64']), int(key['n32']))][key['activ']].append(bf)
     return out
 

@@ -143,22 +143,23 @@ def arch_loss_plot(results, ncols=3):
 
     panels = itertools.product(range(nrows), range(ncols))
     labs = set()
-    for i, (arch, funcs) in enumerate(results.items()):
-        arch_lab = f"n64 = {arch[0]}, n32 = {arch[1]}"
+    for i, (activ, arches) in enumerate(results.items()):
         panel = next(panels)
         mses = []
         ax = axs[panel[0], panel[1]]
-        for j, func in enumerate(funcs):
-            func = func.func
-            history = func.history
-            line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')
-            ax.plot(history['val_loss'][1:], c=line.get_color(), label=None, linestyle='dashed')
-            mses.append(signif(func.test_mse(), 6))
-            if panel[1] == 0:
-                ax.set_ylabel("loss")
-            if panel[0] == 1:
-                ax.set_xlabel("epoch")
-            ax.set_title(arch_lab)
+        for j, (arch, funcs) in enumerate(arches.items()):
+            arch_lab = f"n64 = {arch[0]}, n32 = {arch[1]}"
+            for k, func in enumerate(funcs):
+                func = func.func
+                history = func.history
+                line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')
+                ax.plot(history['val_loss'][1:], c=line.get_color(), label=None, linestyle='dashed')
+                mses.append(signif(func.test_mse(), 6))
+                if panel[1] == 0:
+                    ax.set_ylabel("loss")
+                if panel[0] == 1:
+                    ax.set_xlabel("epoch")
+                ax.set_title(arch_lab)
         mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
         ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
     #ax.legend()

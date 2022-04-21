@@ -44,7 +44,7 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
                    "creating <_dnn.pkl> and <funcfile>_dnn.h5")
 @click.option('--n64', default=4, help="number of 64 dense layers")
 @click.option('--n32', default=2, help="number of 32 dense layers")
-@click.option('--activation', default='tanh', help="layer activation")
+@click.option('--activation', default='elu', help="layer activation")
 @click.option('--batch-size', default=64, help="batch size")
 @click.option('--epochs', default=400, help="number of epochs to run")
 @click.option('--test-size', default=0.2, help="proportion to use as test data set")
