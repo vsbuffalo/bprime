@@ -20,7 +20,7 @@ sim_file = f"../data/msprime_sims/msprime_bgs_{name}.npz",
 # the learned func, pickled
 data_file = f"../data/msprime_sims/msprime_bgs_{name}_data.pkl"
 
-NREPS = 2
+NREPS = 3
 dnn_files = []
 for arch in archs:
     for rep in range(NREPS):
@@ -49,7 +49,7 @@ rule fit_dnn:
   output: f"../data/msprime_sims/fits/{name}/msprime_bgs_{name}_{{n64}}n64_{{n32}}n32_fit_{{rep}}rep.pkl"
   shell:
      """
-     python ../tools/fit_sims.py fit --outfile {output} --batch-size 256 --n64 {wildcards.n64} --n32 {wildcards.n32} {input} 
+     python ../tools/fit_sims.py fit --outfile {output} --batch-size 128 --n64 {wildcards.n64} --n32 {wildcards.n32} {input} 
      """
 
 rule sims:
