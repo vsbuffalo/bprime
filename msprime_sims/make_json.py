@@ -24,7 +24,7 @@ def fill_template(nsamples):
     return template
 
 
-nsamples = [1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000, 2_000_000]
+nsamples = [1_000, 5_000, 10_000, 50_000, 100_000, 500_000, 1_000_000, 2_000_000, 5_000_000]
 
 for nsample in nsamples:
     with open(f"varying_nsamples_{nsample}.json", 'w') as f:
