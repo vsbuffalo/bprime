@@ -193,7 +193,7 @@ def fit_dnn(func, n128, n64, n32, n8, activation='elu', valid_split=0.3, batch_s
     model = network(input_size=input_size, output_activation='sigmoid',
                     n128=n128, n64=n64, n32=n32, n8=n8, activation=activation)
     es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
-                                       patience=50, restore_best_weights=True)
+                                       patience=100, restore_best_weights=True)
     callbacks = [es]
     if progress and PROGRESS_BAR_ENABLED:
         callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))

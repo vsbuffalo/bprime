@@ -52,6 +52,8 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple',
 
     There are two BGS functions that can be used. Setting --segment uses the
     'segment' BGS model which is more complicated than then simple model.
+
+    Note that the --nsamples overrides 'nsamples' in the JSON config file!
     """
     with open(configfile) as f:
         config = json.load(f)
@@ -75,7 +77,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple',
     try:
         total = nsamples if nsamples is not None else config['nsamples']
     except KeyError:
-        raise KeyError(f"configfile '{configfile}' does npt specify nsamples"
+        raise KeyError(f"configfile '{configfile}' does not specify nsamples"
                         " and --nsamples not set via command line")
 
     sampler = Sampler(ranges, total=total, seed=seed, add_seed=False)
