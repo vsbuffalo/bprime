@@ -9,12 +9,11 @@ def stem(x):
     return x.replace('.h5', '')
 
 def parse_fitname(file):
-
     match = re.match(PATH, file)
     assert match is not None, file
     return match.groupdict()
 
-def load_learnedfuncs_in_dir(dir):
+def load_learnedfuncs_in_dir(dir, max_rep=None):
     """
     Load all the serialized LearnedFunction objects in a directory, e.g.
     after a batch of training replicates are run across different architectures.
@@ -25,6 +24,9 @@ def load_learnedfuncs_in_dir(dir):
     for file in files:
         file_stem = stem(file)
         key = parse_fitname(file_stem)
+        if max_rep is not None:
+            if int(key['rep']) > max_rep:
+                continue
         lf = LearnedFunction.load(os.path.join(dir, file_stem))
         bf = LearnedB(model=lf.metadata['model'])
         bf.func = lf

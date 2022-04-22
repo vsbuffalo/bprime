@@ -3,6 +3,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+try:
+    import tensorflow_addons as tfa
+    PROGRESS_BAR_ENABLED = True
+except ImportError:
+    PROGRESS_BAR_ENABLED = False
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
 
 from bprime.utils import index_cols
@@ -184,7 +189,8 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
 
     return func
 
-def fit_dnn(func, n128, n64, n32, n8, activation='elu', valid_split=0.3, batch_size=64,
+def fit_dnn(func, n128, n64, n32, n8, activation='elu',
+            output_activation='sigmoid', valid_split=0.3, batch_size=64,
             epochs=400, progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
