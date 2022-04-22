@@ -26,7 +26,7 @@ data_file = f"../data/msprime_sims/{name}_data.pkl"
 MODEL_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{activ}}activ_fit_{{rep}}rep.pkl"
 KERAS_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{activ}}activ_fit_{{rep}}rep.h5"
 
-NREPS = 4
+NREPS = 2
 dnn_files = []
 for arch in archs:
     for activ in activations:
@@ -58,7 +58,7 @@ rule fit_dnn:
   output: model=MODEL_FILE, keras=KERAS_FILE
   shell:
      """
-     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --activation {activ} {input} 
+     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --activation {activ} --logtarget {input} 
      """
 
 rule sims:
