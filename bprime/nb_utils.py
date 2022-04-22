@@ -3,11 +3,14 @@ import os
 from collections import defaultdict
 from bprime.learn import LearnedFunction, LearnedB
 
+PATH = r'\w+_(?P<n128>\d+)n128_(?P<n64>\d+)n64_(?P<n32>\d+)n32_(?P<n8>\d+)n8_(?P<activ>(relu|elu|tanh))activ_fit_(?P<rep>\d+)rep'
+
 def stem(x):
     return x.replace('.h5', '')
 
 def parse_fitname(file):
-    match = re.match(r'msprime_bgs_\w+_(?P<n128>\d+)n128_(?P<n64>\d+)n64_(?P<n32>\d+)n32_(?P<n8>\d+)n8_(?P<activ>(relu|elu|tanh))activ_fit_(?P<rep>\d+)rep', file)
+
+    match = re.match(PATH, file)
     assert match is not None, file
     return match.groupdict()
 

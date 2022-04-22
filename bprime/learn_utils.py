@@ -10,7 +10,8 @@ from bprime.sim_utils import fixed_params, get_bounds
 from bprime.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bprime.learn import LearnedFunction
 
-def network(input_size=2, n128=0, n64=4, n32=2, n8=0, output_activation='sigmoid', activation='elu'):
+def network(input_size=2, n128=0, n64=4, n32=2, n8=0,
+            output_activation='sigmoid', activation='elu'):
     # build network
     model = keras.Sequential()
     model.add(tf.keras.Input(shape=(input_size,)))

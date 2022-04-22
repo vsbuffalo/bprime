@@ -139,7 +139,7 @@ def sorted_arch(results):
         return 128**a + 64**b + 32**c + 8**d
     return sorted(results.items(), key=capacity)
 
-def arch_loss_plot(results, ncols=3, sharey=True):
+def arch_loss_plot(results, ncols=3, add_mse=False, sharey=True):
     """
     Visualize all the losses on separate panels for each architecture.
     Different replicates are shown as different colored lines.
@@ -150,6 +150,7 @@ def arch_loss_plot(results, ncols=3, sharey=True):
     lays = [128, 64, 32, 8]
     panels = itertools.product(range(nrows), range(ncols))
     labs = set()
+    n = len(results)
     for i, (arch, activs) in enumerate(sorted_arch(results)):
         panel = next(panels)
         mses = []
@@ -159,7 +160,7 @@ def arch_loss_plot(results, ncols=3, sharey=True):
             for k, func in enumerate(funcs):
                 func = func.func
                 history = func.history
-                line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')
+                line, = ax.plot(history['loss'][1:], label=activ, linestyle='solid')
                 ax.plot(history['val_loss'][1:], c=line.get_color(), label=None, linestyle='dashed')
                 mses.append(signif(func.test_mse(), 6))
                 if panel[1] == 0:
@@ -167,8 +168,9 @@ def arch_loss_plot(results, ncols=3, sharey=True):
                 if panel[0] == 1:
                     ax.set_xlabel("epoch")
                 ax.set_title(arch_lab, fontsize=8)
-        mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
-        ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
+        if add_mse:
+            mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
+            ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
     #ax.legend()
     plt.tight_layout()
     return fig, ax
