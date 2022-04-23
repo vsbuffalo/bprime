@@ -43,7 +43,6 @@ class LearnedFunction(object):
         self.normalized = None   # whether the features have been normalized
         self.transforms = None   # the dict of transforms for parameters
         self.fixed = fixed       # the dict of fixed values
-        self.log_target = False
 
         # Auxillary data
         self.X_train = None
@@ -151,7 +150,7 @@ class LearnedFunction(object):
         self.transforms = {f: None for f in self.features}
         return self
 
-    def scale_features(self, normalize=True, log_target=False, transforms='match'):
+    def scale_features(self, normalize=True, transforms='match'):
         """
         Normalize (center and scale) features, optionally applying
         a feature transform beforehand. This uses sklearn's StandardScaler
@@ -191,12 +190,6 @@ class LearnedFunction(object):
             self.X_test = self.scaler.transform(self.X_test)
             self.X_train = self.scaler.transform(self.X_train)
             self.normalized = True
-        if log_target:
-            self.y_test_orig = self.y_test
-            self.y_train_orig = self.y_train
-            self.y_train = np.log10(self.y_train)
-            self.y_test = np.log10(self.y_test)
-            self.log_target = True
         return self
 
     @property

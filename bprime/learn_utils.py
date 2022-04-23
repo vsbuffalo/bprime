@@ -194,9 +194,6 @@ def fit_dnn(func, n128, n64, n32, n8, activation='elu',
     """
     Fit a DNN based on data in a LearnedFunction.
     """
-    # if logtarget is True, we use a linear activation
-    log_target = func.log_target
-    output_activation = 'sigmoid' if not log_target else 'elu'
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation=output_activation,
                     n128=n128, n64=n64, n32=n32, n8=n8, activation=activation)

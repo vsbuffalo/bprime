@@ -50,13 +50,12 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--batch-size', default=64, help="batch size")
 @click.option('--epochs', default=400, help="number of epochs to run")
 @click.option('--test-size', default=0.2, help="proportion to use as test data set")
-@click.option('--logtarget/--no-logtarget', default=False, help="log the target and use linear output activation")
 @click.option('--reshuffle/--no-reshuffle', default=True, help="reshuffle with new seed")
 @click.option('--match/--no-match', default=True, help="transform X to match if log10 scale")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, 
+def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0,
         activation='elu', batch_size=64,
-        epochs=400, test_size=0.2, logtarget=False, reshuffle=True, 
+        epochs=400, test_size=0.2, reshuffle=True,
         match=True, progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_dnn')
@@ -69,14 +68,14 @@ def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0,
     # split the data into test/train
     func.split(test_size=test_size)
 
-    # transform the features using log10 if the simulation scale is log10
     if match:
-        func.scale_features(transforms='match', log_target=logtarget)
+        # transform the features using log10 if the simulation scale is log10
+        func.scale_features(transforms='match')
     else:
         # just normalize
-        func.scale_features(transforms=None, log_target=logtarget)
+        func.scale_features(transforms=None)
 
-    model, history = fit_dnn(func, n128=n128, n64=n64, n32=n32, n8=n8, 
+    model, history = fit_dnn(func, n128=n128, n64=n64, n32=n32, n8=n8,
                              activation=activation,
                              batch_size=batch_size,
                              epochs=epochs,
