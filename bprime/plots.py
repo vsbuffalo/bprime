@@ -83,11 +83,23 @@ def rate_density_plot(bfunc, figax=None):
     ax[1].set_yscale('log')
     return fig, ax
 
+def theory_loss_plot(bfunc, title="", figax=None):
+    fig, ax = get_figax(figax)
+    x, y = bfunc.theory_B(), bfunc.predict_test()
+    ax.scatter(x, y, alpha=1, s=2)
+    ax.axline((0, 0), slope=1, c='r', linestyle='dashed')
+    ax.set_ylabel("predicted")
+    ax.set_ylabel("theory")
+    mae = bfunc.theory_loss()
+    mse = bfunc.theory_loss(loss='mse')
+    title += f"\ntheory MAE={signif(mae, 4)}, MSE={signif(mse, 3)}"
+    ax.set_title(title, fontsize=8)
+    return fig, ax
 
 def loss_limits_plot(bfunc, add_lowess=True, figax=None):
     fig, ax = get_figax(figax)
     predict = bfunc.predict_test()
-    y_test = bfunc.func.y_test_orig
+    y_test = bfunc.func.y_test
     xnew = np.linspace(predict.min(), predict.max(), 100)
     y = (predict - y_test.squeeze())**2
     x = predict
@@ -139,10 +151,50 @@ def sorted_arch(results):
         return 128**a + 64**b + 32**c + 8**d
     return sorted(results.items(), key=capacity)
 
-def arch_loss_plot(results, ncols=3, add_mse=False, sharey=True):
+def arch_loss_plot(results, ncols=3):
     """
     Visualize all the losses on separate panels for each architecture.
     Different replicates are shown as different colored lines.
+    """
+    nrows = len(results) // ncols
+    figsize = (ncols*3, nrows*2.5)
+    fig, axs = plt.subplots(ncols=ncols, nrows=nrows, sharey=True, figsize=figsize)
+    cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    panels = itertools.product(range(nrows), range(ncols))
+    labs = set()
+    for i, (arch, funcs) in enumerate(results.items()):
+        input_size = funcs[0].func.X_train.shape[1]
+        lays = [128, 64, 32, 8, input_size]
+        arch_lab = ", ".join(f"n{lays[i]}={n}" for i, n in enumerate(arch))
+        panel = next(panels)
+        mses = []
+        if nrows > 1:
+            ax = axs[panel[0], panel[1]]
+        else:
+            ax = axs[panel[1]]
+        for j, func in enumerate(funcs):
+            func = func.func
+            history = func.history
+            line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')
+            ax.plot(history['val_loss'][1:], c=line.get_color(), label=None, linestyle='dashed')
+            mses.append(signif(func.test_mse(), 6))
+            if panel[1] == 0:
+                ax.set_ylabel("loss")
+            if panel[0] == 1:
+                ax.set_xlabel("epoch")
+            ax.set_title(arch_lab, fontsize=8)
+        mse_text = '\n'.join([f"MSE rep {i} = {mse}" for i, mse in enumerate(mses)])
+        ax.text(0.6, 0.9, mse_text, size=5, transform=ax.transAxes)
+    #ax.legend()
+    plt.tight_layout()
+    return fig, ax
+
+def arch_loss_activs_plot(results, ncols=3, add_mse=False, sharey=True):
+    """
+    Visualize all the losses on separate panels for each architecture and
+    activation.
+    Different activations are shown as different colored lines.
     """
     nrows = ceil(len(results) / ncols)
     fig, axs = plt.subplots(ncols=ncols, nrows=nrows, sharey=sharey)
@@ -278,11 +330,14 @@ def feature_loss_plots(bfunc, bins, loss='mae', figax=None):
     return fig, axs
 
 
-def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), **rate_kwargs):
+def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), bhat=False, **rate_kwargs):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
     rate_plot(bfunc, **rate_kwargs, figax=(fig, ax1))
     loss_plot(bfunc, figax=(fig, ax2))
-    bhat_plot(bfunc, bins=bins, figax=(fig, ax3))
+    if bhat:
+        bhat_plot(bfunc, bins=bins, figax=(fig, ax3))
+    else:
+        theory_loss_plot(bfunc, figax=(fig, ax3))
     loss_limits_plot(bfunc, figax=(fig, ax4))
     plt.tight_layout()
     return fig, ((ax1, ax2), (ax3, ax4))
