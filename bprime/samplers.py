@@ -37,6 +37,12 @@ def normal(rng, loc, scale):
         return rng.normal(loc, scale)
     return func
 
+def mixed(low, high, n, prob_log=0.5):
+    flip = np.random.binomial(1, prob_log, n)
+    x = np.random.uniform(10**low, 10**high, n)
+    x[flip.astype(bool)] = 10**np.random.uniform(low, high, flip.sum())
+    return x
+
 def fixed(rng, val):
     # rng is ignored
     def func():
@@ -44,6 +50,7 @@ def fixed(rng, val):
     return func
 
 DISTS = {"fixed": fixed,
+         "mixed": mixed,
          "uniform": uniform,
          "normal": normal,
          "truncnormal": truncnormal,

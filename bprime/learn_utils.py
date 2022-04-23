@@ -15,11 +15,17 @@ from bprime.sim_utils import fixed_params, get_bounds
 from bprime.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bprime.learn import LearnedFunction
 
-def network(input_size=2, n128=0, n64=4, n32=2, n8=0,
+def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
             output_activation='sigmoid', activation='elu'):
+    """
+    Build a sequential network given the specified layers. nx specifies the 
+    number of layers with the number of neurons equal to the input size.
+    """
     # build network
     model = keras.Sequential()
     model.add(tf.keras.Input(shape=(input_size,)))
+    for i in range(nx):
+        model.add(layers.Dense(input_size, activation=activation))
     for i in range(n128):
         model.add(layers.Dense(128, activation=activation))
     for i in range(n64):
@@ -189,17 +195,20 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
 
     return func
 
-def fit_dnn(func, n128, n64, n32, n8, activation='elu',
-            valid_split=0.3, batch_size=64, epochs=400, progress=False):
+def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu',
+            valid_split=0.3, batch_size=64, epochs=400, early_stopping=True, 
+            progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
     """
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation=output_activation,
-                    n128=n128, n64=n64, n32=n32, n8=n8, activation=activation)
-    es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
+                    n128=n128, n64=n64, n32=n32, n8=n8, nx=nx, activation=activation)
+    callbacks = []
+    if early_stopping:
+    	es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                        patience=100, restore_best_weights=True)
-    callbacks = [es]
+    	callbacks.append(es)
     if progress and PROGRESS_BAR_ENABLED:
         callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
 

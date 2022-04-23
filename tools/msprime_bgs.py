@@ -16,7 +16,7 @@ from bprime.utils import signif
 from bprime.sim_utils import read_params
 from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 
-def bgs_msprime_runner(param, model, nreps=1):
+def bgs_msprime_runner(param, model, nreps=5):
     """
     Run msprime with N scaled by B.
 
@@ -29,8 +29,8 @@ def bgs_msprime_runner(param, model, nreps=1):
     B = B_func(**kwargs)
     # protect against B = 0 leading to Ne = 0
     Ne = max(B*N, np.finfo(float).tiny)
-    Bhats = [msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
-             for _ in range(nreps)]
+    Bhats = np.mean([msprime.sim_ancestry(N, population_size=Ne).diversity(mode='branch')/(4*N)
+             for _ in range(nreps)])
     return Bhats
 
 @click.command()
@@ -39,10 +39,11 @@ def bgs_msprime_runner(param, model, nreps=1):
               type=click.File('wb'),
               help='output file (default: <configfile>_sims.npz)')
 @click.option('--nsamples', default=None, type=int, help='number of samples')
+@click.option('--nreps', default=None, help='number of simulations to average over per parameter set')
 @click.option('--ncores', default=1, help='number of cores to use')
 @click.option('--model', default='simple', help="the BGS function to use ('bgs_segment', 'bgs_rec')")
 @click.option('--seed', default=1, help='random seed to use')
-def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple', seed=1):
+def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1, ncores=1, model='simple', seed=1):
     """
     Simulate BGS under a rescaled neutral coalescent model with msprime.
 
@@ -53,7 +54,8 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple',
     There are two BGS functions that can be used. Setting --segment uses the
     'segment' BGS model which is more complicated than then simple model.
 
-    Note that the --nsamples overrides 'nsamples' in the JSON config file!
+    Note that the --nsamples and --nreps override 'nsamples' and 'nreps' 
+    in the JSON config file!
     """
     with open(configfile) as f:
         config = json.load(f)
@@ -74,11 +76,17 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple',
     if len(excess):
         raise ValueError(f"excess params in JSON for '{model}': {excess}")
 
+    # set the nsamples and nreps -- CL args override config
     try:
         total = nsamples if nsamples is not None else config['nsamples']
     except KeyError:
         raise KeyError(f"configfile '{configfile}' does not specify nsamples"
                         " and --nsamples not set via command line")
+
+    try:
+    	nreps = nreps if nreps is not None else config['nreps']
+    except KeyError:
+        nreps = 1
 
     sampler = Sampler(ranges, total=total, seed=seed, add_seed=False)
 
@@ -89,7 +97,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, ncores=1, model='simple',
         outfile = f"{basename}_sims.npz"
 
     # get the right BGS simulation function and wrap it
-    runner_func = partial(bgs_msprime_runner, model=model)
+    runner_func = partial(bgs_msprime_runner, nreps=nreps, model=model)
     if ncores > 1:
         with Pool(ncores) as p:
             y = np.array(list(tqdm.tqdm(p.imap(runner_func, sampler),

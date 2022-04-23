@@ -7,13 +7,22 @@ name = config['name']
 model = config['model']
 
 # network architectures to try
-archs = [dict(n128=0, n64=0, n32=0, n8=1),
-         dict(n128=0, n64=0, n32=0, n8=2),
-         dict(n128=0, n64=0, n32=0, n8=4),
-         dict(n128=0, n64=0, n32=1, n8=0),
-         dict(n128=0, n64=0, n32=2, n8=0),
-         dict(n128=0, n64=0, n32=4, n8=0),
+#archs = [dict(n128=0, n64=0, n32=0, n8=1, nI=0),
+#         dict(n128=0, n64=0, n32=0, n8=2, nI=0),
+#         dict(n128=0, n64=0, n32=0, n8=4, nI=0),
+#         dict(n128=0, n64=0, n32=1, n8=0, nI=0),
+#         dict(n128=0, n64=0, n32=2, n8=0, nI=0),
+#         dict(n128=0, n64=0, n32=4, n8=0, nI=0),
+#         dict(n128=0, n64=0, n32=0, n8=0, nI=2),
+#         dict(n128=0, n64=0, n32=0, n8=0, nI=4),
+#         ]
+
+archs = [dict(n128=0, n64=0, n32=4, n8=2, nx=0),
+         dict(n128=0, n64=0, n32=0, n8=0, nx=2),
+         dict(n128=0, n64=0, n32=0, n8=0, nx=4),
          ]
+
+
 
 #activations = ['elu', 'relu', 'tanh']
 activations = ['elu']
@@ -23,8 +32,8 @@ sim_file = f"../data/msprime_sims/{name}.npz",
 # the learned func, pickled
 data_file = f"../data/msprime_sims/{name}_data.pkl"
 
-MODEL_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{activ}}activ_fit_{{rep}}rep.pkl"
-KERAS_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{activ}}activ_fit_{{rep}}rep.h5"
+MODEL_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep.pkl"
+KERAS_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep.h5"
 
 NREPS = 2
 dnn_files = []
@@ -58,7 +67,9 @@ rule fit_dnn:
   output: model=MODEL_FILE, keras=KERAS_FILE
   shell:
      """
-     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --activation {activ} {input} 
+     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
+      --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
+      --activation {activ} {input} 
      """
 
 rule sims:
