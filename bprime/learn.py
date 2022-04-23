@@ -473,7 +473,7 @@ class LearnedB(object):
     def predict_loss(self, loss='mae', raw=False):
         lossfunc = get_loss_func(loss)
         predict = self.predict_test()
-        ytest = self.func.y_test_orig
+        ytest = self.func.y_test
         lossvals = lossfunc(ytest, predict)
         if raw:
             return B, lossvals
