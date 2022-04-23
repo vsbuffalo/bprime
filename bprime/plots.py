@@ -135,7 +135,7 @@ def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs)
 def sorted_arch(results):
     def capacity(item):
         key, _ = item
-        a, b, c, d = key
+        a, b, c, d = key[:4]
         return 128**a + 64**b + 32**c + 8**d
     return sorted(results.items(), key=capacity)
 
@@ -147,15 +147,19 @@ def arch_loss_plot(results, ncols=3, add_mse=False, sharey=True):
     nrows = ceil(len(results) / ncols)
     fig, axs = plt.subplots(ncols=ncols, nrows=nrows, sharey=sharey)
     cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    lays = [128, 64, 32, 8]
     panels = itertools.product(range(nrows), range(ncols))
     labs = set()
     n = len(results)
-    for i, (arch, activs) in enumerate(sorted_arch(results)):
+    for i, (arch, activs) in enumerate(results.items()):
         panel = next(panels)
         mses = []
-        ax = axs[panel[0], panel[1]]
+        if nrows > 1:
+            ax = axs[panel[0], panel[1]]
+        else:
+            ax = axs[panel[1]]
         for j, (activ, funcs) in enumerate(activs.items()):
+            input_size = funcs[0].func.X_train.shape[1]
+            lays = [128, 64, 32, 8, input_size]
             arch_lab = ", ".join(f"n{lays[i]}={n}" for i, n in enumerate(arch))
             for k, func in enumerate(funcs):
                 func = func.func

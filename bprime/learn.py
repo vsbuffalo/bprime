@@ -112,9 +112,8 @@ class LearnedFunction(object):
 
     def __repr__(self):
         nfeat = len(self.features)
-        ntarg = self.y.shape[1]
         rows = [
-            f"LearnedFunction with {nfeat} feature(s) and {ntarg} target(s)",
+            f"LearnedFunction with {nfeat} feature(s)",
             f" variable feature(s):"
         ]
         for feature in self.features:
@@ -456,8 +455,6 @@ class LearnedB(object):
             self._X_test_hash = X_test_hash
             predict = self.func.predict_test()
             self._predict = predict
-        else:
-            print("using cached predictions")
         return self._predict
 
     def binned_Bhats(self, bins):

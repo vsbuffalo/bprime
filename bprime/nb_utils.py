@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from bprime.learn import LearnedFunction, LearnedB
 
-PATH = r'\w+_(?P<n128>\d+)n128_(?P<n64>\d+)n64_(?P<n32>\d+)n32_(?P<n8>\d+)n8_(?P<activ>(relu|elu|tanh))activ_fit_(?P<rep>\d+)rep'
+PATH = r'\w+_(?P<n128>\d+)n128_(?P<n64>\d+)n64_(?P<n32>\d+)n32_(?P<n8>\d+)n8_(?P<nx>\d+)nx_(?P<activ>(relu|elu|tanh))activ_fit_(?P<rep>\d+)rep'
 
 def stem(x):
     return x.replace('.h5', '')
@@ -20,7 +20,7 @@ def load_learnedfuncs_in_dir(dir, max_rep=None):
     """
     files = [f for f in os.listdir(dir) if f.endswith('.h5')]
     out = defaultdict(lambda: defaultdict(list))
-    layers = ['n128', 'n64', 'n32', 'n8']
+    layers = ['n128', 'n64', 'n32', 'n8', 'nx']
     for file in files:
         file_stem = stem(file)
         key = parse_fitname(file_stem)
