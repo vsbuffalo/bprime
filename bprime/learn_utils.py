@@ -195,7 +195,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
 
     return func
 
-def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu',
+def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
             valid_split=0.3, batch_size=64, epochs=400, early_stopping=True, 
             progress=False):
     """
