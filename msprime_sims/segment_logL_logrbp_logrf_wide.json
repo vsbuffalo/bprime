@@ -1,0 +1,15 @@
+{
+  "name": "segment_logL_logrbp_logrf_wide",
+  "model": "bgs_segment",
+  "params":
+     {
+       "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},
+       "mu": {"dist": {"name": "log10_uniform", "low": -10, "high": -5}, "type": "float"},
+       "s": {"dist": {"name": "log10_uniform", "low": -6, "high": -1}, "type": "float"},
+       "h": {"dist": {"name": "fixed", "val": 0.5}, "type": "float"},
+       "rf": {"dist": {"name": "log10_uniform", "low": -10, "high": -2}, "type": "float"},
+       "rbp": {"dist": {"name": "log10_uniform", "low": -10, "high": -7}, "type": "float"},
+       "L": {"dist": {"name": "log10_uniform", "low": -1, "high": 3.04}, "type": "float"}
+     },
+  "nsamples": 1000000
+}
