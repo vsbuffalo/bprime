@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 import scipy.stats as stats
 from bprime.utils import signif

@@ -11,7 +11,7 @@ import pickle
 import click
 import json
 from functools import partial
-from bprime.samplers import Sampler
+from bprime.samplers import Sampler, target_rejection_sampler
 from bprime.utils import signif
 from bprime.sim_utils import read_params
 from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
@@ -45,7 +45,7 @@ def bgs_msprime_runner(param, model, nreps=5):
 @click.option('--reject/--no-reject', default=False, help="rejection sample the target")
 @click.option('--seed', default=1, help='random seed to use')
 def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
-            ncores=1, model='simple', reject=reject, seed=1):
+            ncores=1, model='simple', reject=False, seed=1):
     """
     Simulate BGS under a rescaled neutral coalescent model with msprime.
 
@@ -73,7 +73,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
         # that go to sims (like N) aren't included here (since those model
         # funcs don't support them
         kwargs = {k: v for k, v in kwargs.items() if k in func_params}
-        return func(kwargs)
+        return func(**kwargs)
 
     ranges, _ = read_params(config, add_rep=False)
 
@@ -102,9 +102,13 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
 
     print(sampler)
 
+    # rejection sampling if either in config or param line
+    reject = config.get('reject', False) or reject
+
+    total = sampler.total
     if reject:
-        sampler = target_rejection_sampler(func2, sampler, n=sampler.total)
         sampler.total = None # turn this into an infinite sampler
+        sampler = target_rejection_sampler(func2, sampler, n=total)
 
     if outfile is None:
         basename = os.path.splitext(os.path.basename(configfile))[0]
@@ -115,10 +119,10 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
     if ncores > 1:
         with Pool(ncores) as p:
             y = np.array(list(tqdm.tqdm(p.imap(runner_func, sampler),
-                                        total=sampler.total)))
+                                        total=total)))
     else:
         y = np.array(list(tqdm.tqdm((runner_func(s) for s in sampler),
-                                     total=sampler.total)))
+                                     total=total)))
 
     X, features = sampler.as_matrix()
     assert(len(y) == X.shape[0])
