@@ -329,6 +329,27 @@ def feature_loss_plots(bfunc, bins, loss='mae', figax=None):
     plt.tight_layout()
     return fig, axs
 
+def rf_plot(bfunc, figax=None):
+    fig, ax = get_figax(figax)
+    # Note that the training data does not log10 mu, but here we do (otherwise the grid looks
+    # like chunky peanut butter).
+    bs = []
+    ys = []
+    func = bfunc.func
+    for sh in np.logspace(-5, -1,  20):
+        (mu_grid_rbp, s_grid_rbp, a, b, c), X_mesh_orig_rbp, X_mesh_rbp, predict_grid_rbp = func.predict_grid({'rf': 100},
+                                                                                                              fix_X={'mu': 1e-5,
+                                                                                                                     'sh': sh,
+                                                                                                                     'rbp': 1e-8,
+                                                                                                                     'L': 1_000})
+        bs.append(a)
+        ys.append(predict_grid_rbp)
+    cmap = cm.viridis(np.linspace(0, 1, 20))
+    for i, y in enumerate(ys):
+        ax.plot(np.log10(bs[0]), y.squeeze(), c=cmap[i])
+    return fig, ax
+
+
 
 def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), bhat=False, **rate_kwargs):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)

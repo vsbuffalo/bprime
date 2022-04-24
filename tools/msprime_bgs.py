@@ -42,8 +42,10 @@ def bgs_msprime_runner(param, model, nreps=5):
 @click.option('--nreps', default=None, help='number of simulations to average over per parameter set')
 @click.option('--ncores', default=1, help='number of cores to use')
 @click.option('--model', default='simple', help="the BGS function to use ('bgs_segment', 'bgs_rec')")
+@click.option('--reject/--no-reject', default=False, help="rejection sample the target")
 @click.option('--seed', default=1, help='random seed to use')
-def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1, ncores=1, model='simple', seed=1):
+def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
+            ncores=1, model='simple', reject=reject, seed=1):
     """
     Simulate BGS under a rescaled neutral coalescent model with msprime.
 
@@ -54,7 +56,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1, ncores=1, model=
     There are two BGS functions that can be used. Setting --segment uses the
     'segment' BGS model which is more complicated than then simple model.
 
-    Note that the --nsamples and --nreps override 'nsamples' and 'nreps' 
+    Note that the --nsamples and --nreps override 'nsamples' and 'nreps'
     in the JSON config file!
     """
     with open(configfile) as f:
@@ -62,8 +64,16 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1, ncores=1, model=
 
     try:
         func_params = BGS_MODEL_PARAMS[model]
+        func = BGS_MODEL_FUNCS[model]
     except KeyError:
         raise KeyError("--func must be either ', '.join(BGS_MODEL_PARAMS.keys())")
+
+    def func2(**kwargs):
+        # wrap the BGS model function such that non-used fixed params
+        # that go to sims (like N) aren't included here (since those model
+        # funcs don't support them
+        kwargs = {k: v for k, v in kwargs.items() if k in func_params}
+        return func(kwargs)
 
     ranges, _ = read_params(config, add_rep=False)
 
@@ -84,13 +94,17 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1, ncores=1, model=
                         " and --nsamples not set via command line")
 
     try:
-    	nreps = nreps if nreps is not None else config['nreps']
+        nreps = nreps if nreps is not None else config['nreps']
     except KeyError:
         nreps = 1
 
     sampler = Sampler(ranges, total=total, seed=seed, add_seed=False)
 
     print(sampler)
+
+    if reject:
+        sampler = target_rejection_sampler(func2, sampler, n=sampler.total)
+        sampler.total = None # turn this into an infinite sampler
 
     if outfile is None:
         basename = os.path.splitext(os.path.basename(configfile))[0]
