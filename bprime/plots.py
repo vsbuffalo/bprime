@@ -86,7 +86,7 @@ def rate_density_plot(bfunc, figax=None):
 def theory_loss_plot(bfunc, title="", figax=None):
     fig, ax = get_figax(figax)
     x, y = bfunc.theory_B(), bfunc.predict_test()
-    ax.scatter(x, y, alpha=1, s=2)
+    ax.scatter(x, y, alpha=0.1, s=2)
     ax.axline((0, 0), slope=1, c='r', linestyle='dashed')
     ax.set_ylabel("predicted")
     ax.set_ylabel("theory")

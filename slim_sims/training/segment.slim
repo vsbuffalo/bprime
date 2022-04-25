@@ -1,7 +1,14 @@
 initialize() {
   source("../utils.slim");
   initializeTreeSeq();
-  defineConstant("seed", getSeed());
+  if (!exists("rep")) {
+    defineConstant("rep", 0);
+  }
+  // make a replicate-specfic seed
+  // there is a *tiny* chance this could overflow the seed(!)
+  // so the little adjustment is to prevent that
+  MAXREP = 10;
+  defineConstant("seed", max(0, getSeed()-MAXREP) + rep);
   defineConstant("metadata", Dictionary());
   defineConstant("tracklen", 10);
   if (!exists("name")) {
@@ -44,6 +51,7 @@ initialize() {
   metadata.setValue("tracklen", tracklen);
   metadata.setValue("L", L);
   metadata.setValue("region_length", region_length);
+  metadata.setValue("rep", rep);
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
