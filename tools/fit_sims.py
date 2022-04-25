@@ -52,20 +52,22 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--epochs', default=1000, help="number of epochs to run")
 @click.option('--early/--no-early', default=True, help="use early stopping")
 @click.option('--test-size', default=0.2, help="proportion to use as test data set")
-@click.option('--reshuffle/--no-reshuffle', default=True, help="reshuffle with new seed")
+@click.option('--reseed/--no-reseed', default=True, help="reseed with new seed")
 @click.option('--match/--no-match', default=True, help="transform X to match if log10 scale")
 @click.option('--progress/--no-progress', default=True, help="show progress")
 def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
         activation='elu', batch_size=64,
-        epochs=1000, early=True, test_size=0.2, reshuffle=True, 
+        epochs=1000, early=True, test_size=0.2, reseed=True,
         match=True, progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_dnn')
 
     func = LearnedFunction.load(funcfile)
 
-    if reshuffle:
-        func.reshuffle()
+    # if we want to fit the model on a new, fresh split of test/train
+    # compared to the data that's loaded in, we reseed.
+    if reseed:
+        func.reseed()
 
     # split the data into test/train
     func.split(test_size=test_size)

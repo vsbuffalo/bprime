@@ -67,21 +67,20 @@ class LearnedFunction(object):
         self.history = None
         self.metadata = None
 
-    def reshuffle(self, seed=None):
+    def reseed(self, seed=None):
         """
-        Reset the RandomState with seed, resplit the data,
-        and rescale the features using the arguments used previously.
+        Reset the RandomState with seed and clear out the random state.
         """
         if seed is None:
             seed = random_seed()
         self.seed = seed
         self.rng = np.random.RandomState(seed)
-        # store existing transforms (reset during split)
-        normalize = self.normalized
-        transforms = self.transforms
-        self.split(test_size=self.test_size)
-        self.scale_features(normalize, transforms)
-        return self
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+        self.X_test_raw = None
+        self.X_train_raw = None
 
     def _parse_domains(self, domain):
         """
@@ -180,7 +179,6 @@ class LearnedFunction(object):
         if self.normalized or not all(x is None for x in self.transforms.values()):
             raise ValueError("X already transformed!")
         if transforms not in (None, 'match'):
-            raise NotImplementedError("transforms must be None or 'match'")
             valid_transforms = all(t in self.features for t in transforms.keys())
             if not valid_transforms:
                 raise ValueError("'transforms' dict has key not in features")
