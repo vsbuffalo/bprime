@@ -4,11 +4,7 @@ initialize() {
   if (!exists("rep")) {
     defineConstant("rep", 0);
   }
-  // make a replicate-specfic seed
-  // there is a *tiny* chance this could overflow the seed(!)
-  // so the little adjustment is to prevent that
-  MAXREP = 10;
-  defineConstant("seed", max(0, getSeed()-MAXREP) + rep);
+  defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
   defineConstant("tracklen", 10);
   if (!exists("name")) {
@@ -55,7 +51,7 @@ initialize() {
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  filestr = filename_str(c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed'));
+  filestr = filename_str(c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed', 'rep'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 

@@ -149,7 +149,7 @@ def target_rejection_sampler(func, sampler, n, burnin=1000,
     return accepted
 
 class Sampler(object):
-    def __init__(self, params, total=None, nreps=None, seed=None, add_seed=True,
+    def __init__(self, params, total=None, seed=None, add_seed=False,
                  seed_max=2**32, signif_digits=4):
         assert isinstance(total, int) or total is None
         assert isinstance(seed, int) or seed is None
@@ -158,8 +158,6 @@ class Sampler(object):
             seed = random_seed()
         self.rng = np.random.default_rng(seed)
         self.seed = seed
-        self.nreps = nreps
-        self._reps_remaining = nreps
         self.add_seed = add_seed
         self.seed_max = seed_max
         self.params = params
@@ -199,33 +197,15 @@ class Sampler(object):
         """
         _ = list(self)
 
-    def _draw_one(self):
+    def __next__(self):
+        if self.total is not None and self.samples_remaining == 0:
+            raise StopIteration
+        assert self.samples_remaining is None or self.samples_remaining >= 0
         sample = self.sampler()
         if self.total is not None:
             self.samples_remaining -= 1
         self.samples.append(sample)
         return sample
-
-    # def _draw_many(self):
-    #     if len(self._reps_remaining):
-    #         # there's more replicates to send down the ol' tube
-    #         # note we only append to samples list once its sent
-    #         sample = self._reps_remaining.pop()
-    #         self.samples.append(sample)
-    #         return sample
-    #     else:
-    #         for rep in range(self.nreps):
-    #             sample = self.sampler()
-    #             if self.total is not None:
-    #                 self.samples_remaining -= 1
-
-
-    def __next__(self):
-        if self.total is not None and self.samples_remaining == 0:
-            raise StopIteration
-        assert self.samples_remaining is None or self.samples_remaining >= 0
-        if self.nreps is None or self.nreps == 1:
-            return self._draw_one()
 
     def __repr__(self):
         remain = f"{self.samples_remaining}/{self.total}" if self.total is not None else '∞'

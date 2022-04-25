@@ -92,8 +92,9 @@ class SlimRuns(object):
         assert config['runtype'] in ['grid', 'samples'], msg
         self.runtype = config['runtype']
         self.name = config['name']
+        self.nreps = config.get('nreps', None)
         if self.is_grid:
-            self.nreps = config['nreps']
+            assert self.nreps is not None
         if self.is_samples:
             self.nsamples = config['nsamples']
 
@@ -116,6 +117,18 @@ class SlimRuns(object):
             raise ValueError("no sampler function specified and runtype='samples'")
         self.sampler = None
 
+    def _generate_runs(self, package_rep=True):
+        # package_rep is whether to include 'rep' into sample dict
+        if self.nreps is None or self.nreps == 1:
+            self.runs = list(self.sampler)
+        else:
+            for rep in range(self.nreps):
+                # draw nreps samples
+                sample = next(self.sampler))
+                if package_rep:
+                    sample['rep'] = rep
+                self.runs.append(sample)
+
     def generate(self):
         """
         Run the sampler to generate samples or expand out the parameter grid.
@@ -126,8 +139,9 @@ class SlimRuns(object):
             self.runs = param_grid(self.params)
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
-                                             seed=self.seed)
-            self.runs = list(self.sampler)
+                                             add_seed=True, seed=self.seed)
+            self._generate_runs()
+
 
         if self.split_dirs is not None:
             runs = []
@@ -137,6 +151,10 @@ class SlimRuns(object):
                 new_run = {**new_run, **run}
                 runs.append(new_run)
             self.runs = runs
+
+    @property
+    def has_reps(self):
+        self.nreps is not None and self.nreps > 1
 
     @property
     def is_grid(self):
@@ -177,7 +195,7 @@ class SlimRuns(object):
         """
         return filename_pattern(self.dir, self.basename, self.params.keys(),
                                 split_dirs=self.split_dirs is not None,
-                                seed=self.add_seed)
+                                seed=self.add_seed, rep=self.has_reps)
 
     def wildcard_output(self, suffix):
         """
