@@ -137,6 +137,14 @@ class LearnedFunction(object):
         rows.append(f"Total size: {self.X.shape[0]:,}")
         return "\n".join(rows)
 
+    def _protect(self):
+        protectables = ['X', 'y', 'X_test', 'X_train', 'y_test', 'y_train',
+                        'X_test_raw', 'X_train_raw']
+        for protectable in protectables:
+            val = getattr(self, protectable)
+            if val is not None:
+                val.setflags(write=False)
+
     def split(self, test_size=0.2):
         """
         Make a test/train split. This resets the state of the object
@@ -150,13 +158,10 @@ class LearnedFunction(object):
         self.X_test = Xtst
         self.y_train = ytrn.squeeze()
         self.y_test = ytst.squeeze()
-        self.y_train.setflags(write=False)
-        self.y_test.setflags(write=False)
         # store the pre-transformed daata, which is useful for figures, etc
         self.X_test_raw = np.copy(self.X_test)
-        self.X_test_raw.setflags(write=False)
         self.X_train_raw = np.copy(self.X_train)
-        self.X_train_raw.setflags(write=False)
+        self._protect()
         self.normalized = False
         self.transforms = {f: None for f in self.features}
         return self
@@ -183,6 +188,10 @@ class LearnedFunction(object):
             if not valid_transforms:
                 raise ValueError("'transforms' dict has key not in features")
         # all this is done in place(!)
+        X_train = np.copy(self.X_train)
+        X_test = np.copy(self.X_test)
+        X_train.setflags(write=True)
+        X_test.setflags(write=True)
         for feature, col_idx in self.features.items():
             trans_func = None
             if transforms == 'match' and self.logscale[feature]:
@@ -191,17 +200,19 @@ class LearnedFunction(object):
                 trans_func = transforms.get(feature, None)
             if trans_func is not None:
                 # do the transform with the given trans_func
-                self.X_train[:, col_idx] = trans_func(self.X_train[:, col_idx])
-                self.X_test[:, col_idx] = trans_func(self.X_test[:, col_idx])
+                X_train[:, col_idx] = trans_func(X_train[:, col_idx])
+                X_test[:, col_idx] = trans_func(X_test[:, col_idx])
                 self.transforms[feature] = trans_func
         if normalize:
-            self.scaler = StandardScaler().fit(self.X_train)
-            self.X_test = self.scaler.transform(self.X_test)
-            self.X_train = self.scaler.transform(self.X_train)
+            self.scaler = StandardScaler().fit(X_train)
+            X_test = self.scaler.transform(X_test)
+            X_train = self.scaler.transform(X_train)
             self.normalized = True
-        # if we've done the transforms once, make everything unwriteable
-        self.X_test.setflags(write=False)
-        self.X_train.setflags(write=False)
+        # if we've done the transforms once, save them to the object
+        # and protect them
+        self.X_test = X_test
+        self.X_train = X_train
+        self._protect()
         return self
 
     def save(self, filepath):
@@ -229,6 +240,9 @@ class LearnedFunction(object):
             filepath = filepath.replace('.pkl', '')
         with open(f"{filepath}.pkl", 'rb') as f:
             obj = pickle.load(f)
+            # numpy write flags are not preserved when pickling objects(!), so
+            # need to fix that here.
+            obj._protect()
         model_path = f"{filepath}.h5"
         if load_model and os.path.exists(model_path):
             obj.model = keras.models.load_model(model_path)
@@ -263,6 +277,7 @@ class LearnedFunction(object):
 
 
     def check_bounds(self, X, correct_bounds=False):
+        # mutates in place!
         out_lowers, out_uppers = [], []
         total = 0
         for i, feature in enumerate(self.features):
@@ -300,6 +315,7 @@ class LearnedFunction(object):
         dict are applied to match those applied from LearnedB.scale_features().
         """
         assert self.has_model
+        X = np.copy(X)
         X = self.check_bounds(X, correct_bounds)
         if transforms:
             for i, (feature, trans_func) in enumerate(self.transforms.items()):
