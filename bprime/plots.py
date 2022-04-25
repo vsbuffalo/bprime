@@ -72,7 +72,7 @@ def loss_plot(bfunc, figax=None):
 def rate_density_plot(bfunc, figax=None):
     fig, ax = get_figax(figax, ncols=2)
     Xcols = bfunc.func.col_indexer()
-    X_test = bfunc.func.X_test_orig_linear
+    X_test = bfunc.func.X_test_raw
     B_theory = bfunc.theory_B(X_test)
     ax[0].hist(np.log10(X_test[:, Xcols('mu')]/X_test[:, Xcols('sh')]))
     ax[0].set_xlabel("$\mu/s$")
@@ -121,7 +121,7 @@ def rate_plot(bfunc, c=None, figax=None, add_theory=True, **predict_grid_kwargs)
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
 
-    X_test = bfunc.func.X_test_orig_linear
+    X_test = bfunc.func.X_test_raw
     test_rate = (X_test[:, Xcols('mu')]/X_test[:, Xcols('sh')]).squeeze()
     if c is not None:
         if c == 'rate':
@@ -236,7 +236,7 @@ def feature_loss_plot(bfunc, feature, bins, log10=True, loss='mae',
     lossfunc = get_loss_func(loss)
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
-    X_test = bfunc.func.X_test_orig_linear
+    X_test = bfunc.func.X_test_raw
     test_theory = bfunc.theory_B(X_test)
     rate = X_test[:, Xcols(feature)].squeeze()
     if log10:
@@ -265,7 +265,7 @@ def rate_loss_plot(bfunc, bins, loss='mae', logx=True, logy=True, figax=None):
     lossfunc = get_loss_func(loss)
     fig, ax = get_figax(figax)
     Xcols = bfunc.func.col_indexer()
-    X_test = bfunc.func.X_test_orig_linear
+    X_test = bfunc.func.X_test_raw
     test_theory = bfunc.theory_B(X_test)
     rate = np.log10(X_test[:, Xcols('mu')] / X_test[:, Xcols('sh')]).squeeze()
     if isinstance(bins, int):

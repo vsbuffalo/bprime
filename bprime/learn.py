@@ -36,6 +36,8 @@ class LearnedFunction(object):
         n = X.shape[0]
         self.X = X
         self.y = y
+        self.X.setflags(write=False)
+        self.y.setflags(write=False)
         self.test_size = None
         self.features = {}       # dict of features of X and their column
         self.bounds = {}         # dict of lower, upper boundaries
@@ -149,6 +151,13 @@ class LearnedFunction(object):
         self.X_test = Xtst
         self.y_train = ytrn.squeeze()
         self.y_test = ytst.squeeze()
+        self.y_train.setflags(write=False)
+        self.y_test.setflags(write=False)
+        # store the pre-transformed daata, which is useful for figures, etc
+        self.X_test_raw = np.copy(self.X_test)
+        self.X_test_raw.setflags(write=False)
+        self.X_train_raw = np.copy(self.X_train)
+        self.X_train_raw.setflags(write=False)
         self.normalized = False
         self.transforms = {f: None for f in self.features}
         return self
@@ -175,9 +184,7 @@ class LearnedFunction(object):
             valid_transforms = all(t in self.features for t in transforms.keys())
             if not valid_transforms:
                 raise ValueError("'transforms' dict has key not in features")
-        # store the pre-transformed daata, which is useful for figures, etc
-        self.X_test_raw = np.copy(self.X_test)
-        self.X_train_raw = np.copy(self.X_train)
+        # all this is done in place(!)
         for feature, col_idx in self.features.items():
             trans_func = None
             if transforms == 'match' and self.logscale[feature]:
@@ -194,6 +201,9 @@ class LearnedFunction(object):
             self.X_test = self.scaler.transform(self.X_test)
             self.X_train = self.scaler.transform(self.X_train)
             self.normalized = True
+        # if we've done the transforms once, make everything unwriteable
+        self.X_test.setflags(write=False)
+        self.X_train.setflags(write=False)
         return self
 
     def save(self, filepath):
