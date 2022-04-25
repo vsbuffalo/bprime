@@ -124,7 +124,11 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
         y = np.array(list(tqdm.tqdm((runner_func(s) for s in sampler),
                                      total=total)))
 
-    X, features = sampler.as_matrix()
+    if not reject:
+    	X, features = sampler.as_matrix()
+    else:
+        X = np.array([list(v.values()) for v in sampler])
+        features = list(sampler[0].keys())
     assert(len(y) == X.shape[0])
     targets = ['Bhat']
     np.savez(outfile, X=X, y=y, features=features, targets=targets)
