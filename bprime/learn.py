@@ -49,10 +49,13 @@ class LearnedFunction(object):
         self.X_test = None
         self.y_train = None
         self.y_test = None
-        self.X_test_orig = None
-        self.X_train_orig = None
-        self.y_test_orig = None
-        self.y_train_orig = None
+        # these are the X_test/X_train values *before* transforms/scales
+        # have been applied
+        self.X_test_raw = None
+        self.X_train_raw = None
+        # raw y's not needed currently, no y transforms used
+        # self.y_test_raw = None
+        # self.y_train_raw = None
 
         # parse the data domains
         self._parse_domains(domain)
@@ -152,28 +155,29 @@ class LearnedFunction(object):
 
     def scale_features(self, normalize=True, transforms='match'):
         """
-        Normalize (center and scale) features, optionally applying
-        a feature transform beforehand. This uses sklearn's StandardScaler
-        so inverse transforms are easy.
+        Normalize (center and scale) the split features (test/train), optionally
+        applying a feature transform beforehand. This uses sklearn's
+        StandardScaler so inverse scaling is easy.
 
-        If transforms = 'match', inputs are log10 scaled based on whether
-        the domain was log10 scale. If transforms is None, no transformations
-        are conducted. A dict of manual transforms can also be supplied.
+        If transforms = 'match', inputs are log10 scaled based on whether the
+        domain was log10 scale. If transforms is None, no transformations are
+        conducted. A dict of manual transforms can also be supplied.
 
         normalize: boolean whether to center and scale
-        feature_transforms: dictionary of feature, transform function pairs
+        transforms: dictionary of feature, transform function pairs
         """
         if not self.is_split:
             raise ValueError("X, y must be split first")
         if self.normalized or not all(x is None for x in self.transforms.values()):
             raise ValueError("X already transformed!")
         if transforms not in (None, 'match'):
+            raise NotImplementedError("transforms must be None or 'match'")
             valid_transforms = all(t in self.features for t in transforms.keys())
             if not valid_transforms:
                 raise ValueError("'transforms' dict has key not in features")
         # store the pre-transformed daata, which is useful for figures, etc
-        self.X_test_orig = self.X_test
-        self.X_train_orig = self.X_train
+        self.X_test_raw = np.copy(self.X_test)
+        self.X_train_raw = np.copy(self.X_train)
         for feature, col_idx in self.features.items():
             trans_func = None
             if transforms == 'match' and self.logscale[feature]:
@@ -191,27 +195,6 @@ class LearnedFunction(object):
             self.X_train = self.scaler.transform(self.X_train)
             self.normalized = True
         return self
-
-    @property
-    def X_test_orig_linear(self):
-        "Return LearnedFunction.X_train_orig, transforming log10'd columns back to linear"
-        X = np.copy(self.X_test_orig)
-        for i, feature in enumerate(self.features):
-            if self.logscale[feature]:
-                X[:, i] = 10**X[:, i]
-
-        return X
-
-
-    @property
-    def X_train_orig_linear(self):
-        "Return LearnedFunction.X_train_orig, transforming log10'd columns back to linear"
-        X = np.copy(self.X_train_orig)
-        for i, feature in enumerate(self.features):
-            if self.logscale[feature]:
-                X[:, i] = 10**X[:, i]
-
-        return X
 
     def save(self, filepath):
         """
@@ -249,16 +232,18 @@ class LearnedFunction(object):
 
     def predict_test(self, **kwargs):
         """
-        Predict the test data.
+        Predict the test data in LearnedFunction.X_test (note: this has
+        already been transformed and scaled). This function expects
+        transformed/scaled data -- it's fed directly into model prediction.
         """
         assert self.has_model
-        return self.model.predict(self.X_test, **kwargs).squeeze()
+        return self.predict(self.X_test_raw, **kwargs).squeeze()
 
     def test_mae(self):
-        return np.mean(np.abs(self.model.predict(self.X_test).squeeze() - self.y_test))
+        return np.mean(np.abs(self.predict(self.X_test_raw).squeeze() - self.y_test))
 
     def test_mse(self):
-        return np.mean((self.model.predict(self.X_test).squeeze() - self.y_test)**2)
+        return np.mean((self.predict(self.X_test_raw).squeeze() - self.y_test)**2)
 
     def get_bounds(self, feature):
         "Get the bounds, rescaling to linear if log-transformed"
@@ -302,9 +287,9 @@ class LearnedFunction(object):
     def predict(self, X, correct_bounds=True, transforms=True,
                 scale_input=True, **kwargs):
         """
-        Predict for an input function X (linear space). If transforms is True,
-        and transforms in LearnedFunction.transforms dict are applied to match
-        those applied from LearnedB.scale_features().
+        Predict for an input function X (in the same as simulation space).
+        If transforms is True, and transforms in LearnedFunction.transforms
+        dict are applied to match those applied from LearnedB.scale_features().
         """
         assert self.has_model
         X = self.check_bounds(X, correct_bounds)
@@ -321,7 +306,7 @@ class LearnedFunction(object):
         Predict the training data.
         """
         assert self.has_model
-        return self.model.predict(self.X_train, **kwargs).squeeze()
+        return self.predict(self.X_train_raw, **kwargs).squeeze()
 
     def domain_grids(self, n, fix_X=None):
         """
@@ -371,7 +356,7 @@ class LearnedFunction(object):
             print("done.")
         mesh_array = np.stack(mesh)
         X_meshcols = np.stack([col.flatten() for col in mesh]).T
-        X_meshcols_orig = X_meshcols.copy()
+        X_meshcols_raw = X_meshcols.copy()
         # transform/scale the new mesh
         for feature, col_idx in self.features.items():
             trans_func = self.transforms.get(feature, None)
@@ -381,7 +366,7 @@ class LearnedFunction(object):
             X_meshcols = self.scaler.transform(X_meshcols)
 
         predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
-        return domain_grids, X_meshcols_orig, X_meshcols, predict.reshape(mesh[0].shape)
+        return domain_grids, X_meshcols_raw, X_meshcols, predict.reshape(mesh[0].shape)
 
 
 
@@ -418,11 +403,11 @@ class LearnedB(object):
     def theory_B(self, X=None):
         """
         Compute the BGS theory given the right function ('segment' or 'rec')
-        on the feature matrix X. E.g. use for X_test_orig_linear or using
+        on the feature matrix X. E.g. use for X_test_raw or using
         meshgrids.
         """
         if X is None:
-            X = self.func.X_test_orig_linear
+            X = self.func.X_test_raw
         assert X.shape[1] == len(self.func.features)
         features = self.func.features
         kwargs = {}
@@ -440,15 +425,22 @@ class LearnedB(object):
 
     def predict_test(self):
         """
-        Predict X_test, caching the results (invalidation based on hash of
-        X_test).
+        Predict X_test_raw, caching the results (invalidation
+        based on hash of X_test).
         """
-        X_test_hash = hash(self.func.X_test.data.tobytes())
+        X_test_hash = hash(self.func.X_test_raw.data.tobytes())
         if self._predict is None or X_test_hash != self._X_test_hash:
             self._X_test_hash = X_test_hash
             predict = self.func.predict_test()
             self._predict = predict
         return self._predict
+
+    def predict_datum(self, **kwargs):
+        msg = f"kwargs: {', '.join(kwargs.keys())}, features: {', '.join(self.func.features.keys())}"
+        assert set(kwargs.keys()) == set(self.func.features.keys()), msg
+        # make a prediction matrix
+        X = np.array([[kwargs[k] for k in self.func.features.keys()]])
+        return float(self.func.predict(X))
 
     def binned_Bhats(self, bins):
         predict = self.predict_test()

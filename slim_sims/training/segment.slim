@@ -69,10 +69,14 @@ initialize() {
   // mutation or recombination in that 1bp)
 
   // gene segment under selection
+  // we need a slight safety guard here -- if L = 0, 
+  // set a length to 1 -- selection handled with s above
+  // otherwise tracklen can = tracklen + L which breaks stuff
+  defineConstant("safe_L", max(1, L));
   initializeGenomicElementType("g1", m1, 1);
   initializeGenomicElementType("g2", m2, 1);
-  initializeGenomicElement(g1, 0, tracklen);
-  initializeGenomicElement(g2, tracklen+1, tracklen+L);
+  initializeGenomicElement(g1, 0, tracklen-1);
+  initializeGenomicElement(g2, tracklen, tracklen+safe_L);
 
   // recombination between segments
   // recombination between each bp from 0 to tracklen-1 is 0,
@@ -81,7 +85,7 @@ initialize() {
   rec_rates = c(0, rf, rbp);
   rec_bins = c(tracklen-1,        // neutral region
                tracklen,          // 1bp free recombinaton spacer
-               tracklen+L);       // selected region
+               tracklen+safe_L);       // selected region
   initializeRecombinationRate(rec_rates, rec_bins);
 }
 
@@ -108,5 +112,6 @@ s2 late() {
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
+  print(treeseq_file);
 }
 

@@ -122,12 +122,13 @@ class SlimRuns(object):
         if self.nreps is None or self.nreps == 1:
             self.runs = list(self.sampler)
         else:
-            for rep in range(self.nreps):
-                # draw nreps samples
-                sample = next(self.sampler))
-                if package_rep:
-                    sample['rep'] = rep
-                self.runs.append(sample)
+            self.runs = []
+            for sample in self.sampler:
+                for rep in range(self.nreps):
+                    # draw nreps samples
+                    if package_rep:
+                        sample['rep'] = rep
+                    self.runs.append(sample)
 
     def generate(self):
         """
@@ -154,7 +155,7 @@ class SlimRuns(object):
 
     @property
     def has_reps(self):
-        self.nreps is not None and self.nreps > 1
+        return self.nreps is not None or self.nreps > 1
 
     @property
     def is_grid(self):
