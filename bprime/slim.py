@@ -1,6 +1,7 @@
 # slim.py -- helpers for snakemake/slim sims
 
 import os
+import copy
 import itertools
 import warnings
 import numpy as np
@@ -30,7 +31,8 @@ def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False)
     return pattern
 
 
-def slim_call(param_types, script, slim_cmd="slim", add_seed=False, manual=None):
+def slim_call(param_types, script, slim_cmd="slim", add_seed=False,
+              add_rep=False, manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
     wildcards based on the provided parameter names and types (as a dict).
@@ -62,6 +64,8 @@ def slim_call(param_types, script, slim_cmd="slim", add_seed=False, manual=None)
         add_on = ' ' + ' '.join(add_on)
     if add_seed:
         call_args.append("-s {wildcards.seed}")
+    if add_rep:
+        call_args.append("-d rep={wildcards.rep}")
     full_call = f"{slim_cmd} " + " ".join(call_args) + add_on + " " + script
     return full_call
 
@@ -123,12 +127,17 @@ class SlimRuns(object):
             self.runs = list(self.sampler)
         else:
             self.runs = []
+            bad = 10
             for sample in self.sampler:
                 for rep in range(self.nreps):
                     # draw nreps samples
                     if package_rep:
+                        sample = copy.copy(sample)
                         sample['rep'] = rep
                     self.runs.append(sample)
+                bad -= 1
+                if not bad:
+                    break
 
     def generate(self):
         """
@@ -180,10 +189,12 @@ class SlimRuns(object):
             manual = name
 
         return slim_call(self.param_types, self.script, slim_cmd=slim_cmd,
-                         add_seed=self.add_seed, manual=manual)
+                         add_seed=self.add_seed, add_rep=self.has_reps,
+                         manual=manual)
 
     def slim_commands(self, *args, **kwargs):
         call = self.slim_call(*args, **kwargs).replace("wildcards.", "")
+        print("asd", call)
         if self.runs is None:
             raise ValueError("run SlimRuns.generate()")
         for wildcards in self.runs:
@@ -230,6 +241,7 @@ class SlimRuns(object):
             suffix = [suffix]
         targets = []
         for run_params in self.runs:
+            print(run_params)
             for end in suffix:
                 filename = f"{self.filename_pattern}_{end}"
                 targets.append(filename.format(**run_params))

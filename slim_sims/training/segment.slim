@@ -1,9 +1,6 @@
 initialize() {
   source("../utils.slim");
   initializeTreeSeq();
-  if (!exists("rep")) {
-    defineConstant("rep", 0);
-  }
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
   defineConstant("tracklen", 10);
@@ -47,11 +44,17 @@ initialize() {
   metadata.setValue("tracklen", tracklen);
   metadata.setValue("L", L);
   metadata.setValue("region_length", region_length);
-  metadata.setValue("rep", rep);
+  if (exists("rep"))
+    metadata.setValue("rep", rep);
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  filestr = filename_str(c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed', 'rep'));
+  params = c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed');
+  if (exists("rep")) {
+    params = c(params, 'rep');
+    print(params);
+  }
+  filestr = filename_str(params);
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
 
@@ -112,6 +115,5 @@ s2 late() {
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
-  print(treeseq_file);
 }
 
