@@ -125,7 +125,7 @@ def sim_bgs(configfile, outfile=None, nsamples=10_000, nreps=1,
                                      total=total)))
 
     if not reject:
-    	X, features = sampler.as_matrix()
+        X, features = sampler.as_matrix()
     else:
         X = np.array([list(v.values()) for v in sampler])
         features = list(sampler[0].keys())

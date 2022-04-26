@@ -2,6 +2,8 @@
 
 import os
 import copy
+from math import ceil
+from collections import defaultdict
 import itertools
 import warnings
 import numpy as np
@@ -93,7 +95,7 @@ class SlimRuns(object):
     def __init__(self, config, dir='.', sampler=None, split_dirs=False,
                  seed=None):
         msg = "runtype must be 'grid' or 'samples'"
-        assert config['runtype'] in ['grid', 'samples'], msg
+        assert config.get('runtype', None) in ['grid', 'samples'], msg
         self.runtype = config['runtype']
         self.name = config['name']
         self.nreps = config.get('nreps', None)
@@ -120,6 +122,7 @@ class SlimRuns(object):
         if sampler is None and self.is_samples:
             raise ValueError("no sampler function specified and runtype='samples'")
         self.sampler = None
+        self.batches = None
 
     def _generate_runs(self, package_rep=True):
         # package_rep is whether to include 'rep' into sample dict
@@ -127,7 +130,6 @@ class SlimRuns(object):
             self.runs = list(self.sampler)
         else:
             self.runs = []
-            bad = 10
             for sample in self.sampler:
                 for rep in range(self.nreps):
                     # draw nreps samples
@@ -135,9 +137,6 @@ class SlimRuns(object):
                         sample = copy.copy(sample)
                         sample['rep'] = rep
                     self.runs.append(sample)
-                bad -= 1
-                if not bad:
-                    break
 
     def generate(self):
         """
@@ -161,6 +160,35 @@ class SlimRuns(object):
                 new_run = {**new_run, **run}
                 runs.append(new_run)
             self.runs = runs
+
+    def batch_runs(self, suffix, batch_size=1, slim_cmd='slim'):
+        """
+        Create a dictionary of array index (e.g. from Slurm) --> list of
+        sample indices. This is a 1-to-1 mapping if batch_size = 1, otherwise
+
+        """
+        assert self.runs is not None, "runs not generated!"
+        n = len(self.runs)
+        assert n >= 1
+        nbatch = ceil(len(self.runs) / batch_size)
+        batch = np.arange(nbatch)
+        tmp = np.repeat(batch, batch_size)
+        assert len(tmp) >= n
+        batches = tmp[:n]
+        assert len(batches) == n
+        self.batches = defaultdict(list)
+        self._targets = self.targets(suffix)
+        assert len(self._targets) == n
+        for i, b in enumerate(batches):
+            self.batches[b].append(i)
+
+        self.job_batches = defaultdict(list)
+        for idx in self.batches:
+            for job_idx in self.batches[idx]:
+                wildcards = self.runs[job_idx]
+                job = (self._targets[job_idx], self.slim_command(wildcards, slim_cmd=slim_cmd))
+                self.job_batches[idx].append(job)
+        return self.job_batches
 
     @property
     def has_reps(self):
@@ -192,9 +220,13 @@ class SlimRuns(object):
                          add_seed=self.add_seed, add_rep=self.has_reps,
                          manual=manual)
 
-    def slim_commands(self, *args, **kwargs):
-        call = self.slim_call(*args, **kwargs).replace("wildcards.", "")
-        print("asd", call)
+    def slim_command(self, wildcards, **slim_call_kwargs):
+        call = self.slim_call(**slim_call_kwargs).replace("wildcards.", "")
+        return call.format(**wildcards)
+
+
+    def slim_commands(self, **slim_call_kwargs):
+        call = self.slim_call(**slim_call_kwargs).replace("wildcards.", "")
         if self.runs is None:
             raise ValueError("run SlimRuns.generate()")
         for wildcards in self.runs:
@@ -241,7 +273,6 @@ class SlimRuns(object):
             suffix = [suffix]
         targets = []
         for run_params in self.runs:
-            print(run_params)
             for end in suffix:
                 filename = f"{self.filename_pattern}_{end}"
                 targets.append(filename.format(**run_params))
