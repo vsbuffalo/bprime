@@ -12,7 +12,7 @@ TEMPLATE = """
 
 
 
-python slurm_job_runner.py getjob {batches} --index $SLURM_ARRAY_TASK_ID
+python slurm_job_runner.py getjob {batches} --index $SLURM_ARRAY_TASK_ID | bash
 
 """
 
@@ -38,7 +38,7 @@ def cli():
 @click.option('--index', required=True, type=int, help="batch index number")
 def getjob(batches, index):
     job_batches = pickle.load(batches)
-    print(make_job_script_lines(job_batches[index]))
+    sys.out.write(make_job_script_lines(job_batches[index]))
 
 @cli.command()
 @click.argument('config', type=click.File('r'), required=True)
@@ -58,11 +58,9 @@ def generate(config, batches, dir, seed, script, split_dirs=3,
     job_batches = run.batch_runs(suffix='treeseq.tree', batch_size=batch_size)
     pickle.dump(job_batches, batches)
 
+    # now write the script
 
 
-
-def array():
-    pass
 
 if __name__ == "__main__":
     cli()
