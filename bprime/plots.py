@@ -83,15 +83,15 @@ def rate_density_plot(bfunc, figax=None):
     ax[1].set_yscale('log')
     return fig, ax
 
-def theory_loss_plot(bfunc, title="", figax=None):
+def theory_loss_plot(bfunc, X=None, title="", figax=None):
     fig, ax = get_figax(figax)
-    x, y = bfunc.theory_B(), bfunc.predict_test()
+    x, y = bfunc.theory_B(X), bfunc.func.predict(X)
     ax.scatter(x, y, alpha=0.1, s=2)
     ax.axline((0, 0), slope=1, c='r', linestyle='dashed')
     ax.set_ylabel("predicted")
     ax.set_ylabel("theory")
-    mae = bfunc.theory_loss()
-    mse = bfunc.theory_loss(loss='mse')
+    mae = bfunc.theory_loss(X)
+    mse = bfunc.theory_loss(X, loss='mse')
     title += f"\ntheory MAE={signif(mae, 4)}, MSE={signif(mse, 3)}"
     ax.set_title(title, fontsize=8)
     return fig, ax

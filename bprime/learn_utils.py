@@ -18,7 +18,7 @@ from bprime.learn import LearnedFunction
 def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
             output_activation='sigmoid', activation='elu'):
     """
-    Build a sequential network given the specified layers. nx specifies the 
+    Build a sequential network given the specified layers. nx specifies the
     number of layers with the number of neurons equal to the input size.
     """
     # build network
@@ -163,7 +163,9 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
     new_fixed_vals = fixed_cols(Xsh, expected_features)
     new_var_cols = list(set(expected_features) - set(new_fixed_vals.keys()))
 
-    features = new_var_cols # the real feature set is fixed columns
+    # the real feature set is fixed columns, sorted by their order in
+    # BGS_MODEL_PARAMS
+    features = [v for v in expected_features if v in new_var_cols]
 
     # get the parameter boundaries from params
     sim_bounds = get_bounds(sim_params)
@@ -196,7 +198,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
     return func
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
-            valid_split=0.3, batch_size=64, epochs=400, early_stopping=True, 
+            valid_split=0.3, batch_size=64, epochs=400, early_stopping=True,
             progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.

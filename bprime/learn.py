@@ -307,13 +307,15 @@ class LearnedFunction(object):
         return X
 
 
-    def predict(self, X, correct_bounds=True, transforms=True,
+    def predict(self, X=None, correct_bounds=True, transforms=True,
                 scale_input=True, **kwargs):
         """
         Predict for an input function X (in the same as simulation space).
         If transforms is True, and transforms in LearnedFunction.transforms
         dict are applied to match those applied from LearnedB.scale_features().
         """
+        if X is None:
+            X = self.X_test_raw
         assert self.has_model
         X = np.copy(X)
         X = self.check_bounds(X, correct_bounds)
@@ -495,10 +497,10 @@ class LearnedB(object):
             return B, lossvals
         return lossvals.mean()
 
-    def theory_loss(self, loss='mae', raw=False):
+    def theory_loss(self, X=None, loss='mae', raw=False):
         lossfunc = get_loss_func(loss)
-        B = self.theory_B()
-        predict = self.predict_test()
+        B = self.theory_B(X)
+        predict = self.func.predict(X)
         lossvals = lossfunc(B, predict)
         if raw:
             return B, lossvals
