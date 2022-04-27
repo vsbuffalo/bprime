@@ -66,15 +66,24 @@ def cli():
     pass
 
 @cli.command()
-@click.argument('batches', type=click.File('rb'), required=True)
+@click.argument('batchfile', type=str, required=True)
+@click.option('--num-files', default=1, help='how many files to break the pickled batch files into')
 @click.option('--index', required=True, type=int, help="batch index number")
-def getjob(batches, index):
-    job_batches = pickle.load(batches)
+def getjob(batchfile, num_files, index):
+    if num_files > 1:
+        group = index % num_files
+        root = batchfile
+        batchfile = batchfile + f"_{group}.pkl"
+        all_there = all(os.path.exists(f"{root}_{r}.pkl") for r in range(num_files))
+        assert all_there, "some grouped batch files do not exist! is --num-files right?"
+    assert batchfile.endswith('.pkl')
+    with open(batchfile, 'rb') as f:
+        job_batches = pickle.load(f)
     sys.stdout.write(make_job_script_lines(job_batches[index]))
 
 @cli.command()
 @click.argument('config', type=click.File('r'), required=True)
-@click.option('--batch-file', default=None, help="pickle file for serialized SlimRuns, default: <config>.pkl")
+@click.option('--batch-file', default=None, help="pickle file for serialized SlimRuns, default: <config>[_group].pkl")
 @click.option('--secs-per-job', required=True, type=int, help="number of seconds per simulation")
 @click.option('--dir', required=True, help="output directory")
 @click.option('--seed', required=True, type=int, help='seed to use')
@@ -82,9 +91,10 @@ def getjob(batches, index):
 @click.option('--split-dirs', default=3, type=int, help="number of seed digits to use as subdirectory")
 @click.option('--nreps', default=None, help='number of simulations to average over per parameter set')
 @click.option('--slim', default='slim', help='path to SLiM executable')
+@click.option('--num-files', default=1, help='how many files to break the pickled batch files into')
 @click.option('--batch-size', default=None, type=int, help='seed to use')
 def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
-             nreps=None, slim='slim', batch_size=None):
+             nreps=None, slim='slim', num_files=1, batch_size=None):
     suffix = 'treeseq.tree'
 
     batch_file = os.path.basename(config.name).replace(".json", "_batches.pkl") if batch_file is None else batch_file
@@ -98,9 +108,18 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     # generate and batch all the sims
     run.generate(suffix=suffix, ignore_files=existing)
     job_batches = run.batch_runs(batch_size=batch_size)
+    if num_files > 1:
+        batch_groups = [dict() for _ in range(num_files)]
+        for idx, jobs in job_batches.items():
+            group = idx % num_files
+            batch_groups[group][idx] = jobs
 
-    with open(batch_file, 'wb') as f:
-        pickle.dump(job_batches, f)
+        for i, group_batches in enumerate(batch_groups):
+            with open(batch_file.replace('.pkl', f"_{i}.pkl"), 'wb') as f:
+                pickle.dump(group_batches, f)
+    else:
+        with open(batch_file, 'wb') as f:
+            pickle.dump(job_batches, f)
 
     # now write the script
     job_time = est_time(secs_per_job, batch_size)
