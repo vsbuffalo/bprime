@@ -10,6 +10,7 @@ import __main__
 import pickle
 import os
 from math import ceil
+import numpy as np
 
 TEMPLATE = """\
 #!/bin/bash
@@ -19,14 +20,13 @@ TEMPLATE = """\
 #SBATCH --partition=kern,kerngpu,preempt
 #SBATCH --job-name=slurm_slim_array_%A_%a
 #SBATCH --time={job_time}
-#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=500M
 #SBATCH --account=kernlab
-#SBATCH --array=1-{nbatches}
+#SBATCH --array={start}-{end}
 
-INDEX = $SLURM_ARRAY_TASK_ID - 1
+INDEX=$(($SLURM_ARRAY_TASK_ID - 1))
 
 python {this_script} getjob {batches} --num-files {num_files} --index $INDEX | bash
 
@@ -37,8 +37,8 @@ import click
 from bprime.slim import SlimRuns, read_params, time_grower
 from bprime.samplers import Sampler
 
-def est_time(secs_per_job, batch_size):
-    tot_secs = secs_per_job * batch_size
+def est_time(secs_per_job, batch_size, factor=1.5):
+    tot_secs = secs_per_job * batch_size * factor
     tot_hours = tot_secs / 60 / 60
     days = int(tot_hours // 24)
     time_left = tot_hours % 24
@@ -91,14 +91,15 @@ def getjob(batchfile, num_files, index):
 @click.option('--secs-per-job', required=True, type=int, help="number of seconds per simulation")
 @click.option('--dir', required=True, help="output directory")
 @click.option('--seed', required=True, type=int, help='seed to use')
-@click.option('--script', type=click.File('w'), default="slurm_array.sh", help='script file')
+@click.option('--script', type=str, default="slurm_array.sh", help='script file')
 @click.option('--split-dirs', default=3, type=int, help="number of seed digits to use as subdirectory")
 @click.option('--nreps', default=None, help='number of simulations to average over per parameter set')
 @click.option('--slim', default='slim', help='path to SLiM executable')
 @click.option('--num-files', default=1, help='how many files to break the pickled batch files into')
+@click.option('--max-array', default=None, type=int, help='max number of array jobs')
 @click.option('--batch-size', default=None, type=int, help='seed to use')
 def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
-             nreps=None, slim='slim', num_files=1, batch_size=None):
+             nreps=None, slim='slim', max_array=None, num_files=1, batch_size=None):
     suffix = 'treeseq.tree'
 
     batch_file = os.path.basename(config.name).replace(".json", "_batches.pkl") if batch_file is None else batch_file
@@ -128,13 +129,35 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     # now write the script
     job_time = est_time(secs_per_job, batch_size)
     batch_file = batch_file if num_files == 1 else batch_file.replace('.pkl', '')
-    script.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
-                                 cwd=os.getcwd(),
-                                 num_files=num_files,
-                                 batches=batch_file,
-                                 nbatches=len(job_batches)-1))
+
+    njobs = len(job_batches)
+    out = []
+    if max_array is None:
+        script_handle = open(script, 'w')
+        out.append(f"bash {script}")
+        script_handle.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
+                                            cwd=os.getcwd(),
+                                            num_files=num_files,
+                                            batches=batch_file,
+                                            start=1, end=njobs))
+    else:
+        # we need to break the slurm script into smaller batches, grrr
+        array_job_ids = np.arange(njobs)
+        nscripts = np.split(array_job_ids, np.arange(0, njobs, max_array-1)[1:]) 
+        for i, script_batch_ids in enumerate(nscripts):
+            start, end = script_batch_ids[0], script_batch_ids[-1]
+            scriptname = script.replace('.sh', f"_{i}.sh")
+            out.append(f"bash {scriptname}")
+            script_handle = open(scriptname, 'w')
+            script_handle.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
+                                                cwd=os.getcwd(),
+                                                num_files=num_files,
+                                                batches=batch_file,
+                                                start=start, end=end))
+     
+        
     n = len(run.runs)
-    print(f"Script '{script.name}' written, {n:,} simulation commands "
+    print(f"Script '{script}' written, {n:,} simulation commands "
           f"generated and written to '{batch_file}'.\nBatched into {len(job_batches):,} {batch_size}-size groups\n"
           f"assuming {secs_per_job} seconds per job, each batch should run in "
           f"~{round(secs_per_job * batch_size / 60, 2)} minutes\n")
@@ -142,6 +165,10 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     print("est. total time with n cores:")
     for ncore in ncores:
         print(f"  n={ncore} ~{round(n*secs_per_job/ 60 / 60 / 24 / ncore, 2)} days")
+
+    if len(out):
+        print("run each slurm script with:")
+        print('\n'.join(out))
 
 
 if __name__ == "__main__":

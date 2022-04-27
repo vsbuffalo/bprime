@@ -199,16 +199,9 @@ class SlimRuns(object):
 
         # get cmds
         runs = self.runs
-        nbatch = ceil(len(self.runs) / batch_size)
-        batch = np.arange(nbatch)
-        tmp = np.repeat(batch, batch_size)
-        assert len(tmp) >= n
-        batches = tmp[:n]
-        assert len(batches) == n
-        self.batches = defaultdict(list)
-        assert len(self.targets) == n
-        for i, b in enumerate(batches):
-            self.batches[b].append(i)
+        nruns = len(self.runs)
+        groups = np.split(np.arange(nruns), np.arange(0, nruns, batch_size)[1:])
+        self.batches = {i: grp for i, grp in enumerate(groups)}
 
         self.job_batches = defaultdict(list)
         for idx in self.batches:
