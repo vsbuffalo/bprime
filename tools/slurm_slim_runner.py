@@ -24,7 +24,7 @@ TEMPLATE = """
 #SBATCH --account=kernlab
 #SBATCH --array=0-{nbatches}
 
-python {this_script} getjob {batches} --index $SLURM_ARRAY_TASK_ID | bash
+python {this_script} getjob {batches} --num-files {num_files} --index $SLURM_ARRAY_TASK_ID | bash
 
 """
 
@@ -123,7 +123,9 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
 
     # now write the script
     job_time = est_time(secs_per_job, batch_size)
+    batch_file = batch_file if num_files == 1 else batch_file.replace('.pkl', '')
     script.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
+                                 num_files=num_files,
                                  batches=batch_file,
                                  nbatches=len(job_batches)-1))
     n = len(run.runs)
