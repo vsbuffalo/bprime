@@ -92,7 +92,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     run = SlimRuns(config, dir=dir, sampler=Sampler, split_dirs=split_dirs, seed=seed)
 
     # get the existing files
-    existing = get_files(dir, suffix)
+    existing = get_files(run.dir, suffix)  # run.dir has the name included
     print(f"{len(existing)} result files have been found -- these are ignored.")
 
     # generate and batch all the sims
