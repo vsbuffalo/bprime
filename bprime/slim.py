@@ -124,21 +124,56 @@ class SlimRuns(object):
         self.sampler = None
         self.batches = None
 
-    def _generate_runs(self, package_rep=True):
-        # package_rep is whether to include 'rep' into sample dict
-        if self.nreps is None or self.nreps == 1:
-            self.runs = list(self.sampler)
-        else:
-            self.runs = []
-            for sample in self.sampler:
-                for rep in range(self.nreps):
-                    # draw nreps samples
-                    if package_rep:
-                        sample = copy.copy(sample)
-                        sample['rep'] = rep
-                    self.runs.append(sample)
+    def _generate_runs(self, suffix, ignore_files=None, package_rep=True):
+        if isinstance(suffix, str):
+            suffix_is_str = True
+            suffix = [suffix]
 
-    def generate(self):
+        ignore_files = set() if ignore_files is None else set([os.path.normpath(f) for f in ignore_files])
+        targets = []
+        self.runs = []
+        nreps = 1 if self.nreps is None else self.nreps
+        for sample in self.sampler:
+            # each sample is a dict of params that are like Snakemake's
+            # wildcards
+            for rep in range(nreps):
+                # draw nreps samples
+                if self.nreps is not None or package_rep:
+                    # package_rep is whether to include 'rep' into sample dict
+                    sample = copy.copy(sample)
+                    sample['rep'] = rep
+                run_needed = False
+                target_files = []
+                for end in suffix:
+                    filename = f"{self.filename_pattern}_{end}"
+                    # check if we need to add in a subdir:
+                    if self.split_dirs is not None:
+                        dir_seed = str(sample['seed'])[:self.split_dirs]
+                        sample = {**sample, 'subdir': dir_seed}
+
+                    # propogate the sample into the filename
+                    filename = filename.format(**sample)
+                    # append if it's not in ignore_files
+                    if os.path.normpath(filename) not in ignore_files:
+                        target_files.append(filename)
+                    else:
+                        # place holder so we know what suffix isn't complete
+                        target_files.append(None)
+
+                if not all(v is None for v in target_files):
+                    # some filename wasn't in ignore_files and we need to
+                    # include in the run/target file lists
+                    if suffix_is_str:
+                        #  simply stuff, don't package in a tuple
+                        target_files = target_files[0]
+                    else:
+                        target_files = tuple(target_files)
+                    targets.append(target_files)
+                    self.runs.append(sample)
+        self.targets = targets
+        assert len(self.targets) == len(self.runs)
+
+    def generate(self, suffix, ignore_files=None, package_rep=True):
         """
         Run the sampler to generate samples or expand out the parameter grid.
         """
@@ -149,19 +184,10 @@ class SlimRuns(object):
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              add_seed=True, seed=self.seed)
-            self._generate_runs()
+            self._generate_runs(suffix=suffix, package_rep=package_rep)
 
 
-        if self.split_dirs is not None:
-            runs = []
-            for run in self.runs:
-                dir_seed = str(run['seed'])[:self.split_dirs]
-                new_run = dict(subdir=dir_seed)
-                new_run = {**new_run, **run}
-                runs.append(new_run)
-            self.runs = runs
-
-    def batch_runs(self, suffix, batch_size=1, slim_cmd='slim'):
+    def batch_runs(self, batch_size=1, ignore_files=None, slim_cmd='slim'):
         """
         Create a dictionary of array index (e.g. from Slurm) --> list of
         sample indices. This is a 1-to-1 mapping if batch_size = 1, otherwise
@@ -170,6 +196,9 @@ class SlimRuns(object):
         assert self.runs is not None, "runs not generated!"
         n = len(self.runs)
         assert n >= 1
+
+        # get cmds
+        runs = self.runs
         nbatch = ceil(len(self.runs) / batch_size)
         batch = np.arange(nbatch)
         tmp = np.repeat(batch, batch_size)
@@ -177,8 +206,7 @@ class SlimRuns(object):
         batches = tmp[:n]
         assert len(batches) == n
         self.batches = defaultdict(list)
-        self._targets = self.targets(suffix)
-        assert len(self._targets) == n
+        assert len(self.targets) == n
         for i, b in enumerate(batches):
             self.batches[b].append(i)
 
@@ -186,7 +214,9 @@ class SlimRuns(object):
         for idx in self.batches:
             for job_idx in self.batches[idx]:
                 wildcards = self.runs[job_idx]
-                job = (self._targets[job_idx], self.slim_command(wildcards, slim_cmd=slim_cmd))
+                file = self.targets[job_idx]
+                cmd = self.slim_command(wildcards, slim_cmd=slim_cmd)
+                job = (file, cmd)
                 self.job_batches[idx].append(job)
         return self.job_batches
 
@@ -261,26 +291,4 @@ class SlimRuns(object):
         string of parameters, to use for the filename_str() function.
         """
         return ', '.join(f"'{v}'" for v in self.params.keys())
-
-    def targets(self, suffix):
-        """
-        Create a list of targets by using the filename pattern, appending
-        the suffixes in 'suffix'.
-        """
-        if self.runs is None:
-            raise ValueError("run SlimRuns.generate()")
-        if isinstance(suffix, str):
-            suffix = [suffix]
-        targets = []
-        for run_params in self.runs:
-            for end in suffix:
-                filename = f"{self.filename_pattern}_{end}"
-                targets.append(filename.format(**run_params))
-        return targets
-
-
-
-
-
-
 

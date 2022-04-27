@@ -52,7 +52,6 @@ initialize() {
   params = c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed');
   if (exists("rep")) {
     params = c(params, 'rep');
-    print(params);
   }
   filestr = filename_str(params);
   defineConstant("basename", name + "_" + filestr);
