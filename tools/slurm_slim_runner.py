@@ -37,7 +37,7 @@ import click
 from bprime.slim import SlimRuns, read_params, time_grower
 from bprime.samplers import Sampler
 
-def est_time(secs_per_job, batch_size, factor=1.5):
+def est_time(secs_per_job, batch_size, factor=3):
     tot_secs = secs_per_job * batch_size * factor
     tot_hours = tot_secs / 60 / 60
     days = int(tot_hours // 24)
@@ -134,7 +134,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     out = []
     if max_array is None:
         script_handle = open(script, 'w')
-        out.append(f"bash {script}")
+        out.append(f"sbatch {script}")
         script_handle.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
                                             cwd=os.getcwd(),
                                             num_files=num_files,
@@ -147,7 +147,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
         for i, script_batch_ids in enumerate(nscripts):
             start, end = script_batch_ids[0], script_batch_ids[-1]
             scriptname = script.replace('.sh', f"_{i}.sh")
-            out.append(f"bash {scriptname}")
+            out.append(f"sbatch {scriptname}")
             script_handle = open(scriptname, 'w')
             script_handle.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
                                                 cwd=os.getcwd(),
