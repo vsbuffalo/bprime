@@ -184,10 +184,10 @@ class SlimRuns(object):
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              add_seed=True, seed=self.seed)
-            self._generate_runs(suffix=suffix, package_rep=package_rep)
+            self._generate_runs(suffix=suffix, ignore_files=ignore_files, package_rep=package_rep)
 
 
-    def batch_runs(self, batch_size=1, ignore_files=None, slim_cmd='slim'):
+    def batch_runs(self, batch_size=1, slim_cmd='slim'):
         """
         Create a dictionary of array index (e.g. from Slurm) --> list of
         sample indices. This is a 1-to-1 mapping if batch_size = 1, otherwise

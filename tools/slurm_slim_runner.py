@@ -11,20 +11,24 @@ import pickle
 import os
 from math import ceil
 
-TEMPLATE = """
+TEMPLATE = """\
 #!/bin/bash
+#SBATCH --chdir={cwd}
+#SBATCH --error=logs/error/slurm_slim_array_%A_%a.err
+#SBATCH --output=logs/out/slurm_slim_array_%A_%a.out
 #SBATCH --partition=kern,kerngpu,preempt
-#SBATCH --job-name=slurm_slim_array
-#SBATCH --output=logs/out/
-#SBATCH --error=logs/error/
+#SBATCH --job-name=slurm_slim_array_%A_%a
 #SBATCH --time={job_time}
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=500M
 #SBATCH --account=kernlab
-#SBATCH --array=0-{nbatches}
+#SBATCH --array=1-{nbatches}
 
-python {this_script} getjob {batches} --num-files {num_files} --index $SLURM_ARRAY_TASK_ID | bash
+INDEX = $SLURM_ARRAY_TASK_ID - 1
+
+python {this_script} getjob {batches} --num-files {num_files} --index $INDEX | bash
 
 """
 
@@ -107,7 +111,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
 
     # generate and batch all the sims
     run.generate(suffix=suffix, ignore_files=existing)
-    job_batches = run.batch_runs(batch_size=batch_size)
+    job_batches = run.batch_runs(batch_size=batch_size, slim_cmd=slim)
     if num_files > 1:
         batch_groups = [dict() for _ in range(num_files)]
         for idx, jobs in job_batches.items():
@@ -125,6 +129,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     job_time = est_time(secs_per_job, batch_size)
     batch_file = batch_file if num_files == 1 else batch_file.replace('.pkl', '')
     script.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
+                                 cwd=os.getcwd(),
                                  num_files=num_files,
                                  batches=batch_file,
                                  nbatches=len(job_batches)-1))
