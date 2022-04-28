@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['..', '../bprime'])
+sys.path.extend(['..', '../..', '../bprime'])
 
 from functools import partial
 import multiprocessing
@@ -61,7 +61,8 @@ def process_tree_file(tree_file, features, recap='auto'):
     np.testing.assert_almost_equal(s*h, sh)
 
     # tracking vs selected regions
-    wins = [0, tracklen, tracklen + L + 1]
+    #wins = [0, tracklen, tracklen + L + 1]
+    wins = [0, tracklen, ts.sequence_length]
     pi = ts.diversity(mode='branch', windows=wins)
     Ef = float(md['Ef'][0])
     Vf = float(md['Vf'][0])
@@ -87,8 +88,7 @@ def trees2training_data(dir, features, recap='auto', progress=True,
         X, y = zip(*map(func, tree_files))
     else:
         with multiprocessing.Pool(ncores) as p:
-            X, y = zip(*list(tqdm.tqdm(p.imap(func, tree_files),
-                                       total=len(tree_files))))
+            X, y = zip(*list(p.imap(func, tree_files)))
     targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load')
     return np.array(X), np.array(y), features, targets
 
