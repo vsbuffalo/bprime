@@ -121,7 +121,7 @@ class SlimRuns(object):
         self.sampler_func = sampler
         if sampler is None and self.is_samples:
             raise ValueError("no sampler function specified and runtype='samples'")
-        self.sampler = None
+        self.sampler = None # for when we instantiate the sampler with seeds, etc
         self.batches = None
 
     def _generate_runs(self, suffix, ignore_files=None, package_rep=True):

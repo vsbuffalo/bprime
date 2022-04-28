@@ -24,11 +24,34 @@ TEMPLATE = """\
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=500M
 #SBATCH --account=kernlab
-#SBATCH --array={start}-{end}
+#SBATCH --array=1-{max_array}
 
-INDEX=$(($SLURM_ARRAY_TASK_ID - 1))
+INDEX=$(({offset} + $SLURM_ARRAY_TASK_ID - 1))
 
 python {this_script} getjob {batches} --num-files {num_files} --index $INDEX | bash
+
+"""
+
+
+RUNNER = """\
+#!/bin/bash
+
+NSCRIPTS={nscripts}
+
+i=0
+while [ $i -lt $NSCRIPTS ]
+do
+  sbatch "slurm_$i.sh"
+  echo "submitting job $i!"
+  i=$((i + 1))
+  nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l) 
+  while [ $nrunning -gt 0 ]
+  do
+    sleep 5m
+    nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l) 
+    echo "$nrunning jobs still running..."
+  done
+done
 
 """
 
@@ -37,7 +60,7 @@ import click
 from bprime.slim import SlimRuns, read_params, time_grower
 from bprime.samplers import Sampler
 
-def est_time(secs_per_job, batch_size, factor=3):
+def est_time(secs_per_job, batch_size, factor=5):
     tot_secs = secs_per_job * batch_size * factor
     tot_hours = tot_secs / 60 / 60
     days = int(tot_hours // 24)
@@ -97,7 +120,7 @@ def getjob(batchfile, num_files, index):
 @click.option('--slim', default='slim', help='path to SLiM executable')
 @click.option('--num-files', default=1, help='how many files to break the pickled batch files into')
 @click.option('--max-array', default=None, type=int, help='max number of array jobs')
-@click.option('--batch-size', default=None, type=int, help='seed to use')
+@click.option('--batch-size', default=None, type=int, help='size of number of sims to run in one job')
 def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
              nreps=None, slim='slim', max_array=None, num_files=1, batch_size=None):
     suffix = 'treeseq.tree'
@@ -107,8 +130,10 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     run = SlimRuns(config, dir=dir, sampler=Sampler, split_dirs=split_dirs, seed=seed)
 
     # get the existing files
+    print("searching for existing simulation results...   ", end='')
     existing = get_files(run.dir, suffix)  # run.dir has the name included
-    print(f"{len(existing)} result files have been found -- these are ignored.")
+    print("done.")
+    print(f"{len(existing):,} result files have been found -- these are ignored.")
 
     # generate and batch all the sims
     run.generate(suffix=suffix, ignore_files=existing)
@@ -130,30 +155,30 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     job_time = est_time(secs_per_job, batch_size)
     batch_file = batch_file if num_files == 1 else batch_file.replace('.pkl', '')
 
-    njobs = len(job_batches)
-    out = []
-    if max_array is None:
+    njobs = len(job_batches) # how many batch there are (so need array indices)
+    if max_array is None or njobs < max_array:
         script_handle = open(script, 'w')
-        out.append(f"sbatch {script}")
-        script_handle.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
+        script_handle.write(TEMPLATE.format(this_script=__main__.__file__, 
+                                            job_time=job_time,
                                             cwd=os.getcwd(),
                                             num_files=num_files,
                                             batches=batch_file,
-                                            start=1, end=njobs))
+                                            offset=0,
+                                            max_array=njobs))
     else:
         # we need to break the slurm script into smaller batches, grrr
         array_job_ids = np.arange(njobs)
-        nscripts = np.split(array_job_ids, np.arange(0, njobs, max_array-1)[1:]) 
+        nscripts = np.split(array_job_ids, np.arange(0, njobs, max_array)[1:]) 
         for i, script_batch_ids in enumerate(nscripts):
             start, end = script_batch_ids[0], script_batch_ids[-1]
             scriptname = script.replace('.sh', f"_{i}.sh")
-            out.append(f"sbatch {scriptname}")
             script_handle = open(scriptname, 'w')
             script_handle.write(TEMPLATE.format(this_script=__main__.__file__, job_time=job_time,
                                                 cwd=os.getcwd(),
                                                 num_files=num_files,
                                                 batches=batch_file,
-                                                start=start, end=end))
+                                                offset=start,
+                                                max_array=max_array))
      
         
     n = len(run.runs)
@@ -166,9 +191,12 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     for ncore in ncores:
         print(f"  n={ncore} ~{round(n*secs_per_job/ 60 / 60 / 24 / ncore, 2)} days")
 
-    if len(out):
-        print("run each slurm script with:")
-        print('\n'.join(out))
+    if max_array is not None:
+        print("run each slurm script with: runner_script.sh")
+        with open('runner_script.sh', 'w') as f:
+            f.write(RUNNER.format(nscripts=len(nscripts)))
+    else:
+        print("run each slurm script with: slurm.sh")
 
 
 if __name__ == "__main__":
