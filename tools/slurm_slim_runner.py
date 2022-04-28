@@ -191,7 +191,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     for ncore in ncores:
         print(f"  n={ncore} ~{round(n*secs_per_job/ 60 / 60 / 24 / ncore, 2)} days")
 
-    if max_array is not None:
+    if max_array is not None and njobs >= max_array:
         print("run each slurm script with: runner_script.sh")
         with open('runner_script.sh', 'w') as f:
             f.write(RUNNER.format(nscripts=len(nscripts)))
