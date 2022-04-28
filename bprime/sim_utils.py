@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 
 def random_seed():
-    return np.random.randint(0, 2**63)
+    return np.random.randint(0, 2**32-1)
 
 def fixed_params(params):
     """

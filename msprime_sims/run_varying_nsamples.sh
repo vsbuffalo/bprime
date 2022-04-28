@@ -1,0 +1,34 @@
+#!/bin/bash
+
+bash snakemake_runner.sh -c ./varying_nsamples_5000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_100000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_10000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_100000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_500000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_2000000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_500000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_5000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_50000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_10000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_100000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_500000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_5000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_5000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_2000000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_500000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_50000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_50000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_10000_1.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_50000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_2000000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_2000000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_10000_5.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_100000_10.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000000_2.json & 
+bash snakemake_runner.sh -c ./varying_nsamples_1000_10.json & 

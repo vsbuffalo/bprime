@@ -1,6 +1,9 @@
 # slim.py -- helpers for snakemake/slim sims
 
 import os
+import copy
+from math import ceil
+from collections import defaultdict
 import itertools
 import warnings
 import numpy as np
@@ -30,7 +33,8 @@ def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False)
     return pattern
 
 
-def slim_call(param_types, script, slim_cmd="slim", add_seed=False, manual=None):
+def slim_call(param_types, script, slim_cmd="slim", add_seed=False,
+              add_rep=False, manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
     wildcards based on the provided parameter names and types (as a dict).
@@ -62,6 +66,8 @@ def slim_call(param_types, script, slim_cmd="slim", add_seed=False, manual=None)
         add_on = ' ' + ' '.join(add_on)
     if add_seed:
         call_args.append("-s {wildcards.seed}")
+    if add_rep:
+        call_args.append("-d rep={wildcards.rep}")
     full_call = f"{slim_cmd} " + " ".join(call_args) + add_on + " " + script
     return full_call
 
@@ -89,11 +95,12 @@ class SlimRuns(object):
     def __init__(self, config, dir='.', sampler=None, split_dirs=False,
                  seed=None):
         msg = "runtype must be 'grid' or 'samples'"
-        assert config['runtype'] in ['grid', 'samples'], msg
+        assert config.get('runtype', None) in ['grid', 'samples'], msg
         self.runtype = config['runtype']
         self.name = config['name']
+        self.nreps = config.get('nreps', None)
         if self.is_grid:
-            self.nreps = config['nreps']
+            assert self.nreps is not None
         if self.is_samples:
             self.nsamples = config['nsamples']
 
@@ -114,9 +121,59 @@ class SlimRuns(object):
         self.sampler_func = sampler
         if sampler is None and self.is_samples:
             raise ValueError("no sampler function specified and runtype='samples'")
-        self.sampler = None
+        self.sampler = None # for when we instantiate the sampler with seeds, etc
+        self.batches = None
 
-    def generate(self):
+    def _generate_runs(self, suffix, ignore_files=None, package_rep=True):
+        if isinstance(suffix, str):
+            suffix_is_str = True
+            suffix = [suffix]
+
+        ignore_files = set() if ignore_files is None else set([os.path.normpath(f) for f in ignore_files])
+        targets = []
+        self.runs = []
+        nreps = 1 if self.nreps is None else self.nreps
+        for sample in self.sampler:
+            # each sample is a dict of params that are like Snakemake's
+            # wildcards
+            for rep in range(nreps):
+                # draw nreps samples
+                if self.nreps is not None or package_rep:
+                    # package_rep is whether to include 'rep' into sample dict
+                    sample = copy.copy(sample)
+                    sample['rep'] = rep
+                run_needed = False
+                target_files = []
+                for end in suffix:
+                    filename = f"{self.filename_pattern}_{end}"
+                    # check if we need to add in a subdir:
+                    if self.split_dirs is not None:
+                        dir_seed = str(sample['seed'])[:self.split_dirs]
+                        sample = {**sample, 'subdir': dir_seed}
+
+                    # propogate the sample into the filename
+                    filename = filename.format(**sample)
+                    # append if it's not in ignore_files
+                    if os.path.normpath(filename) not in ignore_files:
+                        target_files.append(filename)
+                    else:
+                        # place holder so we know what suffix isn't complete
+                        target_files.append(None)
+
+                if not all(v is None for v in target_files):
+                    # some filename wasn't in ignore_files and we need to
+                    # include in the run/target file lists
+                    if suffix_is_str:
+                        #  simply stuff, don't package in a tuple
+                        target_files = target_files[0]
+                    else:
+                        target_files = tuple(target_files)
+                    targets.append(target_files)
+                    self.runs.append(sample)
+        self.targets = targets
+        assert len(self.targets) == len(self.runs)
+
+    def generate(self, suffix, ignore_files=None, package_rep=True):
         """
         Run the sampler to generate samples or expand out the parameter grid.
         """
@@ -126,17 +183,39 @@ class SlimRuns(object):
             self.runs = param_grid(self.params)
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
-                                             seed=self.seed)
-            self.runs = list(self.sampler)
+                                             add_seed=True, seed=self.seed)
+            self._generate_runs(suffix=suffix, ignore_files=ignore_files, package_rep=package_rep)
 
-        if self.split_dirs is not None:
-            runs = []
-            for run in self.runs:
-                dir_seed = str(run['seed'])[:self.split_dirs]
-                new_run = dict(subdir=dir_seed)
-                new_run = {**new_run, **run}
-                runs.append(new_run)
-            self.runs = runs
+
+    def batch_runs(self, batch_size=1, slim_cmd='slim'):
+        """
+        Create a dictionary of array index (e.g. from Slurm) --> list of
+        sample indices. This is a 1-to-1 mapping if batch_size = 1, otherwise
+
+        """
+        assert self.runs is not None, "runs not generated!"
+        n = len(self.runs)
+        assert n >= 1
+
+        # get cmds
+        runs = self.runs
+        nruns = len(self.runs)
+        groups = np.split(np.arange(nruns), np.arange(0, nruns, batch_size)[1:])
+        self.batches = {i: grp for i, grp in enumerate(groups)}
+
+        self.job_batches = defaultdict(list)
+        for idx in self.batches:
+            for job_idx in self.batches[idx]:
+                wildcards = self.runs[job_idx]
+                file = self.targets[job_idx]
+                cmd = self.slim_command(wildcards, slim_cmd=slim_cmd)
+                job = (file, cmd)
+                self.job_batches[idx].append(job)
+        return self.job_batches
+
+    @property
+    def has_reps(self):
+        return self.nreps is not None or self.nreps > 1
 
     @property
     def is_grid(self):
@@ -161,10 +240,16 @@ class SlimRuns(object):
             manual = name
 
         return slim_call(self.param_types, self.script, slim_cmd=slim_cmd,
-                         add_seed=self.add_seed, manual=manual)
+                         add_seed=self.add_seed, add_rep=self.has_reps,
+                         manual=manual)
 
-    def slim_commands(self, *args, **kwargs):
-        call = self.slim_call(*args, **kwargs).replace("wildcards.", "")
+    def slim_command(self, wildcards, **slim_call_kwargs):
+        call = self.slim_call(**slim_call_kwargs).replace("wildcards.", "")
+        return call.format(**wildcards)
+
+
+    def slim_commands(self, **slim_call_kwargs):
+        call = self.slim_call(**slim_call_kwargs).replace("wildcards.", "")
         if self.runs is None:
             raise ValueError("run SlimRuns.generate()")
         for wildcards in self.runs:
@@ -177,7 +262,7 @@ class SlimRuns(object):
         """
         return filename_pattern(self.dir, self.basename, self.params.keys(),
                                 split_dirs=self.split_dirs is not None,
-                                seed=self.add_seed)
+                                seed=self.add_seed, rep=self.has_reps)
 
     def wildcard_output(self, suffix):
         """
@@ -199,26 +284,4 @@ class SlimRuns(object):
         string of parameters, to use for the filename_str() function.
         """
         return ', '.join(f"'{v}'" for v in self.params.keys())
-
-    def targets(self, suffix):
-        """
-        Create a list of targets by using the filename pattern, appending
-        the suffixes in 'suffix'.
-        """
-        if self.runs is None:
-            raise ValueError("run SlimRuns.generate()")
-        if isinstance(suffix, str):
-            suffix = [suffix]
-        targets = []
-        for run_params in self.runs:
-            for end in suffix:
-                filename = f"{self.filename_pattern}_{end}"
-                targets.append(filename.format(**run_params))
-        return targets
-
-
-
-
-
-
 

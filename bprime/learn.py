@@ -8,207 +8,12 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import scipy.stats as stats
-import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
-try:
-    import tensorflow_addons as tfa
-    PROGRESS_BAR_ENABLED = True
-except ImportError:
-    PROGRESS_BAR_ENABLED = False
 
 from bprime.utils import signif, index_cols, dist_to_segment
-from bprime.sim_utils import fixed_params, get_bounds
+from bprime.sim_utils import random_seed
 from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
-
-
-def network(input_size=2, n64=4, n32=2, output_activation='sigmoid'):
-    # build network
-    model = keras.Sequential()
-    model.add(tf.keras.Input(shape=(input_size,)))
-    for i in range(n64):
-        model.add(layers.Dense(64, activation='elu'))
-    for i in range(n32):
-        model.add(layers.Dense(32, activation='elu'))
-    model.add(tf.keras.layers.Dense(1, activation=output_activation))
-    model.compile(
-        optimizer='Adam',
-        loss=tf.keras.losses.MeanSquaredError(),
-        metrics=['MeanAbsoluteError'],
-        )
-    return model
-
-def load_data(jsonfile, npzfile):
-    """
-    Load the JSON file with the parameters (and other details) of a simulation,
-    and the NPZ file containing the features and targets matrices.
-
-    Returns a tuple of the simulation parameters dict, the simulation data from
-    the .npz, and a model name. Meant to be passed as arguments to
-    data_to_learnedfunc().
-    """
-    with open(jsonfile) as f:
-        sim_config = json.load(f)
-    sim_params, model = sim_config['params'], sim_config['model']
-    sim_data = np.load(npzfile, allow_pickle=True)
-    assert(len(sim_data['features']) == sim_data['X'].shape[1])
-    return sim_params, sim_data, model
-
-def fixed_cols(X, colnames=None):
-    """
-    Return which columns are fixed. If colnames are provided, return a dict
-    like in fixed_params().
-    """
-    assert X.shape[1] == len(colnames)
-    # using np.unique because np.var is less numerically stable
-    n = X.shape[1]
-    vals = [np.unique(X[:, i]) for i in range(n)]
-    idx = [i for i in range(n) if len(vals[i]) == 1]
-    if colnames is not None:
-        return {colnames[i]: vals[i] for i in idx}
-    return idx
-
-def match_features(sim_params, data, features):
-    """
-    For a set of parameters for simulations (msprime or SLiM) from a JSON
-    file, match to the data we received from the simulations (with the feature
-    column names provided). They key parts are the data and the column
-    labels (which should match the JSON file).
-
-    Returns fixed values dict and variable columns
-    """
-    assert data.shape[1] == len(features), "number of columns in 'data' ≠ number of features"
-    assert set(sim_params.keys()) == set(features), "sim parameters don't match data features"
-
-    # get the fixed columns from sims and data, seed if they match
-    param_fixed_cols = fixed_params(sim_params)
-    data_fixed_cols = fixed_cols(data, colnames=features)
-    x = ', '.join(param_fixed_cols)
-    y = ', '.join(data_fixed_cols)
-    msg = f"mismatching fixed columns in parameters ({x}) and data ({y})!"
-    assert set(param_fixed_cols) == set(data_fixed_cols), msg
-
-    # are the fixed values the same in the parameters and data?
-    same_vals = all([param_fixed_cols[k] == data_fixed_cols[k] for k in param_fixed_cols])
-    msg = f"fixed parameters differr between parameters ({param_fixed_cols}) and data ({data_fixed_cols})"
-    assert same_vals, msg
-
-    return param_fixed_cols, set(features).difference(set(data_fixed_cols))
-
-def check_feature_with_models(features, model):
-    """
-    Two BGS models are used, 'segment' and 'rec'. We check here
-    the features in the data are consistent with one of those two models.
-    """
-    model_features = BGS_MODEL_PARAMS[model]
-    x = ', '.join(model_features)
-    # drop N, since we condition on that
-    features = [f for f in features if f != 'N']
-    y = ', '.join(features)
-    msg = (f"feature mismatch between features for model '{model}' ({x}) and "
-           f"supplied data features ({y})")
-    assert set(features) == set(model_features), msg
-
-
-def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
-    """
-    Get the bounds of parameters from the simulation parameters dictionary, find
-    all fixed and variable parameters, take the product of the selection and
-    dominance coefficient columns, subset the data to include only variable
-    (non-fixed) params that go into the training as features. This also does
-    lots of validation of the simulation data and simulation parameters.
-
-    Returns a LearnedFunction, with the fixed attributes set.
-
-    Currently onlu combine_sh=True is supported.
-    """
-
-    # raw (original) data -- this contains extraneous columns, e.g.
-    # ones that aren't fixed
-    Xo, y = np.array(sim_data['X']), sim_data['y']
-    all_features = sim_data['features']
-    Xo_cols = index_cols(all_features)
-
-    # check the features we get are one of the BGS models
-    check_feature_with_models(all_features, model)
-
-    # get the fixed columns/features in the original data (with s, h separately)
-    fixed_vals, var_cols = match_features(sim_params, data=Xo, features=all_features)
-
-    # currently we just model t = s*h, check that here
-    try:
-        assert combine_sh
-        assert 'h' in fixed_vals
-    except AssertionError:
-        msg = f"combine_sh set to False or variable dominance coefficients found in data"
-        raise NotImplementedError(msg)
-
-    # build up a matrix of non-fixed features, combining sh
-    expected_features = [x for x in BGS_MODEL_PARAMS[model] if x not in ('s', 'h')]
-    expected_features.insert(1, 'sh')
-    nfeatures = len(expected_features)
-    Xsh = np.empty((Xo.shape[0], nfeatures))
-    for i, feature in enumerate(expected_features):
-        if feature == 'sh':
-            col = Xo[:, Xo_cols('s')] * Xo[:, Xo_cols('h')]
-        else:
-            col = Xo[:, Xo_cols(feature)]
-        Xsh[:, i] = col.squeeze()
-
-    # now let's get the fixed columns again since stuff has changed
-    new_fixed_vals = fixed_cols(Xsh, expected_features)
-    new_var_cols = list(set(expected_features) - set(new_fixed_vals.keys()))
-
-    features = new_var_cols # the real feature set is fixed columns
-
-    # get the parameter boundaries from params
-    sim_bounds = get_bounds(sim_params)
-    assert len(sim_bounds) == len(all_features)
-
-    # now, calc the sh bounds and add in to the sim bounds
-    s_low, s_high, s_log10 = sim_bounds['s']
-    h_low, h_high, h_log10 = sim_bounds['h']
-    assert h_low == h_high
-    assert not h_log10, "'h' cannot be log10 currently"
-    # we match if s is log10 or not
-    if s_log10:
-        low, high = np.log10(h_low * 10**s_low), np.log10(h_low * 10**s_high)
-    else:
-        low, high = h_low * s_low, h_low * s_high
-    sim_bounds['sh'] = low, high, s_log10
-    fixed_vals.pop('h') # we don't need this anymore, h is included in sh
-
-    # Now, subset the features matrix with sh merged to include only variable
-    # columns
-    Xsh_cols = index_cols(expected_features)
-    X = Xsh[:, Xsh_cols(*features)]
-
-    ## build the learn func object
-    # get the domain of non-fixed parameters
-    domain = {p: sim_bounds[p] for p in features}
-    func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
-
-    return func
-
-def fit_dnn(func, n64, n32, valid_split=0.3, batch_size=64,
-            epochs=400, progress=False):
-    """
-    Fit a DNN based on data in a LearnedFunction.
-    """
-    input_size = len(func.features)
-    model = network(input_size=input_size, output_activation='sigmoid',
-                    n64=n64, n32=n32)
-    es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
-                                       patience=50, restore_best_weights=True)
-    callbacks = [es]
-    if progress and PROGRESS_BAR_ENABLED:
-        callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
-
-    history = model.fit(func.X_train, func.y_train,
-                        validation_split=valid_split,
-                        batch_size=batch_size, epochs=epochs, verbose=0,
-                        callbacks=callbacks)
-    return model, history
+from bprime.loss import get_loss_func
 
 
 class LearnedFunction(object):
@@ -222,6 +27,8 @@ class LearnedFunction(object):
     the learning, etc -- just storange.
     """
     def __init__(self, X, y, domain, fixed=None, seed=None):
+        if seed is None:
+            seed = random_seed()
         self.seed = seed
         self.rng = np.random.RandomState(seed)
         assert len(domain) == X.shape[1]
@@ -229,6 +36,8 @@ class LearnedFunction(object):
         n = X.shape[0]
         self.X = X
         self.y = y
+        self.X.setflags(write=False)
+        self.y.setflags(write=False)
         self.test_size = None
         self.features = {}       # dict of features of X and their column
         self.bounds = {}         # dict of lower, upper boundaries
@@ -242,10 +51,13 @@ class LearnedFunction(object):
         self.X_test = None
         self.y_train = None
         self.y_test = None
-        self.X_test_orig = None
-        self.X_train_orig = None
-        self.y_test_orig = None
-        self.y_train_orig = None
+        # these are the X_test/X_train values *before* transforms/scales
+        # have been applied
+        self.X_test_raw = None
+        self.X_train_raw = None
+        # raw y's not needed currently, no y transforms used
+        # self.y_test_raw = None
+        # self.y_train_raw = None
 
         # parse the data domains
         self._parse_domains(domain)
@@ -253,20 +65,22 @@ class LearnedFunction(object):
         # storage for model/history
         self.model = None
         self.history = None
+        self.metadata = None
 
-    def reshuffle(self, seed=None):
+    def reseed(self, seed=None):
         """
-        Reset the RandomState with seed, resplit the data,
-        and rescale the features using the arguments used previously.
+        Reset the RandomState with seed and clear out the random state.
         """
+        if seed is None:
+            seed = random_seed()
         self.seed = seed
         self.rng = np.random.RandomState(seed)
-        # store existing transforms (reset during split)
-        normalize = self.normalized
-        transforms = self.transforms
-        self.split(test_size=self.test_size)
-        self.scale_features(normalize, transforms)
-        return self
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+        self.X_test_raw = None
+        self.X_train_raw = None
 
     def _parse_domains(self, domain):
         """
@@ -301,10 +115,9 @@ class LearnedFunction(object):
 
     def __repr__(self):
         nfeat = len(self.features)
-        ntarg = self.y.shape[1]
         rows = [
-            f"LearnedFunction with {nfeat} feature(s) and {ntarg} target(s)",
-            f" feature(s):"
+            f"LearnedFunction with {nfeat} feature(s)",
+            f" variable feature(s):"
         ]
         for feature in self.features:
             scale = 'linear' if not self.logscale[feature] else 'log10'
@@ -312,12 +125,25 @@ class LearnedFunction(object):
             trans_func = str(self.transforms[feature]) if self.transforms is not None else None
             row = f"  - {feature} ∈ [{lower}, {upper}] ({scale}, {trans_func})"
             rows.append(row)
+        rows.append(f" fixed fixed(s) (based on metadata):")
+        for fixed, val in self.fixed.items():
+            rows.append(f"  - {fixed} = {val}")
         normed = False if self.normalized is None else self.normalized
         rows.append(f"Features normalized? {normed}")
         rows.append(f"Features split? {self.is_split}")
         if self.is_split:
             rows[-1] += f", test size: {100*np.round(self.test_size, 2)}% (n={self.X_test.shape[0]:,})"
+
+        rows.append(f"Total size: {self.X.shape[0]:,}")
         return "\n".join(rows)
+
+    def _protect(self):
+        protectables = ['X', 'y', 'X_test', 'X_train', 'y_test', 'y_train',
+                        'X_test_raw', 'X_train_raw']
+        for protectable in protectables:
+            val = getattr(self, protectable)
+            if val is not None:
+                val.setflags(write=False)
 
     def split(self, test_size=0.2):
         """
@@ -332,22 +158,26 @@ class LearnedFunction(object):
         self.X_test = Xtst
         self.y_train = ytrn.squeeze()
         self.y_test = ytst.squeeze()
+        # store the pre-transformed daata, which is useful for figures, etc
+        self.X_test_raw = np.copy(self.X_test)
+        self.X_train_raw = np.copy(self.X_train)
+        self._protect()
         self.normalized = False
         self.transforms = {f: None for f in self.features}
         return self
 
     def scale_features(self, normalize=True, transforms='match'):
         """
-        Normalize (center and scale) features, optionally applying
-        a feature transform beforehand. This uses sklearn's StandardScaler
-        so inverse transforms are easy.
+        Normalize (center and scale) the split features (test/train), optionally
+        applying a feature transform beforehand. This uses sklearn's
+        StandardScaler so inverse scaling is easy.
 
-        If transforms = 'match', inputs are log10 scaled based on whether
-        the domain was log10 scale. If transforms is None, no transformations
-        are conducted. A dict of manual transforms can also be supplied.
+        If transforms = 'match', inputs are log10 scaled based on whether the
+        domain was log10 scale. If transforms is None, no transformations are
+        conducted. A dict of manual transforms can also be supplied.
 
         normalize: boolean whether to center and scale
-        feature_transforms: dictionary of feature, transform function pairs
+        transforms: dictionary of feature, transform function pairs
         """
         if not self.is_split:
             raise ValueError("X, y must be split first")
@@ -357,11 +187,11 @@ class LearnedFunction(object):
             valid_transforms = all(t in self.features for t in transforms.keys())
             if not valid_transforms:
                 raise ValueError("'transforms' dict has key not in features")
-        # store the pre-transformed daata, which is useful for figures, etc
-        self.X_test_orig = self.X_test
-        self.X_train_orig = self.X_train
-        self.y_test_orig = self.y_test
-        self.y_train_orig = self.y_train
+        # all this is done in place(!)
+        X_train = np.copy(self.X_train)
+        X_test = np.copy(self.X_test)
+        X_train.setflags(write=True)
+        X_test.setflags(write=True)
         for feature, col_idx in self.features.items():
             trans_func = None
             if transforms == 'match' and self.logscale[feature]:
@@ -370,36 +200,20 @@ class LearnedFunction(object):
                 trans_func = transforms.get(feature, None)
             if trans_func is not None:
                 # do the transform with the given trans_func
-                self.X_train[:, col_idx] = trans_func(self.X_train[:, col_idx])
-                self.X_test[:, col_idx] = trans_func(self.X_test[:, col_idx])
+                X_train[:, col_idx] = trans_func(X_train[:, col_idx])
+                X_test[:, col_idx] = trans_func(X_test[:, col_idx])
                 self.transforms[feature] = trans_func
         if normalize:
-            self.scaler = StandardScaler().fit(self.X_train)
-            self.X_test = self.scaler.transform(self.X_test)
-            self.X_train = self.scaler.transform(self.X_train)
+            self.scaler = StandardScaler().fit(X_train)
+            X_test = self.scaler.transform(X_test)
+            X_train = self.scaler.transform(X_train)
             self.normalized = True
+        # if we've done the transforms once, save them to the object
+        # and protect them
+        self.X_test = X_test
+        self.X_train = X_train
+        self._protect()
         return self
-
-    @property
-    def X_test_orig_linear(self):
-        "Return LearnedFunction.X_train_orig, transforming log10'd columns back to linear"
-        X = np.copy(self.X_test_orig)
-        for i, feature in enumerate(self.features):
-            if self.logscale[feature]:
-                X[:, i] = 10**X[:, i]
-
-        return X
-
-
-    @property
-    def X_train_orig_linear(self):
-        "Return LearnedFunction.X_train_orig, transforming log10'd columns back to linear"
-        X = np.copy(self.X_train_orig)
-        for i, feature in enumerate(self.features):
-            if self.logscale[feature]:
-                X[:, i] = 10**X[:, i]
-
-        return X
 
     def save(self, filepath):
         """
@@ -422,11 +236,13 @@ class LearnedFunction(object):
         """
         Load the LearnedFunction object at 'filepath.pkl' and 'filepath.h5'.
         """
-        import keras
         if filepath.endswith('.pkl'):
             filepath = filepath.replace('.pkl', '')
         with open(f"{filepath}.pkl", 'rb') as f:
             obj = pickle.load(f)
+            # numpy write flags are not preserved when pickling objects(!), so
+            # need to fix that here.
+            obj._protect()
         model_path = f"{filepath}.h5"
         if load_model and os.path.exists(model_path):
             obj.model = keras.models.load_model(model_path)
@@ -438,16 +254,18 @@ class LearnedFunction(object):
 
     def predict_test(self, **kwargs):
         """
-        Predict the test data.
+        Predict the test data in LearnedFunction.X_test (note: this has
+        already been transformed and scaled). This function expects
+        transformed/scaled data -- it's fed directly into model prediction.
         """
         assert self.has_model
-        return self.model.predict(self.X_test, **kwargs).squeeze()
+        return self.predict(self.X_test_raw, **kwargs).squeeze()
 
     def test_mae(self):
-        return np.mean(np.abs(self.model.predict(self.X_test).squeeze() - self.y_test))
+        return np.mean(np.abs(self.predict(self.X_test_raw).squeeze() - self.y_test))
 
     def test_mse(self):
-        return np.mean((self.model.predict(self.X_test).squeeze() - self.y_test)**2)
+        return np.mean((self.predict(self.X_test_raw).squeeze() - self.y_test)**2)
 
     def get_bounds(self, feature):
         "Get the bounds, rescaling to linear if log-transformed"
@@ -459,6 +277,7 @@ class LearnedFunction(object):
 
 
     def check_bounds(self, X, correct_bounds=False):
+        # mutates in place!
         out_lowers, out_uppers = [], []
         total = 0
         for i, feature in enumerate(self.features):
@@ -488,14 +307,17 @@ class LearnedFunction(object):
         return X
 
 
-    def predict(self, X, correct_bounds=True, transforms=True,
+    def predict(self, X=None, correct_bounds=True, transforms=True,
                 scale_input=True, **kwargs):
         """
-        Predict for an input function X (linear space). If transforms is True,
-        and transforms in LearnedFunction.transforms dict are applied to match
-        those applied from LearnedB.scale_features().
+        Predict for an input function X (in the same as simulation space).
+        If transforms is True, and transforms in LearnedFunction.transforms
+        dict are applied to match those applied from LearnedB.scale_features().
         """
+        if X is None:
+            X = self.X_test_raw
         assert self.has_model
+        X = np.copy(X)
         X = self.check_bounds(X, correct_bounds)
         if transforms:
             for i, (feature, trans_func) in enumerate(self.transforms.items()):
@@ -510,7 +332,7 @@ class LearnedFunction(object):
         Predict the training data.
         """
         assert self.has_model
-        return self.model.predict(self.X_train, **kwargs).squeeze()
+        return self.predict(self.X_train_raw, **kwargs).squeeze()
 
     def domain_grids(self, n, fix_X=None):
         """
@@ -560,7 +382,7 @@ class LearnedFunction(object):
             print("done.")
         mesh_array = np.stack(mesh)
         X_meshcols = np.stack([col.flatten() for col in mesh]).T
-        X_meshcols_orig = X_meshcols.copy()
+        X_meshcols_raw = X_meshcols.copy()
         # transform/scale the new mesh
         for feature, col_idx in self.features.items():
             trans_func = self.transforms.get(feature, None)
@@ -570,7 +392,7 @@ class LearnedFunction(object):
             X_meshcols = self.scaler.transform(X_meshcols)
 
         predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
-        return domain_grids, X_meshcols_orig, X_meshcols, predict.reshape(mesh[0].shape)
+        return domain_grids, X_meshcols_raw, X_meshcols, predict.reshape(mesh[0].shape)
 
 
 
@@ -604,12 +426,14 @@ class LearnedB(object):
     def tw_mesh(self):
         return np.array(list(itertools.product(self.t_grid, self.w_grid)))
 
-    def theory_B(self, X):
+    def theory_B(self, X=None):
         """
         Compute the BGS theory given the right function ('segment' or 'rec')
-        on the feature matrix X. E.g. use for X_test_orig_linear or using
+        on the feature matrix X. E.g. use for X_test_raw or using
         meshgrids.
         """
+        if X is None:
+            X = self.func.X_test_raw
         assert X.shape[1] == len(self.func.features)
         features = self.func.features
         kwargs = {}
@@ -624,19 +448,25 @@ class LearnedB(object):
         kwargs.pop('N') # not needed for theory
         return self.bgs_model(**kwargs)
 
+
     def predict_test(self):
         """
-        Predict X_test, caching the results (invalidation based on hash of
-        X_test).
+        Predict X_test_raw, caching the results (invalidation
+        based on hash of X_test).
         """
-        X_test_hash = hash(self.func.X_test.data.tobytes())
+        X_test_hash = hash(self.func.X_test_raw.data.tobytes())
         if self._predict is None or X_test_hash != self._X_test_hash:
             self._X_test_hash = X_test_hash
             predict = self.func.predict_test()
             self._predict = predict
-        else:
-            print("using cached predictions")
         return self._predict
+
+    def predict_datum(self, **kwargs):
+        msg = f"kwargs: {', '.join(kwargs.keys())}, features: {', '.join(self.func.features.keys())}"
+        assert set(kwargs.keys()) == set(self.func.features.keys()), msg
+        # make a prediction matrix
+        X = np.array([[kwargs[k] for k in self.func.features.keys()]])
+        return float(self.func.predict(X))
 
     def binned_Bhats(self, bins):
         predict = self.predict_test()
@@ -657,6 +487,24 @@ class LearnedB(object):
 
     def train_model(self, filepath):
         pass
+
+    def predict_loss(self, loss='mae', raw=False):
+        lossfunc = get_loss_func(loss)
+        predict = self.predict_test()
+        ytest = self.func.y_test
+        lossvals = lossfunc(ytest, predict)
+        if raw:
+            return B, lossvals
+        return lossvals.mean()
+
+    def theory_loss(self, X=None, loss='mae', raw=False):
+        lossfunc = get_loss_func(loss)
+        B = self.theory_B(X)
+        predict = self.func.predict(X)
+        lossvals = lossfunc(B, predict)
+        if raw:
+            return B, lossvals
+        return lossvals.mean()
 
     def is_valid_grid(self):
         """

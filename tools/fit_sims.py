@@ -17,7 +17,7 @@ except ImportError:
 
 
 from bprime.utils import index_cols
-from bprime.learn import load_data, data_to_learnedfunc, fit_dnn
+from bprime.learn_utils import load_data, data_to_learnedfunc, fit_dnn
 from bprime.learn import LearnedFunction
 
 
@@ -42,32 +42,47 @@ def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
 @click.option('--outfile', default=None,
               help="output filepath (default <funcfile>, "
                    "creating <_dnn.pkl> and <funcfile>_dnn.h5")
-@click.option('--n64', default=4, help="number of 64 dense layers")
-@click.option('--n32', default=2, help="number of 32 dense layers")
+@click.option('--n128', default=0, help="number of 128 dense layers")
+@click.option('--n64', default=0, help="number of 64 neuron dense layers")
+@click.option('--n32', default=0, help="number of 32 neuron dense layers")
+@click.option('--n8', default=0, help="number of 8 neuron dense layers")
+@click.option('--nx', default=2, help="number of x neuron dense layers where x is input size")
+@click.option('--activation', default='elu', help="layer activation")
 @click.option('--batch-size', default=64, help="batch size")
-@click.option('--epochs', default=400, help="number of epochs to run")
-@click.option('--test-size', default=0.3, help="proportion to use as test data set")
+@click.option('--epochs', default=1000, help="number of epochs to run")
+@click.option('--early/--no-early', default=True, help="use early stopping")
+@click.option('--test-size', default=0.2, help="proportion to use as test data set")
+@click.option('--reseed/--no-reseed', default=True, help="reseed with new seed")
 @click.option('--match/--no-match', default=True, help="transform X to match if log10 scale")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def fit(funcfile, outfile=None, n64=4, n32=2, batch_size=64,
-        epochs=400, test_size=0.3, match=True, progress=True):
+def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
+        activation='elu', batch_size=64,
+        epochs=1000, early=True, test_size=0.2, reseed=True,
+        match=True, progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_dnn')
 
     func = LearnedFunction.load(funcfile)
 
+    # if we want to fit the model on a new, fresh split of test/train
+    # compared to the data that's loaded in, we reseed.
+    if reseed:
+        func.reseed()
+
     # split the data into test/train
     func.split(test_size=test_size)
 
-    # transform the features using log10 if the simulation scale is log10
     if match:
+        # transform the features using log10 if the simulation scale is log10
         func.scale_features(transforms='match')
     else:
         # just normalize
         func.scale_features(transforms=None)
 
-    model, history = fit_dnn(func, n64, n32, batch_size=batch_size,
-                             epochs=epochs,
+    model, history = fit_dnn(func, n128=n128, n64=n64, n32=n32, n8=n8, nx=nx,
+                             activation=activation,
+                             batch_size=batch_size,
+                             epochs=epochs, early_stopping=early,
                              progress=(progress and PROGRESS_BAR_ENABLED))
     func.model = model
     func.history = history.history

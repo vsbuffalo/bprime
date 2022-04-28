@@ -1,0 +1,14 @@
+{
+  "name": "simple_varL",
+  "model": "bgs_rec",
+  "params":
+     {
+       "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},
+       "mu": {"dist": {"name": "log10_uniform", "low": -10, "high": -5}, "type": "float"},
+       "s": {"dist": {"name": "log10_uniform", "low": -4, "high": -1}, "type": "float"},
+       "h": {"dist": {"name": "fixed", "val": 0.5}, "type": "float"},
+       "rbp": {"dist": {"name": "fixed", "val": 1e-8}, "type": "float"},
+       "L": {"dist": {"name": "uniform", "low": 0, "high": 1000}, "type": "int"}
+     },
+  "nsamples": 1000000
+}
