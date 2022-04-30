@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -114,7 +115,8 @@ def check_feature_with_models(features, model):
     assert set(features) == set(model_features), msg
 
 
-def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
+def data_to_learnedfunc(sim_params, sim_data, model, seed, 
+                        average_reps=False, combine_sh=True):
     """
     Get the bounds of parameters from the simulation parameters dictionary, find
     all fixed and variable parameters, take the product of the selection and
@@ -130,6 +132,17 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed, combine_sh=True):
     # raw (original) data -- this contains extraneous columns, e.g.
     # ones that aren't fixed
     Xo, y = np.array(sim_data['X']), sim_data['y']
+    if average_reps:
+        keys = sim_data['keys']
+        assert np.all(sorted(keys) == keys)
+        yd = pd.DataFrame(y)
+        yd['key'] = keys
+        Xd = pd.DataFrame(X)
+        Xd['key'] = keys
+        Xo_ave = Xd.groupby('key').mean()
+        y_ave = yd.groupby('key').mean()
+        Xo, y = Xo_ave, y_ave
+        
     all_features = sim_data['features']
     Xo_cols = index_cols(all_features)
 

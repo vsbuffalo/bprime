@@ -102,6 +102,8 @@ class SlimRuns(object):
         if self.is_grid:
             assert self.nreps is not None
         if self.is_samples:
+            # this is the number of total samples *not* including replicates,
+            # e.g. unique parameter combinations
             self.nsamples = config['nsamples']
 
         self.script = config['slim']
@@ -138,10 +140,16 @@ class SlimRuns(object):
             # wildcards
             for rep in range(nreps):
                 # draw nreps samples
+                if rep > 0:
+                    sample = copy.copy(sample)
+                    # we have more than one replicate, so we need to use the same 
+                    # params, but with a different random seed
+                    sample['seed'] = random_seed(self.sampler.rng)
+ 
                 if self.nreps is not None or package_rep:
                     # package_rep is whether to include 'rep' into sample dict
-                    sample = copy.copy(sample)
                     sample['rep'] = rep
+
                 run_needed = False
                 target_files = []
                 for end in suffix:
@@ -184,8 +192,14 @@ class SlimRuns(object):
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              add_seed=True, seed=self.seed)
-            self._generate_runs(suffix=suffix, ignore_files=ignore_files, package_rep=package_rep)
+            self._generate_runs(suffix=suffix, ignore_files=ignore_files, 
+                                package_rep=package_rep)
 
+
+    @property
+    def total_draws(self):
+        "SlimRuns.nsamples x SlimRuns.nreps"
+        return self.nsamples if not self.has_reps else self.nsamples*self.nreps
 
     def batch_runs(self, batch_size=1, slim_cmd='slim'):
         """

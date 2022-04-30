@@ -14,5 +14,10 @@
        "L": {"dist": {"name": "log10_uniform", "low": -0.3, "high": 3.04}, "type": "int"}
      },
   "nsamples": 1000000,
-  "nreps": 5
+  "nreps": 5,
+  "activs": ['elu'],
+  "fit_nreps": 4,
+  "archs": [{"n128": 0, "n64": 0, "n32": 4, "n8": 2, "nx": 0},
+            {"n128": 0, "n64": 0, "n32": 0, "n8": 0, "nx": 4},
+            {"n128": 0, "n64": 0, "n32": 0, "n8": 0, "nx": 2}]
 }

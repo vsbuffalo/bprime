@@ -1,51 +1,60 @@
 import sys
 sys.path.extend(['../../']) # for bprime modules
 
-import json
-from math import floor, log10
-import itertools 
-import numpy as np
-import pyslim
-import tskit
-import msprime
-from datetime import time
-from collections import defaultdict, namedtuple
-from bprime.slim import SlimRuns, read_params, time_grower
-from bprime.samplers import Sampler
-
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
-# ------- Shared Parameters -------
-DATADIR = "../../data/slim_sims/"
-SLIM = '~/src/SLiM_build/slim'
- 
-# ------- BGS segments -------
-run = SlimRuns(config, dir=DATADIR, sampler=Sampler, split_dirs=3, seed=12)
-run.generate()
+name = config['name']
+activs = config['activs']
+nreps = config['fit_nreps']
+archs = config['archs']
 
-import pdb
-pdb.set_trace()
-sys.exit()
+SIMDIR = "../../data/slim_sims/"
 
-# to get param order for SLiM file
-#print(run.has_reps)
-#print(next(run.slim_commands()))
-#print(run.slim_call())
-#print(run.filename_pattern)
-#print(run.param_order)
+def get_outfile(name, dir):
+     return os.path.join(dir, name.replace('/', '')+"_data.pkl")
 
-# build the files to output 
-sim_results = run.targets(["treeseq.tree"])
-print(sim_results[:10])
+def fill_suffix(name, suffix):
+    return name.replace('{suffix}', suffix)
 
-rule all:
-  input:
-    sim_results
 
-rule bgs:
-  input: run.script
-  output: run.wildcard_output(suffix="treeseq.tree")
+FILENAME = os.path.join(SIMDIR, "fits", f"{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep{{suffix}}")
+
+
+data_file = get_outfile(name, SIMDIR)
+
+dnn_files = []
+for arch in archs:
+    for activ in activs:
+        for rep in range(nreps):
+            kwargs = {**arch, 'activ': activ, 'rep': rep}
+            dnn_files.append(FILENAME.format(**kwargs, suffix='.pkl'))
+            dnn_files.append(FILENAME.format(**kwargs, suffix='.h5'))
+
+
+rule process_data:
+    input: 
+    output: data_file
+    shell:
+        f"""
+        python ../../tools/trees2data.py --outfile {{output}} --ncores 40 \
+          --features 'mu,s,L,rbp,rf,h,rep' {os.path.join(SIMDIR, name)}
+        """
+
+rule fit_dnn:
+  input: data_file
+  output: model=fill_suffix(FILENAME, '.pkl'), keras=fill_suffix(FILENAME, '.h5')
   shell:
-    run.slim_call(slim_cmd=SLIM)
+     """
+     module load cuda/10.1
+     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
+      --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
+      --activation {activ} {input} 
+     """
+
+rule data:
+  input: data_file
+
+rule train:
+  input: dnn_files 
 

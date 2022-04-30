@@ -28,10 +28,13 @@ def cli():
 @cli.command()
 @click.argument('jsonfile', required=True)
 @click.argument('npzfile', required=True)
+@click.option('--average-reps', default=True, help="whether to average over replicates")
 @click.option('--outfile', default=None, help="output file (default <jsonfile>_data.pkl")
 @click.option('--seed', default=None, help='random seed for test/train split')
-def data(jsonfile, npzfile, outfile=None, test_size=0.3, seed=None, match=True):
-    func = data_to_learnedfunc(*load_data(jsonfile, npzfile), seed=seed)
+def data(jsonfile, npzfile, average_reps=True, outfile=None, test_size=0.3, 
+         seed=None, match=True):
+    func = data_to_learnedfunc(*load_data(jsonfile, npzfile), 
+                               average_reps=average_reps, seed=seed)
     if outfile is None:
         # suffix is handled by LearnedFunction.save
         outfile = jsonfile.replace('.json', '_data')

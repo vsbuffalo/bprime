@@ -3,8 +3,13 @@ import warnings
 import itertools
 import numpy as np
 
-def random_seed():
-    return np.random.randint(0, 2**32-1)
+SEED_MAX = 2**32-1
+
+def random_seed(rng=None):
+    
+    if rng is None:
+        return np.random.randint(0, SEED_MAX)
+    return rng.integers(0, SEED_MAX)
 
 def fixed_params(params):
     """

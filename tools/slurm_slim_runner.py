@@ -47,7 +47,7 @@ do
   nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l) 
   while [ $nrunning -gt 0 ]
   do
-    sleep 5m
+    sleep 2m
     nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l) 
     echo "$nrunning jobs still running..."
   done

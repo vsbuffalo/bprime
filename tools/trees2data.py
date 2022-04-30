@@ -5,6 +5,7 @@ from functools import partial
 import multiprocessing
 import warnings
 import os
+import re
 import click
 import numpy as np
 import tskit
@@ -12,6 +13,8 @@ import pyslim
 import msprime
 import tqdm
 from bprime.theory import BGS_MODEL_PARAMS
+
+FILENAME_RE = re.compile("(.*)_seed(\d+)_rep\d+_treeseq\.tree")
 
 # we mirror the BGS segment model
 DEFAULT_FEATURES = BGS_MODEL_PARAMS['bgs_segment']
@@ -76,22 +79,32 @@ def process_tree_file(tree_file, features, recap='auto'):
     y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load)
     return X, y
 
+def filename_key(filename):
+    "Removes the replicate number and seed providing a key for parameters."
+    match = FILENAME_RE.match(filename)
+    assert match is not None
+    return match.groups()[0]
+
 def trees2training_data(dir, features, recap='auto', progress=True,
                         ncores=None, suffix="recap.tree"):
     # this will recap automatically with rec rate 0
     tree_files = get_files(dir, suffix)
     X, y = [], []
     if progress:
-        tree_files = tqdm.tqdm(tree_files)
+        tree_files_iter = tqdm.tqdm(tree_files)
+    else:
+        tree_files_iter = iter(tree_files)
     func = partial(process_tree_file, features=features, recap=recap)
     if ncores in (None, 1):
-        X, y = zip(*map(func, tree_files))
+        X, y = zip(*map(func, tree_files_iter))
     else:
         with multiprocessing.Pool(ncores) as p:
-            X, y = zip(*list(p.imap(func, tree_files)))
+            X, y = zip(*list(p.imap(func, tree_files_iter)))
     targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load')
-    return np.array(X), np.array(y), features, targets
-
+    keys = [filename_key(os.path.basename(f)) for f in tree_files]
+    idx = np.argsort(keys)
+    X, y, keys = np.array(X), np.array(y), np.array(keys)
+    return X[idx, :], y[idx, :], features, targets, keys[idx]
 
 @click.command()
 @click.argument('dir')
@@ -108,8 +121,8 @@ def main(dir, outfile, suffix, ncores, recap, features):
     Extract features and targets from tree sequences. If the treeseq isn't recapitated,
     it will be recapitated with the pop size in the SLiM metadata, and rec rate = 0.
     """
-    X, y, features, targets = trees2training_data(dir, features=features.split(','), suffix=suffix, ncores=ncores)
-    np.savez(outfile, X=X, y=y, features=features, targets=targets)
+    X, y, features, targets, keys = trees2training_data(dir, features=features.split(','), suffix=suffix, ncores=ncores)
+    np.savez(outfile, X=X, y=y, features=features, targets=targets, keys=keys)
 
 if __name__ == "__main__":
     main()

@@ -54,7 +54,7 @@ DISTS = {"fixed": fixed,
 
 TYPES = {"float": float, "int": int}
 
-def sampler_factory(rng, params, add_seed=False, signif_digits=None, seed_max=2**32):
+def sampler_factory(rng, params, add_seed=False, signif_digits=None):
     samplers = dict()
     types = dict()
     assert 'seed' not in params.keys(), "seed cannot be a parameter name"
@@ -80,7 +80,7 @@ def sampler_factory(rng, params, add_seed=False, signif_digits=None, seed_max=2*
                 s = signif(s, signif_digits)
             sample[key] = s
         if add_seed:
-            sample['seed'] = rng.integers(0, seed_max)
+            sample['seed'] = random_seed(rng)
         return sample
     return func
 
@@ -149,8 +149,7 @@ def target_rejection_sampler(func, sampler, n, burnin=1000,
     return accepted
 
 class Sampler(object):
-    def __init__(self, params, total=None, seed=None, add_seed=False,
-                 seed_max=2**32, signif_digits=4):
+    def __init__(self, params, total=None, seed=None, add_seed=False, signif_digits=4):
         assert isinstance(total, int) or total is None
         assert isinstance(seed, int) or seed is None
         assert isinstance(params, dict), "'params' must be a dict"
@@ -159,15 +158,13 @@ class Sampler(object):
         self.rng = np.random.default_rng(seed)
         self.seed = seed
         self.add_seed = add_seed
-        self.seed_max = seed_max
         self.params = params
         self.total = total
         self.samples_remaining = total
         self.samples = []
         self.signif_digits = signif_digits
         self.sampler = sampler_factory(self.rng, self.params, add_seed=add_seed,
-                                       signif_digits=signif_digits,
-                                       seed_max=seed_max)
+                                       signif_digits=signif_digits)
 
     def __iter__(self):
         return self
