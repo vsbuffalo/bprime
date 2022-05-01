@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['..', '../bprime'])
+sys.path.extend(['..', '../..', '../bprime'])
 
 import pickle
 import json

@@ -11,8 +11,9 @@ archs = config['archs']
 
 SIMDIR = "../../data/slim_sims/"
 
-def get_outfile(name, dir):
-     return os.path.join(dir, name.replace('/', '')+"_data.pkl")
+def get_outfile(name, dir=None, suffix=''):
+     dir = dir if dir is not None else ''
+     return os.path.join(dir, name.replace('/', '')+suffix)
 
 def fill_suffix(name, suffix):
     return name.replace('{suffix}', suffix)
@@ -21,7 +22,11 @@ def fill_suffix(name, suffix):
 FILENAME = os.path.join(SIMDIR, "fits", f"{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep{{suffix}}")
 
 
-data_file = get_outfile(name, SIMDIR)
+npz_file = get_outfile(name, suffix='.npz')
+data_file = get_outfile(name, suffix='_data.pkl')
+
+#print(npz_file, data_file)
+#sys.exit()
 
 dnn_files = []
 for arch in archs:
@@ -32,14 +37,22 @@ for arch in archs:
             dnn_files.append(FILENAME.format(**kwargs, suffix='.h5'))
 
 
-rule process_data:
+rule process_trees:
     input: 
-    output: data_file
+    output: npz_file
     shell:
         f"""
         python ../../tools/trees2data.py --outfile {{output}} --ncores 40 \
           --features 'mu,s,L,rbp,rf,h,rep' {os.path.join(SIMDIR, name)}
         """
+
+rule process_data:
+  input: json=f"{name}.json", npz=npz_file
+  output: data_file
+  shell:
+     """
+     python ../../tools/fit_sims.py data --outfile {output} {input.json} {input.npz}
+     """
 
 rule fit_dnn:
   input: data_file
@@ -47,7 +60,7 @@ rule fit_dnn:
   shell:
      """
      module load cuda/10.1
-     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
+     python ../../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
       --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
       --activation {activ} {input} 
      """

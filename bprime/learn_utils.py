@@ -116,7 +116,7 @@ def check_feature_with_models(features, model):
 
 
 def data_to_learnedfunc(sim_params, sim_data, model, seed, 
-                        average_reps=False, combine_sh=True):
+                        average_reps=False, unlogL=True, combine_sh=True):
     """
     Get the bounds of parameters from the simulation parameters dictionary, find
     all fixed and variable parameters, take the product of the selection and
@@ -126,7 +126,11 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
 
     Returns a LearnedFunction, with the fixed attributes set.
 
-    Currently onlu combine_sh=True is supported.
+    Currently only combine_sh=True is supported.
+
+    If unlogL=True, we fix an issue from log10'd seq lengths with a lower 
+    bound < 1. This is a hack to get sims to run L=0 since int(log10(L)) = 0
+    if L < 1, e.g. a neutral case. So, we fit on linear scale if logL=True
     """
 
     # raw (original) data -- this contains extraneous columns, e.g.
@@ -137,19 +141,23 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
         assert np.all(sorted(keys) == keys)
         yd = pd.DataFrame(y)
         yd['key'] = keys
-        Xd = pd.DataFrame(X)
+        Xd = pd.DataFrame(Xo)
         Xd['key'] = keys
         Xo_ave = Xd.groupby('key').mean()
         y_ave = yd.groupby('key').mean()
-        Xo, y = Xo_ave, y_ave
+        Xo, y = Xo_ave.values, y_ave.values
         
-    all_features = sim_data['features']
+    # we exclude rep number from now on -- not needed
+    idx, all_features = zip(*[(i, f) for i, f in enumerate(sim_data['features']) if f != 'rep'])
+    Xo = Xo[:, idx]
     Xo_cols = index_cols(all_features)
 
     # check the features we get are one of the BGS models
     check_feature_with_models(all_features, model)
 
-    # get the fixed columns/features in the original data (with s, h separately)
+    # Get the fixed columns/features in the original data (with s, h separately)
+    # First drop N, which is not in the features matrix since we condition on it.
+    sim_params = {k: v for k, v in sim_params.items() if k not in ('N', )}
     fixed_vals, var_cols = match_features(sim_params, data=Xo, features=all_features)
 
     # currently we just model t = s*h, check that here
@@ -205,9 +213,13 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     ## build the learn func object
     # get the domain of non-fixed parameters
     domain = {p: sim_bounds[p] for p in features}
+
+    if unlogL:
+        lower, upper, log10 = domain['L']
+        domain['L'] = int(10**lower), int(10**upper), False
+
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
     func.metadata = {'model': model, 'params': sim_params}
-
     return func
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
