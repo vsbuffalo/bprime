@@ -135,18 +135,27 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
 
     # raw (original) data -- this contains extraneous columns, e.g.
     # ones that aren't fixed
-    Xo, y = np.array(sim_data['X']), sim_data['y']
+    Xo, yo = np.array(sim_data['X']), sim_data['y']
     if average_reps:
         keys = sim_data['keys']
         assert np.all(sorted(keys) == keys)
-        yd = pd.DataFrame(y)
+        yd = pd.DataFrame(yo)
         yd['key'] = keys
         Xd = pd.DataFrame(Xo)
         Xd['key'] = keys
         Xo_ave = Xd.groupby('key').mean()
-        y_ave = yd.groupby('key').mean()
-        Xo, y = Xo_ave.values, y_ave.values
+        yo_ave = yd.groupby('key').mean()
+        Xo, yo = Xo_ave.values, yo_ave.values
 
+    # first deal with y -- here we only care about Bhat, so we get that
+    if yo.shape[1] > 1:
+        ycols = index_cols(sim_data['targets'])
+        y = yo[:, ycols('Bhat')]
+        yextra = yo[:, ycols(*[f for f in sim_data['targets'] if f != 'Bhat'])]
+    else:
+        yextra = None
+        y = yo
+        
     # we exclude rep number from now on -- not needed
     idx, all_features = zip(*[(i, f) for i, f in enumerate(sim_data['features']) if f != 'rep'])
     Xo = Xo[:, idx]
@@ -219,7 +228,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
         domain['L'] = int(10**lower), int(10**upper), False
 
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
-    func.metadata = {'model': model, 'params': sim_params}
+    func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
