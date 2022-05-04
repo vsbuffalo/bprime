@@ -71,10 +71,12 @@ def cli():
                    "list for log10 mutation rates", default='-10:-7:50' )
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
+@click.option('--nchunks', default=100, help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
-def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, ncores, output):
+def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
+          ncores, output):
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
                        chroms=None, name=name)
@@ -99,10 +101,12 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, ncores, ou
                    "list for log10 mutation rates", default='-10:-7:6' )
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
+@click.option('--nchunks', default=100,
+              help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--out-dir', default=None, help="output directory (default: cwd)")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def predict_files(learnedb, seqlens, annot, recmap, conv_factor, w, t,
-                  out_dir, progress):
+def write_X(learnedb, seqlens, annot, recmap, conv_factor, w, t,
+            step, nchunks, out_dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
@@ -115,7 +119,7 @@ def predict_files(learnedb, seqlens, annot, recmap, conv_factor, w, t,
                        chroms=None, name=None)
 
     m.load_learnedb(learnedb)
-    m.bfunc.write_BpX_chunks(out_dir)
+    m.bfunc.write_BpX_chunks(out_dir, step=step, nchunks=nchunks)
 
 
 

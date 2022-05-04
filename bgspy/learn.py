@@ -668,7 +668,7 @@ class LearnedB(object):
             np.save(os.path.join(dir, f"chunk_data_{chrom}.npy", X_chunk))
 
 
-    def focal_positions(self, step=1000, nchunks=100, scale=True, progress=True):
+    def focal_positions(self, step=1000, nchunks=100, progress=True):
         """
         Get the focal positions for each position that B is calculated at.
 
