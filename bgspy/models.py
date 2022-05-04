@@ -44,7 +44,6 @@ from bgspy.utils import load_seqlens
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import B_segment_lazy, calc_B, calc_B_parallel
-from bgspy.parallel import BpChunkIterator
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})

@@ -2,31 +2,51 @@ import click
 import numpy as np
 import tqdm
 import pickle
+import os
 from collections import namedtuple
 from matplotlib.backends.backend_pdf import PdfPages
-from models import BGSModel
-from utils import RecMap, sum_logliks_over_chroms
-from utils import load_dacfile, load_bed_annotation, load_seqlens, read_bed
-from plots import chrom_plot, ll_grid
+from bgspy.models import BGSModel
+from bgspy.recmap import RecMap
+from bgspy.utils import sum_logliks_over_chroms
+from bgspy.utils import load_dacfile, load_bed_annotation, load_seqlens, read_bed
+from bgspy.plots import chrom_plot, ll_grid
+from bgspy.genome import Genome
 
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
+def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, chroms=None, name=None):
+    """
+    Build the BGSModel and the Genome object it uses.
+    """
+    if name is None:
+        # infer the name
+        bn = os.path.splitext(os.path.basename(seqlens))[0]
+        name = bn.replace('_seqlens', '')
+    g = Genome(name, seqlens_file=seqlens, chroms=chroms)
+    g.load_annot(annot)
+    g.load_recmap(recmap, conversion_factor=conv_factor)
+    g.create_segments()
+    m = BGSModel(g, w_grid=w, t_grid=t)
+    return m
+
 def parse_gridstr(x):
+    if ',' in x:
+        try:
+            return np.array(list(map(float, x.split(','))))
+        except:
+            raise click.BadParameter("misformated grid string, needs to be 'x,y'")
     lower, upper, ngrid = list(map(float, x.split(':')))
     if int(ngrid) != ngrid:
         msg = f"the grid string '{x}' does not have an integer number of samples"
         raise click.BadParameter(msg)
     return 10**np.linspace(lower, upper, int(ngrid))
 
-def parse_rstr(x):
-    r, ngrid = list(map(float, x.split(':')))
-    if int(ngrid) != ngrid:
-        msg = f"the grid string '{x}' does not have an integer number of samples"
-        raise click.BadParameter(msg)
-    return r, int(ngrid)
-
 def calc_stats(x, stats={'mean': np.mean, 'median': np.median, 'var': np.var,
                         'min': np.min, 'max': np.max,
+                         'non-zero-min': lambda x: np.min(x[x > 0]),
+                         'lower-decile': lambda x: np.quantile(x, 0.10),
+                         'lower-quartile': lambda x: np.quantile(x, 0.25),
+                         'upper-decile': lambda x: np.quantile(x, 0.9),
                         'total': lambda y: y.shape[0]}):
     return {s: func(x) for s, func in stats.items()}
 
@@ -35,73 +55,94 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--recmap', required=True, type=click.Path(exists=True),
-              help='BED file with rec rates per window in the 4th column')
-@click.option('--features', required=True, type=click.Path(exists=True),
+@click.option('--recmap', type=str, required=True, help="HapMap or BED-like TSV of recombination rates")
+@click.option('--annot', required=True, type=click.Path(exists=True),
               help='BED file with conserved regions, fourth column is optional feature class')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
-@click.option('--dnn', help='use DNN B', default=False)
-@click.option('--factor', default=1e-8,
-              help='conversion factor to get rec rates in M/bp (for cM/Mb use 1e-8, the default)')
-@click.option('--tg', help='string of lower:upper:grid_size for log10 het sel coef', default='-6:-0.25:50')
-@click.option('--wg', help='string of lower:upper:grid_size for log10 mut rates', default='-10:-6:50')
-@click.option('--t', help='list of sel coefs (e.g. 0.01,0.001,0.0001)', default=None)
-@click.option('--w', help='list of sel coefs (e.g. 1e-8)', default=None)
-@click.option('--step', help='step size for B in basepairs (default: 1kb)', default=1_000)
+@click.option('--name', type=str, help="genome name (otherwise inferred from seqlens file)")
+@click.option('--conv-factor', default=1e-8,
+                help="Conversation factor of recmap rates to M (for "
+                     "cM/Mb rates, use 1e-8)")
+@click.option('--t', help="string of lower:upper:grid_size or comma-separated "
+                   "list for log10 heterozygous selection coefficient",
+                    default='-6:-1:50')
+@click.option('--w', help="string of lower:upper:grid_size or comma-separated "
+                   "list for log10 mutation rates", default='-10:-7:50' )
+@click.option('--step', help='step size for B in basepairs (default: 1kb)',
+              default=1_000)
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
-def calcb(recmap, features, seqlens, factor, dnn,
-          tg, wg, t, w, step, ncores, output):
-    if t is not None and tg is not None:
-        print(f"note: option --t is specified, ignoring --tg")
-        tg = None
-        t = np.array(list(map(float, t.split(','))))
-    if w is not None and wg is not None:
-        print(f"note: option --w is specified, ignoring --wg")
-        wg = None
-        w = np.array(list(map(float, w.split(','))))
-    sl = load_seqlens(seqlens)
-    rm = RecMap(recmap, seqlens=sl, conversion_factor=factor)
-    ft = load_bed_annotation(features)
-    if tg is not None:
-        t = parse_gridstr(tg)
-    if wg is not None:
-        w = parse_gridstr(wg)
-    m = BGSModel(rm, ft, sl, t, w)
-    if not dnn:
-        m.calc_B(ncores=ncores, nchunks=100, step=step)
-    else:
-        m.calc_Bp(ncores=ncores, nchunks=100, step=step)
+def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, ncores, output):
+    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
+                       parse_gridstr(w), parse_gridstr(t),
+                       chroms=None, name=name)
+    m.calc_B(ncores=ncores, nchunks=100, step=step)
     m.save_B(output)
+
+
+@cli.command()
+@click.argument('learnedb', type=str, required=True)
+@click.option('--seqlens', required=True, type=click.Path(exists=True),
+              help='tab-delimited file of chromosome names and their length')
+@click.option('--name', type=str, help="genome name (otherwise inferred from seqlens file)")
+@click.option('--annot', required=True, type=click.Path(exists=True),
+              help='BED file with conserved regions, fourth column is optional feature class')
+@click.option('--recmap', type=str, required=True, help="HapMap or BED-like TSV of recombination rates")
+@click.option('--conv-factor', default=1e-8,
+                help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
+@click.option('--t', help="string of lower:upper:grid_size or comma-separated "
+                   "list for log10 heterozygous selection coefficient",
+                    default='-6:-1:6')
+@click.option('--w', help="string of lower:upper:grid_size or comma-separated "
+                   "list for log10 mutation rates", default='-10:-7:6' )
+@click.option('--step', help='step size for B in basepairs (default: 1kb)',
+              default=1_000)
+@click.option('--out-dir', default=None, help="output directory (default: cwd)")
+@click.option('--progress/--no-progress', default=True, help="show progress")
+def predict_files(learnedb, seqlens, annot, recmap, conv_factor, w, t,
+                  out_dir, progress):
+    """
+    DNN B Map calculations (prediction, step 1)
+    Output files necessary to run the DNN prediction across a cluster.
+    Will output scripts to run on a SLURM cluster using job arrays.
+
+    learnedb is a file path name (sans extensions) to the .pkl/h5 model.
+    """
+    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
+                       parse_gridstr(w), parse_gridstr(t),
+                       chroms=None, name=None)
+
+    m.load_learnedb(learnedb)
+    m.bfunc.write_BpX_chunks(out_dir)
+
+
 
 @cli.command()
 @click.option('--recmap', required=True, type=click.Path(exists=True),
               help='BED file with rec rates per window in the 4th column')
-@click.option('--features', required=True, type=click.Path(exists=True),
+@click.option('--annot', required=True, type=click.Path(exists=True),
               help='BED file with conserved regions, fourth column is optional feature class')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
-@click.option('--factor', default=1e-8,
-              help='conversion factor to get rec rates in M/bp (for cM/Mb use 1e-8, the default)')
+@click.option('--conv-factor', default=1e-8,
+                help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
 @click.option('--output', required=False,
               help='output file for a pickle of the segments',
               type=click.Path(exists=False, writable=True))
-def stats(recmap, features, seqlens, factor, output=None):
-    sl = load_seqlens(seqlens)
-    rm = RecMap(recmap, seqlens=sl, conversion_factor=factor)
-    ft = load_bed_annotation(features)
-    m = BGSModel(rm, ft, sl, None, None)
+def stats(recmap, annot, seqlens, conv_factor, output=None):
+    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
+                       w=None, t=None, chroms=None, name=None)
     segments = m.segments
     if output:
         with(outfile, 'wb') as f:
             pickle.dump(segments, f)
         return
-    ranges = segments[0]
+    ranges = segments.ranges
     lens = np.diff(ranges, axis=1).flatten()
     ranges_stats = calc_stats(lens)
-    rec = segments[1]
+    rec = segments.rates
     rec_stats = calc_stats(rec)
     print(f"range stats: {ranges_stats}")
     print(f"rec stats: {rec_stats}")

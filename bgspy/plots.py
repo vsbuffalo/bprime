@@ -372,3 +372,68 @@ def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), bhat=False, **rate_
     return fig, ((ax1, ax2), (ax3, ax4))
 
 
+def chrom_plot(ll_tuple, chrom, figsize=(10, 5)):
+    ll, pi0, pi0_ll, pi0_grid, ws, ts, binned_B, binned_pi, gwpi, pi0_mle, w_mle, t_mle, wi_mle, ti_mle, md = ll_tuple
+    binned_B = binned_B[chrom]
+    binned_pi = binned_pi[chrom]
+    midpoints = binned_pi[1].mean(axis=1)
+    pi = binned_pi[0]
+    # sum over the features -- TODO check
+    R = binned_B[0][:, wi_mle, ti_mle]
+    fig, ax = plt.subplots(figsize=figsize)
+    #ax.set_title(latex_label(ws[wi_mle], 'w', True, True) + ", " + latex_label(ts[ti_mle], 't', True, True))
+    ax.plot(midpoints, pi)
+    ax.plot(midpoints, pi0*np.exp(R), color='r')
+    #ax.axhline(pi0, c='k')
+    ax.axhline(gwpi, c='g')
+    ax.set_ylabel('$\pi$')
+    ax.set_xlabel('position')
+    return fig, ax
+
+def ll_grid(m, row_vals, col_vals,
+            xlog10_format=True, ylog10_format=True,
+            xlabel=None, ylabel=None,
+            true=None, mle=None,
+            ncontour=7,
+            colorbar=True,
+            decimals=2, mid_quant=0.5, interpolation='quadric'):
+    assert(m.shape == (len(row_vals), len(col_vals)))
+    vmin, vcenter, vmax = np.nanmin(m), np.quantile(m, mid_quant), np.nanmax(m)
+    divnorm=colors.TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
+
+    fig, ax = plt.subplots()
+    nx, ny = len(col_vals), len(row_vals)
+    im = ax.imshow(m, norm=divnorm, extent=[0, nx, 0, ny], origin='lower', interpolation=interpolation)
+    #ax.imshow(m, norm=divnorm, interpolation=interpolation)
+    xticks_idx = np.array(get_visible_ticks(ax, 'x'), dtype=int)
+    yticks_idx = np.array(get_visible_ticks(ax, 'y'), dtype=int)
+    #print(ax.get_yticks())
+    ytick_interpol = tick_interpolator(row_vals[yticks_idx[:-1]])
+    xtick_interpol = tick_interpolator(col_vals[xticks_idx[:-1]])
+
+    xaxis_type = get_axis_type(col_vals)
+    yaxis_type = get_axis_type(row_vals)
+    x_labeller = latex_labeller(xlog10_format, xaxis_type, decimals)
+    y_labeller = latex_labeller(ylog10_format, yaxis_type, decimals)
+
+    ax.set_xticklabels(x_labeller(xtick_interpol(xticks_idx)))
+    ax.set_yticklabels(y_labeller(ytick_interpol(yticks_idx)))
+
+    if ncontour > 0:
+        cs = ax.contour(m, ncontour, colors='0.55', linewidths=0.8, alpha=0.4)
+        ax.clabel(cs, inline=True, fontsize=10,
+                  fmt=lambda x: f"$-10^{{{np.round(np.log10(-x), 2)}}}$")
+
+    if true is not None:
+        true_x, true_y = nearest_indices(true, row_vals, col_vals)
+        ax.scatter(true_x, true_y, c='r')
+    if mle is not None:
+        mle_x, mle_y = nearest_indices(mle, row_vals, col_vals)
+        ax.scatter(mle_x, mle_y, c='0.44')
+    if colorbar:
+        fig.colorbar(im)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    return fig, ax

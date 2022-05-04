@@ -6,8 +6,8 @@ setup(
     packages=['bgspy',],
     license='BSD',
     long_description=open('README.md').read(),
-    scripts=['tools/fit_dnn.py'],
+    scripts=['tools/fit_sims.py'],
     entry_points = {
-        'console_scripts': ['bgspy=bgspy.bgspy:main'],
+        'console_scripts': ['bgspy=bgspy.command_line:main'],
     }
 )

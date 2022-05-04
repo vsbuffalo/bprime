@@ -356,7 +356,7 @@ class LearnedFunction(object):
         if transform_to_match:
             # bounds already correct...
             X = transform_X_to_match(X, correct_bounds=False)
-       return self.model.predict(X, **kwargs).squeeze()
+        return self.model.predict(X, **kwargs).squeeze()
 
     def predict_train(self, **kwargs):
         """
@@ -523,7 +523,7 @@ class LearnedB(object):
         func = LearnedFunction.load(filepath)
         self.func = func
 
-    def save(self, filepath)
+    def save(self, filepath):
         """
         Save the LearnedB (and any contained LearnedFunction) object at
         'filepath.pkl' and 'filepath.h5'.  Pickle the LearnedFunction object,
