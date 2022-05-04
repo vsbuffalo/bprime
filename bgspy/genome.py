@@ -34,6 +34,26 @@ class Segments:
     def lengths(self):
         return np.diff(self.ranges, axis=1).squeeze()
 
+    @property
+    def chroms(self):
+        return list(self.index.keys())
+
+    @property
+    def L(self):
+        "Return a dict of segment lengths (L) per chrom"
+        return {c: self.lengths[idx] for c, idx in self.index.items()}
+
+    @property
+    def rbp(self):
+        "Return a dict of segment rates (rbp) per chrom"
+        return {c: self.rates[idx] for c, idx in self.index.items()}
+
+    @property
+    def nsegs(self):
+        "Return a dict of number of segments per chrom"
+        return {c: len(self.index[c]) for c in self.chroms}
+
+
 def process_annotation(features, recmap, split_length=None):
     """
     Split the annotation dictionary (values are a list of range tuples and feature
@@ -174,6 +194,7 @@ class Genome(object):
         self.recmap = None
         self.all_features = None
         self.segments = None
+        self.split_length = None
 
     def load_seqlens(self, file, chroms):
         self._seqlens_file = file
@@ -195,6 +216,7 @@ class Genome(object):
         assert self.annot is not None, msg
         msg = "recombination map needs to me loaded with Genome.load_recmap()"
         assert self.recmap is not None, msg
+        self.split_length = split_length
         self.segments = process_annotation(self.annot, self.recmap, split_length)
 
     def __repr__(self):

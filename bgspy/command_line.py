@@ -14,7 +14,8 @@ from bgspy.genome import Genome
 
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
-def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, chroms=None, name=None):
+def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t,
+                   chroms=None, name=None, split_length=1000):
     """
     Build the BGSModel and the Genome object it uses.
     """
@@ -25,7 +26,7 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, chroms=None, name=
     g = Genome(name, seqlens_file=seqlens, chroms=chroms)
     g.load_annot(annot)
     g.load_recmap(recmap, conversion_factor=conv_factor)
-    g.create_segments()
+    g.create_segments(split_length=split_length)
     m = BGSModel(g, w_grid=w, t_grid=t)
     return m
 
@@ -85,7 +86,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
 
 
 @cli.command()
-@click.argument('learnedb', type=str, required=True)
+@click.argument('learnfunc', type=str, required=True)
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
 @click.option('--name', type=str, help="genome name (otherwise inferred from seqlens file)")
@@ -96,7 +97,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
                 help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
 @click.option('--t', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 heterozygous selection coefficient",
-                    default='-6:-1:6')
+                    default='-6:-1.302:6')
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 mutation rates", default='-10:-7:6' )
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
@@ -105,25 +106,24 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
               help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--dir', default=None, help="output directory (default: cwd)")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def write_X(learnedb, seqlens, name, annot, recmap, conv_factor, w, t,
+def write_X(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
             step, nchunks, dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
     Will output scripts to run on a SLURM cluster using job arrays.
 
-    learnedb is a file path name (sans extensions) to the .pkl/h5 model.
+    learnfunc is a file path name (sans extensions) to the .pkl/h5 model.
     """
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
                        chroms=None, name=name)
-
-    m.load_learnedB(learnedb)
-    if os.path.exit(dir):
+    m.load_learnedfunc(learnfunc)
+    if os.path.exists(dir):
         assert os.path.isdir(dir)
     else:
         os.makedirs(dir)
-    m.bfunc.write_BpX_chunks(dir, step=step, nchunks=nchunks)
+    m.bfunc.write_X_chunks(dir, step=step, nchunks=nchunks)
 
 
 

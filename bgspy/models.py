@@ -28,6 +28,7 @@ annotation set i_B.
 from collections import defaultdict, namedtuple, Counter
 import multiprocessing
 import pickle
+import warnings
 import itertools
 import tqdm
 import time
@@ -56,7 +57,10 @@ class BGSModel(object):
         # main genome data needed to calculate B
         self.genome = genome
         assert self.genome.is_complete(), "genome is missing data!"
-        if self.genome.segments is None:
+        diff_split_lengths = split_length != genome.split_length
+        if self.genome.segments is None or diff_split_lengths:
+            if diff_split_lengths:
+                warnings.warn("supplied Genome object has segment split lengths that differ from that specified -- resegmenting")
             self.genome.create_segments(split_length=split_length)
         self._segment_parts = None
         # stuff for B
@@ -88,6 +92,9 @@ class BGSModel(object):
         self.pi0_grid = None
         self.pi0i_mle = None
         self._calc_features()  # TODO, not full implemented
+
+        # machine learning stuff
+        self.bfunc = None
 
     @property
     def seqlens(self):
@@ -313,21 +320,19 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def load_learnedB(self, filepath):
-        bfunc = LearnedFunction.load(filepath)
-        # compare the genome attributes to see if their the same
+    def load_learnedfunc(self, filepath):
+        func = LearnedFunction.load(filepath)
+        bfunc = LearnedB(self.t, self.w, genome=self.genome)
+        bfunc.func = func
+        bfunc.is_valid_grid()
         try:
-            assert hash(self.genome) == hash(bfunc.genome), "genome hashes differ!"
-            assert self.t == bfunc.t_grid and self.w == bfunc.w_grid, "w or t grids differ!"
-        except AssertionError(msg):
-            raise AssertionError("incompatable learned B func: " + msg)
-        self.add_learnedB(bfunc)
+            bfunc.is_valid_segments()
+        except AssertionError as msg:
+            warnings.warn("Some segments are out of training bounds.\n"
+                          "This is not inherently a problem; their values will be "
+                          "set to the boundary values. Message: " + str(msg))
 
-    def add_learnedB(self, learned_func):
-        """
-        Append a learned B function.
-        """
-        self.learned_func = learned_func
+        self.bfunc = bfunc
 
     def write_BpX_chunks(self, dir):
         """

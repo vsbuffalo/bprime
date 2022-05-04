@@ -45,9 +45,9 @@ class MapPosChunkIterator(object):
         ## Map position stuff
         # Pre-compute the physical positions to calculate B at for all
         # chromosomes
-        chrom_pos = {c: bin_chrom(l, step) for c, l in seqlens.items()}
+        chrom_pos = {c: bin_chrom(l, step) for c, l in genome.seqlens.items()}
         # Get the map positions of the spots to calc B at
-        chrom_mpos = {c: recmap.lookup(c, p, cummulative=True) for c, p
+        chrom_mpos = {c: genome.recmap.lookup(c, p, cummulative=True) for c, p
                       in chrom_pos.items()}
         self.chrom_pos = chrom_pos
         self.chrom_mpos = chrom_mpos
@@ -62,11 +62,10 @@ class MapPosChunkIterator(object):
         # extract out the indices for each chromosome -- we're going to group
         # stuff by chromosome with these, since segments, etc are all just one
         # giant array
-        chrom_idx = {c: segments.index[c] for c in seqlens}
+        segments = genome.segments
+        chrom_idx = {c: segments.index[c] for c in genome.seqlens}
         # group by chrom and share the segment and feature arrays
         chrom_seg_mpos = {c: share_array(segments.map_pos[idx, :]) for c, idx
-                          in chrom_idx.items()}
-        chrom_features = {c: share_array(features_matrix[idx, :]) for c, idx
                           in chrom_idx.items()}
         # group by chrom and share segment rec rates
         chrom_seg_rbp = {c: share_array(segments.rates[idx]) for c, idx
@@ -75,7 +74,7 @@ class MapPosChunkIterator(object):
         L = segments.lengths
         chrom_seg_L = {c: share_array(L[idx]) for c, idx in chrom_idx.items()}
         # group by chrom and share features matrix
-        chrom_features = {c: share_array(features_matrix[idx, :]) for c, idx
+        chrom_features = {c: share_array(segments.features[idx]) for c, idx
                           in chrom_idx.items()}
         self.chrom_idx = chrom_idx
         # this is the main thin iterated over -- a generator over the

@@ -25,3 +25,11 @@ and extracts all variable columns in the data. The output of this is a
 `LearnedFunction` object, which contains the data for model training.
  
  
+
+## TODO -- next sim run
+
+ - We should get rid of the L = 0 case, it's messy.
+ - Inflate s lower x 2 so sh = 1e-1; this should fix the awkward t grid default, 
+   `default='-6:-1.302:6'` (`command_line.py:89`).
+ - run with N=10k
+ - use the command line stats program to get the right bounds for training

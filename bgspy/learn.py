@@ -3,8 +3,11 @@
 import os
 import json
 import itertools
+import warnings
 import pickle
+from collections import Counter
 import numpy as np
+import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import scipy.stats as stats
@@ -14,6 +17,7 @@ from bgspy.utils import signif, index_cols, dist_to_segment
 from bgspy.sim_utils import random_seed
 from bgspy.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.loss import get_loss_func
+from bgspy.parallel import MapPosChunkIterator
 
 
 class LearnedFunction(object):
@@ -219,16 +223,21 @@ class LearnedFunction(object):
         self._protect()
         return self
 
-    def transform_feature_to_match(self, feature, x):
+    def transform_feature_to_match(self, feature, x, correct_bounds=False):
         """
         For linear input feature x, match the transformations/scalers
         in applied to the training data.
         """
-        if feature in self.trans_func:
-            x = self.trans_func[feature](x)
+        x = np.copy(x)
+        x = self.check_feature_bounds(feature, x, correct_bounds=correct_bounds)
+        if feature in self.transforms:
+            x = self.transforms[feature](x)
         if self.normalized:
-            mean = self.func.scaler.mean_
-            scale = self.func.scaler.scale_
+            idx = [i for i, k in enumerate(self.features.keys()) if k == feature]
+            assert len(idx) == 1
+            idx = idx[0]
+            mean = self.scaler.mean_[idx]
+            scale = self.scaler.scale_[idx]
             x = (x - mean) / scale
         return x
 
@@ -238,14 +247,13 @@ class LearnedFunction(object):
         in applied to the training data X.
         """
         X = np.copy(X)
-        X = self.check_bounds(X, correct_bounds)
-        if transforms:
-            for i, (feature, trans_func) in enumerate(self.transforms.items()):
-                if trans_func is not None:
-                    X[:, i] = trans_func(X[:, i])
-        if scale_input:
+        X = self.check_bounds(X, correct_bounds=correct_bounds)
+        for i, (feature, trans_func) in enumerate(self.transforms.items()):
+            if trans_func is not None:
+                X[:, i] = trans_func(X[:, i])
+        if self.normalized:
             X = self.scaler.transform(X)
-
+        return X
 
     def save(self, filepath):
         """
@@ -307,16 +315,36 @@ class LearnedFunction(object):
             lower, upper = 10**lower, 10**upper
         return lower, upper
 
+    def check_feature_bounds(self, feature, x, correct_bounds=False):
+        """
+        Check (and possibly correct) the bounds of a single feature.
+        """
+        x = np.copy(x)
+        lower, upper = self.get_bounds(feature)
+        out_lower = x < lower
+        out_upper = x > upper
+        if np.any(out_lower) or np.any(out_upper):
+            if correct_bounds:
+                x[out_lower] = lower
+                x[out_upper] = upper
+            else:
+                raise AssertionError(f"{feature} is out of bounds")
+        return x
 
-    def check_bounds(self, X, correct_bounds=False):
-        # mutates in place!
-        out_lowers, out_uppers = [], []
-        total = 0
+    def check_bounds(self, X, return_stats=False, correct_bounds=False):
+        """
+        Check the boundaries of X compared to LearnedFunction.bounds.
+        If correct_bounds=True, any out of bounds values are coerced
+        to the nearest boundary value. If return_stats=True, this function
+        will return statistics of what features have out of bounds values
+        and how many (e.g. useful for warnings)
+        """
+        X = np.copy(X)
+        n_lowers, n_uppers = Counter(), Counter()
         for i, feature in enumerate(self.features):
             lower, upper = self.get_bounds(feature)
             out_lower = X[:, i] < lower
             out_upper = X[:, i] > upper
-            total += out_lower.sum() + out_upper.sum()
             if np.any(out_lower) or np.any(out_upper):
                 #print(feature, 'lower', X[out_lower, i])
                 #print(feature, 'upper', X[out_upper, i])
@@ -325,15 +353,20 @@ class LearnedFunction(object):
                     X[out_upper, i] = upper
                 else:
                     if np.any(out_lower):
-                        out_lowers.append(feature)
+                        n_lowers[feature] += np.sum(out_lower)
                     if np.any(out_upper):
-                        out_uppers.append(feature)
+                        n_uppers[feature] += np.sum(out_upper)
 
-        out_of_bounds = len(out_lowers) or len(out_uppers)
+        total = sum(n_lowers.values()) + sum(n_uppers.values())
+        out_of_bounds = total > 0
+
+        # format the features that have been found to have out of bounds values
+        lw = ', '.join(n_lowers)
+        up = ', '.join(n_uppers)
+        perc = 100*np.round(total / np.prod(X.shape), 2)
+        if return_stats:
+            return n_lowers, n_uppers
         if not correct_bounds and out_of_bounds:
-            lw = ', '.join(out_lowers)
-            up = ', '.join(out_uppers)
-            perc = 100*np.round(total / np.prod(X.shape), 2)
             msg = f"out of bounds, lower ({lw}) upper ({up}), total = {total} ({perc}%)"
             raise ValueError(msg)
         return X
@@ -454,6 +487,7 @@ class LearnedB(object):
         self.params = params
         self.w_grid = w_grid
         self.t_grid = t_grid
+        #
 
     @property
     def dim(self):
@@ -582,23 +616,39 @@ class LearnedB(object):
             return B, lossvals
         return lossvals.mean()
 
+    @property
+    def segments(self):
+        return self.genome.segments
+
     def is_valid_grid(self):
         """
-        Check that all elements of the X features matrix (minus rec frac)
-        are valid and within the bounds of the simulations the function was trained on.
-        """
-        t_lower, t_upper = self.func.get_bounds('t')
-        w_lower, w_upper = self.func.get_bounds('mu')
-        assert np.all(t_lower < self.t_grid) and np.all(t_upper > self.t_grid)
-        assert np.all(w_lower < self.w_grid) and np.all(w_upper > self.w_grid)
-        Ls = list(itertools.chain(self.chrom_seg_L))
-        l_lower, l_upper = self.func.get_bounds('L')
-        assert np.all(l_lower < Ls) and np.all(l_upper > Ls)
-        rbps = list(itertools.chain(self.chrom_seg_rbp))
-        rbp_lower, rbp_upper = self.func.get_bounds('rbp')
-        assert np.all(rbp_lower < rbps) and np.all(rbp_upper > rbps)
+        Check that wt grid is within the training bounds.
 
-    def _build_pred_matrix(self, chrom):
+        Note that there is also checking with LearnedFunction.check_bounds(),
+        but this is a bit lower-level (e.g. on actualy input feature matrix X).
+        """
+        t_lower, t_upper = self.func.get_bounds('sh')
+        w_lower, w_upper = self.func.get_bounds('mu')
+        assert np.all(t_lower <= self.t_grid) and np.all(t_upper >= self.t_grid), "sh grid out of training bounds"
+        assert np.all(w_lower <= self.w_grid) and np.all(w_upper >= self.w_grid), "mu grid out of training bounds"
+
+    def is_valid_segments(self):
+        """
+        Check that segment values are within training bounds.
+        Note this is less of a big deal if they're not -- LearnedFunction can
+        correct bounds by forcing out of band X values to the boundary value.
+
+        Note that there is also checking with LearnedFunction.check_bounds(),
+        but this is a bit lower-level (e.g. on actualy input feature matrix X).
+        """
+        Ls = np.fromiter(itertools.chain(*self.segments.L.values()), dtype=float)
+        l_lower, l_upper = self.func.get_bounds('L')
+        assert np.all(l_lower < Ls) and np.all(l_upper > Ls), "segment lengths out of training bounds"
+        rbps = np.fromiter(itertools.chain(*self.segments.rbp.values()), dtype=float)
+        rbp_lower, rbp_upper = self.func.get_bounds('rbp')
+        assert np.all(rbp_lower < rbps) and np.all(rbp_upper > rbps), "segment rec rates out of training bounds"
+
+    def _build_pred_matrix(self, chrom, correct_bounds=True):
         """
 
         Build a prediction matrix for an entire chromosome. This takes the
@@ -626,25 +676,28 @@ class LearnedB(object):
         n = self.wt_mesh.shape[0]
 
         # get number of segments
-        segments = self.genome.segments
-        chrom_idx = {c: segments.index[c] for c in seqlens}
-        nsegs = len(self.chrom_idx[chrom])
+        nsegs = self.segments.nsegs[chrom]
 
         X = np.zeros((nsegs*n, 5))
         # repeat the w/t element for each block of segments
         X[:, 0:2] = np.repeat(self.wt_mesh, nsegs, axis=0)
 
         # add in the the segment annotation data
-        X[:, 2] = np.tile(self.chrom_seg_L[chrom], n)
-        X[:, 3] = np.tile(self.chrom_seg_rbp[chrom], n)
-        X = self.func.transform_X_to_match(X)
+        X[:, 2] = np.tile(self.segments.L[chrom], n)
+        X[:, 3] = np.tile(self.segments.rbp[chrom], n)
+        X = self.func.transform_X_to_match(X, correct_bounds=correct_bounds)
         X[:, 4] = np.nan # NaN out rf column, just in case
         return X
+
+    def build_matrices(self, correct_bounds=True):
+        self.Xs = {}
+        for chrom in self.genome.seqlens.keys():
+            self.Xs[chrom] = self._build_pred_matrix(chrom, correct_bounds)
 
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
 
-    def write_BpX_chunks(self, dir, **kwargs):
+    def write_X_chunks(self, dir, correct_bounds=True, **kwargs):
         """
         Write the B' X chunks (all the features X for a chromosome
         needed to predict B') to a directory for distributed prediction.
@@ -662,14 +715,17 @@ class LearnedB(object):
         as this is filled in depending on what the focal position is.
         """
         name = self.genome.name
+        self.build_matrices(correct_bounds=correct_bounds)
         for chrom, X in self.Xs.items():
-            np.save(os.path.join(dir, f"{name}_chrom_data_{chrom}.npy", X))
+            np.save(os.path.join(dir, f"{name}_chrom_data_{chrom}.npy"), X)
 
-        for i, (chrom, X_chunk) in enumerate(self.focal_positions(**kwargs)):
-            np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}.npy", X_chunk))
+        focal_pos_iter = self.focal_positions(**kwargs)
+        __import__('pdb').set_trace()
+        for i, (chrom, X_chunk) in enumerate(focal_pos_iter):
+            np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}.npy"), X_chunk)
 
 
-    def focal_positions(self, step=1000, nchunks=100, progress=True):
+    def focal_positions(self, step=1000, nchunks=100, correct_bounds=True, progress=True):
         """
         Get the focal positions for each position that B is calculated at.
 
@@ -679,7 +735,7 @@ class LearnedB(object):
         chunks = MapPosChunkIterator(self.genome, self.w_grid, self.t_grid,
                                          step=step, nchunks=nchunks)
         if progress:
-            outer_progress_bar = tq.tqdm(total=self.total)
+            outer_progress_bar = tqdm.tqdm(total=chunks.total)
         # inner_progress_bar = tq.tqdm(leave=True)
         while True:
             next_chunk = next(chunks.mpos_iter)
@@ -692,10 +748,9 @@ class LearnedB(object):
             for f in map_positions:
                 # compute the rec frac to each segment's start or end
                 rf = dist_to_segment(f, chrom_seg_mpos)
-                # place rf in X, log10'ing it since that's what we train on
-                # and tile it to repeat
                 Xrf_col = np.tile(rf, self.wt_mesh.shape[0])
-                Xrf_col = self.func.transform_feature_to_match('rf', Xrf_col)
+                # match the transforms on input data before training
+                Xrf_col = self.func.transform_feature_to_match('rf', Xrf_col, correct_bounds=correct_bounds)
                 assert np.all(np.isfinite(Xrf_col)), "rec frac column not all finite!"
                 yield chrom, Xrf_col
             if progress:
