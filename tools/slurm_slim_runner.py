@@ -3,7 +3,7 @@
 import sys
 # todo: maybe remove this middle one -- used for testing in the slim/training
 # dir
-sys.path.extend(['..', '../../', '../bprime'])
+sys.path.extend(['..', '../../', '../bgspy'])
 
 import json
 import __main__
@@ -44,11 +44,11 @@ do
   sbatch "slurm_$i.sh"
   echo "submitting job $i!"
   i=$((i + 1))
-  nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l) 
+  nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l)
   while [ $nrunning -gt 0 ]
   do
     sleep 2m
-    nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l) 
+    nrunning=$(squeue -u vsb  --long | grep slurm_sl | wc -l)
     echo "$nrunning jobs still running..."
   done
 done
@@ -158,7 +158,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     njobs = len(job_batches) # how many batch there are (so need array indices)
     if max_array is None or njobs < max_array:
         script_handle = open(script, 'w')
-        script_handle.write(TEMPLATE.format(this_script=__main__.__file__, 
+        script_handle.write(TEMPLATE.format(this_script=__main__.__file__,
                                             job_time=job_time,
                                             cwd=os.getcwd(),
                                             num_files=num_files,
@@ -168,7 +168,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     else:
         # we need to break the slurm script into smaller batches, grrr
         array_job_ids = np.arange(njobs)
-        nscripts = np.split(array_job_ids, np.arange(0, njobs, max_array)[1:]) 
+        nscripts = np.split(array_job_ids, np.arange(0, njobs, max_array)[1:])
         for i, script_batch_ids in enumerate(nscripts):
             start, end = script_batch_ids[0], script_batch_ids[-1]
             scriptname = script.replace('.sh', f"_{i}.sh")
@@ -179,8 +179,8 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
                                                 batches=batch_file,
                                                 offset=start,
                                                 max_array=max_array))
-     
-        
+
+
     n = len(run.runs)
     print(f"Script '{script}' written, {n:,} simulation commands "
           f"generated and written to '{batch_file}'.\nBatched into {len(job_batches):,} {batch_size}-size groups\n"

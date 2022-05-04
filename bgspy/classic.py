@@ -4,8 +4,8 @@ import itertools
 import tqdm
 import numpy as np
 import multiprocessing
-from bprime.utils import bin_chrom, chain_dictlist, dist_to_segment
-from bprime.parallel import BChunkIterator
+from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
+from bgspy.parallel import BChunkIterator
 
 # pre-computed optimal einsum_path
 BCALC_EINSUM_PATH = ['einsum_path', (0, 2), (0, 1)]

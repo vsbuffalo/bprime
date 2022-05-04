@@ -1,8 +1,8 @@
 import itertools
 import numpy as np
 import scipy.stats as stats
-from bprime.utils import signif
-from bprime.sim_utils import random_seed
+from bgspy.utils import signif
+from bgspy.sim_utils import random_seed
 
 def discrete_uniform(rng, low, high):
     def func():

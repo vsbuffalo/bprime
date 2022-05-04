@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import statsmodels.api as sm
 import scipy.stats as stats
-from bprime.theory import B_var_limit
-from bprime.utils import signif
-from bprime.learn import LearnedB
-from bprime.loss import get_loss_func
+from bgspy.theory import B_var_limit
+from bgspy.utils import signif
+from bgspy.learn import LearnedB
+from bgspy.loss import get_loss_func
 
 def center_scale(x):
     return (x-x.mean())/x.std()

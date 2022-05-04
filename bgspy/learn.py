@@ -10,10 +10,10 @@ from sklearn.model_selection import train_test_split
 import scipy.stats as stats
 from tensorflow import keras
 
-from bprime.utils import signif, index_cols, dist_to_segment
-from bprime.sim_utils import random_seed
-from bprime.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
-from bprime.loss import get_loss_func
+from bgspy.utils import signif, index_cols, dist_to_segment
+from bgspy.sim_utils import random_seed
+from bgspy.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
+from bgspy.loss import get_loss_func
 
 
 class LearnedFunction(object):

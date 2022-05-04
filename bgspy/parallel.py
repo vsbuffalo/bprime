@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 import tqdm
 import multiprocessing
-from bprime.utils import bin_chrom, chain_dictlist, dist_to_segment
+from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
 
 # Some parallelized code lives in classic.py; this is stuff that's common to
 # both the classic and DNN code

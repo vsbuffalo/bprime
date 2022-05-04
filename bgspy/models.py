@@ -38,13 +38,13 @@ from scipy.stats import binned_statistic, binned_statistic_dd
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
-from bprime.utils import bin_chrom
-from bprime.utils import readfile, load_dacfile
-from bprime.utils import load_seqlens
-from bprime.utils import ranges_to_masks, sum_logliks_over_chroms
-from bprime.likelihood import calc_loglik_components, loglik
-from bprime.classic import B_segment_lazy, calc_B, calc_B_parallel
-from bprime.parallel import BpChunkIterator
+from bgspy.utils import bin_chrom
+from bgspy.utils import readfile, load_dacfile
+from bgspy.utils import load_seqlens
+from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
+from bgspy.likelihood import calc_loglik_components, loglik
+from bgspy.classic import B_segment_lazy, calc_B, calc_B_parallel
+from bgspy.parallel import BpChunkIterator
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})

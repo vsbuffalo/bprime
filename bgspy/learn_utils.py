@@ -11,10 +11,10 @@ except ImportError:
     PROGRESS_BAR_ENABLED = False
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
 
-from bprime.utils import index_cols
-from bprime.sim_utils import fixed_params, get_bounds
-from bprime.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
-from bprime.learn import LearnedFunction
+from bgspy.utils import index_cols
+from bgspy.sim_utils import fixed_params, get_bounds
+from bgspy.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
+from bgspy.learn import LearnedFunction
 
 def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
             output_activation='sigmoid', activation='elu'):
@@ -115,7 +115,7 @@ def check_feature_with_models(features, model):
     assert set(features) == set(model_features), msg
 
 
-def data_to_learnedfunc(sim_params, sim_data, model, seed, 
+def data_to_learnedfunc(sim_params, sim_data, model, seed,
                         average_reps=False, unlogL=True, combine_sh=True):
     """
     Get the bounds of parameters from the simulation parameters dictionary, find
@@ -128,7 +128,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
 
     Currently only combine_sh=True is supported.
 
-    If unlogL=True, we fix an issue from log10'd seq lengths with a lower 
+    If unlogL=True, we fix an issue from log10'd seq lengths with a lower
     bound < 1. This is a hack to get sims to run L=0 since int(log10(L)) = 0
     if L < 1, e.g. a neutral case. So, we fit on linear scale if logL=True
     """
@@ -146,7 +146,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
         Xo_ave = Xd.groupby('key').mean()
         y_ave = yd.groupby('key').mean()
         Xo, y = Xo_ave.values, y_ave.values
-        
+
     # we exclude rep number from now on -- not needed
     idx, all_features = zip(*[(i, f) for i, f in enumerate(sim_data['features']) if f != 'rep'])
     Xo = Xo[:, idx]

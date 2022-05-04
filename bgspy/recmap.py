@@ -1,7 +1,7 @@
 from collections import namedtuple, defaultdict
 from scipy import interpolate
 import numpy as np
-from bprime.utils import readfile
+from bgspy.utils import readfile
 
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 

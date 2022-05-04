@@ -7,8 +7,8 @@ from collections import defaultdict
 import itertools
 import warnings
 import numpy as np
-from bprime.utils import signif
-from bprime.sim_utils import param_grid, read_params, random_seed
+from bgspy.utils import signif
+from bgspy.sim_utils import param_grid, read_params, random_seed
 
 def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False):
     """
@@ -142,10 +142,10 @@ class SlimRuns(object):
                 # draw nreps samples
                 if rep > 0:
                     sample = copy.copy(sample)
-                    # we have more than one replicate, so we need to use the same 
+                    # we have more than one replicate, so we need to use the same
                     # params, but with a different random seed
                     sample['seed'] = random_seed(self.sampler.rng)
- 
+
                 if self.nreps is not None or package_rep:
                     # package_rep is whether to include 'rep' into sample dict
                     sample['rep'] = rep
@@ -192,7 +192,7 @@ class SlimRuns(object):
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              add_seed=True, seed=self.seed)
-            self._generate_runs(suffix=suffix, ignore_files=ignore_files, 
+            self._generate_runs(suffix=suffix, ignore_files=ignore_files,
                                 package_rep=package_rep)
 
 

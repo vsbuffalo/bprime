@@ -1,7 +1,7 @@
 import re
 import os
 from collections import defaultdict
-from bprime.learn import LearnedFunction, LearnedB
+from bgspy.learn import LearnedFunction, LearnedB
 
 PATH = r'\w+_(?P<n128>\d+)n128_(?P<n64>\d+)n64_(?P<n32>\d+)n32_(?P<n8>\d+)n8_(?P<nx>\d+)nx_(?P<activ>(relu|elu|tanh))activ_fit_(?P<rep>\d+)rep'
 
