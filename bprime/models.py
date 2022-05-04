@@ -312,6 +312,16 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
+    def laod_learnedB(self, filepath):
+        bfunc = LearnedFunction.load(filepath)
+        # compare the genome attributes to see if their the same
+        try:
+            assert hash(self.genome) == hash(bfunc.genome), "genome hashes differ!"
+            assert self.t == bfunc.t_grid and self.w == bfunc.w_grid, "w or t grids differ!"
+        except AssertionError(msg):
+            raise AssertionError("incompatable learned B func: " + msg)
+        self.add_learnedB(bfunc)
+
     def add_learnedB(self, learned_func):
         """
         Append a learned B function.
@@ -333,29 +343,5 @@ class BGSModel(object):
         chunk, and the last two columns are rbp and L for the segments (these
         are fixed by chromosome).
         """
-
-
-    def calc_Bp(self, step=10_000, rf_thresh=None, ncores=None, nchunks=None):
-        """
-        Calculate B', a B statistic using a learned B function.
-        """
-        model_file = "../data/dnn_models/fullbgs"
-        print(f"loading DNN model from '{model_file}'...\t", end='')
-        learned_func = LearnedFunction.load(model_file)
-        self.learned_func = learned_func
-        print(f"done.")
-        chunks = BpChunkIterator(self.seqlens, self.recmap, self.segments,
-                                 self.F, self.w, np.log10(self.t),
-                                 learned_func.X_test_scaler, step, nchunks)
-        for chrom, X in chunks.Xs.items():
-            np.savez(f"../data/dnn_chunks/{chrom}_X.npz",
-                     chunks.scaler.transform(X))
-        for i, chunk in enumerate(chunks):
-            chrom, X = chunk
-            np.savez(f"../data/dnn_chunks/{chrom}_{i}.npz", X)
-        # res = learned_func.model.predict(iter(chunks), use_multiprocessing=True,
-                                         # workers=ncores)
-        # return chunks.collate(res)
-
-
+        self.bfunc.write_BpX_chunks(dir)
 

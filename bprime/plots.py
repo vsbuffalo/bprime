@@ -48,6 +48,7 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     ax.set_ylabel(ylabel)
     return fig, ax
 
+
 def bhat_plot(bfunc, bins, figax=None):
     fig, ax = get_figax(figax)
     _, bin_mid, ytest = bfunc.binned_Bhats(bins=bins)
@@ -83,12 +84,19 @@ def rate_density_plot(bfunc, figax=None):
     ax[1].set_yscale('log')
     return fig, ax
 
-def theory_loss_plot(bfunc, X=None, title="", figax=None):
+def theory_loss_plot(bfunc, X=None, title="", color_rate=True, figax=None, **kwargs):
     fig, ax = get_figax(figax)
     x, y = bfunc.theory_B(X), bfunc.func.predict(X)
-    ax.scatter(x, y, alpha=0.1, s=2)
+    Xcols = bfunc.func.col_indexer()
+    if color_rate:
+        if X is None:
+            X = bfunc.func.X_test_raw
+        rate = np.log10(X[:, Xcols('L')] * X[:, Xcols('mu')] / X[:, Xcols('sh')])
+        ax.scatter(x, y, **kwargs, c=rate)
+    else:
+        ax.scatter(x, y, **kwargs)
     ax.axline((0, 0), slope=1, c='r', linestyle='dashed')
-    ax.set_ylabel("predicted")
+    ax.set_xlabel("predicted")
     ax.set_ylabel("theory")
     mae = bfunc.theory_loss(X)
     mse = bfunc.theory_loss(X, loss='mse')

@@ -179,6 +179,8 @@ class LearnedFunction(object):
         normalize: boolean whether to center and scale
         transforms: dictionary of feature, transform function pairs
         """
+        if isinstance(transforms, dict):
+            raise NotImplementedError("transforms cannot be a dict yet")
         if not self.is_split:
             raise ValueError("X, y must be split first")
         if self.normalized or not all(x is None for x in self.transforms.values()):
@@ -193,6 +195,8 @@ class LearnedFunction(object):
         X_train.setflags(write=True)
         X_test.setflags(write=True)
         for feature, col_idx in self.features.items():
+            # note that if something is log scaled log10 will be added to the transform
+            # trans_func dict!
             trans_func = None
             if transforms == 'match' and self.logscale[feature]:
                 trans_func = np.log10
@@ -214,6 +218,34 @@ class LearnedFunction(object):
         self.X_train = X_train
         self._protect()
         return self
+
+    def transform_feature_to_match(self, feature, x):
+        """
+        For linear input feature x, match the transformations/scalers
+        in applied to the training data.
+        """
+        if feature in self.trans_func:
+            x = self.trans_func[feature](x)
+        if self.normalized:
+            mean = self.func.scaler.mean_
+            scale = self.func.scaler.scale_
+            x = (x - mean) / scale
+        return x
+
+    def transform_X_to_match(self, X, correct_bounds=False):
+        """
+        For linear input matrix X, match the transformations/scalers
+        in applied to the training data X.
+        """
+        X = np.copy(X)
+        X = self.check_bounds(X, correct_bounds)
+        if transforms:
+            for i, (feature, trans_func) in enumerate(self.transforms.items()):
+                if trans_func is not None:
+                    X[:, i] = trans_func(X[:, i])
+        if scale_input:
+            X = self.scaler.transform(X)
+
 
     def save(self, filepath):
         """
@@ -307,25 +339,24 @@ class LearnedFunction(object):
         return X
 
 
-    def predict(self, X=None, correct_bounds=True, transforms=True,
-                scale_input=True, **kwargs):
+    def predict(self, X=None, transform_to_match=True, correct_bounds=True,
+                **kwargs):
         """
         Predict for an input function X (in the same as simulation space).
-        If transforms is True, and transforms in LearnedFunction.transforms
-        dict are applied to match those applied from LearnedB.scale_features().
+        If transform_to_match is True, transforms (e.g. log10's features as
+        necessary) and scales everything.
+
+        If X is None, uses traning data X_test_raw.
         """
         if X is None:
             X = self.X_test_raw
         assert self.has_model
-        X = np.copy(X)
-        X = self.check_bounds(X, correct_bounds)
-        if transforms:
-            for i, (feature, trans_func) in enumerate(self.transforms.items()):
-                if trans_func is not None:
-                    X[:, i] = trans_func(X[:, i])
-        if scale_input:
-            X = self.scaler.transform(X)
-        return self.model.predict(X, **kwargs).squeeze()
+        X = np.copy(X) # protect the original object
+        X = self.check_bounds(X, correct_bounds=correct_bounds)
+        if transform_to_match:
+            # bounds already correct...
+            X = transform_X_to_match(X, correct_bounds=False)
+       return self.model.predict(X, **kwargs).squeeze()
 
     def predict_train(self, **kwargs):
         """
@@ -334,33 +365,46 @@ class LearnedFunction(object):
         assert self.has_model
         return self.predict(self.X_train_raw, **kwargs).squeeze()
 
-    def domain_grids(self, n, fix_X=None):
+    def domain_grids(self, n, fix_X=None, manual_domains=None):
         """
         Create a grid of values across the domain for all features.
         fix_X is a dict of fixed values for the grids. If a feature
         name is in log10 tuple, it will be log10'd.
+
+        Note: fix_X is to be supplied on the *linear* scale!
         """
         valid_features = set(self.features)
         msg = "'fix_X' has a feature not in X's features"
         assert fix_X is None or all([(k in valid_features) for k in fix_X.keys()]), msg
+        msg = "'manual_domains' has a feature not in X's features"
+        assert manual_domains is None or all([(k in valid_features) for k in manual_domains.keys()]), msg
+        fix_X = {} if fix_X is None else fix_X
+        manual_domains = {} if manual_domains is None else manual_domains
         grids = []
         nx = n
         for feature, (lower, upper) in self.bounds.items():
             is_logscale = self.logscale[feature]
-            if fix_X is None or feature not in fix_X:
+            if feature not in fix_X and feature not in manual_domains:
                 if isinstance(n, dict):
                     nx = n[feature]
                 grid = np.linspace(lower, upper, nx)
+            elif feature in manual_domains:
+                assert feature not in fix_X, "feature cannot be in fix_X and manual_domains!"
+                lower, upper, nx, log_it = manual_domains[feature]
+                grid = np.linspace(lower, upper, nx)
+                if log_it:
+                    grid = 10**grid
             elif feature in fix_X:
                 grid = fix_X[feature]
             else:
                 assert False, "should not reach this point"
-            if is_logscale:
+            if is_logscale and feature not in fix_X and feature not in manual_domains:
                 grid = 10**grid
             grids.append(grid)
         return grids
 
-    def predict_grid(self, n, fix_X=None, verbose=True):
+    def predict_grid(self, n, fix_X=None, manual_domains=None,
+                     correct_bounds=False, verbose=True):
         """
         Predict a grid of points (useful for visualizing learned function).
         This uses the domain specified by the model.
@@ -373,10 +417,10 @@ class LearnedFunction(object):
             data has.
         """
         assert self.has_model
-        domain_grids = self.domain_grids(n, fix_X=fix_X)
-        if verbose:
-            grid_dims = 'x'.join(map(str, n.values()))
-            print(f"making {grid_dims} grid...\t", end='')
+        domain_grids = self.domain_grids(n, fix_X=fix_X, manual_domains=manual_domains)
+        #if verbose:
+        #    grid_dims = 'x'.join(map(str, n.values()))
+        #    print(f"making {grid_dims} grid...\t", end='')
         mesh = np.meshgrid(*domain_grids)
         if verbose:
             print("done.")
@@ -384,17 +428,9 @@ class LearnedFunction(object):
         X_meshcols = np.stack([col.flatten() for col in mesh]).T
         X_meshcols_raw = X_meshcols.copy()
         # transform/scale the new mesh
-        for feature, col_idx in self.features.items():
-            trans_func = self.transforms.get(feature, None)
-            if trans_func is not None:
-                X_meshcols[:, col_idx] = trans_func(X_meshcols[:, col_idx])
-        if self.normalized:
-            X_meshcols = self.scaler.transform(X_meshcols)
-
+        X_meshcols = self.transform_X_to_match(X_meshcols, correct_bounds=correct_bounds)
         predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
         return domain_grids, X_meshcols_raw, X_meshcols, predict.reshape(mesh[0].shape)
-
-
 
 
 class LearnedB(object):
@@ -409,11 +445,12 @@ class LearnedB(object):
         except KeyError:
             allow = ["'"+x.replace('bgs_', '')+"'" for x in BGS_MODEL_PARAMS.keys()]
             raise KeyError(f"model ('{model}') must be either {', '.join(allow)}")
-        self.genome = None
+        self.genome = genome
         self.func = None
         self._predict = None
         self._X_test_hash = None
-        self.bgs_model = bgs_model
+        model = model if not model.startswith('bgs_') else model.replace('bgs_', '')
+        self.bgs_model = model
         self.params = params
         self.w_grid = w_grid
         self.t_grid = t_grid
@@ -423,8 +460,8 @@ class LearnedB(object):
         return self.w_grid.shape[0], self.t_grid.shape[0]
 
     @property
-    def tw_mesh(self):
-        return np.array(list(itertools.product(self.t_grid, self.w_grid)))
+    def wt_mesh(self):
+        return np.array(list(itertools.product(self.w_grid, self.t_grid)))
 
     def theory_B(self, X=None):
         """
@@ -445,7 +482,8 @@ class LearnedB(object):
         # we tweak s, and h since sh is set
         kwargs['h'] = 1
         kwargs['s'] = kwargs.pop('sh')
-        kwargs.pop('N') # not needed for theory
+        if 'N' in kwargs:
+            kwargs.pop('N') # not needed for theory
         return self.bgs_model(**kwargs)
 
 
@@ -484,6 +522,44 @@ class LearnedB(object):
     def load_func(self, filepath):
         func = LearnedFunction.load(filepath)
         self.func = func
+
+    def save(self, filepath)
+        """
+        Save the LearnedB (and any contained LearnedFunction) object at
+        'filepath.pkl' and 'filepath.h5'.  Pickle the LearnedFunction object,
+        and the model is saved via that object's save method.
+        """
+        if filepath.endswith('.pkl'):
+            filepath = filepath.replace('.pkl', '')
+        has_func = self.func is not None
+        if has_func:
+            # only need to worry about H5'ing the func.model if there's a func
+            model = self.model # store the reference
+            self.model = None
+        # save this object
+        with open(f"{filepath}.pkl", 'wb') as f:
+            pickle.dump(self, f)
+        if has_func:
+            self.model = model
+        if self.model is not None:
+            model.save(f"{filepath}.h5")
+
+    @classmethod
+    def load(cls, filepath, load_model=True):
+        """
+        Load the LearnedB object at 'filepath.pkl' and 'filepath.h5'.
+        """
+        if filepath.endswith('.pkl'):
+            filepath = filepath.replace('.pkl', '')
+        with open(f"{filepath}.pkl", 'rb') as f:
+            obj = pickle.load(f)
+            # numpy write flags are not preserved when pickling objects(!), so
+            # need to fix that here.
+            obj._protect()
+        model_path = f"{filepath}.h5"
+        if load_model and os.path.exists(model_path):
+            obj.func.model = keras.models.load_model(model_path)
+        return obj
 
     def train_model(self, filepath):
         pass
@@ -533,53 +609,83 @@ class LearnedB(object):
                [w1, t2, A],
                ...
 
-        The columns are the features of the B' training data:
+        The columns are the features of the B' training data match those in
+        the BGS_MODEL_PARAMS['bgs_segment'] or self.params
                0,    1,    2,     3,   4
-            'sh', 'mu', 'rf', 'rbp', 'L'
+            'mu',  'sh', 'L', 'rbp', 'rf'
 
-        The third column is the recombination fraction away from the
+        The last column is the recombination fraction away from the
         focal site and needs to change each time the position changes.
         This is done externally; it's set to zero here.
+
+        Note, each output needs to be log10 transformed as according to the
+        LearnedB.func.trans_func, then scaled using LearnedFunction.func.scaler
         """
+        assert self.bgs_model == 'segment'
         # size of mesh; all pairwise combinations
-        n = self.tw_mesh.shape[0]
-        # number of segments
+        n = self.wt_mesh.shape[0]
+
+        # get number of segments
+        segments = self.genome.segments
+        chrom_idx = {c: segments.index[c] for c in seqlens}
         nsegs = len(self.chrom_idx[chrom])
+
         X = np.zeros((nsegs*n, 5))
         # repeat the w/t element for each block of segments
-        X[:, 0:2] = np.repeat(self.tw_mesh, nsegs, axis=0)
-        # tile the annotation data
+        X[:, 0:2] = np.repeat(self.wt_mesh, nsegs, axis=0)
+
+        # add in the the segment annotation data
+        X[:, 2] = np.tile(self.chrom_seg_L[chrom], n)
         X[:, 3] = np.tile(self.chrom_seg_rbp[chrom], n)
-        X[:, 4] = np.tile(self.chrom_seg_L[chrom], n)
+        X = self.func.transform_X_to_match(X)
+        X[:, 4] = np.nan # NaN out rf column, just in case
         return X
 
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
 
-    def write_chrom_Xs(self, dir, scale=True):
+    def write_BpX_chunks(self, dir, **kwargs):
         """
-        Write the X chromosome segment data.
-        The columns are sh, mu, rf, rbp, and L -- note that rf is blank,
+        Write the B' X chunks (all the features X for a chromosome
+        needed to predict B') to a directory for distributed prediction.
+        There are two types of tiles:
+
+            1. 'chrom_data_{chrom}.npy'
+            2. 'chunk_data_{id}.npy'
+
+        The chromosome data contains the feature matrix X, all transformed
+
+
+        Write the X chromosome segment and the focal position data.
+
+        The columns are mu,s,L,rbp,rh -- note that rf is blank,
         as this is filled in depending on what the focal position is.
         """
         for chrom, X in self.Xs.items():
-            if scale:
-                X = self.transform(X)
-            np.save(os.path.join(f"chrom_data_{chrom}.npy", X))
+            np.save(os.path.join(dir, f"chrom_data_{chrom}.npy", X))
 
-    def focal_positions(self, progress=True):
+        for i, (chrom, X_chunk) in enumerate(self.focal_positions(**kwargs)):
+            np.save(os.path.join(dir, f"chunk_data_{chrom}.npy", X_chunk))
+
+
+    def focal_positions(self, step=1000, nchunks=100, scale=True, progress=True):
         """
-        Focal site by chunk.
+        Get the focal positions for each position that B is calculated at.
+
+        nchunks is how many chunks across the genome to break this up
+        to (for parallel processing)
         """
+        chunks = MapPosChunkIterator(self.genome, self.w_grid, self.t_grid,
+                                         step=step, nchunks=nchunks)
         if progress:
             outer_progress_bar = tq.tqdm(total=self.total)
         # inner_progress_bar = tq.tqdm(leave=True)
         while True:
-            next_chunk = next(self.mpos_iter)
+            next_chunk = next(chunks.mpos_iter)
             # get the next chunk of map positions to process
             chrom, mpos_chunk = next_chunk
             # chromosome segment positions
-            chrom_seg_mpos = self.chrom_seg_mpos[chrom]
+            chrom_seg_mpos = chunks.chrom_seg_mpos[chrom]
             # focal map positions
             map_positions = mpos_chunk
             for f in map_positions:
@@ -587,13 +693,11 @@ class LearnedB(object):
                 rf = dist_to_segment(f, chrom_seg_mpos)
                 # place rf in X, log10'ing it since that's what we train on
                 # and tile it to repeat
-                Xrf_col = np.tile(rf, self.tw_mesh.shape[0])
-                if self.func.logscale['rf']:
-                    Xrf_col = np.log10(Xrf_col)
+                Xrf_col = np.tile(rf, self.wt_mesh.shape[0])
+                Xrf_col = self.func.transform_feature_to_match('rf', Xrf_col)
                 assert np.all(np.isfinite(Xrf_col)), "rec frac column not all finite!"
-                yield chrom, self.transform(X)[:, 2]
+                yield chrom, Xrf_col
             if progress:
                 outer_progress_bar.update(1)
             # inner_progress_bar.reset()
-
 
