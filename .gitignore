@@ -1,2 +1,3 @@
 data/slim_sims/
 .snakemake/
+msprime_sims/varying_nsamples_*json
