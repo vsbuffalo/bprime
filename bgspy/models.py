@@ -44,6 +44,7 @@ from bgspy.utils import load_seqlens
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import B_segment_lazy, calc_B, calc_B_parallel
+from bgspy.learn import LearnedFunction, LearnedB
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
@@ -55,7 +56,8 @@ class BGSModel(object):
         # main genome data needed to calculate B
         self.genome = genome
         assert self.genome.is_complete(), "genome is missing data!"
-        self.genome.create_segments(split_length=split_length)
+        if self.genome.segments is None:
+            self.genome.create_segments(split_length=split_length)
         self._segment_parts = None
         # stuff for B
         self.Bs = None
@@ -311,7 +313,7 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def laod_learnedB(self, filepath):
+    def load_learnedB(self, filepath):
         bfunc = LearnedFunction.load(filepath)
         # compare the genome attributes to see if their the same
         try:

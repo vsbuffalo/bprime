@@ -103,10 +103,10 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
               default=1_000)
 @click.option('--nchunks', default=100,
               help='number of chunks to break the genome up into (for parallelization)')
-@click.option('--out-dir', default=None, help="output directory (default: cwd)")
+@click.option('--dir', default=None, help="output directory (default: cwd)")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def write_X(learnedb, seqlens, annot, recmap, conv_factor, w, t,
-            step, nchunks, out_dir, progress):
+def write_X(learnedb, seqlens, name, annot, recmap, conv_factor, w, t,
+            step, nchunks, dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
@@ -116,10 +116,14 @@ def write_X(learnedb, seqlens, annot, recmap, conv_factor, w, t,
     """
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
-                       chroms=None, name=None)
+                       chroms=None, name=name)
 
-    m.load_learnedb(learnedb)
-    m.bfunc.write_BpX_chunks(out_dir, step=step, nchunks=nchunks)
+    m.load_learnedB(learnedb)
+    if os.path.exit(dir):
+        assert os.path.isdir(dir)
+    else:
+        os.makedirs(dir)
+    m.bfunc.write_BpX_chunks(dir, step=step, nchunks=nchunks)
 
 
 

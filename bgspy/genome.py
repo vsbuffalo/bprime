@@ -161,7 +161,7 @@ class Genome(object):
     """
     A description of the Genome for B calculations and inference.
     """
-    def __init__(self, name, seqlens_file, conversion_factor=None, chroms=None):
+    def __init__(self, name, seqlens_file, chroms=None):
         self.name = name
         self.seqlens = None
         self.load_seqlens(seqlens_file, chroms)
@@ -173,6 +173,7 @@ class Genome(object):
         self.annot = None
         self.recmap = None
         self.all_features = None
+        self.segments = None
 
     def load_seqlens(self, file, chroms):
         self._seqlens_file = file

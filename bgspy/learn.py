@@ -661,11 +661,12 @@ class LearnedB(object):
         The columns are mu,s,L,rbp,rh -- note that rf is blank,
         as this is filled in depending on what the focal position is.
         """
+        name = self.genome.name
         for chrom, X in self.Xs.items():
-            np.save(os.path.join(dir, f"chrom_data_{chrom}.npy", X))
+            np.save(os.path.join(dir, f"{name}_chrom_data_{chrom}.npy", X))
 
         for i, (chrom, X_chunk) in enumerate(self.focal_positions(**kwargs)):
-            np.save(os.path.join(dir, f"chunk_data_{chrom}.npy", X_chunk))
+            np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}.npy", X_chunk))
 
 
     def focal_positions(self, step=1000, nchunks=100, progress=True):
