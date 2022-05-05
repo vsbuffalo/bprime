@@ -2,15 +2,17 @@ import warnings
 from collections import namedtuple, defaultdict
 from scipy import interpolate
 import numpy as np
-from bgspy.utils import readfile
+from bgspy.utils import readfile, get_unique_indices
 
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 
-def rate_interpol(rate_dict, **kwargs):
+def rate_interpol(rate_dict, inverse=False, **kwargs):
     """
     Interpolate recombination rates given a dictionary of chrom->(ends, rates).
     By default, it uses quadratic, and any values outside the range are given
     the two end points.
+
+    If inverse=True, the rates and physical positions are inverted.
     """
     defaults = {'kind': 'quadratic',
                 'assume_sorted': True,
@@ -18,11 +20,15 @@ def rate_interpol(rate_dict, **kwargs):
                 'copy': False}
     kwargs = {**defaults, **kwargs}
     interpols = dict()
-    for chrom, (ends, rates) in rate_dict.items():
-        interpol = interpolate.interp1d(ends, rates,
-                                        fill_value=(rates[0], rates[-1]),
-                                        **kwargs)
-
+    for chrom, (x, y) in rate_dict.items():
+        if inverse:
+            y, x = x, y
+            idx = get_unique_indices(x) # x's can't be duplicated
+            x, y = x[idx], y[idx]
+            ends = x[0], x[-1]
+        else:
+            ends = y[0], y[-1]
+        interpol = interpolate.interp1d(x, y, fill_value=ends, **kwargs)
         interpols[chrom] = interpol
     return interpols
 
@@ -106,8 +112,9 @@ class RecMap(object):
         self.rates = rates
         self.cumm_rates = cumm_rates
         self.cumm_interpol = rate_interpol(cumm_rates, kind=self.interpolation)
+        self.inverse_cumm_interpol = rate_interpol(cumm_rates, inverse=True,
+                                                   kind=self.interpolation)
         self.rate_interpol = rate_interpol(rates, kind=self.interpolation)
-
 
     def lookup(self, chrom, pos, cummulative=False):
         #assert(np.all(0 <= pos <= self.ends[chrom]))

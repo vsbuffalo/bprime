@@ -20,7 +20,6 @@ def share_array(x):
     np.copyto(shared_array, x)
     return shared_array
 
-
 class MapPosChunkIterator(object):
     """
     An iterator base class for calculating B along the genome in parallel in

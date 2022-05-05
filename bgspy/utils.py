@@ -90,6 +90,15 @@ def bin_chrom(end, width, dtype='uint32'):
     return bins
 
 
+def get_unique_indices(x):
+    "Get the indices of unique elements in a list/array"
+    indices = defaultdict(list)
+    for i, v in enumerate(x):
+        indices[v].append(i)
+    first_occur = [i[0] for i in indices.values()]
+    return np.array(first_occur, dtype=int)
+
+
 def dist_to_segment(focal, seg_map_pos):
     """
     Return the map distance between a focal site (in map coords)

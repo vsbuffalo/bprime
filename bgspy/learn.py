@@ -720,7 +720,6 @@ class LearnedB(object):
             np.save(os.path.join(dir, f"{name}_chrom_data_{chrom}.npy"), X)
 
         focal_pos_iter = self.focal_positions(**kwargs)
-        __import__('pdb').set_trace()
         for i, (chrom, X_chunk) in enumerate(focal_pos_iter):
             np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}.npy"), X_chunk)
 
@@ -732,6 +731,7 @@ class LearnedB(object):
         nchunks is how many chunks across the genome to break this up
         to (for parallel processing)
         """
+        wt_mesh_size = self.wt_mesh.shape[0]
         chunks = MapPosChunkIterator(self.genome, self.w_grid, self.t_grid,
                                          step=step, nchunks=nchunks)
         if progress:
@@ -745,15 +745,18 @@ class LearnedB(object):
             chrom_seg_mpos = chunks.chrom_seg_mpos[chrom]
             # focal map positions
             map_positions = mpos_chunk
-            for f in map_positions:
+
+            X = np.empty((wt_mesh_size*chrom_seg_mpos.shape[0], len(map_positions)), dtype=float)
+            for i, f in enumerate(map_positions):
                 # compute the rec frac to each segment's start or end
                 rf = dist_to_segment(f, chrom_seg_mpos)
-                Xrf_col = np.tile(rf, self.wt_mesh.shape[0])
+                Xrf_col = np.tile(rf, wt_mesh_size)
                 # match the transforms on input data before training
                 Xrf_col = self.func.transform_feature_to_match('rf', Xrf_col, correct_bounds=correct_bounds)
                 assert np.all(np.isfinite(Xrf_col)), "rec frac column not all finite!"
-                yield chrom, Xrf_col
+                __import__('pdb').set_trace()
+                X[:, i] = Xrf_col
             if progress:
                 outer_progress_bar.update(1)
-            # inner_progress_bar.reset()
+            yield chrom, X
 
