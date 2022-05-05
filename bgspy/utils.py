@@ -8,7 +8,6 @@ from math import floor, log10
 from scipy import interpolate
 import numpy as np
 
-
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))

@@ -44,7 +44,7 @@ from bgspy.utils import readfile, load_dacfile
 from bgspy.utils import load_seqlens
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.likelihood import calc_loglik_components, loglik
-from bgspy.classic import B_segment_lazy, calc_B, calc_B_parallel
+from bgspy.classic import calc_B, calc_B_parallel
 from bgspy.learn import LearnedFunction, LearnedB
 
 # this dtype allows for simple metadata storage
@@ -62,7 +62,6 @@ class BGSModel(object):
             if diff_split_lengths:
                 warnings.warn("supplied Genome object has segment split lengths that differ from that specified -- resegmenting")
             self.genome.create_segments(split_length=split_length)
-        self._segment_parts = None
         # stuff for B
         self.Bs = None
         self.Bps = None
@@ -91,7 +90,7 @@ class BGSModel(object):
         self.pi0_ll = None
         self.pi0_grid = None
         self.pi0i_mle = None
-        self._calc_features()  # TODO, not full implemented
+        #self._calc_features()  # TODO, not full implemented
 
         # machine learning stuff
         self.bfunc = None
@@ -235,34 +234,20 @@ class BGSModel(object):
         """
         Create a dummy matrix of features for each segment.
         """
-        nfeats = len(self.segments.feature_map)
-        nsegs = len(self.segments.features)
-        F = np.zeros(shape=(nsegs, nfeats), dtype='bool')
-        # build a one-hot matrix of features
-        np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
-        self.F = F
-
-    def _calc_segments(self):
-        """
-        Pre-calculate the segment contributions, for classic B approach
-        approach.
-        """
-        L = self.segments.lengths
-        rbp = self.segments.rates
-        #min_rbp = 0 # here as test; doesn't make much of a difference
-        #rbp[rbp == 0] = min_rbp
-        # turn this into a column vector for downstream
-        # operations
-        t = self.t[:, None]
-        self._segment_parts = B_segment_lazy(rbp, L, t)
-        #print([x.shape for x in self._segment_parts])
+        raise NotImplementedError("only support for one feature type")
+        # nfeats = len(self.segments.feature_map)
+        # nsegs = len(self.segments.features)
+        # F = np.zeros(shape=(nsegs, nfeats), dtype='bool')
+        # # build a one-hot matrix of features
+        # np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
+        # self.F = F
 
     @property
     def BScores(self):
         Bs = {c: b for c, b in self.Bs.items()}
         return BScores(Bs, self.B_pos, self.w, self.t, self.step)
 
-    def BScores_interpolater(self, feature_idx, **kwargs):
+    def BScores_interpolater(self, **kwargs):
         defaults = {'kind': 'quadratic',
                     'assume_sorted': True,
                     'bounds_error': False,
@@ -274,7 +259,9 @@ class BGSModel(object):
         for i, w in enumerate(self.w):
             for j, t in enumerate(self.t):
                 for chrom in Bs:
-                    y = Bs[chrom][:, i, j, feature_idx]
+                    # The last dimension is features matrix -- for now, only
+                    # one feature is supported
+                    y = Bs[chrom][:, i, j, 0]
                     func = interpolate.interp1d(x[chrom], y,
                                                 fill_value=(y[0], y[-1]),
                                                 **kwargs)
@@ -303,17 +290,16 @@ class BGSModel(object):
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
-        if self._segment_parts is None:
+        if self.genome.segments._segment_parts is None:
             print(f"pre-computing segment contributions...\t", end='')
-            self._calc_segments()
+            self.genome.segments._calc_segparts(self.t)
             print(f"done.")
-        if ncores is None:
-            Bs, B_pos = calc_B(self.segments, self._segment_parts, self.F,
-                               self.w, self.recmap, self.seqlens, step=step)
+        segment_parts = self.genome.segments._segment_parts
+        if ncores is None or ncores <= 1:
+            Bs, B_pos = calc_B(self.genome, self.w, step=step)
         else:
-            Bs, B_pos = calc_B_parallel(self.segments, self._segment_parts,
-                                        self.F, self.w, self.recmap,
-                                        self.seqlens,step=step, nchunks=nchunks,
+            Bs, B_pos = calc_B_parallel(self.genome, self.w,
+                                        step=step, nchunks=nchunks,
                                         ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
         self.Bs = stacked_Bs
@@ -333,21 +319,3 @@ class BGSModel(object):
                           "set to the boundary values. Message: " + str(msg))
 
         self.bfunc = bfunc
-
-    def write_BpX_chunks(self, dir):
-        """
-        Write the B' X chunks (all the features X for a chromosome
-        needed to predict B') to a directory for distributed prediction.
-        There are two types of tiles:
-
-            1. 'chrom_data_{chrom}.npy'
-            2. 'chunk_data_{id}.npy'
-
-        The chromosome data contains the feature matrix X. The first two columns
-        are the sh (t) and mu (w) (fixed by the grids), the third is the
-        recombination fraction column that is filled in by the chunk data per
-        chunk, and the last two columns are rbp and L for the segments (these
-        are fixed by chromosome).
-        """
-        self.bfunc.write_BpX_chunks(dir)
-

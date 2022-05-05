@@ -2,6 +2,7 @@
 from collections import defaultdict
 import itertools
 import tqdm
+import time
 import numpy as np
 import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
@@ -23,17 +24,20 @@ def B_segment_lazy(rbp, L, t):
     return a, b, c, d
 
 
-def calc_B(segments, segment_parts, features_matrix, mut_grid,
-           recmap, seqlens, step):
+def calc_B(genome, mut_grid, step):
     """
     A Non-parallel version of calc_B_chunk_worker. For the most part,
     this is for debugging.
 
-    segments: A Segments named tuple.
-    segment_parts: a tuple of pre-computed segment parts.
-    recmap: a RecMap object.
-    features_matrix: a matrix of which segments belong to what annotation class.
+    Note, features_matrix is not yet implemented - but we can eventually. This
+    would be a matrix of which segments belong to what annotation class.
     """
+    # alias some stuff for convenience
+    segments = genome.segments
+    seqlens = genome.seqlens
+    recmap = genome.recmap
+    segment_parts = genome.segments._segment_parts
+
     Bs = defaultdict(list)
     Bpos = defaultdict(list)
     chroms = seqlens.keys()
@@ -56,7 +60,8 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
                       segment_parts[2][:, idx], segment_parts[3][:, idx])
         total_sites = len(positions)
         t0 = time.time()
-        F = features_matrix[idx, :]
+        #F = features_matrix[idx, :]
+        F = np.ones(len(idx))[:, None]
 
         # pre-compute the optimal path -- this shouldn't vary accros positions
         if optimal_einsum_path is None:
@@ -77,7 +82,7 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
         tq = tqdm.tqdm(zip(map_pos, positions), total=total_sites)
         #xs = list()
         for f, pos in tq:
-            rf = dist_to_segment(f, seg_mpos)
+            rf = dist_to_segment(f, chrom_seg_mpos)
             assert(not np.any(np.isnan(rf)))
             #hrf = haldanes_mapfun(np.abs(segment_posts - f))
             #assert(np.allclose(rf, hrf))
@@ -116,9 +121,12 @@ def calc_B(segments, segment_parts, features_matrix, mut_grid,
 
 
 def calc_B_chunk_worker(args):
-    map_positions, chrom_seg_mpos, features_matrix, segment_parts, mut_grid = args
+    map_positions, chrom_seg_mpos, segment_parts, mut_grid = args
     a, b, c, d = segment_parts
     Bs = []
+    # F is a features matrix -- eventually, we'll add support for
+    # different feature annotation class, but for now we just fix this
+    F = np.ones(len(chrom_seg_mpos))[:, None]
     for f in map_positions:
         rf = dist_to_segment(f, chrom_seg_mpos)
         if np.any(b + rf*(rf*c + d) == 0):
@@ -126,13 +134,13 @@ def calc_B_chunk_worker(args):
         x = a/(b*rf**2 + c*rf + d)
         assert(not np.any(np.isnan(x)))
         B = np.einsum('ts,w,sf->wtf', x, mut_grid,
-                      features_matrix, optimize=BCALC_EINSUM_PATH)
+                      F, optimize=BCALC_EINSUM_PATH)
         Bs.append(B)
     return Bs
 
 
 def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
-    chunks = BChunkIterator(genome, segment_parts, mut_grid, step, nchunks)
+    chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     debug = False
     if debug:

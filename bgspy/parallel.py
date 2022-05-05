@@ -128,7 +128,7 @@ class MapPosChunkIterator(object):
 
 
 class BChunkIterator(MapPosChunkIterator):
-    def __init__(self, genome, segment_parts, w_grid, step, nchunks):
+    def __init__(self, genome, w_grid, step, nchunks):
 
         """
         An iterator for chunk the components to calculate B' along the genome in
@@ -138,6 +138,9 @@ class BChunkIterator(MapPosChunkIterator):
         efficiency), which is why this is not necessary for this class.
         """
         super().__init__(genome, w_grid, None, step, nchunks)
+        assert genome.segments._segment_parts is not None, "Genome.segments does not have segment parts"
+        segment_parts = genome.segments._segment_parts
+        seqlens = genome.seqlens
         # Group the segement parts (these are the parts of the pre-computed
         # equation for calculating B quickly) into chromosomes by the indices
         chrom_segparts = {}
@@ -146,8 +149,8 @@ class BChunkIterator(MapPosChunkIterator):
             # share the following arrays across processes, to save memory
             # (these should not be changed!)
             chrom_segparts[chrom] = tuple(map(share_array,
-                                            (segment_parts[0][:, idx], segment_parts[1],
-                                            segment_parts[2][:, idx], segment_parts[3][:, idx])))
+                                              (segment_parts[0][:, idx], segment_parts[1],
+                                               segment_parts[2][:, idx], segment_parts[3][:, idx])))
 
         # custom stuff for the classic B calculation
         self.chrom_segparts = chrom_segparts
@@ -170,7 +173,6 @@ class BChunkIterator(MapPosChunkIterator):
         chrom_segparts = self.chrom_segparts.get(chrom, None)
         return (mpos_chunk,
                 self.chrom_seg_mpos[chrom],
-                self.chrom_features[chrom],
                 chrom_segparts,
                 self.w_grid)
 
