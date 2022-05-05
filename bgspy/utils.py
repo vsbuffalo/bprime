@@ -115,6 +115,7 @@ def dist_to_segment(focal, seg_map_pos):
     ---f-----L______R----------
     ---------L______R-------f--
     """
+    assert seg_map_pos.shape[1] == 2, "seg_map_pos needs to be (n x 2)"
     f = focal
     is_left = (seg_map_pos[:, 0] - f) > 0
     is_right = (f - seg_map_pos[:, 1]) > 0

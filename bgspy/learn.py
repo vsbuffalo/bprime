@@ -717,15 +717,21 @@ class LearnedB(object):
         name = self.genome.name
         self.genome._build_segment_idx_interpol()
         self.build_matrices(correct_bounds=correct_bounds)
+        chrom_dir = os.path.join(dir, 'chroms')
+        if not os.path.exists(chrom_dir):
+            os.makedirs(chrom_dir)
         for chrom, X in self.Xs.items():
-            np.save(os.path.join(dir, f"{name}_chrom_data_{chrom}.npy"), X)
+            np.save(os.path.join(chrom_dir, f"{name}_chrom_data_{chrom}.npy"), X)
 
         focal_pos_iter = self.focal_positions(**kwargs)
         for i, (chrom, X_chunk) in enumerate(focal_pos_iter):
-            np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}_{i}.npy"), X_chunk)
+            chunk_dir = os.path.join(dir, f"chunks_{chrom}")
+            if not os.path.exists(chunk_dir):
+                os.makedirs(chunk_dir)
+            np.save(os.path.join(chunk_dir, f"{name}_Xchunk_{chrom}_{i}.npy"), X_chunk)
 
 
-    def focal_positions(self, step=1000, nchunks=100, max_map_dist=0.01,
+    def focal_positions(self, step=1000, nchunks=1000, max_map_dist=0.01,
                         correct_bounds=True, progress=True):
         """
         Get the focal positions for each position that B is calculated at.
@@ -746,29 +752,23 @@ class LearnedB(object):
             # get the next chunk of map positions to process
             chrom, mpos_chunk = mpos_chunk
 
-            if chrom != 'chr2':
-                __import__('pdb').set_trace()
-
             # focal map positions
             map_positions = mpos_chunk
 
             # for this chunk of map positions, get the segment indices
             # within max_map_dist from the start/end of map positions
-            lidx = self.genome.get_segment_slice(chrom, map_positions[0], map_dist=max_map_dist)[0]
-            uidx = self.genome.get_segment_slice(chrom, map_positions[-1], map_dist=max_map_dist)[1]
+            lidx = self.genome.get_segment_slice(chrom, mpos=map_positions[0], map_dist=max_map_dist)[0]
+            uidx = self.genome.get_segment_slice(chrom, mpos=map_positions[-1], map_dist=max_map_dist)[1]
 
             # chromosome segment positions, within the max_map_dist away
             # from the map position ranges of this chunk
-            nrow = chunks.chrom_seg_mpos[chrom].shape[0]
-            assert uidx <= nrow
-            chrom_seg_mpos = chunks.chrom_seg_mpos[chrom][lidx:uidx]
+            relevant_segments = chunks.chrom_seg_mpos[chrom][lidx:uidx, :]
 
-            # allocate empyt matrix
-            X = np.empty((wt_mesh_size*chrom_seg_mpos.shape[0], len(map_positions)), dtype=float)
-
+            # allocate empty matrix
+            X = np.empty((wt_mesh_size*relevant_segments.shape[0], len(map_positions)), dtype=float)
             for i, f in enumerate(map_positions):
                 # compute the rec frac to each segment's start or end
-                rf = dist_to_segment(f, chrom_seg_mpos)
+                rf = dist_to_segment(f, relevant_segments)
                 Xrf_col = np.tile(rf, wt_mesh_size)
                 # match the transforms on input data before training
                 Xrf_col = self.func.transform_feature_to_match('rf', Xrf_col, correct_bounds=correct_bounds)

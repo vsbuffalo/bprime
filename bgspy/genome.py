@@ -282,10 +282,10 @@ class Genome(object):
             # start/end here... we use start
             map_pos = self.segments.mpos[chrom][:, 0]
             map_ends = map_pos[0], map_pos[-1]
-            idx2map = interpolate.interp1d(indices, map_pos,
+            idx2map = interpolate.interp1d(indices, map_pos, assume_sorted=False,
                                            fill_value=map_ends, bounds_error=False)
             idx_ends = 0, len(indices)
-            map2idx = interpolate.interp1d(map_pos, indices,
+            map2idx = interpolate.interp1d(map_pos, indices, assume_sorted=False,
                                            fill_value=idx_ends, bounds_error=False)
             # pos_ends = pos[0], pos[1]
             # pos = self.segments.ranges[:, 0]
@@ -298,16 +298,21 @@ class Genome(object):
         if verbose:
             print("done.")
 
-    def get_segment_slice(self, chrom, pos, map_dist=0.1):
+    def get_segment_slice(self, chrom, mpos=None, pos=None, map_dist=0.1):
         """
         For a given physical position, find the map position, then get
         approximately map_dist in either direction (using a very rough
         linear approximation, which is fine for getting windows).
         For calculating B within a region where it matters.
         """
-        map_pos = self.recmap.cumm_interpol[chrom](pos)
-        lower = max(map_pos - map_dist, self.recmap.cumm_rates[chrom].rate[0])
-        upper = min(map_pos + map_dist, self.recmap.cumm_rates[chrom].rate[-1])
+        if mpos is None and pos is not None:
+            mpos = self.recmap.cumm_interpol[chrom](pos)
+        elif pos is None and mpos is not None:
+            pass
+        else:
+            raise ValueError("mpos and pos cannot both be None")
+        lower = max(mpos - map_dist, self.recmap.cumm_rates[chrom].rate[0])
+        upper = min(mpos + map_dist, self.recmap.cumm_rates[chrom].rate[-1])
         # now use inverse to get the indices
         lower_idx, upper_idx = self._map2idx[chrom](lower), self._map2idx[chrom](upper)
         return int(lower_idx), int(upper_idx)
