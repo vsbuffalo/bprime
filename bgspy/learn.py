@@ -722,10 +722,10 @@ class LearnedB(object):
 
         focal_pos_iter = self.focal_positions(**kwargs)
         for i, (chrom, X_chunk) in enumerate(focal_pos_iter):
-            np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}.npy"), X_chunk)
+            np.save(os.path.join(dir, f"{name}_Xchunk_{chrom}_{i}.npy"), X_chunk)
 
 
-    def focal_positions(self, step=1000, nchunks=100, max_map_dist=0.1,
+    def focal_positions(self, step=1000, nchunks=100, max_map_dist=0.01,
                         correct_bounds=True, progress=True):
         """
         Get the focal positions for each position that B is calculated at.
@@ -746,6 +746,9 @@ class LearnedB(object):
             # get the next chunk of map positions to process
             chrom, mpos_chunk = mpos_chunk
 
+            if chrom != 'chr2':
+                __import__('pdb').set_trace()
+
             # focal map positions
             map_positions = mpos_chunk
 
@@ -756,6 +759,8 @@ class LearnedB(object):
 
             # chromosome segment positions, within the max_map_dist away
             # from the map position ranges of this chunk
+            nrow = chunks.chrom_seg_mpos[chrom].shape[0]
+            assert uidx <= nrow
             chrom_seg_mpos = chunks.chrom_seg_mpos[chrom][lidx:uidx]
 
             # allocate empyt matrix

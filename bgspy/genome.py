@@ -267,13 +267,15 @@ class Genome(object):
                     self._recmap_file is not None)
         return complete
 
-    def _build_segment_idx_interpol(self, **kwargs):
+    def _build_segment_idx_interpol(self, verbose=True, **kwargs):
         """
         Build interpolators for mapping segment indices to map positions.
         """
         self._idx2map = dict()
         self._map2idx = dict()
         # self._pos2idx = dict()
+        if verbose:
+            print("building segment index interpolators... ", end='')
         for chrom in self.seqlens:
             indices = self.segments.index[chrom]
             # doesn't matter for our purposes difference between segment
@@ -293,6 +295,8 @@ class Genome(object):
             self._idx2map[chrom] = idx2map
             self._map2idx[chrom] = map2idx
             # self._pos2idx[chrom] = pos2idx
+        if verbose:
+            print("done.")
 
     def get_segment_slice(self, chrom, pos, map_dist=0.1):
         """
