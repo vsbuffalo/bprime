@@ -32,7 +32,8 @@ class MapPosChunkIterator(object):
     This class also has a method to collate the results computed in
     parallel back into dicts.
     """
-    def __init__(self, genome, w_grid=None, t_grid=None, step=100, nchunks=100):
+    def __init__(self, genome, w_grid=None, t_grid=None,
+                 step=100, nchunks=100):
         self.genome = genome
         self.step = step
         self.nchunks = nchunks
@@ -48,6 +49,7 @@ class MapPosChunkIterator(object):
         # Get the map positions of the spots to calc B at
         chrom_mpos = {c: genome.recmap.lookup(c, p, cummulative=True) for c, p
                       in chrom_pos.items()}
+
         self.chrom_pos = chrom_pos
         self.chrom_mpos = chrom_mpos
         # chunk the physical and map positions at which we calculate B
