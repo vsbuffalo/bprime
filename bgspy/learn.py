@@ -648,7 +648,8 @@ class LearnedB(object):
         rbp_lower, rbp_upper = self.func.get_bounds('rbp')
         assert np.all(rbp_lower < rbps) and np.all(rbp_upper > rbps), "segment rec rates out of training bounds"
 
-    def _build_pred_matrix(self, chrom, correct_bounds=True):
+    def _build_pred_matrix(self, chrom, package_rf_scaler=True,
+                           correct_bounds=True):
         """
 
         Build a prediction matrix for an entire chromosome. This takes the
@@ -686,7 +687,11 @@ class LearnedB(object):
         X[:, 2] = np.tile(self.segments.L[chrom], n)
         X[:, 3] = np.tile(self.segments.rbp[chrom], n)
         X = self.func.transform_X_to_match(X, correct_bounds=correct_bounds)
-        X[:, 4] = np.nan # NaN out rf column, just in case
+        X[:, 4] = np.nan
+        if package_rf_scaler:
+            # when we center/scale rf downstream, we need the parameters -- we
+            # package them here
+            X[:2, 4] = self.func.scaler.mean_[4], self.func.scaler.scale_[4]
         return X
 
     def build_matrices(self, correct_bounds=True):
@@ -717,19 +722,24 @@ class LearnedB(object):
         name = self.genome.name
         self.genome._build_segment_idx_interpol()
         self.build_matrices(correct_bounds=correct_bounds)
+
         chrom_dir = os.path.join(dir, 'chroms')
         if not os.path.exists(chrom_dir):
             os.makedirs(chrom_dir)
+
+        nmesh = self.wt_mesh.shape[0]
         for chrom, X in self.Xs.items():
-            np.save(os.path.join(chrom_dir, f"{name}_chrom_data_{chrom}.npy"), X)
+            nsegs = self.segments.nsegs[chrom]
+            np.save(os.path.join(chrom_dir, f"{name}_{chrom}_{nmesh}_{nsegs}.npy"), X)
 
         focal_pos_iter = self.focal_positions(**kwargs)
-        for i, (chrom, X_chunk) in enumerate(focal_pos_iter):
+        for i, (chrom, mpos_chunk, segslice) in enumerate(focal_pos_iter):
             chunk_dir = os.path.join(dir, f"chunks_{chrom}")
             if not os.path.exists(chunk_dir):
                 os.makedirs(chunk_dir)
-            np.save(os.path.join(chunk_dir, f"{name}_Xchunk_{chrom}_{i}.npy"), X_chunk)
-
+            lidx, uidx = segslice
+            filename = f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy"
+            np.save(os.path.join(chunk_dir, filename), mpos_chunk)
 
     def focal_positions(self, step=1000, nchunks=1000, max_map_dist=0.01,
                         correct_bounds=True, progress=True):
@@ -742,39 +752,16 @@ class LearnedB(object):
         wt_mesh_size = self.wt_mesh.shape[0]
         chunks = MapPosChunkIterator(self.genome, self.w_grid, self.t_grid,
                                      step=step, nchunks=nchunks)
+        mpos_iter = chunks.mpos_iter
+
         if progress:
-            outer_progress_bar = tqdm.tqdm(total=chunks.total)
-        # inner_progress_bar = tq.tqdm(leave=True)
-        while True:
-            # these should always end at the same spot!
-            mpos_chunk = next(chunks.mpos_iter)
+            mpos_iter = tqdm.tqdm(mpos_iter, total=chunks.total)
 
-            # get the next chunk of map positions to process
-            chrom, mpos_chunk = mpos_chunk
-
-            # focal map positions
-            map_positions = mpos_chunk
-
+        for chrom, mpos_chunk in mpos_iter:
             # for this chunk of map positions, get the segment indices
             # within max_map_dist from the start/end of map positions
-            lidx = self.genome.get_segment_slice(chrom, mpos=map_positions[0], map_dist=max_map_dist)[0]
-            uidx = self.genome.get_segment_slice(chrom, mpos=map_positions[-1], map_dist=max_map_dist)[1]
+            lidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[0], map_dist=max_map_dist)[0]
+            uidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[-1], map_dist=max_map_dist)[1]
 
-            # chromosome segment positions, within the max_map_dist away
-            # from the map position ranges of this chunk
-            relevant_segments = chunks.chrom_seg_mpos[chrom][lidx:uidx, :]
-
-            # allocate empty matrix
-            X = np.empty((wt_mesh_size*relevant_segments.shape[0], len(map_positions)), dtype=float)
-            for i, f in enumerate(map_positions):
-                # compute the rec frac to each segment's start or end
-                rf = dist_to_segment(f, relevant_segments)
-                Xrf_col = np.tile(rf, wt_mesh_size)
-                # match the transforms on input data before training
-                Xrf_col = self.func.transform_feature_to_match('rf', Xrf_col, correct_bounds=correct_bounds)
-                assert np.all(np.isfinite(Xrf_col)), "rec frac column not all finite!"
-                X[:, i] = Xrf_col
-            if progress:
-                outer_progress_bar.update(1)
-            yield chrom, X
+            yield chrom, mpos_chunk, (lidx, uidx)
 
