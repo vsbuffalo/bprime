@@ -97,17 +97,17 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
                 help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
 @click.option('--t', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 heterozygous selection coefficient",
-                    default='-6:-1.302:6')
+                    default='-6:-1.302:7')
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
-                   "list for log10 mutation rates", default='-10:-7:6' )
+                   "list for log10 mutation rates", default='-10:-7:8' )
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
 @click.option('--nchunks', default=100,
               help='number of chunks to break the genome up into (for parallelization)')
-@click.option('--dir', default=None, help="output directory (default: cwd)")
+@click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def write_X(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
-            step, nchunks, dir, progress):
+def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
+               step, nchunks, dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
@@ -123,7 +123,7 @@ def write_X(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
         assert os.path.isdir(dir)
     else:
         os.makedirs(dir)
-    m.bfunc.write_X_chunks(dir, step=step, nchunks=nchunks)
+    m.bfunc.write_prediction_chunks(dir, step=step, nchunks=nchunks)
 
 
 

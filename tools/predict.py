@@ -4,11 +4,14 @@ all the rfs and counting occurences, then predictin on the small
 rf grid?
 """
 import os
+from os.path import join
 import numpy as np
 import itertools
 import re
-import click
 import glob
+import pickle
+import click
+import tqdm
 import gpustat
 import tensorflow as tf
 from tensorflow import keras
@@ -26,15 +29,17 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
 
 @click.command()
 @click.argument('chunkfile', required=True)
-@click.option('--chunk-dir', required=True, help='chunks directory')
-@click.option('--out-dir', required=True, help='output directory')
+@click.option('--input-dir', required=True, help='main prediction directory')
 @click.option('--h5-file', required=True, help='HDF5 file of keras model')
 @click.option('--constrain/--no-constrain', default=True,
               help='whether to compute B using segments along the entire '
               'chromosome, or whether to use the supplied slices in filename')
-def predict(chunkfile, chunk_dir, out_dir, h5_file, constrain):
-    infofile = os.path.join(chunk_dir, 'chunk_info.npz')
-    seg_dir = os.path.join(chunk_dir, 'segments')
+@click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
+def predict(chunkfile, input_dir, h5_file, constrain, progress):
+    out_dir = make_dirs(join(input_dir, 'preds'))
+    chunk_dir = join(input_dir, 'chunks')
+    infofile = join(input_dir, 'info.npz')
+    seg_dir = join(input_dir, 'segments')
     info = np.load(infofile)
 
     model = keras.models.load_model(h5_file)
@@ -43,7 +48,7 @@ def predict(chunkfile, chunk_dir, out_dir, h5_file, constrain):
     chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
     chrom = chunk_parts['chrom']
     name = chunk_parts['name']
-    seg_file = os.path.join(seg_dir, f"{name}_{chrom}.npy")
+    seg_file = join(seg_dir, f"{name}_{chrom}.npy")
     assert len(seg_file), "no appropriate chromosome segment file found!"
 
     # deal with the focal position chunk file
@@ -92,26 +97,28 @@ def predict(chunkfile, chunk_dir, out_dir, h5_file, constrain):
         X[:, j] = transfunc(X[:, j], feature, mean[j], scale[j])
 
     # now calculate the recomb distances
-    # Bs.append()
+    Bs = []
     B = np.empty((nw, nt, focal_positions.shape[0]), dtype='f8')
+    #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
+    if progress:
+        focal_positions = tqdm.tqdm(focal_positions)
     for i, f in enumerate(focal_positions):
-        if i > 5:
-            break
-        p = np.round(i/len(focal_positions) * 100, 2)
-        print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
+        #p = np.round(i/len(focal_positions) * 100, 2)
+        #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
         rf = dist_to_segment(f, S[:, 2:4])
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans
-        b = model.predict(X).reshape((nw, nt, -1))
+        b = model.predict(X).reshape((-1, nw, nt))
         out_of_bounds = np.logical_or(b > 1, b <= 0)
         b[out_of_bounds] = np.nan
-        bp = np.nansum(np.log10(b), axis=2)
+        Bs.append(b)
+        bp = np.nansum(np.log10(b), axis=0)
         B[:, :, i] = bp
-        __import__('pdb').set_trace()
 
-    outdir = make_dirs(out_dir)
-    outfile = os.path.join(outdir, os.path.basename(chunkfile))
+    outfile = join(out_dir, os.path.basename(chunkfile))
     np.save(outfile, B)
+    with open(join(outdir, "Bs.pkl"), 'wb') as f:
+        pickle.dump(Bs, f)
 
 
 if __name__ == "__main__":

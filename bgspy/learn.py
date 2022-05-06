@@ -1,6 +1,7 @@
 ## learn.py -- classes, etc for DNN learned B functions
 
 import os
+from os.path import join
 import json
 import itertools
 import warnings
@@ -681,24 +682,17 @@ class LearnedB(object):
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
 
-    def write_X_chunks(self, dir, step=1000, nchunks=1000, max_map_dist=0.01):
+    def write_prediction_chunks(self, dir, step=1000, nchunks=1000,
+                                max_map_dist=0.01):
         """
-        Write the B' X chunks (all the features X for a chromosome
-        needed to predict B') to a directory for distributed prediction.
-        There are two types of tiles:
+        Write files necessary for B' prediction across a cluster.
+        All files (and later predictions) are stored in the supplied 'dir'.
 
-            1. 'chrom_data_{chrom}.npy'
-            2. 'chunk_data_{id}.npy'
-
-        The chromosome data contains the feature matrix X, all transformed
-
-
-        Write the X chromosome segment and the focal position data.
-
-        The columns are mu,s,L,rbp,rh -- note that rf is blank,
-        as this is filled in depending on what the focal position is.
+         - dir/chunks/
+         - dir/segments/
+         - dir/info.py
+         - dir/preds/ -- predictions, filled in later (not writtne now)
         """
-        join = os.path.join
         name = self.genome.name
         self.genome._build_segment_idx_interpol()
         self.build_segment_matrices()
@@ -708,7 +702,7 @@ class LearnedB(object):
         # merged sh here
         islog = {f"islog_{f}": self.func.logscale[f] for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
         bounds = {f"bounds_{f}": np.array(self.func.get_bounds(f)) for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
-        np.savez(join(dir, 'chunk_info.npz'),
+        np.savez(join(dir, 'info.npz'),
                  mean=self.func.scaler.mean_,
                  scale=self.func.scaler.scale_,
                  w=self.w_grid,
@@ -726,7 +720,7 @@ class LearnedB(object):
 
         focal_pos_iter = self.focal_positions(step=step, nchunks=nchunks, max_map_dist=max_map_dist)
         for i, (chrom, mpos_chunk, segslice) in enumerate(focal_pos_iter):
-            chunk_dir = make_dirs(dir, f"chunks_{chrom}")
+            chunk_dir = make_dirs(dir, 'chunks', chrom)
             lidx, uidx = segslice
             filename = join(chunk_dir, f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy")
             np.save(filename, mpos_chunk.astype('f8'))
