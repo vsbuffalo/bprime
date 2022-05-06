@@ -1,10 +1,25 @@
+"""
+Note -- can we speed up prediction by grid'ing
+all the rfs and counting occurences, then predictin on the small
+rf grid?
+"""
 import os
 import numpy as np
 import itertools
 import re
 import click
 import glob
-import keras
+import gpustat
+import tensorflow as tf
+from tensorflow import keras
+from bgspy.utils import dist_to_segment, make_dirs
+
+# for playing nice on GPUs
+stats = gpustat.GPUStatCollection.new_query()
+ids = map(lambda gpu: int(gpu.entry['index']), stats)
+ratios = map(lambda gpu: float(gpu.entry['memory.used'])/float(gpu.entry['memory.total']), stats)
+bestGPU = min(zip(ids, ratios), key=lambda x: x[1])[0]
+os.environ['CUDA_VISIBLE_DEVICES'] = str(bestGPU)
 
 CHROM_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+).npy')
 CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d+)_(?P<uidx>\d+).npy')
@@ -25,22 +40,23 @@ def predict(chunkfile, chunk_dir, out_dir, h5_file, constrain):
     model = keras.models.load_model(h5_file)
 
     # chunk to process
-    chunk_parts = CHUNK_MATCHER.match(chunkfile).groupdict()
+    chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
     chrom = chunk_parts['chrom']
-    seg_file = glob.glob(os.path.join(seg_dir), f"{chrom}_*")
+    name = chunk_parts['name']
+    seg_file = os.path.join(seg_dir, f"{name}_{chrom}.npy")
+    assert len(seg_file), "no appropriate chromosome segment file found!"
 
     # deal with the focal position chunk file
-    chrom_parts = CHROM_MATCHER.match(seg_file).groupdict()
+    chrom_parts = CHROM_MATCHER.match(os.path.basename(seg_file)).groupdict()
 
     lidx, uidx = int(chunk_parts['lidx']), int(chunk_parts['uidx'])
     chunk_i = int(chunk_parts['i'])
     focal_positions = np.load(chunkfile)
 
     # segment and info stuff
-    Sm = np.memmap(seg_file)
+    Sm = np.memmap(seg_file, dtype='f8').reshape((-1, 4))
     mean, scale = info['mean'], info['scale']
     w, t = info['w'], info['t']
-    islog = info['islog']
 
     if not constrain:
         lidx, uidx = 0, Sm.shape[0]
@@ -51,14 +67,15 @@ def predict(chunkfile, chunk_dir, out_dir, h5_file, constrain):
     # Now build up X, expanding out wt grid. We do this
     # once per chunk, since we can just replace that last column
     mesh = np.array(list(itertools.product(w, t)))
-    nmesh, nsegs = w*t, S.shape[0]
+    nw, nt = w.size, t.size
+    nmesh, nsegs = nw*nt, S.shape[0]
     X = np.empty((nsegs*nmesh, 5))
-    X[:2, :] = np.tile(mesh, nsegs)
-    X[2:4, :] = np.tile(S, nmesh)
+    X[:, :2] = np.tile(mesh, (nsegs, 1))
+    X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
     def transfunc(x, feature, mean, scale):
         if info[f"islog_{feature}"]:
-            x = log10(x)
+            x = np.log10(x)
         return (x-mean)/scale
 
     # apply necessary log10 transforms, and center and scale
@@ -69,16 +86,20 @@ def predict(chunkfile, chunk_dir, out_dir, h5_file, constrain):
 
     # now calculate the recomb distances
     # Bs.append()
-    Bs = np.empty(len(focal_positions))
+    B = np.empty((nw, nt, focal_positions.shape[0]))
     for i, f in enumerate(focal_positions):
-        rf = dist_to_segment(f, S[:, 2:4])
-        X[:, 5] = transfunc(rf, 'rf', mean[4], scale[4])
-        B[i] = np.sum(np.log10(model.predict(X)))
-        # Bs.append(B)
+        if i > 5:
+            break
+        p = np.round(i/len(focal_positions) * 100, 2)
+        print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
+        rf = dist_to_segment(f, S[lidx:uidx, 2:4])
+        X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
+        # note: at some point, we'll want to see how many are nans
+        bp = model.predict(X).reshape((nw, nt, -1))
+        B[:, :, i] = np.nanmean(bp, axis=2)
 
     outdir = make_dirs(out_dir)
-    outfile = join(outdir, chunkfile)
-    print(B)
+    outfile = os.path.join(outdir, os.path.basename(chunkfile))
     np.save(outfile, B)
 
 

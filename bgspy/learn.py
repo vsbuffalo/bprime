@@ -681,7 +681,7 @@ class LearnedB(object):
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
 
-    def write_X_chunks(self, dir, **kwargs):
+    def write_X_chunks(self, dir, step=1000, nchunks=1000, max_map_dist=0.01):
         """
         Write the B' X chunks (all the features X for a chromosome
         needed to predict B') to a directory for distributed prediction.
@@ -712,6 +712,9 @@ class LearnedB(object):
                  scale=self.func.scaler.scale_,
                  w=self.w_grid,
                  t=self.t_grid,
+                 step=step,
+                 nchunks=nchunks,
+                 max_map_dist=max_map_dist,
                  **islog)
 
         chrom_dir = make_dirs(dir, 'segments')
@@ -720,7 +723,7 @@ class LearnedB(object):
             filename = join(chrom_dir, f"{name}_{chrom}.npy")
             np.save(filename, X.astype('f8'))
 
-        focal_pos_iter = self.focal_positions(**kwargs)
+        focal_pos_iter = self.focal_positions(step=step, nchunks=nchunks, max_map_dist=max_map_dist)
         for i, (chrom, mpos_chunk, segslice) in enumerate(focal_pos_iter):
             chunk_dir = make_dirs(dir, f"chunks_{chrom}")
             lidx, uidx = segslice
