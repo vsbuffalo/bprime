@@ -1,6 +1,7 @@
 import sys
 import warnings
 import gzip
+import os
 from collections import namedtuple, defaultdict, deque
 from functools import partial
 import itertools
@@ -97,6 +98,13 @@ def get_unique_indices(x):
         indices[v].append(i)
     first_occur = [i[0] for i in indices.values()]
     return np.array(first_occur, dtype=int)
+
+def make_dirs(*args):
+    "Make directory if necessary"
+    dir = os.path.join(*args)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    return dir
 
 
 def dist_to_segment(focal, seg_map_pos):

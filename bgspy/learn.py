@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import scipy.stats as stats
 from tensorflow import keras
 
-from bgspy.utils import signif, index_cols, dist_to_segment
+from bgspy.utils import signif, index_cols, dist_to_segment, make_dirs
 from bgspy.sim_utils import random_seed
 from bgspy.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.loss import get_loss_func
@@ -648,61 +648,40 @@ class LearnedB(object):
         rbp_lower, rbp_upper = self.func.get_bounds('rbp')
         assert np.all(rbp_lower < rbps) and np.all(rbp_upper > rbps), "segment rec rates out of training bounds"
 
-    def _build_pred_matrix(self, chrom, package_rf_scaler=True,
-                           correct_bounds=True):
+    def fix_bounds(self, x, feature):
+        x = np.copy(x)
+        lower, upper = self.func.get_bounds(feature)
+        x[x < lower] = lower
+        x[x > upper] = upper
+        return x
+
+    def _build_segment_matrix(self, chrom):
         """
-
-        Build a prediction matrix for an entire chromosome. This takes the
-        segment annotation data (map position recomb rates, segment length) and
-        tiles them so a group of data called A repeats,
-
-          X = [[w1, t1, A],
-               [w1, t2, A],
-               ...
-
-        The columns are the features of the B' training data match those in
-        the BGS_MODEL_PARAMS['bgs_segment'] or self.params
-               0,    1,    2,     3,   4
-            'mu',  'sh', 'L', 'rbp', 'rf'
-
-        The last column is the recombination fraction away from the
-        focal site and needs to change each time the position changes.
-        This is done externally; it's set to zero here.
-
-        Note, each output needs to be log10 transformed as according to the
-        LearnedB.func.trans_func, then scaled using LearnedFunction.func.scaler
+        Fixes bounds automatically.
+        The columns are the features of the B' training data are
+               0,      1,          2,        3
+              'L', 'rbp', 'map_start' 'map_end'
         """
         assert self.bgs_model == 'segment'
-        # size of mesh; all pairwise combinations
-        n = self.wt_mesh.shape[0]
+        nsegs = self.genome.segments.nsegs[chrom]
+        X = np.empty((nsegs, 4))
 
-        # get number of segments
-        nsegs = self.segments.nsegs[chrom]
+        X[:, 0] = self.fix_bounds(self.segments.L[chrom], 'L')
+        X[:, 1] = self.fix_bounds(self.segments.rbp[chrom], 'rbp')
+        X[:, 2] = self.segments.mpos[chrom][:, 0]
+        X[:, 3] = self.segments.mpos[chrom][:, 1]
 
-        X = np.zeros((nsegs*n, 5))
-        # repeat the w/t element for each block of segments
-        X[:, 0:2] = np.repeat(self.wt_mesh, nsegs, axis=0)
-
-        # add in the the segment annotation data
-        X[:, 2] = np.tile(self.segments.L[chrom], n)
-        X[:, 3] = np.tile(self.segments.rbp[chrom], n)
-        X = self.func.transform_X_to_match(X, correct_bounds=correct_bounds)
-        X[:, 4] = np.nan
-        if package_rf_scaler:
-            # when we center/scale rf downstream, we need the parameters -- we
-            # package them here
-            X[:2, 4] = self.func.scaler.mean_[4], self.func.scaler.scale_[4]
         return X
 
-    def build_matrices(self, correct_bounds=True):
+    def build_segment_matrices(self):
         self.Xs = {}
         for chrom in self.genome.seqlens.keys():
-            self.Xs[chrom] = self._build_pred_matrix(chrom, correct_bounds)
+            self.Xs[chrom] = self._build_segment_matrix(chrom)
 
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
 
-    def write_X_chunks(self, dir, correct_bounds=True, **kwargs):
+    def write_X_chunks(self, dir, **kwargs):
         """
         Write the B' X chunks (all the features X for a chromosome
         needed to predict B') to a directory for distributed prediction.
@@ -719,27 +698,34 @@ class LearnedB(object):
         The columns are mu,s,L,rbp,rh -- note that rf is blank,
         as this is filled in depending on what the focal position is.
         """
+        join = os.path.join
         name = self.genome.name
         self.genome._build_segment_idx_interpol()
-        self.build_matrices(correct_bounds=correct_bounds)
+        self.build_segment_matrices()
 
-        chrom_dir = os.path.join(dir, 'chroms')
-        if not os.path.exists(chrom_dir):
-            os.makedirs(chrom_dir)
+        dir = make_dirs(dir)
+        # note: has to be in order of BGS_MODEL_PARAMS. We but we've
+        # merged sh here
+        islog = {f"islog_{f}": self.func.logscale[f] for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
+        np.savez(join(dir, 'chunk_info.npz'),
+                 mean=self.func.scaler.mean_,
+                 scale=self.func.scaler.scale_,
+                 w=self.w_grid,
+                 t=self.t_grid,
+                 **islog)
 
-        nmesh = self.wt_mesh.shape[0]
+        chrom_dir = make_dirs(dir, 'segments')
         for chrom, X in self.Xs.items():
             nsegs = self.segments.nsegs[chrom]
-            np.save(os.path.join(chrom_dir, f"{name}_{chrom}_{nmesh}_{nsegs}.npy"), X)
+            filename = join(chrom_dir, f"{name}_{chrom}.npy")
+            np.save(filename, X.astype('f8'))
 
         focal_pos_iter = self.focal_positions(**kwargs)
         for i, (chrom, mpos_chunk, segslice) in enumerate(focal_pos_iter):
-            chunk_dir = os.path.join(dir, f"chunks_{chrom}")
-            if not os.path.exists(chunk_dir):
-                os.makedirs(chunk_dir)
+            chunk_dir = make_dirs(dir, f"chunks_{chrom}")
             lidx, uidx = segslice
-            filename = f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy"
-            np.save(os.path.join(chunk_dir, filename), mpos_chunk)
+            filename = join(chunk_dir, f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy")
+            np.save(filename, mpos_chunk.astype('f8'))
 
     def focal_positions(self, step=1000, nchunks=1000, max_map_dist=0.01,
                         correct_bounds=True, progress=True):
