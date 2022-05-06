@@ -707,6 +707,7 @@ class LearnedB(object):
         # note: has to be in order of BGS_MODEL_PARAMS. We but we've
         # merged sh here
         islog = {f"islog_{f}": self.func.logscale[f] for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
+        bounds = {f"bounds_{f}": np.array(self.func.get_bounds(f)) for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
         np.savez(join(dir, 'chunk_info.npz'),
                  mean=self.func.scaler.mean_,
                  scale=self.func.scaler.scale_,
@@ -715,7 +716,7 @@ class LearnedB(object):
                  step=step,
                  nchunks=nchunks,
                  max_map_dist=max_map_dist,
-                 **islog)
+                 **islog, **bounds)
 
         chrom_dir = make_dirs(dir, 'segments')
         for chrom, X in self.Xs.items():

@@ -16,7 +16,8 @@ class Segments:
         - map positions of start and end
         - features (indexed)
         - map of feature names to indices
-        - index, a dict of chrom->indices of the ranges array
+        - index, a dict of chrom->indices of the ranges array, which contains
+          info for all chroms
     """
     ranges: np.ndarray
     rates: np.ndarray
@@ -277,7 +278,9 @@ class Genome(object):
         if verbose:
             print("building segment index interpolators... ", end='')
         for chrom in self.seqlens:
-            indices = self.segments.index[chrom]
+            # we don't want indices of total matrix (which inclues other
+            # chroms), just this chrom
+            indices = np.arange(len(self.segments.index[chrom]))
             # doesn't matter for our purposes difference between segment
             # start/end here... we use start
             map_pos = self.segments.mpos[chrom][:, 0]
