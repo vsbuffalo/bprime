@@ -1,0 +1,45 @@
+import os
+from os.path import join
+import re
+
+try:
+    dir = config['dir']
+except:
+    raise ValueError("specify directory of chunks with --config dir=dnnb/")
+
+
+try:
+     h5_file = config['h5']
+except:
+    raise ValueError("specify Keras HDF5 model file with --config h5=model.h5")
+
+
+
+chunks_dir = join(dir, 'chunks')
+pred_dir = join(dir, 'preds')
+
+# first get all the chunks
+b_chunk_files = []
+for root, dirs, files in os.walk(chunks_dir):
+    for file in files:
+        this_pred_dir = root.replace('chunks', 'preds')
+        filepath = join(this_pred_dir, file)
+        assert filepath.endswith('.npy')
+        b_chunk_files.append(filepath)
+
+assert len(b_chunk_files), "no chunk files found to predict!"
+
+CHUNK_FILEPATH = join(chunks_dir, '{chromdir}/{chunkname}.npy') 
+PRED_FILEPATH = join(pred_dir, '{chromdir}/{chunkname}.npy') 
+
+rule predict_all:
+  input: b_chunk_files
+
+rule predict:
+  input: CHUNK_FILEPATH
+  output: PRED_FILEPATH
+  shell:
+      f"""
+      python ./tools/predict.py --input-dir {dir} --h5 {h5_file} --no-progress {input}
+      """
+

@@ -30,12 +30,13 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
 @click.command()
 @click.argument('chunkfile', required=True)
 @click.option('--input-dir', required=True, help='main prediction directory')
-@click.option('--h5-file', required=True, help='HDF5 file of keras model')
+@click.option('--h5', required=True, help='HDF5 file of keras model')
 @click.option('--constrain/--no-constrain', default=True,
               help='whether to compute B using segments along the entire '
               'chromosome, or whether to use the supplied slices in filename')
 @click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
-def predict(chunkfile, input_dir, h5_file, constrain, progress):
+def predict(chunkfile, input_dir, h5, constrain, progress):
+    h5_file = h5
     out_dir = make_dirs(join(input_dir, 'preds'))
     chunk_dir = join(input_dir, 'chunks')
     infofile = join(input_dir, 'info.npz')
@@ -115,7 +116,8 @@ def predict(chunkfile, input_dir, h5_file, constrain, progress):
         bp = np.nansum(np.log10(b), axis=0)
         B[:, :, i] = bp
 
-    outfile = join(out_dir, os.path.basename(chunkfile))
+    chrom_out_dir = make_dirs(out_dir, chrom)
+    outfile = join(chrom_out_dir, os.path.basename(chunkfile))
     np.save(outfile, B)
     with open(join(outdir, "Bs.pkl"), 'wb') as f:
         pickle.dump(Bs, f)
