@@ -16,9 +16,9 @@ except ImportError:
     PROGRESS_BAR_ENABLED = False
 
 
-from bprime.utils import index_cols
-from bprime.learn_utils import load_data, data_to_learnedfunc, fit_dnn
-from bprime.learn import LearnedFunction
+from bgspy.utils import index_cols
+from bgspy.learn_utils import load_data, data_to_learnedfunc, fit_dnn
+from bgspy.learn import LearnedFunction
 
 
 @click.group()
