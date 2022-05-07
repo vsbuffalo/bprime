@@ -16,3 +16,6 @@ ipykernel
 tensorflow
 tensorflow-gpu
 keras
+click
+bedtools
+bioawk

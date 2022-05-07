@@ -21,3 +21,31 @@ estimate diversity, extract features from the metadata, and then write the resul
 
      python ../../tools/trees2data.py --outfile segment_logL_logrbp_logrf_wide_data.npz \
        --ncores 50 --features 'mu,s,L,rbp,rf,h,rep'  ../../data/slim_sims/segment_logL_logrbp_logrf_wide/
+
+## Fitting the DNNs
+
+Uses the `Snakemake` file in this directory, with the appropriate JSON config file:
+
+    bash snakemake_runner.sh -c ./segment_logL_logrbp_logrf_wide.json
+
+This takes the `.npz` raw simulation data, converts it to a `LearnedFunc` 
+object, which manages all the details needed to do test/train splits, 
+check the input feature matrix. This data manipulation and the actual
+DNN fitting with tensorflow/keras is done with `tools/fit_sims.py [data | fit]`.
+
+## DNN B' Maps
+
+The `data/dnnb` directory was created with:
+
+    python ../../bgspy/command_line.py dnnb-write --dir ../../dnnb  \
+       --recmap ../../data/annotation/hapmap_genetic_map.txt  \
+       --annot ../../data/annotation/conserved_slop.bed.gz \
+       --seqlens ../../data/annotation/hg38_seqlens.tsv \
+       ../../data/slim_sims/segment_logL_logrbp_logrf_wide/fits/segment_logL_logrbp_logrf_wide/segment_logL_logrbp_logrf_wide_0n128_0n64_0n32_0n8_2nx_eluactiv_fit_0rep
+
+
+Then we run prediction across each of the chunks, across our SLURM cluster.
+I do this with:
+
+    snakemake_runner.sh -c segment_predict.json -l cluster_talapas_predict.json -s ../../tools/predict_snakefile
+

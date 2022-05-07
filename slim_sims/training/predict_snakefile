@@ -32,7 +32,7 @@ assert len(b_chunk_files), "no chunk files found to predict!"
 CHUNK_FILEPATH = join(chunks_dir, '{chromdir}/{chunkname}.npy') 
 PRED_FILEPATH = join(pred_dir, '{chromdir}/{chunkname}.npy') 
 
-rule predict_all:
+rule all:
   input: b_chunk_files
 
 rule predict:
@@ -40,6 +40,6 @@ rule predict:
   output: PRED_FILEPATH
   shell:
       f"""
-      python ./tools/predict.py --input-dir {dir} --h5 {h5_file} --no-progress {input}
+      python ../../tools/predict.py --input-dir {dir} --h5 {h5_file} --no-progress {input}
       """
 

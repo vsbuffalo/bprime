@@ -3,6 +3,7 @@ Note -- can we speed up prediction by grid'ing
 all the rfs and counting occurences, then predictin on the small
 rf grid?
 """
+USE_GPU = False
 import os
 from os.path import join
 import numpy as np
@@ -12,17 +13,33 @@ import glob
 import pickle
 import click
 import tqdm
-import gpustat
+if USE_GPU:
+    try:
+        import gpustat
+        GPUSTAT_AVAIL = True
+    except:
+        GPUSTAT_AVAIL = False
 import tensorflow as tf
 from tensorflow import keras
 from bgspy.utils import dist_to_segment, make_dirs
 
 # for playing nice on GPUs
-stats = gpustat.GPUStatCollection.new_query()
-ids = map(lambda gpu: int(gpu.entry['index']), stats)
-ratios = map(lambda gpu: float(gpu.entry['memory.used'])/float(gpu.entry['memory.total']), stats)
-bestGPU = min(zip(ids, ratios), key=lambda x: x[1])[0]
-os.environ['CUDA_VISIBLE_DEVICES'] = str(bestGPU)
+if USE_GPU and GPUSTAT_AVAIL:
+    stats = gpustat.GPUStatCollection.new_query()
+    ids = map(lambda gpu: int(gpu.entry['index']), stats)
+    ratios = map(lambda gpu: float(gpu.entry['memory.used'])/float(gpu.entry['memory.total']), stats)
+    bestGPU = min(zip(ids, ratios), key=lambda x: x[1])[0]
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(bestGPU)
+
+if not USE_GPU:
+    # limit CPU usage
+    MAX_CPU = 10
+    os.environ["OMP_NUM_THREADS"] = f"{MAX_CPU}"
+    os.environ["TF_NUM_INTRAOP_THREADS"] = f"{MAX_CPU}"
+    os.environ["TF_NUM_INTEROP_THREADS"] = f"{MAX_CPU}"
+    tf.config.threading.set_inter_op_parallelism_threads(MAX_CPU)
+    tf.config.threading.set_intra_op_parallelism_threads(MAX_CPU)
+    tf.config.set_soft_device_placement(True)
 
 CHROM_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+).npy')
 CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d+)_(?P<uidx>\d+).npy')
