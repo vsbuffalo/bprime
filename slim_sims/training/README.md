@@ -37,12 +37,10 @@ DNN fitting with tensorflow/keras is done with `tools/fit_sims.py [data | fit]`.
 
 The `data/dnnb` directory was created with:
 
-    python ../../bgspy/command_line.py dnnb-write --dir ../../dnnb  \
-       --recmap ../../data/annotation/hapmap_genetic_map.txt  \
-       --annot ../../data/annotation/conserved_slop.bed.gz \
-       --seqlens ../../data/annotation/hg38_seqlens.tsv \
-       ../../data/slim_sims/segment_logL_logrbp_logrf_wide/fits/segment_logL_logrbp_logrf_wide/segment_logL_logrbp_logrf_wide_0n128_0n64_0n32_0n8_2nx_eluactiv_fit_0rep
-
+    python ../../bgspy/command_line.py dnnb-write --dir ../../data/dnnb \
+      --recmap ../../data/annotation/hapmap_genetic_map.txt --annot ../../data/annotation/conserved_slop.bed.gz \
+     --seqlens ../../data/annotation/hg38_seqlens.tsv --max-map-dist 0.1 \
+     ../../data/slim_sims/segment_logL_logrbp_logrf_wide/fits/segment_logL_logrbp_logrf_wide/segment_logL_logrbp_logrf_wide_0n128_0n64_0n32_0n8_2nx_eluactiv_fit_0rep
 
 Then we run prediction across each of the chunks, across our SLURM cluster.
 I do this with:
