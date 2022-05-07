@@ -27,6 +27,8 @@ for root, dirs, files in os.walk(chunks_dir):
         assert filepath.endswith('.npy')
         b_chunk_files.append(filepath)
 
+b_chunk_files = b_chunk_files[:1]
+
 assert len(b_chunk_files), "no chunk files found to predict!"
 
 CHUNK_FILEPATH = join(chunks_dir, '{chromdir}/{chunkname}.npy') 
@@ -36,10 +38,10 @@ rule all:
   input: b_chunk_files
 
 rule predict:
-  input: CHUNK_FILEPATH
+  input: chunk=CHUNK_FILEPATH, dir=dir, h5=h5_file
   output: PRED_FILEPATH
   shell:
-      f"""
-      python ../../tools/predict.py --input-dir {dir} --h5 {h5_file} --no-progress {input}
+      """
+      python ../../tools/predict.py --input-dir {input.dir} --h5 {input.h5} --no-progress {input.chunk}
       """
 

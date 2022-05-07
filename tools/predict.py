@@ -115,7 +115,6 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         X[:, j] = transfunc(X[:, j], feature, mean[j], scale[j])
 
     # now calculate the recomb distances
-    Bs = []
     B = np.empty((nw, nt, focal_positions.shape[0]), dtype='f8')
     #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
     if progress:
@@ -129,16 +128,12 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         b = model.predict(X).reshape((-1, nw, nt))
         out_of_bounds = np.logical_or(b > 1, b <= 0)
         b[out_of_bounds] = np.nan
-        Bs.append(b)
         bp = np.nansum(np.log10(b), axis=0)
         B[:, :, i] = bp
 
     chrom_out_dir = make_dirs(out_dir, chrom)
     outfile = join(chrom_out_dir, os.path.basename(chunkfile))
     np.save(outfile, B)
-    with open(join(outdir, "Bs.pkl"), 'wb') as f:
-        pickle.dump(Bs, f)
-
 
 if __name__ == "__main__":
     predict()
