@@ -104,10 +104,12 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
               default=1_000)
 @click.option('--nchunks', default=100,
               help='number of chunks to break the genome up into (for parallelization)')
+@click.option('--max-map-dist', help="maximum map distance (Morgans) to consider"
+              "segment contributions to B' at", default=0.1)
 @click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
 @click.option('--progress/--no-progress', default=True, help="show progress")
 def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
-               step, nchunks, dir, progress):
+               step, nchunks, max_map_dist, dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
@@ -123,7 +125,7 @@ def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
         assert os.path.isdir(dir)
     else:
         os.makedirs(dir)
-    m.bfunc.write_prediction_chunks(dir, step=step, nchunks=nchunks)
+    m.bfunc.write_prediction_chunks(dir, step=step, nchunks=nchunks, max_map_dist=max_map_dist)
 
 
 

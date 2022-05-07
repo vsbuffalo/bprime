@@ -101,6 +101,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
     X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
     def transfunc(x, feature, mean, scale):
+        x = np.copy(x)
         lower, upper = info[f"bounds_{feature}"]
         x[x < lower] = lower
         x[x > upper] = upper
@@ -126,6 +127,9 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans
         b = model.predict(X).reshape((-1, nw, nt))
+        # for debugging:
+        #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
+        #__import__('pdb').set_trace()
         out_of_bounds = np.logical_or(b > 1, b <= 0)
         b[out_of_bounds] = np.nan
         bp = np.nansum(np.log10(b), axis=0)
