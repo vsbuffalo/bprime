@@ -1,7 +1,7 @@
 ## learn.py -- classes, etc for DNN learned B functions
 
 import os
-from os.path import join
+from os.path import join, basename
 import json
 import itertools
 import warnings
@@ -19,6 +19,7 @@ from bgspy.sim_utils import random_seed
 from bgspy.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.loss import get_loss_func
 from bgspy.parallel import MapPosChunkIterator
+from bgspy.models import BScores
 
 
 class LearnedFunction(object):
@@ -748,4 +749,27 @@ class LearnedB(object):
             uidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[-1], map_dist=max_map_dist)[1]
 
             yield chrom, mpos_chunk, (lidx, uidx)
+
+    @classmethod
+    def load_predictions(self, genome, path, chroms=None):
+        info_file = join(path, 'info.npz')
+        info = np.load(info_file)
+        MapPosChunkIterator(genome, w_grid=info['w'], t_grid=info['t'],
+                            step=info['step'], nchunks=['nchunks'])
+        chrom_dirs = os.listdir(join(path, 'preds'))
+        if chroms is not None:
+            if isinstance(chroms, str):
+                chroms = set([chroms])
+            chrom_dirs = [c for c in chrom_dir if c in chroms]
+
+        results = dict()
+        for chrom in chrom_dirs:
+            files = os.listdir(join(path, chrom))
+            files = sorted(files, key=lambda x: int(basename(x).split('_')[2]))
+            ids = [int(basename(x).split('_')[2]) for x in files]
+            for i, file in zip(ids, files):
+                results[(chrom, i)] = np.load(join(path, chrom, file))
+        Bs, B_pos = collate_unsorted(results)
+        return BScores(Bs, B_pos, self.w, self.t, info['step'])
+            
 

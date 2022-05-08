@@ -21,7 +21,7 @@ if USE_GPU:
         GPUSTAT_AVAIL = False
 import tensorflow as tf
 from tensorflow import keras
-from bgspy.utils import dist_to_segment, make_dirs
+from bgspy.utils import dist_to_segment, make_dirs, haldanes_mapfun
 
 # for playing nice on GPUs
 if USE_GPU and GPUSTAT_AVAIL:
@@ -123,6 +123,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
     for i, f in enumerate(focal_positions):
         #p = np.round(i/len(focal_positions) * 100, 2)
         #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
+        #rf = haldanes_mapfun(dist_to_segment(f, S[:, 2:4]))
         rf = dist_to_segment(f, S[:, 2:4])
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans

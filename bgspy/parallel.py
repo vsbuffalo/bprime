@@ -104,11 +104,22 @@ class MapPosChunkIterator(object):
     @property
     def total(self):
         return sum(map(len, list(itertools.chain(self.chrom_mpos_chunks.values()))))
+    
+    def collate_unsorted(self, results):
+        ""
+        # build empty matrices
+        Bs = {c: np.full(x.shape[0], np.nan) for c, x in self.chrom_pos_chunks.items()}
+        B_pos = {c: np.full(x.shape[0], np.nan) for c, x in self.chrom_pos_chunks.items()}
+        for (chrom, i), B in results.items():
+            Bs[chrom][i] = B
+            B_pos[chrom][i] = self.chrom_pos_chunks[chrom][i]
+        return Bs, B_pos
 
     def collate(self, results):
         """
         Take the B calculations from the parallel operation and collate
-        them back together.
+        them back together. This assumes the results are in the same order
+        as initially set!
         """
         Bs = defaultdict(list)
         B_pos = defaultdict(list)

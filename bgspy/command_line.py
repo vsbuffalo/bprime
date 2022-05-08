@@ -35,6 +35,7 @@ def parse_gridstr(x):
         try:
             return np.array(list(map(float, x.split(','))))
         except:
+            import pdb;pdb.set_trace()
             raise click.BadParameter("misformated grid string, needs to be 'x,y'")
     lower, upper, ngrid = list(map(float, x.split(':')))
     if int(ngrid) != ngrid:

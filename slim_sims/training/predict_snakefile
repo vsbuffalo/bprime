@@ -1,5 +1,5 @@
 import os
-from os.path import join
+from os.path import join, split
 import re
 
 try:
@@ -18,10 +18,17 @@ except:
 chunks_dir = join(dir, 'chunks')
 pred_dir = join(dir, 'preds')
 
+# if this has len > 0, this is the set of chroms to include
+chroms = set(['chr10'])
+
 # first get all the chunks
 b_chunk_files = []
 for root, dirs, files in os.walk(chunks_dir):
     for file in files:
+        # get chromosome directory
+        chrom = split(root)[-1]
+        if len(chroms) and chrom not in chroms:
+            continue
         this_pred_dir = root.replace('chunks', 'preds')
         filepath = join(this_pred_dir, file)
         assert filepath.endswith('.npy')
@@ -40,6 +47,6 @@ rule predict:
   output: PRED_FILEPATH
   shell:
       """
-      python ../../tools/predict.py --input-dir {input.dir} --h5 {input.h5} --no-progress {input.chunk}
+      python ../../tools/predict.py --input-dir {input.dir} --h5 {input.h5} {input.chunk}
       """
 
