@@ -789,7 +789,7 @@ class LearnedB(object):
             Bs[chrom] = np.concatenate(Bs[chrom])
             positions = np.concatenate(B_pos[chrom])
             B_pos[chrom] = positions
-            assert positions = np.sort(positions)
+            assert positions == np.sort(positions)
         return BScores(Bs, B_pos, self.w, self.t, info['step'])
 
 
