@@ -721,11 +721,11 @@ class LearnedB(object):
             np.save(filename, X.astype('f8'))
 
         focal_pos_iter = self.focal_positions(step=step, nchunks=nchunks, max_map_dist=max_map_dist)
-        for i, (chrom, mpos_chunk, segslice) in enumerate(focal_pos_iter):
+        for i, (chrom, sites_chunk, segslice) in enumerate(focal_pos_iter):
             chunk_dir = make_dirs(dir, 'chunks', chrom)
             lidx, uidx = segslice
             filename = join(chunk_dir, f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy")
-            np.save(filename, mpos_chunk.astype('f8'))
+            np.save(filename, sites_chunk)
 
     def focal_positions(self, step=1000, nchunks=1000, max_map_dist=0.01,
                         correct_bounds=True, progress=True):
@@ -738,25 +738,31 @@ class LearnedB(object):
         wt_mesh_size = self.wt_mesh.shape[0]
         chunks = MapPosChunkIterator(self.genome, self.w_grid, self.t_grid,
                                      step=step, nchunks=nchunks)
-        mpos_iter = chunks.mpos_iter
+
+        # we iterate over the physical and map position chunks --
+        # these are each packaged with their chromosomes
+        sites_iter = zip(chunks.pos_iter, chunks.mpos_iter)
 
         if progress:
-            mpos_iter = tqdm.tqdm(mpos_iter, total=chunks.total)
+            sites_iter = tqdm.tqdm(sites_iter, total=chunks.total)
 
-        for chrom, mpos_chunk in mpos_iter:
+        for ((chrom, pos_chunk), (_, mpos_chunk) in sites_iter:
             # for this chunk of map positions, get the segment indices
             # within max_map_dist from the start/end of map positions
             lidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[0], map_dist=max_map_dist)[0]
             uidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[-1], map_dist=max_map_dist)[1]
 
-            yield chrom, mpos_chunk, (lidx, uidx)
+            # package physical and map positions together -- this makes
+            # stitching these back together safe across distributed computing
+            sites_chunk = np.array((pos_chunk, mpos_chunk)).T
+            yield chrom, sites_chunk, (lidx, uidx)
 
     @classmethod
     def load_predictions(self, genome, path, chroms=None):
         info_file = join(path, 'info.npz')
         info = np.load(info_file)
-        MapPosChunkIterator(genome, w_grid=info['w'], t_grid=info['t'],
-                            step=info['step'], nchunks=['nchunks'])
+        chunks = MapPosChunkIterator(genome, w_grid=info['w'], t_grid=info['t'],
+                                     step=info['step'], nchunks=info['nchunks'])
         chrom_dirs = os.listdir(join(path, 'preds'))
         if chroms is not None:
             if isinstance(chroms, str):
@@ -765,12 +771,13 @@ class LearnedB(object):
 
         results = dict()
         for chrom in chrom_dirs:
-            files = os.listdir(join(path, chrom))
+            chrom_pred_dir = join(path, 'preds', chrom)
+            files = os.listdir(chrom_pred_dir)
             files = sorted(files, key=lambda x: int(basename(x).split('_')[2]))
             ids = [int(basename(x).split('_')[2]) for x in files]
             for i, file in zip(ids, files):
-                results[(chrom, i)] = np.load(join(path, chrom, file))
-        Bs, B_pos = collate_unsorted(results)
+                results[(chrom, i)] = np.load(join(chrom_pred_dir, file))
+        Bs, B_pos = chunks.collate_unsorted(results)
         return BScores(Bs, B_pos, self.w, self.t, info['step'])
-            
+
 

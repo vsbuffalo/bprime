@@ -25,9 +25,9 @@ class MapPosChunkIterator(object):
     An iterator base class for calculating B along the genome in parallel in
     'step' steps, by splitting the main objects necessary to calculate B into
     'nchunks'. This is the base, which is modified by subclasses for calculating
-    classic B and the new B'. The relevant statistics for the calculation of B
-    and B', e.g. segment lengths and recombination rates, mutation and sel coef
-    grids, etc are all grouped and iterated over.
+    classic B (the new B' uses this directly). The relevant statistics for the
+    calculation of B and B', e.g. segment lengths and recombination rates,
+    mutation and sel coef grids, etc are all grouped and iterated over.
 
     This class also has a method to collate the results computed in
     parallel back into dicts.
@@ -78,9 +78,10 @@ class MapPosChunkIterator(object):
         chrom_features = {c: share_array(segments.features[idx]) for c, idx
                           in chrom_idx.items()}
         self.chrom_idx = chrom_idx
-        # this is the main thin iterated over -- a generator over the
+        # this is the main thing iterated over -- a generator over the
         # chromosome, map positions chunks across the genome
         self.mpos_iter = chain_dictlist(self.chrom_mpos_chunks)
+        self.pos_iter = chain_dictlist(self.chrom_pos_chunks)
         self.chrom_seg_mpos = chrom_seg_mpos
         self.chrom_features = chrom_features
         self.chrom_seg_rbp = chrom_seg_rbp
@@ -104,22 +105,13 @@ class MapPosChunkIterator(object):
     @property
     def total(self):
         return sum(map(len, list(itertools.chain(self.chrom_mpos_chunks.values()))))
-    
-    def collate_unsorted(self, results):
-        ""
-        # build empty matrices
-        Bs = {c: np.full(x.shape[0], np.nan) for c, x in self.chrom_pos_chunks.items()}
-        B_pos = {c: np.full(x.shape[0], np.nan) for c, x in self.chrom_pos_chunks.items()}
-        for (chrom, i), B in results.items():
-            Bs[chrom][i] = B
-            B_pos[chrom][i] = self.chrom_pos_chunks[chrom][i]
-        return Bs, B_pos
 
     def collate(self, results):
         """
         Take the B calculations from the parallel operation and collate
         them back together. This assumes the results are in the same order
-        as initially set!
+        as initially set, e.g. this is not appropriate for distributed computing
+        on a cluster (but is for multiprocessing module's map).
         """
         Bs = defaultdict(list)
         B_pos = defaultdict(list)

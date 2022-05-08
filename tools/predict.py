@@ -74,7 +74,8 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
 
     lidx, uidx = int(chunk_parts['lidx']), int(chunk_parts['uidx'])
     chunk_i = int(chunk_parts['i'])
-    focal_positions = np.load(chunkfile)
+    # contains two columns: the physical and map positions of focal sites
+    sites_chunk = np.load(chunkfile)
 
     # segment and info stuff
     Sm = np.load(seg_file)
@@ -116,14 +117,18 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         X[:, j] = transfunc(X[:, j], feature, mean[j], scale[j])
 
     # now calculate the recomb distances
-    B = np.empty((nw, nt, focal_positions.shape[0]), dtype='f8')
+    nsites = sites_chunk.shape[0]
+    B = np.empty((nw, nt, nsites), dtype='f8')
     #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
+    sites_indices = range(nsites)
     if progress:
-        focal_positions = tqdm.tqdm(focal_positions)
-    for i, f in enumerate(focal_positions):
+        sites_indices = tqdm.tqdm(sites_indices)
+
+    for i in sites_indices:
         #p = np.round(i/len(focal_positions) * 100, 2)
         #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
         #rf = haldanes_mapfun(dist_to_segment(f, S[:, 2:4]))
+        f = sites_chunk[i, 1] # get map position
         rf = dist_to_segment(f, S[:, 2:4])
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans
@@ -137,8 +142,8 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         B[:, :, i] = bp
 
     chrom_out_dir = make_dirs(out_dir, chrom)
-    outfile = join(chrom_out_dir, os.path.basename(chunkfile))
-    np.save(outfile, B)
+    outfile = join(chrom_out_dir, os.path.basename(chunkfile).replace('.npy', '.npz'))
+    np.savez(outfile, B=B, B_pos=sites_chunk[:, 0])
 
 if __name__ == "__main__":
     predict()
