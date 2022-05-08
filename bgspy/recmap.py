@@ -60,6 +60,7 @@ class RecMap(object):
         first_bin = True
         first = True
         is_hapmap = False
+        ignored_chroms = set()
         with readfile(self.mapfile) as f:
             for line in f:
                 if line.startswith('Chromosome'):
@@ -82,6 +83,9 @@ class RecMap(object):
                         print("parsing recmap as BED formatted (chrom, start, end, rate)")
                         first = False
                     chrom, start, end, rate = line.strip().split("\t")[:4]
+                if chrom not in self.seqlens:
+                    ignored_chroms.add(chrom)
+                    continue
                 if last_chrom is not None and chrom != last_chrom:
                     # propagate the ends list
                     self.ends[last_chrom] = last_end
@@ -94,6 +98,9 @@ class RecMap(object):
                 rates[chrom].append((int(end), float(rate)))
                 last_chrom = chrom
                 last_end = int(end)
+
+        if len(ignored_chroms):
+            print(f"RecMap._readmap() ignored {', '.join(ignored_chroms)}")
 
         # end of loop, put the last position in ends
         self.ends[last_chrom] = last_end

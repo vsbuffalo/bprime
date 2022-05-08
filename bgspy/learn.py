@@ -390,7 +390,7 @@ class LearnedFunction(object):
         X = self.check_bounds(X, correct_bounds=correct_bounds)
         if transform_to_match:
             # bounds already correct...
-            X = transform_X_to_match(X, correct_bounds=False)
+            X = self.transform_X_to_match(X, correct_bounds=False)
         return self.model.predict(X, **kwargs).squeeze()
 
     def predict_train(self, **kwargs):
@@ -485,7 +485,8 @@ class LearnedB(object):
         self._predict = None
         self._X_test_hash = None
         model = model if not model.startswith('bgs_') else model.replace('bgs_', '')
-        self.bgs_model = model
+        self.bgs_model = bgs_model
+        self.bgs_model_name = model
         self.params = params
         self.w_grid = w_grid
         self.t_grid = t_grid

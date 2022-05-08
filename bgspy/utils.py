@@ -177,7 +177,7 @@ def ranges_to_masks(range_dict, seqlens):
             masks[chrom][slice(*rng)] = 1
     return masks
 
-def load_bed_annotation(file):
+def load_bed_annotation(file, chroms=None):
     """
     """
     ranges = dict()
@@ -185,6 +185,9 @@ def load_bed_annotation(file):
     # nloci = 0
     all_features = set()
     # index_map = defaultdict(list)
+    if chroms is not None:
+        assert isinstance(chroms, (set, dict)), "chroms must be None, set, or, dict."
+    ignored_chroms = set()
     with readfile(file) as f:
         for line in f:
             if line.startswith('#'):
@@ -193,6 +196,10 @@ def load_bed_annotation(file):
             cols = line.strip().split('\t')
             assert(len(cols) >= 3)
             chrom, start, end = cols[:3]
+            if chroms is not None:
+                if chrom not in chroms:
+                    ignored_chroms.add(chrom)
+                    continue
             if len(cols) == 3:
                 feature = 'undefined'
             else:
@@ -204,6 +211,9 @@ def load_bed_annotation(file):
             # index_map[chrom].append(nloci)
             all_features.add(feature)
             # nloci += 1
+
+    if len(ignored_chroms):
+        print(f"load_bed_annotation(): ignored {', '.join(ignored_chroms)}")
     Annotation = namedtuple('Annotation', ('ranges', 'features'))
     return Annotation(ranges, all_features)
 

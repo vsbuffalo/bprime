@@ -220,6 +220,8 @@ class Genome(object):
         self._map2idx = None
 
     def load_seqlens(self, file, chroms):
+        if isinstance(chroms, str):
+            chroms = set([chroms])
         self._seqlens_file = file
         self._loaded_chroms = chroms
         seqlens = load_seqlens(file)
@@ -254,8 +256,7 @@ class Genome(object):
 
     def load_annot(self, file):
         self._annot_file = file
-        self.annot, self.all_features = load_bed_annotation(file)
-
+        self.annot, self.all_features = load_bed_annotation(file, chroms=set(self.seqlens.keys()))
 
     def is_complete(self):
         """
