@@ -9,6 +9,11 @@ from math import floor, log10
 from scipy import interpolate
 import numpy as np
 
+# this dtype allows for simple metadata storage
+Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
+BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
+BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
+
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))

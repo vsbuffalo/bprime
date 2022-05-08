@@ -43,14 +43,10 @@ from bgspy.utils import bin_chrom
 from bgspy.utils import readfile, load_dacfile
 from bgspy.utils import load_seqlens
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
+from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import calc_B, calc_B_parallel
 from bgspy.learn import LearnedFunction, LearnedB
-
-# this dtype allows for simple metadata storage
-Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
-BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
-BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
 
 class BGSModel(object):
     def __init__(self, genome, t_grid=None, w_grid=None, split_length=1_000):

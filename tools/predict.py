@@ -142,8 +142,8 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         B[:, :, i] = bp
 
     chrom_out_dir = make_dirs(out_dir, chrom)
-    outfile = join(chrom_out_dir, os.path.basename(chunkfile).replace('.npy', '.npz'))
-    np.savez(outfile, B=B, B_pos=sites_chunk[:, 0])
+    outfile = join(chrom_out_dir, os.path.basename(chunkfile))
+    np.savez(outfile, B)
 
 if __name__ == "__main__":
     predict()

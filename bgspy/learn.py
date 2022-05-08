@@ -19,7 +19,7 @@ from bgspy.sim_utils import random_seed
 from bgspy.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.loss import get_loss_func
 from bgspy.parallel import MapPosChunkIterator
-from bgspy.models import BScores
+from bgspy.utils import BScores
 
 
 class LearnedFunction(object):
@@ -665,7 +665,7 @@ class LearnedB(object):
                0,      1,          2,        3
               'L', 'rbp', 'map_start' 'map_end'
         """
-        assert self.bgs_model == 'segment'
+        assert self.bgs_model_name == 'segment'
         nsegs = self.genome.segments.nsegs[chrom]
         X = np.empty((nsegs, 4))
 
@@ -746,7 +746,7 @@ class LearnedB(object):
         if progress:
             sites_iter = tqdm.tqdm(sites_iter, total=chunks.total)
 
-        for ((chrom, pos_chunk), (_, mpos_chunk) in sites_iter:
+        for ((chrom, pos_chunk), (_, mpos_chunk)) in sites_iter:
             # for this chunk of map positions, get the segment indices
             # within max_map_dist from the start/end of map positions
             lidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[0], map_dist=max_map_dist)[0]
@@ -769,15 +769,27 @@ class LearnedB(object):
                 chroms = set([chroms])
             chrom_dirs = [c for c in chrom_dir if c in chroms]
 
-        results = dict()
+        B_chunks, pos_chunks = defaultdict(list), defaultdict(list)
         for chrom in chrom_dirs:
             chrom_pred_dir = join(path, 'preds', chrom)
+            chrom_chunk_dir = join(path, 'chunks', chrom)
             files = os.listdir(chrom_pred_dir)
             files = sorted(files, key=lambda x: int(basename(x).split('_')[2]))
             ids = [int(basename(x).split('_')[2]) for x in files]
-            for i, file in zip(ids, files):
-                results[(chrom, i)] = np.load(join(chrom_pred_dir, file))
-        Bs, B_pos = chunks.collate_unsorted(results)
+            for file in files:
+                # this exploids the 1-to-1 correspodence between site chunk 
+                # and results npy files
+                sites_chunk = np.load(join(chrom_chunk_dir, file))
+                B_pos = sites_chunk[:, 0]
+                Bs = np.load(join(chrom_pred_dir, file))
+                B_chunks[chrom].append(Bs)
+                pos_chunks[chrom].append(B_pos)
+        Bs, B_pos = dict(), dict()
+        for chrom in B_chunks:
+            Bs[chrom] = np.concatenate(Bs[chrom])
+            positions = np.concatenate(B_pos[chrom])
+            B_pos[chrom] = positions
+            assert positions = np.sort(positions)
         return BScores(Bs, B_pos, self.w, self.t, info['step'])
 
 
