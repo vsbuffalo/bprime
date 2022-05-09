@@ -40,7 +40,7 @@ class BScores:
 
     def save(self, filepath):
         with open(filepath, 'wb') as f:
-            pickle.dump(self, filepath)
+            pickle.dump(self, f)
 
     @classmethod
     def load(self, filepath):
@@ -118,7 +118,7 @@ def interpolate_calc_bkgd(results, width, seqlens, **kwargs):
         for chrom in chroms:
             all_chroms.add(chrom)
     for chrom in all_chroms:
-        step_pos = bin_chrom(width, seqlens[chrom])
+        step_pos = bin_chrom(seqlens[chrom], width)
         for i, mu in enumerate(mus):
             for j, s in enumerate(sels):
                 if chrom not in Bs:

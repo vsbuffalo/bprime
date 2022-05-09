@@ -35,13 +35,13 @@ rule calc_bgkd:
 
 rule interpol:
   input: pkl="calc_bkgd.pkl", seqlens=SEQLENS
-  output: npz="calc_bkgd_{width}.npz"
+  output: pkl="calc_bkgd_{width}.pkl"
   run:
     with open(input.pkl, 'rb') as f:
       results = pickle.load(f)
     seqlens = load_seqlens(input.seqlens)
     Bs = interpolate_calc_bkgd(results, int(wildcards.width), seqlens)
-    Bs.save(output.npz)
+    Bs.save(output.pkl)
 
 rule all:
-  input: "calc_bkgd_1000.npz", "calc_bkgd.pkl"
+  input: "calc_bkgd_1000.pkl", "calc_bkgd.pkl"
