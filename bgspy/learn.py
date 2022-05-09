@@ -6,7 +6,7 @@ import json
 import itertools
 import warnings
 import pickle
-from collections import Counter
+from collections import Counter, defaultdict
 import numpy as np
 import tqdm
 from sklearn.preprocessing import StandardScaler
@@ -777,7 +777,7 @@ class LearnedB(object):
             files = sorted(files, key=lambda x: int(basename(x).split('_')[2]))
             ids = [int(basename(x).split('_')[2]) for x in files]
             for file in files:
-                # this exploids the 1-to-1 correspodence between site chunk 
+                # this exploids the 1-to-1 correspodence between site chunk
                 # and results npy files
                 sites_chunk = np.load(join(chrom_chunk_dir, file))
                 B_pos = sites_chunk[:, 0]
@@ -786,10 +786,11 @@ class LearnedB(object):
                 pos_chunks[chrom].append(B_pos)
         Bs, B_pos = dict(), dict()
         for chrom in B_chunks:
-            Bs[chrom] = np.concatenate(Bs[chrom])
-            positions = np.concatenate(B_pos[chrom])
+            Bs[chrom] = np.concatenate(B_chunks[chrom], axis=2)
+            positions = np.concatenate(pos_chunks[chrom])
             B_pos[chrom] = positions
-            assert positions == np.sort(positions)
-        return BScores(Bs, B_pos, self.w, self.t, info['step'])
+            assert np.all(positions == np.sort(positions))
+        obj = LearnedB(t_grid=info['t'], w_grid=info['w'], genome=genome)
+        return BScores(Bs, B_pos, obj.w_grid, obj.t_grid, info['step'])
 
 

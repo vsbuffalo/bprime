@@ -43,6 +43,21 @@ def read_centro(file):
             chroms[chrom].append(int(end))
     return {k: tuple(sorted(set(v))) for k, v in chroms.items()}
 
+def get_files(dir, suffix):
+    """
+
+    Recursively get files from directories in dir with suffix, e.g. used for
+    getting all .tree files across seed subdirectories.
+    """
+    all_files = set()
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            if suffix is not None:
+                if not file.endswith(suffix):
+                    continue
+            all_files.add(os.path.join(root, *dirs, file))
+    return all_files
+
 
 def signif(x, digits=4):
     if x == 0:

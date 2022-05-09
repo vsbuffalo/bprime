@@ -1,7 +1,12 @@
 ## sim_utils.py -- common utility functions for msprime and slim
 import warnings
 import itertools
+import operator
+from collections import defaultdict
 import numpy as np
+import pyslim
+import tqdm
+from bgspy.utils import get_files
 
 SEED_MAX = 2**32-1
 
@@ -91,5 +96,48 @@ def get_bounds(params):
         domain[key] = (low, high, is_log10)
     return domain
 
+
+def calc_b_from_treeseqs(file, params, width=1000, recrate=1e-8, seed=None):
+    """Recapitate trees and calc B for whole-chromosome BGS simulations
+    """
+    ts = pyslim.load(file)
+    md = ts.metadata['SLiM']['user_metadata']
+    region_length = md['region_length'][0]
+    N = md['N'][0]
+    #recmap = load_recrates('../data/annotation/rec_100kb_chr10.bed', ts.sequence_length)
+    rts = pyslim.recapitate(ts, recombination_rate=recrate, sequence_length=ts.sequence_length,
+                            ancestral_Ne=N, random_seed=seed)
+    length = int(ts.sequence_length)
+    neut_positions = np.linspace(0, length, length // width).astype(int)
+    params = {k: md[k][0] for k in params}
+    return tuple(params.items()), neut_positions, rts.diversity(mode='branch', windows=neut_positions) / (4*N)
+
+def load_b_chrom_sims(dir, params=('sh', 'mu'), progress=True, **kwargs):
+    """
+    Load a batch of BGS simulations for an entire chromosome.
+    The tuple 'params' species which parameters to extract from metadata
+    and use as a key.
+
+    The results are grouped by these parameters (e.e. across replicates),
+    and combined into arrays.
+
+    **kwargs are passed to calc_b_from_treeseqs().
+    """
+    tree_files = get_files(dir, suffix='.tree')
+    sims = defaultdict(list)
+
+    if progress:
+        tree_files = tqdm.tqdm(tree_files)
+
+    for file in tree_files:
+        sim_params, pos, b = calc_b_from_treeseqs(file, params=params, **kwargs)
+        sims[sim_params].append((pos, b))
+
+    for key, res in sims.items():
+        # get the position and Bs
+        pos = list(map(operator.itemgetter(0), res))
+        b = list(map(operator.itemgetter(1), res))
+        sims[key] = np.stack(pos)[0, :], np.stack(b).T
+    return sims
 
 

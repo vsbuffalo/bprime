@@ -13,6 +13,7 @@ import pyslim
 import msprime
 import tqdm
 from bprime.theory import BGS_MODEL_PARAMS
+from bprime.utils import get_files
 
 FILENAME_RE = re.compile("(.*)_seed(\d+)_rep\d+_treeseq\.tree")
 
@@ -27,19 +28,6 @@ def Bhat(pi, N):
     B is Bhat = π / 4N.
     """
     return 0.25 * pi / N
-
-def get_files(dir, suffix):
-    """
-    Recursively get files.
-    """
-    all_files = set()
-    for root, dirs, files in os.walk(dir):
-        for file in files:
-            if suffix is not None:
-                if not file.endswith(suffix):
-                    continue
-            all_files.add(os.path.join(root, *dirs, file))
-    return all_files
 
 def process_tree_file(tree_file, features, recap='auto'):
 
