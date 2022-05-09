@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 import sys
+import re
 import warnings
 import gzip
 import os
@@ -11,12 +13,39 @@ import numpy as np
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
-BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
+#BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
 BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
 
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))
+
+@dataclass
+class BScores:
+    B: np.ndarray
+    pos: np.ndarray
+    w: np.ndarray
+    t: np.ndarray
+    step: (None, int)
+
+    def __getitem__(self, tup):
+        chrom, w, t = tup
+        return self.pos[chrom], self.B[chrom][w == self.w, t == self.t, ...]
+
+    def get_nearest(self, chrom, w, t):
+        widx = arg_nearest(w, self.w)
+        yidx = arg_nearest(t, self.t)
+        return self.pos[chrom], self.B[chrom][widx, tidx, ...]
+
+    def save(self, filepath):
+        with open(filepath, 'wb') as f:
+            pickle.dump(self, filepath)
+
+    @classmethod
+    def load(self, filepath):
+        with open(filepath, 'rb') as f:
+            obj = pickle.load(filepath)
+
 
 def read_bkgd(file):
     """
@@ -26,7 +55,81 @@ def read_bkgd(file):
         d = np.loadtxt(f)
     pos = np.cumsum(d[:, 1])
     B = d[:, 0]/1000
-    return pos, B
+    return np.array((pos, B)).T
+
+def load_bkgd(dir):
+    """
+    McVicker's calc_bkgd splits chromosomes across files; here
+    load each chromsome file in dir using read_bkgd() and put
+    then into a dictionary.
+    """
+    files = os.listdir(dir)
+    bkgd = dict()
+    for file in files:
+        chrom = file.replace('.bkgd', '')
+        filepath = os.path.join(dir, file)
+        try:
+            bkgd[chrom] = read_bkgd(filepath)
+        except ValueError:
+            continue
+            raise ValueError(f"parsing error at {filepath}")
+    return bkgd
+
+def load_bkgd_runs(dir):
+    """
+    For multiple calc_bkgd runs in a directory, load them and store results.
+    """
+    FILE_REGEX = re.compile(r'calc_bkgd_mu(?P<mu>[^_]+)_s(?P<s>.*)')
+    dirs = [f for f in os.listdir(dir) if os.path.isdir(f)]
+    results = defaultdict(dict)
+    for run in dirs:
+        match = FILE_REGEX.match(run)
+        if match is None:
+            warnings.warn(f"{run} did not match calc_bkgd run regex, skipping...")
+            continue
+        params = match.groupdict()
+        filepath = os.path.join(dir, run)
+        print(f"loading {run}...\t", end="")
+        bs = load_bkgd(filepath)
+        print(f"done.")
+        param_tuple = (float(params['mu']), float(params['s']))
+        results[param_tuple] = bs
+    return results
+
+def interpolate_calc_bkgd(results, width, seqlens, **kwargs):
+    """
+    """
+    defaults = {'kind': 'quadratic',
+                'assume_sorted': False,
+                'bounds_error': False,
+                'copy': False}
+    kwargs = {**defaults, **kwargs}
+
+    sels = sorted([s for _, s in results.keys()])
+    mus = sorted([mu for mu, _ in results.keys()])
+    # put things in a md array and BScores
+    Bs, B_pos = dict(), dict()
+    nsel = len(sels)
+    nmu = len(mus)
+    all_chroms = set()
+    # get all chroms in the params
+    for _, chroms in results.items():
+        for chrom in chroms:
+            all_chroms.add(chrom)
+    for chrom in all_chroms:
+        step_pos = bin_chrom(width, seqlens[chrom])
+        for i, mu in enumerate(mus):
+            for j, s in enumerate(sels):
+                if chrom not in Bs:
+                    # build empty matrix
+                    nloci = len(step_pos)
+                    Bs[chrom] = np.full((nloci, nmu, nsel), np.nan)
+                    B_pos[chrom] = step_pos
+                pos, bs = results[(mu, s)][chrom].T
+                func = interpolate.interp1d(pos, bs, fill_value=(bs[0], bs[-1]), **kwargs)
+                Bs[chrom][:, i, j] = func(step_pos)
+    return BScores(Bs, B_pos, mus, sels, None)
+
 
 def read_centro(file):
     """
@@ -504,14 +607,16 @@ def load_dacfile(dacfile, neut_masks=None):
     ac = np.stack((nchrom - dac, dac)).T
     return positions, indices, ac, position_map, parse_param_str(params)
 
-
-def read_seqlens(file):
-    seqlens = {}
-    with open(file, 'r') as f:
-        for line in f:
-            seq, length = line.strip().split('\t')
-            seqlens[seq] = int(length)
-    return {c: seqlens[c] for c in keep_seqs}
+# deprecated; see load_seqlens
+# def read_seqlens(file, keep_seqs=None):
+#     seqlens = {}
+#     with open(file, 'r') as f:
+#         for line in f:
+#             seq, length = line.strip().split('\t')
+#             seqlens[seq] = int(length)
+#     if keep_seqs is None:
+#         return seqlens
+#     return {c: seqlens[c] for c in keep_seqs}
 
 def chain_dictlist(x):
     """

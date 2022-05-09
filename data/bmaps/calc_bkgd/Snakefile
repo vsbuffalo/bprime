@@ -1,24 +1,47 @@
+import pickle
+from bgspy.utils import load_bkgd_runs, load_seqlens
+from bgspy.utils import interpolate_calc_bkgd
 
-AUTOS = list(range(1, 23))
+#AUTOS = list(range(1, 23))
+AUTOS = [10] # test run of only chr10
 BKGD = "~/src/bkgd/calc_bkgd"
 
+muts = [1e-8]
 selcoefs = [0.01, 0.001, 1e-4, 1e-5]
 
-bkgd_files = [f"calc_bkgd_s{selcoef}/chr{chr}.bkgd" for chr in AUTOS for selcoef in selcoefs]
+bkgd_files = [f"calc_bkgd_mu{mu}_s{selcoef}/chr{chr}.bkgd" for chr in AUTOS for selcoef in selcoefs for mu in muts]
 
-print(bkgd_files)
-
+# print(bkgd_files)
+SEQLENS = "../../annotation/hg38_seqlens.tsv"
 ANNOT = ([f"../../annotation/hapmap/genetic_map_GRCh37_chr{chr}.txt" for chr in AUTOS] + 
-        [f"../../annotation/conserved_by_chrom/chr{chr}.bed" for chr in AUTOS] + 
-        ["../../annotation/hg38_seqlens.tsv"])
+         [f"../../annotation/conserved_by_chrom/chr{chr}.bed" for chr in AUTOS] + 
+         [SEQLENS])
 
 rule calc_bkgd:
   input: conf="calc_bkgd.conf", annot=ANNOT
-  output: [f"calc_bkgd_s{{selcoef}}/chr{chr}.bkgd" for chr in AUTOS]
+  output: [f"calc_bkgd_mu{{mu}}_s{{selcoef}}/chr{chr}.bkgd" for chr in AUTOS]
   shell:
      f"""
-     {BKGD} {{input.conf}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_s{{wildcards.selcoef}}
+     {BKGD} {{input.conf}} PARAM_U={{wildcards.mu}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_s{{wildcards.selcoef}}
      """
 
-rule all:
+rule calc_bgkd:
   input: bkgd_files
+  output: pkl="calc_bkgd.pkl"
+  run:
+    Bs = load_bkgd_runs('.')
+    with open(output.pkl, 'wb') as f:
+      pickle.dump(Bs, f)
+
+rule interpol:
+  input: pkl="calc_bkgd.pkl", seqlens=SEQLENS
+  output: npz="calc_bkgd_{width}.npz"
+  run:
+    with open(input.pkl, 'rb') as f:
+      results = pickle.load(f)
+    seqlens = load_seqlens(input.seqlens)
+    Bs = interpolate_calc_bkgd(results, int(wildcards.width), seqlens)
+    Bs.save(output.npz)
+
+rule all:
+  input: "calc_bkgd_1000.npz", "calc_bkgd.pkl"
