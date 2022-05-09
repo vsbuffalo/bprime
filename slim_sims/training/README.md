@@ -49,5 +49,5 @@ ens ../../data/annotation/hg38_seqlens.tsv --max-map-dist 0.1 ../../data/slim_si
 Then we run prediction across each of the chunks, across our SLURM cluster.
 I do this with:
 
-    snakemake_runner.sh -c segment_predict.json -l cluster_talapas_predict.json -s ../../tools/predict_snakefile
+    ./snakemake_runner.sh -c segment_predict.json -l cluster_talapas_predict.json -s tools/predict_snakefile
 
