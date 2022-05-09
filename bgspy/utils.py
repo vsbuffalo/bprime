@@ -45,7 +45,8 @@ class BScores:
     @classmethod
     def load(self, filepath):
         with open(filepath, 'rb') as f:
-            obj = pickle.load(filepath)
+            obj = pickle.load(f)
+        return obj
 
 
 def read_bkgd(file):
@@ -106,8 +107,8 @@ def interpolate_calc_bkgd(results, width, seqlens, **kwargs):
                 'copy': False}
     kwargs = {**defaults, **kwargs}
 
-    sels = sorted([s for _, s in results.keys()])
-    mus = sorted([mu for mu, _ in results.keys()])
+    sels = sorted(set([s for _, s in results.keys()]))
+    mus = sorted(set([mu for mu, _ in results.keys()]))
     # put things in a md array and BScores
     Bs, B_pos = dict(), dict()
     nsel = len(sels)

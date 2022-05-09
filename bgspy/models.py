@@ -267,13 +267,16 @@ class BGSModel(object):
     def save_B(self, filename):
         if self.Bs is None or self.B_pos is None:
             raise ValueError("B scores not yet calculated.")
-        with open(filename, 'wb') as f:
-            pickle.dump(self.BScores, f)
+        assert filename.endswith('.pkl'), "filename should end in '.pkl'"
+        self.BScores.save(filename)
 
     def load_B(self, filename):
-        with open(filename, 'rb') as f:
-            B = pickle.load(f)
-            self.Bs, self.B_pos, self.w, self.t, self.step = B.B, B.pos, B.w, B.t, B.step
+        assert filename.endswith('.pkl'), "filename should end in '.pkl'"
+        obj = BScores.load(filename)
+        __import__('pdb').set_trace()
+        self.Bs, self.B_pos = obj.B, obj.pos
+        self.w, self.t, self.step = obj.w, obj.t, obj.step
+        return obj
 
     @property
     def B_bins(self):
