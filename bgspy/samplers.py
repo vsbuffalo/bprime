@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import scipy.stats as stats
 from bgspy.utils import signif
-from bgspy.sim_utils import random_seed
+from bgspy.sim_utils import random_seed, param_grid
 
 def discrete_uniform(rng, low, high):
     def func():
@@ -148,8 +148,9 @@ def target_rejection_sampler(func, sampler, n, burnin=1000,
     #return accepted, ys, bins, counts, total
     return accepted
 
-class Sampler(object):
-    def __init__(self, params, total=None, seed=None, add_seed=False, signif_digits=4):
+class SamplerBase(object):
+    def __init__(self, params, total=None, seed=None, add_seed=False,
+                 signif_digits=4):
         assert isinstance(total, int) or total is None
         assert isinstance(seed, int) or seed is None
         assert isinstance(params, dict), "'params' must be a dict"
@@ -163,8 +164,6 @@ class Sampler(object):
         self.samples_remaining = total
         self.samples = []
         self.signif_digits = signif_digits
-        self.sampler = sampler_factory(self.rng, self.params, add_seed=add_seed,
-                                       signif_digits=signif_digits)
 
     def __iter__(self):
         return self
@@ -194,6 +193,29 @@ class Sampler(object):
         """
         _ = list(self)
 
+class ParamGrid(SamplerBase):
+    def __init__(self, params, seed=None, add_seed=False,
+                 signif_digits=4):
+        ngrid = int(np.prod([len(v) for v in params.values()]))
+        super().__init__(params=params, total=ngrid, seed=seed,
+                         add_seed=add_seed, signif_digits=signif_digits)
+        self.sampler = param_grid(self.params, add_seed=self.add_seed, rng=self.rng)
+
+    def __next__(self):
+        if self.total is not None and self.samples_remaining == 0:
+            raise StopIteration
+        assert self.samples_remaining is None or self.samples_remaining >= 0
+        sample = next(self.sampler)
+        self.samples_remaining -= 1
+        self.samples.append(sample)
+        return sample
+
+class Sampler(SamplerBase):
+    def __init__(self, **kwargs):
+        super().__init__(self, **kwargs)
+        self.sampler = sampler_factory(self.rng, self.params,
+                                       add_seed=self.add_seed,
+                                       signif_digits=self.signif_digits)
     def __next__(self):
         if self.total is not None and self.samples_remaining == 0:
             raise StopIteration
@@ -213,4 +235,5 @@ class Sampler(object):
             row = f"  {key} ~ {dist_name}({dist_params})"
             rows.append(row)
         return "\n".join(rows)
+
 

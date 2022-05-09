@@ -92,19 +92,19 @@ def time_grower(start_time, factor=1.8):
 
 
 class SlimRuns(object):
-    def __init__(self, config, dir='.', sampler=None, split_dirs=False,
+    def __init__(self, config, dir='.', sampler=None, split_dirs=None,
                  seed=None):
         msg = "runtype must be 'grid' or 'samples'"
         assert config.get('runtype', None) in ['grid', 'samples'], msg
         self.runtype = config['runtype']
         self.name = config['name']
         self.nreps = config.get('nreps', None)
-        if self.is_grid:
-            assert self.nreps is not None
         if self.is_samples:
             # this is the number of total samples *not* including replicates,
             # e.g. unique parameter combinations
             self.nsamples = config['nsamples']
+        else:
+            self.nsamples = None # figured out from grid sizes, etc
 
         self.script = config['slim']
         msg = f"SLiM file '{self.script}' does not exist"
@@ -113,6 +113,8 @@ class SlimRuns(object):
         self.params, self.param_types = read_params(config)
         self.add_seed = True
         if split_dirs is not None:
+            # this is to prevent thousands/millions of simulation files going
+            # to same directory
             assert isinstance(split_dirs, int), "split_dirs needs to be int"
             # we need to pass in the subdir
             self.param_types = {'subdir': str, **self.param_types}
@@ -123,10 +125,22 @@ class SlimRuns(object):
         self.sampler_func = sampler
         if sampler is None and self.is_samples:
             raise ValueError("no sampler function specified and runtype='samples'")
-        self.sampler = None # for when we instantiate the sampler with seeds, etc
+        # for when we instantiate the sampler with seeds, etc
+        # sampler also can be grid (non-random)
+        self.sampler = None
         self.batches = None
 
     def _generate_runs(self, suffix, ignore_files=None, package_rep=True):
+        """
+        For samplers only, not param grids!
+
+        ignore_files is an option set of files to exclude, e.g. stuff that's
+        already been simulated.
+
+        package_rep is a bool indicating whether to package in the replicate
+        number 'rep' into the sample's dictionary.
+        """
+        suffix_is_str = False
         if isinstance(suffix, str):
             suffix_is_str = True
             suffix = [suffix]
@@ -144,7 +158,8 @@ class SlimRuns(object):
                     sample = copy.copy(sample)
                     # we have more than one replicate, so we need to use the same
                     # params, but with a different random seed
-                    sample['seed'] = random_seed(self.sampler.rng)
+                    seed = random_seed(self.sampler.rng)
+                    sample['seed'] = seed
 
                 if self.nreps is not None or package_rep:
                     # package_rep is whether to include 'rep' into sample dict
@@ -172,7 +187,8 @@ class SlimRuns(object):
                     # some filename wasn't in ignore_files and we need to
                     # include in the run/target file lists
                     if suffix_is_str:
-                        #  simply stuff, don't package in a tuple
+                        #  simplify stuff, don't package in a tuple of
+                        # file with their different suffices
                         target_files = target_files[0]
                     else:
                         target_files = tuple(target_files)
@@ -186,14 +202,12 @@ class SlimRuns(object):
         Run the sampler to generate samples or expand out the parameter grid.
         """
         if self.is_grid:
-            if self.sampler_func is not None:
-                warnings.warn("sampler specified but runtype is grid!")
-            self.runs = param_grid(self.params)
+            self.sampler = self.sampler_func(self.params, add_seed=True, seed=self.seed)
         else:
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              add_seed=True, seed=self.seed)
-            self._generate_runs(suffix=suffix, ignore_files=ignore_files,
-                                package_rep=package_rep)
+        self._generate_runs(suffix=suffix, ignore_files=ignore_files,
+                            package_rep=package_rep)
 
 
     @property

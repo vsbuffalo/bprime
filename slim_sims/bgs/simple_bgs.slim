@@ -3,7 +3,7 @@ initialize() {
   source("../utils.slim");
   initializeTreeSeq();
   // get chromsome length
-  defineConstant("seqlen_file", "../data/annotation/hg38_seqlens.tsv");
+  defineConstant("seqlen_file", "../../data/annotation/hg38_seqlens.tsv");
   for (line in readFile(seqlen_file)) {
     parts = strsplit(line, "\t");
     if (parts[0] == "chr10") {
@@ -18,6 +18,11 @@ initialize() {
     defineConstant("name", "simplebgs");
   }
  
+  if (!exists("subdir")) {
+    subdir = "";
+  } else {
+    defineConstant("subdir_", subdir + '/');
+  }
 
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("rep", 0);
@@ -27,7 +32,7 @@ initialize() {
     defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", '');
   } else {
-	defineConstant("datadir", '../../data/slim_sims/' + name + '/');
+	defineConstant("datadir", '../../data/slim_sims/'+name+'/'+subdir_);
   }
   //defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
   defineConstant("recmap_file", "../../data/annotation/hapmap/genetic_map_GRCh37_chr"+chr+".txt");
@@ -40,6 +45,7 @@ initialize() {
   metadata.setValue("N", N);
   metadata.setValue("s", s);
   metadata.setValue("h", h);
+  metadata.setValue("sh", s*h);
   metadata.setValue("mu", mu);
   metadata.setValue("region_length", region_length);
   metadata.setValue("seqlen_file", seqlen_file);
@@ -47,7 +53,7 @@ initialize() {
   metadata.setValue("annot_file", annot_file);
 
   // == File Output
-  filestr = filename_str(c('N', 'mu', 's', 'h', 'chr', 'rep'));
+  filestr = filename_str(c('N', 'mu', 's', 'h', 'chr', 'seed', 'rep'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");

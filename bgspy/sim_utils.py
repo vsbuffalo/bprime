@@ -6,7 +6,6 @@ import numpy as np
 SEED_MAX = 2**32-1
 
 def random_seed(rng=None):
-    
     if rng is None:
         return np.random.randint(0, SEED_MAX)
     return rng.integers(0, SEED_MAX)
@@ -27,7 +26,7 @@ def fixed_params(params):
                 fixed[key] = param['dist']['low']
     return fixed
 
-def param_grid(params, seed=False):
+def param_grid(params, add_seed=False, rng=None):
     """
     Generate a Cartesian product parameter grid from a
     dict of grids per parameter, optionally adding the seed.
@@ -38,14 +37,15 @@ def param_grid(params, seed=False):
             grid.append([(param, v) for v in values])
         else:
             grid.append([(param, '')])
-    out = list(map(dict, itertools.product(*grid)))
-    if not seed:
-        return out
-    for entry in out:
-        entry['seed'] = random_seed()
-    return out
+    def convert_to_dict(x):
+        # and package seed if needed
+        x = dict(x)
+        if add_seed:
+            x['seed'] = random_seed(rng)
+        return x
+    return map(convert_to_dict, itertools.product(*grid))
 
-def read_params(config, add_rep=True):
+def read_params(config):
     """
     Grab the parameter ranges from a configuration dictionary.
 
@@ -73,9 +73,6 @@ def read_params(config, add_rep=True):
                 assert 'high' in vals['dist'], f"'high' bound of dist must be set in key '{param}'"
             params[param] = vals
         types[param] = val_type
-    if add_rep and is_grid:
-        nreps = int(config['nreps'])
-        params["rep"] = list(range(nreps))
     return params, types
 
 def get_bounds(params):

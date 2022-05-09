@@ -1,6 +1,3 @@
-import sys
-sys.path.extend(['../../']) # for bprime modules
-
 import itertools 
 import numpy as np
 np.random.seed(1)
@@ -8,7 +5,8 @@ from collections import defaultdict, namedtuple
 import pickle
 import pyslim
 import tskit
-from bprime.slim import SlimRuns, read_params
+from bgspy.slim import SlimRuns, read_params
+from bgspy.samplers import ParamGrid
 
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
@@ -18,19 +16,20 @@ DATADIR = "../../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
 
 # the output of one BGS slim sim (simple_bgs.slim)
-SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
-ANNOT_FILES = ["../data/annotation/hg38_seqlens.tsv", 
-               "../data/annotation/hapmap/genetic_map_GRCh37_chr10.txt", 
-               "../data/annotation/conserved_by_chrom/chr10.bed"]
+#SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
+SIM_OUTPUTS = ["treeseq.tree"]
+ANNOT_FILES = ["../../data/annotation/hg38_seqlens.tsv", 
+               "../../data/annotation/hapmap/genetic_map_GRCh37_chr10.txt", 
+               "../../data/annotation/conserved_by_chrom/chr10.bed"]
 
 # ------- Simple BGS for B Maps -------
-bgs_run = SlimRuns(config, dir=DATADIR)
-bgs_run.generate()
+bgs_run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, split_dirs=3)
+bgs_run.generate(SIM_OUTPUTS)
 
 # to get param order for SLiM file
 #print(bgs_run.param_order)
 
-bgs_results = bgs_run.targets(SIM_OUTPUTS)
+bgs_results = bgs_run.targets
 
 # look at first slim runs
 #print(list(itertools.islice(bgs_run.slim_commands(), 5)))
