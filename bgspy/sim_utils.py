@@ -98,7 +98,15 @@ def get_bounds(params):
 
 
 def calc_b_from_treeseqs(file, params, width=1000, recrate=1e-8, seed=None):
-    """Recapitate trees and calc B for whole-chromosome BGS simulations
+    """
+    Recapitate trees and calc B for whole-chromosome BGS simulations
+
+    Note that this computes this in windows [0, width, 2*width, ...],
+    *not* at focal positions like B.
+
+    There is slightly less optimal, since we should center these on the focal
+    positions and do width-sized window around the focal points, but the
+    difference is likely insignicant.
     """
     ts = pyslim.load(file)
     md = ts.metadata['SLiM']['user_metadata']
@@ -134,8 +142,8 @@ def load_b_chrom_sims(dir, params=('sh', 'mu'), progress=True, **kwargs):
         sims[sim_params].append((pos, b))
 
     for key, res in sims.items():
-        # get the position and Bs
-        pos = list(map(operator.itemgetter(0), res))
+        # get the position and Bs; skip 0 in pos so they're the same size
+        pos = list(map(operator.itemgetter(0), res))[1:]
         b = list(map(operator.itemgetter(1), res))
         sims[key] = np.stack(pos)[0, :], np.stack(b).T
     return sims

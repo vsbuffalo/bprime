@@ -590,6 +590,8 @@ class LearnedB(object):
             filepath = filepath.replace('.pkl', '')
         with open(f"{filepath}.pkl", 'rb') as f:
             obj = pickle.load(f)
+            if isinstance(obj, LearnedFunction):
+                raise ValueError("This is a LearnedFunction, not LearnedB; use LearnedFunction.load()")
             # numpy write flags are not preserved when pickling objects(!), so
             # need to fix that here.
             obj._protect()

@@ -62,7 +62,7 @@ def calc_B(genome, mut_grid, step):
         total_sites = len(positions)
         t0 = time.time()
         #F = features_matrix[idx, :]
-        F = np.ones(len(idx))[:, None]
+        #F = np.ones(len(idx))[:, None]
 
         # pre-compute the optimal path -- this shouldn't vary accros positions
         if optimal_einsum_path is None:
