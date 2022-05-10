@@ -22,7 +22,7 @@ rule calc_bkgd:
   output: [f"calc_bkgd_mu{{mu}}_s{{selcoef}}/chr{chr}.bkgd" for chr in AUTOS]
   shell:
      f"""
-     {BKGD} {{input.conf}} PARAM_U={{wildcards.mu}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_s{{wildcards.selcoef}}
+     {BKGD} {{input.conf}} PARAM_U={{wildcards.mu}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_{{wildcards.mu}}mu_s{{wildcards.selcoef}}
      """
 
 rule calc_bgkd:

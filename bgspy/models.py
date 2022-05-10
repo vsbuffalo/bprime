@@ -65,8 +65,8 @@ class BGSModel(object):
         self.step = None
 
         # B parameters
-        self.t = t_grid
-        self.w = w_grid
+        self.t = np.sort(t_grid)
+        self.w = np.sort(w_grid)
 
         # variation data, etc to calculate likelihoods
         self.dacfile = None

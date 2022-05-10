@@ -6,6 +6,7 @@ import time
 import numpy as np
 import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
+from bgspy.utils import haldanes_mapfun
 from bgspy.parallel import BChunkIterator
 
 # pre-computed optimal einsum_path
@@ -72,8 +73,11 @@ def calc_B(genome, mut_grid, step):
             rf = np.abs(chrom_seg_mpos[:, 0] - focal_map_pos)[None, :]
             x = a/(b*rf**2 + c*rf + d)
             #__import__('pdb').set_trace()
-            optimal_einsum_path = np.einsum_path('ts,w,sf->wtf', x,
-                                                 mut_grid, F, optimize='optimal')
+            B = np.einsum('ts,w->wt', x, mut_grid)
+            # the einsum below is for when a features dimension exists, e.g.
+            # there are feature-specific μ's and t's -- commented out now...
+            #optimal_einsum_path = np.einsum_path('ts,w,sf->wtf', x,
+            #                                     mut_grid, F, optimize='optimal')
             print(optimal_einsum_path[0])
             print(optimal_einsum_path[1])
 
@@ -126,15 +130,19 @@ def calc_B_chunk_worker(args):
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
     # different feature annotation class, but for now we just fix this
-    F = np.ones(len(chrom_seg_mpos))[:, None]
+    #F = np.ones(len(chrom_seg_mpos))[:, None]
     for f in map_positions:
         rf = dist_to_segment(f, chrom_seg_mpos)
+        #rf = np.abs(f - chrom_seg_mpos[:, 0])
         if np.any(b + rf*(rf*c + d) == 0):
             raise ValueError("divide by zero in calc_B_chunk_worker")
         x = a/(b*rf**2 + c*rf + d)
         assert(not np.any(np.isnan(x)))
-        B = np.einsum('ts,w,sf->wtf', x, mut_grid,
-                      F, optimize=BCALC_EINSUM_PATH)
+        B = np.einsum('ts,w->wt', x, mut_grid)
+        # the einsum below is for when a features dimension exists, e.g.
+        # there are feature-specific μ's and t's -- commented out now...
+        #B = np.einsum('ts,w,sf->wtf', x, mut_grid,
+        #              F, optimize=BCALC_EINSUM_PATH)
         Bs.append(B)
     return Bs
 

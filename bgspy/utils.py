@@ -31,12 +31,14 @@ class BScores:
 
     def __getitem__(self, tup):
         chrom, w, t = tup
-        return self.pos[chrom], self.B[chrom][w == self.w, t == self.t, ...]
+        pos = self.pos[chrom]
+        Bs = 10**self.B[chrom][:, w == self.w, t == self.t, ...].squeeze()
+        return pos, Bs
 
     def get_nearest(self, chrom, w, t):
         widx = arg_nearest(w, self.w)
-        yidx = arg_nearest(t, self.t)
-        return self.pos[chrom], self.B[chrom][widx, tidx, ...]
+        tidx = arg_nearest(t, self.t)
+        return self.pos[chrom], self.B[chrom][:, widx, tidx, ...]
 
     def save(self, filepath):
         with open(filepath, 'wb') as f:
