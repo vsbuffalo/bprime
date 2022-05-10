@@ -31,6 +31,9 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t,
     return m
 
 def parse_gridstr(x):
+    if ',' not in x and ':' not in x:
+        # fixed value
+        return np.array([float(x)])
     if ',' in x:
         try:
             return np.array(list(map(float, x.split(','))))

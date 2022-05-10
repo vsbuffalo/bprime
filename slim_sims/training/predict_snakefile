@@ -45,8 +45,10 @@ rule all:
 rule predict:
   input: chunk=CHUNK_FILEPATH, dir=dir, h5=h5_file
   output: PRED_FILEPATH
-  shell:
+  run:
+      h5_args = ' '.join(f"--h5 {f}" for f in input.h5)
+      cmd = f"""
+      python ../../tools/predict.py --input-dir {{input.dir}} {h5_args} {{input.chunk}}
       """
-      python ../../tools/predict.py --input-dir {input.dir} --h5 {input.h5} {input.chunk}
-      """
+      shell(cmd)
 

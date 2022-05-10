@@ -47,20 +47,20 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
 @click.command()
 @click.argument('chunkfile', required=True)
 @click.option('--input-dir', required=True, help='main prediction directory')
-@click.option('--h5', required=True, help='HDF5 file of keras model')
+@click.option('--h5', required=True, help='HDF5 file of keras model', multiple=True)
 @click.option('--constrain/--no-constrain', default=True,
               help='whether to compute B using segments along the entire '
               'chromosome, or whether to use the supplied slices in filename')
 @click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
 def predict(chunkfile, input_dir, h5, constrain, progress):
-    h5_file = h5
+    h5_files = h5
     out_dir = make_dirs(join(input_dir, 'preds'))
     chunk_dir = join(input_dir, 'chunks')
     infofile = join(input_dir, 'info.npz')
     seg_dir = join(input_dir, 'segments')
     info = np.load(infofile)
 
-    model = keras.models.load_model(h5_file)
+    models = {f: keras.models.load_model(f) for f in h5_files}
 
     # chunk to process
     chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
@@ -98,7 +98,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
     nw, nt = w.size, t.size
     nmesh, nsegs = nw*nt, S.shape[0]
     X = np.empty((nsegs*nmesh, 5), dtype='f8')
-    X[:, :2] = np.tile(mesh, (nsegs, 1))
+    X[:, :2] = np.repeat(mesh, nsegs, axis=0)
     X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
     def transfunc(x, feature, mean, scale):
@@ -118,7 +118,8 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
 
     # now calculate the recomb distances
     nsites = sites_chunk.shape[0]
-    B = np.empty((nw, nt, nsites), dtype='f8')
+    nmodels = len(h5_files)
+    B = np.empty((nw, nt, nsites, nmodels), dtype='f8')
     #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
     sites_indices = range(nsites)
     if progress:
@@ -127,19 +128,20 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
     for i in sites_indices:
         #p = np.round(i/len(focal_positions) * 100, 2)
         #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
-        #rf = haldanes_mapfun(dist_to_segment(f, S[:, 2:4]))
         f = sites_chunk[i, 1] # get map position
         rf = dist_to_segment(f, S[:, 2:4])
+        #rf = haldanes_mapfun(rf)
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans
-        b = model.predict(X).reshape((-1, nw, nt))
-        # for debugging:
-        #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
-        #__import__('pdb').set_trace()
-        out_of_bounds = np.logical_or(b > 1, b <= 0)
-        b[out_of_bounds] = np.nan
-        bp = np.nansum(np.log10(b), axis=0)
-        B[:, :, i] = bp
+        for j, model in enumerate(models.values()):
+            b = model.predict(X).reshape((-1, nw, nt))
+            # for debugging:
+            #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
+            #__import__('pdb').set_trace()
+            out_of_bounds = np.logical_or(b > 1, b <= 0)
+            b[out_of_bounds] = np.nan
+            bp = np.nansum(np.log10(b), axis=0)
+            B[:, :, i, j] = bp
 
     chrom_out_dir = make_dirs(out_dir, chrom)
     outfile = join(chrom_out_dir, os.path.basename(chunkfile))
