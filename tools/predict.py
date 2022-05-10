@@ -145,7 +145,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
 
     chrom_out_dir = make_dirs(out_dir, chrom)
     outfile = join(chrom_out_dir, os.path.basename(chunkfile))
-    np.save(outfile, B)
+    np.save(outfile, B.squeeze())
 
 if __name__ == "__main__":
     predict()
