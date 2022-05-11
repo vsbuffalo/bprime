@@ -130,17 +130,18 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
         #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
         f = sites_chunk[i, 1] # get map position
         rf = dist_to_segment(f, S[:, 2:4])
-        #rf = haldanes_mapfun(rf)
+        rf = haldanes_mapfun(rf)
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans
         for j, model in enumerate(models.values()):
-            b = model.predict(X).reshape((-1, nw, nt))
+            b = model.predict(X).reshape((nw*nt, nsegs))
             # for debugging:
             #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
             #__import__('pdb').set_trace()
             out_of_bounds = np.logical_or(b > 1, b <= 0)
             b[out_of_bounds] = np.nan
-            bp = np.nansum(np.log10(b), axis=0)
+            #bp = np.nansum(np.log10(b), axis=0)
+            bp = np.exp(np.sum(np.log(b), axis=1).reshape((nw, nt)))
             B[:, :, i, j] = bp
 
     chrom_out_dir = make_dirs(out_dir, chrom)
