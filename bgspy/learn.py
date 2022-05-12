@@ -506,6 +506,7 @@ class LearnedB(object):
         on the feature matrix X. E.g. use for X_test_raw or using
         meshgrids.
         """
+        raise ValueError("bug: this disagrees with feeding the matrix values manually!")
         if X is None:
             X = self.func.X_test_raw
         assert X.shape[1] == len(self.func.features)

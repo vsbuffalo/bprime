@@ -273,7 +273,6 @@ class BGSModel(object):
     def load_B(self, filename):
         assert filename.endswith('.pkl'), "filename should end in '.pkl'"
         obj = BScores.load(filename)
-        __import__('pdb').set_trace()
         self.Bs, self.B_pos = obj.B, obj.pos
         self.w, self.t, self.step = obj.w, obj.t, obj.step
         return obj

@@ -50,6 +50,9 @@ class BScores:
             obj = pickle.load(f)
         return obj
 
+def read_npy_dir(dir):
+    return {f: np.load(os.path.join(dir, f)) for f in os.listdir(dir)}
+
 
 def read_bkgd(file):
     """
@@ -181,6 +184,8 @@ def arg_nearest(val, array):
     """
     Get the index of the closest element in 'array' to 'val'.
     """
+    if isinstance(array, list):
+        array = np.array(array)
     i = np.argmin(np.abs(val-array))
     return i
 
