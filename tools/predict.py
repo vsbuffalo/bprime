@@ -22,6 +22,9 @@ if USE_GPU:
 import tensorflow as tf
 from tensorflow import keras
 from bgspy.utils import dist_to_segment, make_dirs, haldanes_mapfun
+from bgspy.theory import bgs_segment
+
+HALDANE = False
 
 # for playing nice on GPUs
 if USE_GPU and GPUSTAT_AVAIL:
@@ -52,12 +55,13 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
               help='whether to compute B using segments along the entire '
               'chromosome, or whether to use the supplied slices in filename')
 @click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
-def predict(chunkfile, input_dir, h5, constrain, progress):
+@click.option('--output-xps/--no-xps', default=False, help='output unformatted chunk matrices for debugging')
+def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
     h5_files = h5
-    out_dir = make_dirs(join(input_dir, 'preds'))
-    chunk_dir = join(input_dir, 'chunks')
-    infofile = join(input_dir, 'info.npz')
-    seg_dir = join(input_dir, 'segments')
+    out_dir = make_dirs(input_dir, 'preds')
+    chunk_dir = make_dirs(input_dir, 'chunks')
+    infofile = make_dirs(input_dir, 'info.npz')
+    seg_dir = make_dirs(input_dir, 'segments')
     info = np.load(infofile)
 
     models = {f: keras.models.load_model(f) for f in h5_files}
@@ -119,31 +123,51 @@ def predict(chunkfile, input_dir, h5, constrain, progress):
     # now calculate the recomb distances
     nsites = sites_chunk.shape[0]
     nmodels = len(h5_files)
-    B = np.empty((nw, nt, nsites, nmodels), dtype='f8')
+    B = np.empty((nw, nt, nsites), dtype='f8')
     #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
-    sites_indices = range(nsites)
+    sites_indices = np.arange(nsites)
     if progress:
-        sites_indices = tqdm.tqdm(sites_indices)
+        sites_iter = tqdm.tqdm(sites_indices)
+    else:
+        sites_iter = sites_indices
 
-    for i in sites_indices:
+    # optionally output the prediction matrices (for debugging)
+    if output_xps:
+        # draw a random focal site
+        i = np.random.choice(sites_indices)
+        f = sites_chunk[i, 1]
+        rf = dist_to_segment(f, S[:, 2:4])
+        if HALDANE:
+            rf = haldanes_mapfun(rf)
+        Xp[:, 4] = np.tile(rf, nmesh)
+        xpr_dir = make_dirs(input_dir, 'xps', chrom)
+        outfile = join(xpr_dir, os.path.basename(chunkfile))
+        np.save(outfile, Xp)
+        return
+
+    model = models[list(models.keys())[0]] # FOR DEBUG
+
+    for i in sites_iter:
         #p = np.round(i/len(focal_positions) * 100, 2)
         #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
         f = sites_chunk[i, 1] # get map position
         rf = dist_to_segment(f, S[:, 2:4])
-        rf = haldanes_mapfun(rf)
+        if HALDANE:
+            rf = haldanes_mapfun(rf)
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
         # note: at some point, we'll want to see how many are nans
-        for j, model in enumerate(models.values()):
-            b = model.predict(X).reshape((nw*nt, nsegs))
-            # for debugging:
-            #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
-            #__import__('pdb').set_trace()
-            out_of_bounds = np.logical_or(b > 1, b <= 0)
-            b[out_of_bounds] = np.nan
-            #bp = np.nansum(np.log10(b), axis=0)
-            bp = np.exp(np.sum(np.log(b), axis=1).reshape((nw, nt)))
-            B[:, :, i, j] = bp
+        b = model.predict(X).reshape((nw*nt, nsegs))
+        #b = bgs_segment(*Xp.T).reshape((nw*nt, nsegs))
+        # for debugging:
+        #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
+        #__import__('pdb').set_trace()
+        out_of_bounds = np.logical_or(b > 1, b <= 0)
+        b[out_of_bounds] = np.nan
+        #bp = np.nansum(np.log10(b), axis=0)
+        bp = np.exp(np.sum(np.log(b), axis=1).reshape((nw, nt)))
+        B[:, :, i] = bp
 
+    # save real output
     chrom_out_dir = make_dirs(out_dir, chrom)
     outfile = join(chrom_out_dir, os.path.basename(chunkfile))
     np.save(outfile, B.squeeze())
