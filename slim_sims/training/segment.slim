@@ -1,3 +1,5 @@
+// note in process of changing s, h to sh TODO
+
 initialize() {
   source("../utils.slim");
   initializeTreeSeq();
@@ -19,7 +21,7 @@ initialize() {
     defineConstant("rbp", 1e-8);
     defineConstant("rf", 1e-8);
     defineConstant("N", 1000);
-    defineConstant("s", 1e-2);
+    defineConstant("sh", 1e-2);
     defineConstant("mu", 1e-8);
     defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", 'tests/');
@@ -35,9 +37,7 @@ initialize() {
   defineConstant("endsim", burnin);
 
   metadata.setValue("N", N);
-  metadata.setValue("s", s);
-  metadata.setValue("h", h);
-  metadata.setValue("sh", s*h);
+  metadata.setValue("sh", sh);
   metadata.setValue("mu", mu);
   metadata.setValue("rf", rf);
   metadata.setValue("rbp", rbp);
@@ -49,7 +49,7 @@ initialize() {
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  params = c('N', 'mu', 's', 'h', 'rf', 'rbp', 'L', 'seed');
+  params = c('N', 'mu', 'sh', 'rf', 'rbp', 'L', 'seed');
   if (exists("rep")) {
     params = c(params, 'rep');
   }
@@ -64,7 +64,8 @@ initialize() {
   initializeMutationType("m1", h, "f", 0.0);
   // if L == 0 (which we allow for training purposes) we set s = 0, since
   // we can't actually have this in SLiM, but it's equivalent to s = 0
-  initializeMutationType("m2", h, "f", -s * asFloat(L > 0));
+  // also: we define sh only, s = 2sh if h = 1/2, as below
+  initializeMutationType("m2", 0.5, "f", -2.0 * sh * asFloat(L > 0));
 
   // Neutral tracked region from [0, tracklen-1] with no mutation
   // followed by a 1bp spacer (this is a bit silly but we don't want any

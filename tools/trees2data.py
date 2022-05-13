@@ -48,8 +48,9 @@ def process_tree_file(tree_file, features, recap='auto'):
     N = int(md['N'][0])
     # the SLiM script metadata reports the het sel coef for convenience
     # let's check s h = reported sh
-    s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
-    np.testing.assert_almost_equal(s*h, sh)
+    #s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
+    sh = float(md['sh'][0])
+    #np.testing.assert_almost_equal(s*h, sh)
 
     # tracking vs selected regions
     #wins = [0, tracklen, tracklen + L + 1]

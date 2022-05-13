@@ -116,7 +116,7 @@ def check_feature_with_models(features, model):
 
 
 def data_to_learnedfunc(sim_params, sim_data, model, seed,
-                        average_reps=False, unlogL=True, combine_sh=True):
+                        average_reps=False, unlogL=True):
     """
     Get the bounds of parameters from the simulation parameters dictionary, find
     all fixed and variable parameters, take the product of the selection and
@@ -126,11 +126,12 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
 
     Returns a LearnedFunction, with the fixed attributes set.
 
-    Currently only combine_sh=True is supported.
-
     If unlogL=True, we fix an issue from log10'd seq lengths with a lower
     bound < 1. This is a hack to get sims to run L=0 since int(log10(L)) = 0
     if L < 1, e.g. a neutral case. So, we fit on linear scale if logL=True
+
+
+    TODO: ongoing refactors: s, h to sh, and we should ditch unlogL.
     """
 
     # raw (original) data -- this contains extraneous columns, e.g.
@@ -155,7 +156,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     else:
         yextra = None
         y = yo
-        
+
     # we exclude rep number from now on -- not needed
     idx, all_features = zip(*[(i, f) for i, f in enumerate(sim_data['features']) if f != 'rep'])
     Xo = Xo[:, idx]
@@ -164,29 +165,17 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     # check the features we get are one of the BGS models
     check_feature_with_models(all_features, model)
 
-    # Get the fixed columns/features in the original data (with s, h separately)
-    # First drop N, which is not in the features matrix since we condition on it.
+    # Get the fixed columns/features in the original data. First drop N, which is
+    # not in the features matrix since we condition on it.
     sim_params = {k: v for k, v in sim_params.items() if k not in ('N', )}
     fixed_vals, var_cols = match_features(sim_params, data=Xo, features=all_features)
 
-    # currently we just model t = s*h, check that here
-    try:
-        assert combine_sh
-        assert 'h' in fixed_vals
-    except AssertionError:
-        msg = f"combine_sh set to False or variable dominance coefficients found in data"
-        raise NotImplementedError(msg)
-
     # build up a matrix of non-fixed features, combining sh
-    expected_features = [x for x in BGS_MODEL_PARAMS[model] if x not in ('s', 'h')]
-    expected_features.insert(1, 'sh')
+    expected_features = BGS_MODEL_PARAMS[model]
     nfeatures = len(expected_features)
     Xsh = np.empty((Xo.shape[0], nfeatures))
     for i, feature in enumerate(expected_features):
-        if feature == 'sh':
-            col = Xo[:, Xo_cols('s')] * Xo[:, Xo_cols('h')]
-        else:
-            col = Xo[:, Xo_cols(feature)]
+        col = Xo[:, Xo_cols(feature)]
         Xsh[:, i] = col.squeeze()
 
     # now let's get the fixed columns again since stuff has changed
@@ -200,19 +189,6 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     # get the parameter boundaries from params
     sim_bounds = get_bounds(sim_params)
     assert len(sim_bounds) == len(all_features)
-
-    # now, calc the sh bounds and add in to the sim bounds
-    s_low, s_high, s_log10 = sim_bounds['s']
-    h_low, h_high, h_log10 = sim_bounds['h']
-    assert h_low == h_high
-    assert not h_log10, "'h' cannot be log10 currently"
-    # we match if s is log10 or not
-    if s_log10:
-        low, high = np.log10(h_low * 10**s_low), np.log10(h_low * 10**s_high)
-    else:
-        low, high = h_low * s_low, h_low * s_high
-    sim_bounds['sh'] = low, high, s_log10
-    fixed_vals.pop('h') # we don't need this anymore, h is included in sh
 
     # Now, subset the features matrix with sh merged to include only variable
     # columns

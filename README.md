@@ -33,3 +33,6 @@ and extracts all variable columns in the data. The output of this is a
    `default='-6:-1.302:6'` (`command_line.py:89`).
  - run with N=10k
  - use the command line stats program to get the right bounds for training
+
+ - we are in the processing of converting s and h to a single sh param -- beware
+   stuff will break

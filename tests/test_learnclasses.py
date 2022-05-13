@@ -121,3 +121,10 @@ class Test_LearnedB:
         desired = bgs_segment(*Xp.T)
         np.testing.assert_allclose(actual, desired)
 
+        actual = b.theory_B(X=Xp)
+        desired = []
+        for i in range(Xp.shape[0]):
+            desired.append(bgs_segment(*Xp[i, :]))
+        np.testing.assert_allclose(actual, desired)
+
+
