@@ -19,6 +19,10 @@ function (string)filename_str(string params) {
   return out;
 }
 
+function (integer)element_length(object el) {
+  return el.endPosition - el.startPosition + 1;
+}
+
 function (object)param_dict(string params) {
   pd = Dictionary();
   for (i in seqAlong(params)) {
