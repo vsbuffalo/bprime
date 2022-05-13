@@ -43,7 +43,7 @@ Xp = np.array([[1.0000e-09, 1.0000e-03, 3.3400e+02, 2.8873e-10, 4.7425e-04],
 def fake_bgs_segment_domains():
      "This mimics a parameter JSON file"
      params = dict(mu=dict(lower=-9, upper=-7, log10=True),
-                   s=dict(lower=-5, upper=-1, log10=True),
+                   sh=dict(lower=-5, upper=-1, log10=True),
                    L=dict(lower=1, upper=1000, log10=False),
                    rbp=dict(lower=-8, upper=-7, log10=True),
                    rf=dict(lower=-9, upper=-8, log10=True))
@@ -84,7 +84,7 @@ class Test_LearnedFunction:
         assert func.bounds == expected_bounds, "bounds wrong"
         expected_logscale = {f: v['log10'] for f, v in domain.items()}
         assert func.logscale == expected_logscale
-        assert func.features == {'mu': 0, 's': 1, 'L': 2, 'rbp': 3, 'rf': 4}
+        assert func.features == {'mu': 0, 'sh': 1, 'L': 2, 'rbp': 3, 'rf': 4}
 
 
 class Test_LearnedB:
@@ -98,7 +98,7 @@ class Test_LearnedB:
 
         # test if exception is raised if parameters don't have right order
         func_wrong = copy.deepcopy(func)
-        wrong_order = ('s', 'mu', 'L', 'rbp', 'rf')
+        wrong_order = ('sh', 'mu', 'L', 'rbp', 'rf')
         func_wrong.features = {f: func.features[f] for f in wrong_order}
         b.func = func_wrong
         with pytest.raises(AssertionError) as excinfo:
@@ -114,7 +114,7 @@ class Test_LearnedB:
         func = learned_func
         b = LearnedB(model='segment')
         with pytest.raises(AssertionError):
-            b.is_valid_learnedfunc
+            b.is_valid_learnedfunc()
 
         b.func = func
         actual = b.theory_B(X=Xp)

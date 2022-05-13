@@ -50,6 +50,7 @@ class LearnedFunction(object):
         self.logscale = {}       # dict of which features are log10 scale
         self.normalized = None   # whether the features have been normalized
         self.transforms = None   # the dict of transforms for parameters
+        fixed = fixed if fixed is not None else {}
         self.fixed = fixed       # the dict of fixed values
 
         # Auxillary data
@@ -502,10 +503,11 @@ class LearnedB(object):
 
     def is_valid_learnedfunc(self):
         assert self.func is not None, "LearnedB.func is None"
-        features = list(self.func.features.keys())
+        features = tuple(self.func.features.keys())
         msg = ("LearnedFunction.features do not match the parameter "
               "order of bgs_rec or bgs_segment!")
         assert features == self.params, msg
+        return True
 
     def theory_B(self, X=None):
         """
@@ -521,14 +523,6 @@ class LearnedB(object):
         kwargs = {}
         for i, feature in enumerate(features):
             kwargs[feature] = X[:, i]
-
-        # merge in the fixed params
-        kwargs = {**kwargs, **self.func.fixed}
-        # we tweak s, and h since sh is set
-        kwargs['h'] = 1
-        kwargs['s'] = kwargs.pop('sh')
-        if 'N' in kwargs:
-            kwargs.pop('N') # not needed for theory
         return self.bgs_model(**kwargs)
 
 
