@@ -314,7 +314,7 @@ class Genome(object):
         elif pos is None and mpos is not None:
             pass
         else:
-            raise ValueError("mpos and pos cannot both be None")
+            raise ValueError("mpos and pos cannot both be None or both be set")
         lower = max(mpos - map_dist, self.recmap.cumm_rates[chrom].rate[0])
         upper = min(mpos + map_dist, self.recmap.cumm_rates[chrom].rate[-1])
         # now use inverse to get the indices

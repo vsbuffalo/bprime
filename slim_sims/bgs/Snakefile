@@ -43,8 +43,8 @@ rule bgs_map:
     bgs_run.slim_call(slim_cmd=SLIM)
 
 rule process:
-  input: bgs_run.targets, dir=DATADIR
-  output: "chr10_B_sims.pkl"
+  input: bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name)
+  output: pkl="chr10_B_sims.pkl"
   run:
     DATADIR = '../data/slim_sims/bgsmap/'
     sims = load_b_chrom_sims(input.dir)

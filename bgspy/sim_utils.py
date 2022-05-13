@@ -97,7 +97,7 @@ def get_bounds(params):
     return domain
 
 
-def calc_b_from_treeseqs(file, params, width=1000, recrate=1e-8, seed=None):
+def calc_b_from_treeseqs(file,  width=1000, recrate=1e-8, seed=None):
     """
     Recapitate trees and calc B for whole-chromosome BGS simulations
 
@@ -117,14 +117,20 @@ def calc_b_from_treeseqs(file, params, width=1000, recrate=1e-8, seed=None):
                             ancestral_Ne=N, random_seed=seed)
     length = int(ts.sequence_length)
     neut_positions = np.linspace(0, length, length // width).astype(int)
-    params = {k: md[k][0] for k in params}
-    return tuple(params.items()), neut_positions, rts.diversity(mode='branch', windows=neut_positions) / (4*N)
+    # extract the specified simulation parameters from the ts metadata
+    params = {k: md[k][0] for k in md.keys()}
+    B = rts.diversity(mode='branch', windows=neut_positions) / (4*N)
+    return params, neut_positions, B
 
-def load_b_chrom_sims(dir, params=('sh', 'mu'), progress=True, **kwargs):
+def load_b_chrom_sims(dir, progress=True, **kwargs):
     """
-    Load a batch of BGS simulations for an entire chromosome.
-    The tuple 'params' species which parameters to extract from metadata
-    and use as a key.
+    Load a batch of BGS simulations for an entire chromosome, and store the
+    positions and arary of Bs (across simulation replicates!) in a dictionary
+    with (sh, mu) parameters.
+
+
+    WARNING: these should be the only varying parameters across these
+    simulations!
 
     The results are grouped by these parameters (e.e. across replicates),
     and combined into arrays.
@@ -137,9 +143,24 @@ def load_b_chrom_sims(dir, params=('sh', 'mu'), progress=True, **kwargs):
     if progress:
         tree_files = tqdm.tqdm(tree_files)
 
+    # this is a check to make sure no other  parameters are varying
+    # across these simulations other than mu and sh
+    unique_keys = defaultdict(set)
     for file in tree_files:
-        sim_params, pos, b = calc_b_from_treeseqs(file, params=params, **kwargs)
-        sims[sim_params].append((pos, b))
+        sim_params, pos, b = calc_b_from_treeseqs(file, **kwargs)
+        # merge s and h into sh since that's what we care about now
+        sim_params['sh'] = sim_params.pop('s') * sim_params.pop('h')
+        for param in sim_params:
+            unique_keys[param].add(sim_params[param])
+        param_key = (sim_params['sh'], sim_params['mu'])
+        sims[param_key].append((pos, b))
+
+    # now, let's check to make sure that only sh and mu vary
+    for param in unique_keys:
+        if len(unique_keys[param]) > 1:
+            if param in ('sh', 'mu'):
+                continue
+            raise ValueError(f"key '{param}' has multiple values!")
 
     for key, res in sims.items():
         # get the position and Bs; skip 0 in pos so they're the same size

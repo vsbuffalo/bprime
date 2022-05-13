@@ -1,7 +1,7 @@
 import numpy as np
 
-BGS_MODEL_PARAMS = {'bgs_rec': ('mu', 's', 'L', 'rbp', 'h'),
-                    'bgs_segment': ('mu', 's', 'L', 'rbp', 'rf', 'h')}
+BGS_MODEL_PARAMS = {'bgs_rec': ('mu', 'sh', 'L', 'rbp', 'h'),
+                    'bgs_segment': ('mu', 'sh', 'L', 'rbp', 'rf', 'h')}
 
 @np.vectorize
 def bgs_rec(mu, s, L, rbp, h=1/2, log=False):

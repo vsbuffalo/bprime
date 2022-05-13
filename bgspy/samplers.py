@@ -211,8 +211,8 @@ class ParamGrid(SamplerBase):
         return sample
 
 class Sampler(SamplerBase):
-    def __init__(self, **kwargs):
-        super().__init__(self, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.sampler = sampler_factory(self.rng, self.params,
                                        add_seed=self.add_seed,
                                        signif_digits=self.signif_digits)

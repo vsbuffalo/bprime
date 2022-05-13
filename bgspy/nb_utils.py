@@ -20,9 +20,9 @@ def load_learnedfuncs_in_dir(dir, ignore_activ=True, max_rep=None):
     """
     files = [f for f in os.listdir(dir) if f.endswith('.h5')]
     if not ignore_activ:
-        out = defaultdict(lambda: defaultdict(list))
+        out = defaultdict(lambda: defaultdict(dict))
     else:
-        out = defaultdict(list)
+        out = defaultdict(dict)
     # as a check, we keep track of which activations we've seen -- if
     # ignore_activ is True, we want to make sure there aren't more than one
     seen_activs = set()
@@ -30,8 +30,9 @@ def load_learnedfuncs_in_dir(dir, ignore_activ=True, max_rep=None):
     for file in files:
         file_stem = stem(file)
         key = parse_fitname(file_stem)
+        rep = int(key['rep'])
         if max_rep is not None:
-            if int(key['rep']) > max_rep:
+            if rep > max_rep:
                 continue
         lf = LearnedFunction.load(os.path.join(dir, file_stem))
         bf = LearnedB(model=lf.metadata['model'])
@@ -39,9 +40,9 @@ def load_learnedfuncs_in_dir(dir, ignore_activ=True, max_rep=None):
         arch_key = tuple(int(key[layer]) for layer in layers)
         if not ignore_activ:
             # another layer for activation type
-            out[arch_key][key['activ']].append(bf)
+            out[arch_key][key['activ']][rep] = bf
         else:
-            out[arch_key].append(bf)
+            out[arch_key][rep] = bf
         seen_activs.add(key['activ'])
         if ignore_activ:
             assert len(seen_activs) <= 1, "ignore_activ=True but there are multiple activations in results!"

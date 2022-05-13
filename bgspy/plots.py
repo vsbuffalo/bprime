@@ -181,7 +181,7 @@ def arch_loss_plot(results, ncols=3):
             ax = axs[panel[0], panel[1]]
         else:
             ax = axs[panel[1]]
-        for j, func in enumerate(funcs):
+        for j, func in funcs.items():
             func = func.func
             history = func.history
             line, = ax.plot(history['loss'][1:], label=j, linestyle='solid')

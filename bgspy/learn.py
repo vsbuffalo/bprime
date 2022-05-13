@@ -97,7 +97,7 @@ class LearnedFunction(object):
         for feature, params in domain.items():
             if isinstance(params, dict):
                 attrs = 'lower', 'upper', 'log10'
-                lower, upper, log10, _ = [params[k] for k in attrs]
+                lower, upper, log10, *_ = [params[k] for k in attrs]
             elif isinstance(params, tuple):
                 lower, upper, log10 = params
             else:
@@ -487,7 +487,7 @@ class LearnedB(object):
         model = model if not model.startswith('bgs_') else model.replace('bgs_', '')
         self.bgs_model = bgs_model
         self.bgs_model_name = model
-        self.params = params
+        self.params = params  # expected parameters under one of the BGS models
         self.w_grid = w_grid
         self.t_grid = t_grid
         #
@@ -500,13 +500,20 @@ class LearnedB(object):
     def wt_mesh(self):
         return np.array(list(itertools.product(self.w_grid, self.t_grid)))
 
+    def is_valid_learnedfunc(self):
+        assert self.func is not None, "LearnedB.func is None"
+        features = list(self.func.features.keys())
+        msg = ("LearnedFunction.features do not match the parameter "
+              "order of bgs_rec or bgs_segment!")
+        assert features == self.params, msg
+
     def theory_B(self, X=None):
         """
         Compute the BGS theory given the right function ('segment' or 'rec')
         on the feature matrix X. E.g. use for X_test_raw or using
         meshgrids.
         """
-        raise ValueError("bug: this disagrees with feeding the matrix values manually!")
+        self.is_valid_learnedfunc()
         if X is None:
             X = self.func.X_test_raw
         assert X.shape[1] == len(self.func.features)
