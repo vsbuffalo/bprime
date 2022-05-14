@@ -117,6 +117,8 @@ class Test_LearnedB:
             b.is_valid_learnedfunc()
 
         b.func = func
+        # what is this testing? LearnedB.theory_B() dispatches based
+        # on kwargs
         actual = b.theory_B(X=Xp)
         desired = bgs_segment(*Xp.T)
         np.testing.assert_allclose(actual, desired)

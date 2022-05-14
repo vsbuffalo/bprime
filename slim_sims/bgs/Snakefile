@@ -16,7 +16,7 @@ if not len(config):
 DATADIR = "../../data/slim_sims/"
 SLIM = '~/src/SLiM_build/slim'
 
-# the output of one BGS slim sim (simple_bgs.slim)
+# the output of one BGS slim sim (chrombgs.slim)
 #SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
 SIM_OUTPUTS = ["treeseq.tree"]
 ANNOT_FILES = ["../../data/annotation/hg38_seqlens.tsv", 

@@ -12,10 +12,12 @@ from bgspy.utils import load_dacfile, load_bed_annotation, load_seqlens, read_be
 from bgspy.plots import chrom_plot, ll_grid
 from bgspy.genome import Genome
 
+SPLIT_LENGTH_DEFAULT = 10_000
+
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
 def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t,
-                   chroms=None, name=None, split_length=1000):
+                   chroms=None, name=None, split_length=SPLIT_LENGTH_DEFAULT):
     """
     Build the BGSModel and the Genome object it uses.
     """
@@ -74,17 +76,18 @@ def cli():
                     default='-6:-1:50')
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 mutation rates", default='-10:-7:50' )
+@click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
 @click.option('--nchunks', default=100, help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
-def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
+def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, split_length, step, nchunks,
           ncores, output):
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
-                       chroms=None, name=name)
+                       chroms=None, name=name, split_length=split_length)
     m.calc_B(ncores=ncores, nchunks=100, step=step)
     m.save_B(output)
 
@@ -104,6 +107,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
                     default='-6:-1.302:7')
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 mutation rates", default='-10:-7:8' )
+@click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
 @click.option('--nchunks', default=100,
@@ -113,7 +117,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, step, nchunks,
 @click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
 @click.option('--progress/--no-progress', default=True, help="show progress")
 def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
-               step, nchunks, max_map_dist, dir, progress):
+               step, split_length, nchunks, max_map_dist, dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
@@ -123,7 +127,7 @@ def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
     """
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
-                       chroms=None, name=name)
+                       chroms=None, name=name, split_length=split_length)
     m.load_learnedfunc(learnfunc)
     if os.path.exists(dir):
         assert os.path.isdir(dir)
@@ -142,12 +146,14 @@ def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
               help='tab-delimited file of chromosome names and their length')
 @click.option('--conv-factor', default=1e-8,
                 help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
+@click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--output', required=False,
               help='output file for a pickle of the segments',
               type=click.Path(exists=False, writable=True))
-def stats(recmap, annot, seqlens, conv_factor, output=None):
+def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
-                       w=None, t=None, chroms=None, name=None)
+                       w=None, t=None, chroms=None, name=None,
+                       split_length=split_length)
     segments = m.segments
     if output:
         with(outfile, 'wb') as f:

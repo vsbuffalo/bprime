@@ -15,7 +15,7 @@ initialize() {
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
   if (!exists("name")) {
-    defineConstant("name", "simplebgs");
+    defineConstant("name", "chrombgs");
   }
  
   if (!exists("subdir")) {
@@ -27,9 +27,8 @@ initialize() {
   if (exists("slimgui") | exists("defaults")) {
     defineConstant("rep", 0);
     defineConstant("N", 1000);
-    defineConstant("s", 2e-4);
+    defineConstant("sh", 1e-4);
     defineConstant("mu", 1e-8);
-    defineConstant("h", 0.5);    // deleterious dominance
 	defineConstant("datadir", '');
   } else {
 	defineConstant("datadir", '../../data/slim_sims/'+name+'/'+subdir_);
@@ -38,14 +37,19 @@ initialize() {
   defineConstant("recmap_file", "../../data/annotation/hapmap/genetic_map_GRCh37_chr"+chr+".txt");
   defineConstant("annot_file", "../../data/annotation/conserved_by_chrom/chr"+chr+".bed");
 
+  // We fix h = 0.5 and calculate the proper homozygous selection
+  // coefficient.
+  defineConstant("h", 0.5);
+  defineConstant("s", sh / h);
+
   // == Runtime settings
   defineConstant("burnin", 10*N);
   defineConstant("endsim", burnin);
 
   metadata.setValue("N", N);
+  metadata.setValue("sh", sh);
   metadata.setValue("s", s);
   metadata.setValue("h", h);
-  metadata.setValue("sh", s*h);
   metadata.setValue("mu", mu);
   metadata.setValue("region_length", region_length);
   metadata.setValue("seqlen_file", seqlen_file);
@@ -53,7 +57,7 @@ initialize() {
   metadata.setValue("annot_file", annot_file);
 
   // == File Output
-  filestr = filename_str(c('N', 'mu', 's', 'h', 'chr', 'seed', 'rep'));
+  filestr = filename_str(c('N', 'mu', 'sh', 'chr', 'seed', 'rep'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");

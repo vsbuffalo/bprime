@@ -1,13 +1,12 @@
 {
-  "name": "bgsmap",
+  "name": "chrombgs_chr10",
   "runtype": "grid",
-  "slim": "simple_bgs.slim",
+  "slim": "chrombgs.slim",
   "params":
      {
        "N": {"grid": [1000], "type": "int"},
        "mu": {"grid":[1e-8, 1e-9], "type": "float"},
-       "s": {"grid": [2e-1, 4e-4, 2e-2, 2e-3, 2e-4, 2e-5], "type": "float"},
-       "h": {"grid": [0.5], "type": "float"},
+       "sh": {"grid": [1e-1, 2e-4, 1e-2, 1e-3, 1e-4, 1e-5], "type": "float"},
        "chr": {"grid": ["10"], "type": "str"}
      },
    "nreps": 100

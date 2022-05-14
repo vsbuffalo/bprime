@@ -5,12 +5,14 @@ import re
 import warnings
 import gzip
 import os
+import tqdm
 from collections import namedtuple, defaultdict, deque
 from functools import partial
 import itertools
 from math import floor, log10
 from scipy import interpolate
 import numpy as np
+from bgspy.theory import bgs_segment
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
@@ -53,6 +55,65 @@ class BScores:
 def read_npy_dir(dir):
     return {f: np.load(os.path.join(dir, f)) for f in os.listdir(dir)}
 
+def subsampler_factory(frac, init_size=10_000_000, rng=None):
+    if rng is None:
+        rng = np.random.default_rng()
+    draws = rng.uniform(0, 1, init_size).tolist()
+    def subsampler(iterable):
+        nonlocal draws
+        for item in iterable:
+            try:
+                draw = draws.pop()
+            except IndexError:
+                # rebuild samples
+                draws = rng.uniform(0, 1, init_size).tolist()
+                draw = draws.pop()
+            if draw <= frac:
+                yield item
+    return subsampler
+
+
+def genome_emp_dists(genome, step, mu, s, B_subsample_frac, subsample_frac):
+    """
+    Calculate empirical distributions of genome features (L, rbp, rf)
+    using subsampling. Note that for rf, subsample_frac is subsample_frac^2
+    because rf is pairwise and a lot larger.
+    """
+    frac = 1 if subsample_frac is None else subsample_frac
+    segments = genome.segments
+    seqlens = genome.seqlens
+    recmap = genome.recmap
+    rfs = defaultdict(list)
+    Ls = defaultdict(list)
+    rbps = defaultdict(list)
+    chroms = seqlens.keys()
+
+    subsampler = subsampler_factory(subsample_frac)
+    Bsubsampler = subsampler_factory(B_subsample_frac)
+    Bs = defaultdict(list)
+
+    for chrom in chroms:
+        idx = segments.index[chrom]
+        chrom_seg_mpos = segments.map_pos[idx, :]
+        rbp = segments.rbp[chrom]
+        L = segments.L[chrom]
+        end = seqlens[chrom]
+        positions = bin_chrom(end, step)
+        map_pos = recmap.lookup(chrom, positions, cummulative=True)
+        total_sites = len(positions)
+
+        # subsample the focal site map positions
+        fs = Bsubsampler(map_pos)
+        for f in tqdm.tqdm(list(fs)):
+            rf = dist_to_segment(f, chrom_seg_mpos)
+            B = bgs_segment(mu, s, L, rbp, rf)
+            Bs[chrom].extend(B)
+            rfs[chrom].extend(rf)
+
+        Ls[chrom].extend(subsampler(L))
+        rbps[chrom].extend(subsampler(rbp))
+
+    return Ls, rbps, rfs, Bs
 
 def read_bkgd(file):
     """
@@ -265,6 +326,9 @@ def dist_to_segment(focal, seg_map_pos):
     dists[is_right] = np.abs(f-seg_map_pos[is_right, 1])
     assert len(dists) == seg_map_pos.shape[0], (len(dists), seg_map_pos.shape)
     return dists
+
+def inverse_haldanes_mapfun(rec):
+    return -0.5*np.log(1-2*rec)
 
 def haldanes_mapfun(dist):
     return 0.5*(1 - np.exp(-dist))

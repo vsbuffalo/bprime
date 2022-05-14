@@ -39,7 +39,7 @@ from scipy.stats import binned_statistic, binned_statistic_dd
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
-from bgspy.utils import bin_chrom
+from bgspy.utils import bin_chrom, genome_emp_dists
 from bgspy.utils import readfile, load_dacfile
 from bgspy.utils import load_seqlens
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
@@ -283,6 +283,12 @@ class BGSModel(object):
             raise ValueError("step is not set, cannot calculate bins")
         chroms = self.B_pos.keys()
         return {c: bin_chrom(self.seqlens[c], self.step) for c in chroms}
+
+    def calc_stats(self, mu, s, subsample_frac=0.01, B_subsample_frac=0.001, step=10_100):
+        return genome_emp_dists(self.genome, step=step,
+                                mu=mu, s=s,
+                                B_subsample_frac=B_subsample_frac,
+                                subsample_frac=subsample_frac)
 
     def calc_B(self, step=10_000, ncores=None, nchunks=None):
         if ncores is not None and nchunks is None:
