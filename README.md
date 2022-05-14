@@ -36,3 +36,5 @@ and extracts all variable columns in the data. The output of this is a
 
  - we are in the processing of converting s and h to a single sh param -- beware
    stuff will break
+
+  - test bgs_segment against segment parts stuff

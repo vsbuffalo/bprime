@@ -656,6 +656,9 @@ class LearnedB(object):
         assert np.all(rbp_lower < rbps) and np.all(rbp_upper > rbps), "segment rec rates out of training bounds"
 
     def fix_bounds(self, x, feature):
+        """
+        Fix the bounds of a vector of a given feature.
+        """
         x = np.copy(x)
         lower, upper = self.func.get_bounds(feature)
         x[x < lower] = lower
@@ -664,26 +667,29 @@ class LearnedB(object):
 
     def _build_segment_matrix(self, chrom):
         """
-        Fixes bounds automatically.
         The columns are the features of the B' training data are
                0,      1,          2,        3
               'L', 'rbp', 'map_start' 'map_end'
+
+        Note: previously this fixed the bounds. But because rf bounds *have*
+        to be fixed when the focal sites are filled in, this requires bounds
+        checking at the lower level, so it's done entirely during prediction.
         """
         assert self.bgs_model_name == 'segment'
         nsegs = self.genome.segments.nsegs[chrom]
-        X = np.empty((nsegs, 4))
+        S = np.empty((nsegs, 4))
 
-        X[:, 0] = self.fix_bounds(self.segments.L[chrom], 'L')
-        X[:, 1] = self.fix_bounds(self.segments.rbp[chrom], 'rbp')
-        X[:, 2] = self.segments.mpos[chrom][:, 0]
-        X[:, 3] = self.segments.mpos[chrom][:, 1]
+        S[:, 0] = self.segments.L[chrom]
+        S[:, 1] = self.segments.rbp[chrom]
+        S[:, 2] = self.segments.mpos[chrom][:, 0]
+        S[:, 3] = self.segments.mpos[chrom][:, 1]
 
-        return X
+        return S
 
     def build_segment_matrices(self):
-        self.Xs = {}
+        self.Ss = {}
         for chrom in self.genome.seqlens.keys():
-            self.Xs[chrom] = self._build_segment_matrix(chrom)
+            self.Ss[chrom] = self._build_segment_matrix(chrom)
 
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
@@ -719,10 +725,10 @@ class LearnedB(object):
                  **islog, **bounds)
 
         chrom_dir = make_dirs(dir, 'segments')
-        for chrom, X in self.Xs.items():
+        for chrom, S in self.Ss.items():
             nsegs = self.segments.nsegs[chrom]
             filename = join(chrom_dir, f"{name}_{chrom}.npy")
-            np.save(filename, X.astype('f8'))
+            np.save(filename, S.astype('f8'))
 
         focal_pos_iter = self.focal_positions(step=step, nchunks=nchunks, max_map_dist=max_map_dist)
         for i, (chrom, sites_chunk, segslice) in enumerate(focal_pos_iter):

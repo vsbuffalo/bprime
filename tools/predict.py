@@ -25,6 +25,7 @@ from bgspy.utils import dist_to_segment, make_dirs, haldanes_mapfun
 from bgspy.theory import bgs_segment
 
 HALDANE = False
+FIX_BOUNDS = False
 
 # for playing nice on GPUs
 if USE_GPU and GPUSTAT_AVAIL:
@@ -95,22 +96,26 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
         lidx, uidx = 0, Sm.shape[0]
 
     # get relevant part of segment matrix (possibly all of it)
+    # columns are L, rbp, seg map start, seg map end
     S = Sm[lidx:uidx, :]
 
     # Now build up X, expanding out wt grid. We do this
     # once per chunk, since we can just replace that last column
-    mesh = np.array(list(itertools.product(w, t)))
+    X = new_predict_matrix(w, t, S[:, 0], S[:, 1])
+    # old stuff for reference:
+    # mesh = np.array(list(itertools.product(w, t)))
     nw, nt = w.size, t.size
     nmesh, nsegs = nw*nt, S.shape[0]
-    X = np.empty((nsegs*nmesh, 5), dtype='f8')
-    X[:, :2] = np.repeat(mesh, nsegs, axis=0)
-    X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
+    # X = np.empty((nsegs*nmesh, 5), dtype='f8')
+    # X[:, :2] = np.repeat(mesh, nsegs, axis=0)
+    # X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
     def transfunc(x, feature, mean, scale):
         x = np.copy(x)
-        lower, upper = info[f"bounds_{feature}"]
-        x[x < lower] = lower
-        x[x > upper] = upper
+        if FIX_BOUNDS:
+            lower, upper = info[f"bounds_{feature}"]
+            x[x < lower] = lower
+            x[x > upper] = upper
         if info[f"islog_{feature}"]:
             assert np.all(x > 0)
             x = np.log10(x)
@@ -156,24 +161,21 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
         rf = dist_to_segment(f, S[:, 2:4])
         if HALDANE:
             rf = haldanes_mapfun(rf)
-        X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
+        rf = transfunc(rf, 'rf', mean[4], scale[4])
+        X = inject_rf(rf, X, nmesh)
 
         # let's calc B theory as a check!
-        Xp[:, 4] = np.tile(rf, nmesh)
-        b_theory = bgs_segment(*Xp.T).reshape((nw*nt, nsegs))
-        bp_theory = np.exp(np.sum(np.log(b_theory), axis=1).reshape((nw, nt)))
+        Xp = inject_rf(rf, Xp, nmesh)
+        bp_theory = predictions_to_B_tensor(bgs_segment(*Xp.T), nw, nt, nsegs)
         B[:, :, i, 0] = bp_theory
 
         for j, model in enumerate(models.values(), start=1):
-            b = model.predict(X).reshape((nw*nt, nsegs))
+            b = predictions_to_B_tensor(model.predict(X), nw, nt, nsegs, nan_bounds=False)
             # for debugging:
             #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
             #__import__('pdb').set_trace()
-            out_of_bounds = np.logical_or(b > 1, b <= 0)
-            b[out_of_bounds] = np.nan
             #bp = np.nansum(np.log10(b), axis=0)
-            bp = np.exp(np.sum(np.log(b), axis=1).reshape((nw, nt)))
-            B[:, :, i, j] = bp
+            B[:, :, i, j] = b
 
     # save real output
     chrom_out_dir = make_dirs(out_dir, chrom)
