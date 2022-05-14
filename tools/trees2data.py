@@ -12,8 +12,8 @@ import tskit
 import pyslim
 import msprime
 import tqdm
-from bprime.theory import BGS_MODEL_PARAMS
-from bprime.utils import get_files
+from bgspy.theory import BGS_MODEL_PARAMS
+from bgspy.utils import get_files
 
 FILENAME_RE = re.compile("(.*)_seed(\d+)_rep\d+_treeseq\.tree")
 
@@ -46,11 +46,7 @@ def process_tree_file(tree_file, features, recap='auto'):
     L = int(md['L'][0])
     tracklen = int(md['tracklen'][0])
     N = int(md['N'][0])
-    # the SLiM script metadata reports the het sel coef for convenience
-    # let's check s h = reported sh
-    #s, h, sh = float(md['s'][0]), float(md['h'][0]), float(md['sh'][0])
     sh = float(md['sh'][0])
-    #np.testing.assert_almost_equal(s*h, sh)
 
     # tracking vs selected regions
     #wins = [0, tracklen, tracklen + L + 1]
