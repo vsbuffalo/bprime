@@ -65,6 +65,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
     info = np.load(infofile)
 
     models = {f: keras.models.load_model(f) for f in h5_files}
+    print(f"h5 file order: {list(models.keys())}")
 
     # chunk to process
     chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
@@ -123,7 +124,8 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
     # now calculate the recomb distances
     nsites = sites_chunk.shape[0]
     nmodels = len(h5_files)
-    B = np.empty((nw, nt, nsites), dtype='f8')
+    # plus one is for BGS theory
+    B = np.empty((nw, nt, nsites, nmodels+1), dtype='f8')
     #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
     sites_indices = np.arange(nsites)
     if progress:
@@ -145,7 +147,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
         np.save(outfile, Xp)
         return
 
-    model = models[list(models.keys())[0]] # FOR DEBUG
+    #model = models[list(models.keys())[0]] # FOR DEBUG
 
     for i in sites_iter:
         #p = np.round(i/len(focal_positions) * 100, 2)
@@ -155,17 +157,23 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
         if HALDANE:
             rf = haldanes_mapfun(rf)
         X[:, 4] = np.tile(transfunc(rf, 'rf', mean[4], scale[4]), nmesh)
-        # note: at some point, we'll want to see how many are nans
-        b = model.predict(X).reshape((nw*nt, nsegs))
-        #b = bgs_segment(*Xp.T).reshape((nw*nt, nsegs))
-        # for debugging:
-        #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
-        #__import__('pdb').set_trace()
-        out_of_bounds = np.logical_or(b > 1, b <= 0)
-        b[out_of_bounds] = np.nan
-        #bp = np.nansum(np.log10(b), axis=0)
-        bp = np.exp(np.sum(np.log(b), axis=1).reshape((nw, nt)))
-        B[:, :, i] = bp
+
+        # let's calc B theory as a check!
+        Xp[:, 4] = np.tile(rf, nmesh)
+        b_theory = bgs_segment(*Xp.T).reshape((nw*nt, nsegs))
+        bp_theory = np.exp(np.sum(np.log(b_theory), axis=1).reshape((nw, nt)))
+        B[:, :, i, 0] = bp_theory
+
+        for j, model in enumerate(models.values(), start=1):
+            b = model.predict(X).reshape((nw*nt, nsegs))
+            # for debugging:
+            #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
+            #__import__('pdb').set_trace()
+            out_of_bounds = np.logical_or(b > 1, b <= 0)
+            b[out_of_bounds] = np.nan
+            #bp = np.nansum(np.log10(b), axis=0)
+            bp = np.exp(np.sum(np.log(b), axis=1).reshape((nw, nt)))
+            B[:, :, i, j] = bp
 
     # save real output
     chrom_out_dir = make_dirs(out_dir, chrom)

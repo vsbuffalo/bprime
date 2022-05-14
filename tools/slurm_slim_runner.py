@@ -57,8 +57,8 @@ done
 
 import sys
 import click
-from bprime.slim import SlimRuns, read_params, time_grower
-from bprime.samplers import Sampler
+from bgspy.slim import SlimRuns, read_params, time_grower
+from bgspy.samplers import Sampler
 
 def est_time(secs_per_job, batch_size, factor=5):
     tot_secs = secs_per_job * batch_size * factor
