@@ -23,6 +23,7 @@ import tensorflow as tf
 from tensorflow import keras
 from bgspy.utils import dist_to_segment, make_dirs, haldanes_mapfun
 from bgspy.theory import bgs_segment
+from bgspy.predict import new_predict_matrix, inject_rf, predictions_to_B_tensor
 
 HALDANE = False
 FIX_BOUNDS = False
@@ -146,7 +147,7 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
         rf = dist_to_segment(f, S[:, 2:4])
         if HALDANE:
             rf = haldanes_mapfun(rf)
-        Xp[:, 4] = np.tile(rf, nmesh)
+        Xp = inject_rf(rf, Xp, nmesh)
         xpr_dir = make_dirs(input_dir, 'xps', chrom)
         outfile = join(xpr_dir, os.path.basename(chunkfile))
         np.save(outfile, Xp)
