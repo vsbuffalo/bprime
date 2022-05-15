@@ -18,7 +18,7 @@ from bgspy.utils import get_files
 FILENAME_RE = re.compile("(.*)_seed(\d+)_rep\d+_treeseq\.tree")
 
 # we mirror the BGS segment model
-DEFAULT_FEATURES = BGS_MODEL_PARAMS['bgs_segment']
+DEFAULT_FEATURES = tuple(list(BGS_MODEL_PARAMS['bgs_segment']) + ['rep'])
 
 def Bhat(pi, N):
     """

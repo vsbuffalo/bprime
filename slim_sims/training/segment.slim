@@ -86,9 +86,9 @@ initialize() {
   rec_rates = c(0, rf, rbp);
   rec_bins = c(tracklen-1,        // neutral region — this is tracklen-1 - 0 + 1 = tracklen long
                tracklen,          // free recombinaton spacer between tracking and purifying segment
-               tracklen+L-1);       // selected region
-  //print(rec_rates);
-  //print(rec_bins);
+               tracklen+L);       // selected region
+  // print(rec_rates);
+  // print(rec_bins);
   initializeRecombinationRate(rec_rates, rec_bins);
 }
 
