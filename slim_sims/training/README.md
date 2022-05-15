@@ -55,4 +55,5 @@ I do this with:
 ## new stuff
 
 python ../../tools/slurm_slim_runner.py generate  --slim '~/src/SLiM_build/slim' --max-array 1000 --num-files 10  --secs-per-job 10 --batch-size 30 --dir '../../data/slim_sims/' --seed 12  --script slurm.sh ./bmap_hg38.json 
+
 bash snakemake_runner.sh -c ./bmap_hg38.json  -r data

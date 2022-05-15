@@ -25,7 +25,8 @@ initialize() {
     defineConstant("mu", 1e-8);
 	defineConstant("datadir", 'tests/');
   } else {
-	defineConstant("datadir", '../../data/slim_sims/'+name+'/'+subdir_);
+        // note: new change, group all the sim seed subdirs into a sims/ directory
+	defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
 
   defineConstant("region_length", tracklen + L);

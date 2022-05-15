@@ -9,7 +9,7 @@ activs = config['activs']
 nreps = config['fit_nreps']
 archs = config['archs']
 
-SIMDIR = "../../data/slim_sims/"
+DATADIR = "../../data/slim_sims/"
 
 def get_outfile(name, dir=None, suffix=''):
      dir = dir if dir is not None else ''
@@ -20,7 +20,7 @@ def fill_suffix(name, suffix):
 
 
 
-DATADIR = os.path.join(SIMDIR, name)
+SIMDIR = os.path.join(DATADIR, name, "sims")
 
 
 # root filepath name for DNN fits
@@ -41,12 +41,12 @@ for arch in archs:
 
 
 rule process_trees:
-    input: 
+    input: # whole directory
     output: npz_file
     shell:
         f"""
         python ../../tools/trees2data.py --outfile {{output}} --ncores 40 \
-          --features 'mu,s,L,rbp,rf,h,rep' {os.path.join(SIMDIR, name)}
+          --features 'mu,sh,L,rbp,rf,rep' {SIMDIR}
         """
 
 rule process_data:
