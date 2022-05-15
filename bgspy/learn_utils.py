@@ -116,7 +116,7 @@ def check_feature_with_models(features, model):
 
 
 def data_to_learnedfunc(sim_params, sim_data, model, seed,
-                        average_reps=False, unlogL=True):
+                        average_reps=False):
     """
     Get the bounds of parameters from the simulation parameters dictionary, find
     all fixed and variable parameters, take the product of the selection and
@@ -125,13 +125,6 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     lots of validation of the simulation data and simulation parameters.
 
     Returns a LearnedFunction, with the fixed attributes set.
-
-    If unlogL=True, we fix an issue from log10'd seq lengths with a lower
-    bound < 1. This is a hack to get sims to run L=0 since int(log10(L)) = 0
-    if L < 1, e.g. a neutral case. So, we fit on linear scale if logL=True
-
-
-    TODO: ongoing refactors: s, h to sh, and we should ditch unlogL.
     """
 
     # raw (original) data -- this contains extraneous columns, e.g.
@@ -198,10 +191,6 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     ## build the learn func object
     # get the domain of non-fixed parameters
     domain = {p: sim_bounds[p] for p in features}
-
-    if unlogL:
-        lower, upper, log10 = domain['L']
-        domain['L'] = int(10**lower), int(10**upper), False
 
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}

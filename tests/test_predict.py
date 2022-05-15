@@ -77,3 +77,5 @@ def test_predictions_to_B_tensor(X):
     tensor_expected = np.array([[31*34*37, 32*35*38, 33*36*39],
                                 [42560., 46332., 50320.]])
     np.testing.assert_allclose(fake_tensor, tensor_expected)
+
+
