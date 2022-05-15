@@ -168,12 +168,15 @@ class LearnedFunction(object):
         # store the pre-transformed daata, which is useful for figures, etc
         self.X_test_raw = np.copy(self.X_test)
         self.X_train_raw = np.copy(self.X_train)
+
+        self.y_test_raw = np.copy(self.y_test)
+        self.y_train_raw = np.copy(self.y_train)
         self._protect()
         self.normalized = False
         self.transforms = {f: None for f in self.features}
         return self
 
-    def scale_features(self, normalize=True, transforms='match'):
+    def scale_features(self, normalize=True, normalize_target=False, transforms='match'):
         """
         Normalize (center and scale) the split features (test/train), optionally
         applying a feature transform beforehand. This uses sklearn's
@@ -199,6 +202,8 @@ class LearnedFunction(object):
         # all this is done in place(!)
         X_train = np.copy(self.X_train)
         X_test = np.copy(self.X_test)
+        y_test = np.copy(self.y_test)
+        y_train = np.copy(self.y_train)
         X_train.setflags(write=True)
         X_test.setflags(write=True)
         for feature, col_idx in self.features.items():
@@ -219,6 +224,12 @@ class LearnedFunction(object):
             X_test = self.scaler.transform(X_test)
             X_train = self.scaler.transform(X_train)
             self.normalized = True
+        if normalize_target:
+            self.target_scaler = StandardScaler().fit(np.log10(y_train[:, None]))
+            self.y_test = self.target_scaler.transform(np.log10(y_test[:, None]))
+            self.y_train = self.target_scaler.transform(np.log10(y_train[:, None]))
+            self.target_normalized = True
+ 
         # if we've done the transforms once, save them to the object
         # and protect them
         self.X_test = X_test

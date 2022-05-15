@@ -75,15 +75,19 @@ def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
     # split the data into test/train
     func.split(test_size=test_size)
 
+
+    normalize_target = True
     if match:
         # transform the features using log10 if the simulation scale is log10
-        func.scale_features(transforms='match')
+        func.scale_features(transforms='match', normalize_target=normalize_target)
     else:
         # just normalize
-        func.scale_features(transforms=None)
+        func.scale_features(transforms=None, normalize_target=normalize_target)
 
+    # TODO -- CLI 
     model, history = fit_dnn(func, n128=n128, n64=n64, n32=n32, n8=n8, nx=nx,
                              activation=activation,
+                             output_activation='tanh',
                              batch_size=batch_size,
                              epochs=epochs, early_stopping=early,
                              progress=(progress and PROGRESS_BAR_ENABLED))

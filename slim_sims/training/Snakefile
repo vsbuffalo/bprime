@@ -1,5 +1,4 @@
-import sys
-sys.path.extend(['../../']) # for bprime modules
+from os.path import join
 
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
@@ -24,9 +23,9 @@ SIMDIR = os.path.join(DATADIR, name, "sims")
 
 
 # root filepath name for DNN fits
-FILENAME = os.path.join(DATADIR, "fits", f"{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep{{suffix}}")
-npz_file = get_outfile(name, dir=DATADIR, suffix='.npz')
-data_file = get_outfile(name, dir=DATADIR, suffix='_data.pkl')
+FILENAME = join(DATADIR, name, "fits", f"{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep{{suffix}}")
+npz_file = get_outfile(name, dir=join(DATADIR, name), suffix='.npz')
+data_file = get_outfile(name, dir=join(DATADIR, name), suffix='_data.pkl')
 
 #print(npz_file, data_file)
 #sys.exit()
