@@ -11,6 +11,10 @@ import pickle
 import os
 from math import ceil
 import numpy as np
+import sys
+import click
+from bgspy.slim import SlimRuns, read_params, time_grower
+from bgspy.samplers import Sampler
 
 TEMPLATE = """\
 #!/bin/bash
@@ -54,11 +58,6 @@ do
 done
 
 """
-
-import sys
-import click
-from bgspy.slim import SlimRuns, read_params, time_grower
-from bgspy.samplers import Sampler
 
 def est_time(secs_per_job, batch_size, factor=5):
     tot_secs = secs_per_job * batch_size * factor
@@ -127,7 +126,8 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
 
     batch_file = os.path.basename(config.name).replace(".json", "_batches.pkl") if batch_file is None else batch_file
     config = json.load(config)
-    run = SlimRuns(config, dir=dir, sampler=Sampler, split_dirs=split_dirs, seed=seed)
+    # note: we package all the sim seed-based subdirs into a sims/ directory
+    run = SlimRuns(config, dir=os.path.join(dir, "sims"), sampler=Sampler, split_dirs=split_dirs, seed=seed)
 
     # get the existing files
     print("searching for existing simulation results...   ", end='')
