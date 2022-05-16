@@ -92,8 +92,8 @@ def time_grower(start_time, factor=1.8):
 
 
 class SlimRuns(object):
-    def __init__(self, config, dir='.', sampler=None, split_dirs=None,
-                 seed=None):
+    def __init__(self, config, dir='.', sims_subdir=False, sampler=None, 
+                 split_dirs=None, seed=None):
         msg = "runtype must be 'grid' or 'samples'"
         assert config.get('runtype', None) in ['grid', 'samples'], msg
         self.runtype = config['runtype']
@@ -118,7 +118,10 @@ class SlimRuns(object):
             assert isinstance(split_dirs, int), "split_dirs needs to be int"
             # we need to pass in the subdir
             self.param_types = {'subdir': str, **self.param_types}
-        self.dir = os.path.join(dir, self.name)
+        if sims_subdir:
+            self.dir = os.path.join(dir, self.name, 'sims')
+        else:
+            self.dir = os.path.join(dir, self.name)
         self.split_dirs = split_dirs
         self.basename = f"{self.name}_"
         self.seed = seed if seed is not None else random_seed()

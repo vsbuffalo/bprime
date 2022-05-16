@@ -127,7 +127,7 @@ def generate(config, batch_file, secs_per_job, dir, seed, script, split_dirs=3,
     batch_file = os.path.basename(config.name).replace(".json", "_batches.pkl") if batch_file is None else batch_file
     config = json.load(config)
     # note: we package all the sim seed-based subdirs into a sims/ directory
-    run = SlimRuns(config, dir=os.path.join(dir, "sims"), sampler=Sampler, split_dirs=split_dirs, seed=seed)
+    run = SlimRuns(config, dir=dir, sims_subdir=True, sampler=Sampler, split_dirs=split_dirs, seed=seed)
 
     # get the existing files
     print("searching for existing simulation results...   ", end='')
