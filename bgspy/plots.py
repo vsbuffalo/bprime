@@ -104,7 +104,7 @@ def theory_loss_plot(bfunc, X=None, title="", color_rate=True, figax=None, **kwa
     ax.set_title(title, fontsize=8)
     return fig, ax
 
-def loss_limits_plot(bfunc, add_lowess=True, figax=None):
+def loss_limits_plot(bfunc, R=1, add_lowess=True, figax=None):
     fig, ax = get_figax(figax)
     predict = bfunc.predict_test()
     y_test = bfunc.func.y_test
@@ -116,7 +116,7 @@ def loss_limits_plot(bfunc, add_lowess=True, figax=None):
         z = lowess(y, x, frac=1/10, it=0)
         ax.plot(z[:, 0], z[:, 1], c='r', linewidth=2)
     b = np.linspace(x.min(), x.max(), 100)
-    ax.plot(b, B_var_limit(b), c='0.22', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
+    ax.plot(b, B_var_limit(b, R=R), c='0.22', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
         # ax.plot(xnew, B_var_limit(xnew, N, mu), c='cornflowerblue', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
     #ax.text(0.03, 0.88, "$\sigma^2 = \\frac{3 \mu + 8 B N \mu}{36 B N}$", size=13, rotation=-1.5, transform=ax4.transAxes)
     #ax.text(0.03, 0.88, "$\sigma^2 \\approx \\frac{2}{9}$", size=13, rotation=-1.5, transform=ax.transAxes)
@@ -359,7 +359,7 @@ def rf_plot(bfunc, figax=None):
 
 
 
-def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), bhat=False, **rate_kwargs):
+def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), R=1, bhat=False, **rate_kwargs):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
     rate_plot(bfunc, **rate_kwargs, figax=(fig, ax1))
     loss_plot(bfunc, figax=(fig, ax2))
@@ -367,7 +367,7 @@ def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), bhat=False, **rate_
         bhat_plot(bfunc, bins=bins, figax=(fig, ax3))
     else:
         theory_loss_plot(bfunc, figax=(fig, ax3))
-    loss_limits_plot(bfunc, figax=(fig, ax4))
+    loss_limits_plot(bfunc, R=R, figax=(fig, ax4))
     plt.tight_layout()
     return fig, ((ax1, ax2), (ax3, ax4))
 

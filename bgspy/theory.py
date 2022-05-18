@@ -33,9 +33,9 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
     return np.exp(val)
 
 @np.vectorize
-def B_var_limit(B, N=None, mu=1):
+def B_var_limit(B, R=1, N=None, mu=1):
     if N is None:
-        return 2/9 * B**2
+        return 2/9 * B**2 / R
     return B/(12 * N * mu) + 2/9 * B**2 + B**2/N
 
 
