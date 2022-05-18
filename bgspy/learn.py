@@ -486,9 +486,10 @@ class LearnedFunction(object):
 
 class LearnedB(object):
     """
-    A general class that wraps a learned B function.
+    A general class that wraps a learned B function, mostly for wrapping
+    code for speciality loss functions, comparison to BGS theory, etc
     """
-    def __init__(self, t_grid=None, w_grid=None, genome=None, model='segment'):
+    def __init__(self, t_grid=None, w_grid=None, model='segment'):
         try:
             model = 'bgs_' + model if not model.startswith('bgs_') else model
             params = BGS_MODEL_PARAMS[model]
@@ -496,7 +497,6 @@ class LearnedB(object):
         except KeyError:
             allow = ["'"+x.replace('bgs_', '')+"'" for x in BGS_MODEL_PARAMS.keys()]
             raise KeyError(f"model ('{model}') must be either {', '.join(allow)}")
-        self.genome = genome
         self.func = None
         self._predict = None
         self._X_test_hash = None
@@ -617,9 +617,6 @@ class LearnedB(object):
             obj.func.model = keras.models.load_model(model_path)
         return obj
 
-    def train_model(self, filepath):
-        pass
-
     def predict_loss(self, loss='mae', raw=False):
         lossfunc = get_loss_func(loss)
         predict = self.predict_test()
@@ -637,10 +634,6 @@ class LearnedB(object):
         if raw:
             return B, lossvals
         return lossvals.mean()
-
-    @property
-    def segments(self):
-        return self.genome.segments
 
     def is_valid_grid(self):
         """
@@ -680,107 +673,8 @@ class LearnedB(object):
         x[x > upper] = upper
         return x
 
-    def _build_segment_matrix(self, chrom):
-        """
-        The columns are the features of the B' training data are
-               0,      1,          2,        3
-              'L', 'rbp', 'map_start' 'map_end'
-
-        Note: previously this fixed the bounds. But because rf bounds *have*
-        to be fixed when the focal sites are filled in, this requires bounds
-        checking at the lower level, so it's done entirely during prediction.
-        """
-        assert self.bgs_model_name == 'segment'
-        nsegs = self.genome.segments.nsegs[chrom]
-        S = np.empty((nsegs, 4))
-
-        S[:, 0] = self.segments.L[chrom]
-        S[:, 1] = self.segments.rbp[chrom]
-        S[:, 2] = self.segments.mpos[chrom][:, 0]
-        S[:, 3] = self.segments.mpos[chrom][:, 1]
-
-        return S
-
-    def build_segment_matrices(self):
-        self.Ss = {}
-        for chrom in self.genome.seqlens.keys():
-            self.Ss[chrom] = self._build_segment_matrix(chrom)
-
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
-
-    def write_prediction_chunks(self, dir, step=1000, nchunks=1000,
-                                max_map_dist=0.01):
-        """
-        Write files necessary for B' prediction across a cluster.
-        All files (and later predictions) are stored in the supplied 'dir'.
-
-         - dir/chunks/
-         - dir/segments/
-         - dir/info.py
-         - dir/preds/ -- predictions, filled in later (not writtne now)
-        """
-        name = self.genome.name
-        self.genome._build_segment_idx_interpol()
-        self.build_segment_matrices()
-
-        dir = make_dirs(dir)
-        # note: has to be in order of BGS_MODEL_PARAMS. We but we've
-        # merged sh here
-        islog = {f"islog_{f}": self.func.logscale[f] for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
-        bounds = {f"bounds_{f}": np.array(self.func.get_bounds(f)) for f in ('mu', 'sh', 'L', 'rbp', 'rf')}
-        np.savez(join(dir, 'info.npz'),
-                 mean=self.func.scaler.mean_,
-                 scale=self.func.scaler.scale_,
-                 w=self.w_grid,
-                 t=self.t_grid,
-                 step=step,
-                 nchunks=nchunks,
-                 max_map_dist=max_map_dist,
-                 **islog, **bounds)
-
-        chrom_dir = make_dirs(dir, 'segments')
-        for chrom, S in self.Ss.items():
-            nsegs = self.segments.nsegs[chrom]
-            filename = join(chrom_dir, f"{name}_{chrom}.npy")
-            np.save(filename, S.astype('f8'))
-
-        focal_pos_iter = self.focal_positions(step=step, nchunks=nchunks, max_map_dist=max_map_dist)
-        for i, (chrom, sites_chunk, segslice) in enumerate(focal_pos_iter):
-            chunk_dir = make_dirs(dir, 'chunks', chrom)
-            lidx, uidx = segslice
-            filename = join(chunk_dir, f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy")
-            np.save(filename, sites_chunk)
-
-    def focal_positions(self, step=1000, nchunks=1000, max_map_dist=0.01,
-                        correct_bounds=True, progress=True):
-        """
-        Get the focal positions for each position that B is calculated at.
-
-        nchunks is how many chunks across the genome to break this up
-        to (for parallel processing)
-        """
-        wt_mesh_size = self.wt_mesh.shape[0]
-        chunks = MapPosChunkIterator(self.genome, self.w_grid, self.t_grid,
-                                     step=step, nchunks=nchunks)
-
-        # we iterate over the physical and map position chunks --
-        # these are each packaged with their chromosomes
-        sites_iter = zip(chunks.pos_iter, chunks.mpos_iter)
-
-        if progress:
-            sites_iter = tqdm.tqdm(sites_iter, total=chunks.total)
-
-        for ((chrom, pos_chunk), (_, mpos_chunk)) in sites_iter:
-            # for this chunk of map positions, get the segment indices
-            # within max_map_dist from the start/end of map positions
-            lidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[0], map_dist=max_map_dist)[0]
-            uidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[-1], map_dist=max_map_dist)[1]
-
-            # package physical and map positions together -- this makes
-            # stitching these back together safe across distributed computing
-            sites_chunk = np.array((pos_chunk, mpos_chunk)).T
-            yield chrom, sites_chunk, (lidx, uidx)
 
     @classmethod
     def load_predictions(self, genome, path, chroms=None):

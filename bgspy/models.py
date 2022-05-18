@@ -27,6 +27,7 @@ annotation set i_B.
 
 from collections import defaultdict, namedtuple, Counter
 import multiprocessing
+import os
 import pickle
 import warnings
 import itertools
@@ -41,12 +42,13 @@ import tensorflow as tf
 
 from bgspy.utils import bin_chrom, genome_emp_dists
 from bgspy.utils import readfile, load_dacfile
-from bgspy.utils import load_seqlens
+from bgspy.utils import load_seqlens, make_dirs
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import calc_B, calc_B_parallel
 from bgspy.learn import LearnedFunction, LearnedB
+from bgspy.parallel import MapPosChunkIterator
 
 class BGSModel(object):
     def __init__(self, genome, t_grid=None, w_grid=None, split_length=1_000):
@@ -323,3 +325,92 @@ class BGSModel(object):
                           "set to the boundary values. Message: " + str(msg))
 
         self.bfunc = bfunc
+
+    def _focal_positions(self, step, nchunks, max_map_dist, progress=True):
+        """
+        Get the focal positions for each position that B is calculated at, with
+        the indices max_map_dist apart.
+
+
+        nchunks is how many chunks across the genome to break this up
+        to (for parallel processing)
+        """
+        chunks = MapPosChunkIterator(self.genome, self.w, self.t,
+                                     step=step, nchunks=nchunks)
+
+        # we iterate over the physical and map position chunks --
+        # these are each packaged with their chromosomes
+        sites_iter = zip(chunks.pos_iter, chunks.mpos_iter)
+
+        if progress:
+            sites_iter = tqdm.tqdm(sites_iter, total=chunks.total)
+
+        for ((chrom, pos_chunk), (_, mpos_chunk)) in sites_iter:
+            # for this chunk of map positions, get the segment indices
+            # within max_map_dist from the start/end of map positions
+            lidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[0], map_dist=max_map_dist)[0]
+            uidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[-1], map_dist=max_map_dist)[1]
+
+            # package physical and map positions together -- this makes
+            # stitching these back together safe across distributed computing
+            sites_chunk = np.array((pos_chunk, mpos_chunk)).T
+            yield chrom, sites_chunk, (lidx, uidx)
+
+    def _build_segment_matrix(self, chrom):
+        """
+        The columns are the features of the B' training data are
+               0,      1,          2,        3
+              'L', 'rbp', 'map_start' 'map_end'
+
+        Note: previously this fixed the bounds. But because rf bounds *have*
+        to be fixed when the focal sites are filled in, this requires bounds
+        checking at the lower level, so it's done entirely during prediction.
+        """
+        nsegs = self.genome.segments.nsegs[chrom]
+        S = np.empty((nsegs, 4))
+        S[:, 0] = self.segments.L[chrom]
+        S[:, 1] = self.segments.rbp[chrom]
+        S[:, 2] = self.segments.mpos[chrom][:, 0]
+        S[:, 3] = self.segments.mpos[chrom][:, 1]
+        return S
+
+    def _build_segment_matrices(self):
+        self._Ss = {}
+        for chrom in self.genome.seqlens.keys():
+            self._Ss[chrom] = self._build_segment_matrix(chrom)
+
+    def write_prediction_chunks(self, dir, step=1000, nchunks=1000, max_map_dist=0.1):
+        """
+        Write files necessary for B' prediction across a cluster.
+        All files (and later predictions) are stored in the supplied 'dir'.
+
+         - dir/chunks/
+         - dir/segments/
+
+        Note that these data are prediction model agnostic, e.g. they work regardless
+        of the prediction model. Other information is needed, e.g. whether to 
+        transform these features and the parameters for centering/scaling.
+        """
+        name = self.genome.name
+        self.genome._build_segment_idx_interpol()
+        self._build_segment_matrices()
+
+        # build main directory if it doesn't exist
+        dir = make_dirs(dir)
+
+        chrom_dir = make_dirs(dir, 'segments')
+        for chrom, S in self._Ss.items():
+            nsegs = self.segments.nsegs[chrom]
+            filename = os.path.join(chrom_dir, f"{name}_{chrom}.npy")
+            np.save(filename, S.astype('f8'))
+
+        focal_pos_iter = self._focal_positions(step=step, nchunks=nchunks, 
+                                               max_map_dist=max_map_dist)
+
+        for i, (chrom, sites_chunk, segslice) in enumerate(focal_pos_iter):
+            chunk_dir = make_dirs(dir, 'chunks', chrom)
+            lidx, uidx = segslice
+            filename = os.path.join(chunk_dir, f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy")
+            np.save(filename, sites_chunk)
+
+

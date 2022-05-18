@@ -54,7 +54,10 @@ I do this with:
 
 ## new stuff
 
-python ../../tools/slurm_slim_runner.py generate  --slim '~/src/SLiM_build/slim' --max-array 1000 --num-files 10  --secs-per-job 10 --batch-size 30 --dir '../../data/slim_sims/' --seed 12  --script slurm.sh ./bmap_hg38.json 
+python ../../tools/slurm_slim_runner.py generate  --slim '~/src/SLiM_build/slim' --max-array 1000 --num-files 10  --secs-per-job 10 --batch-size 30 --dir '../../data/slim_sims/' --seed 12  --script slurm.sh ./bmap_hg38_reps.json 
 
 bash snakemake_runner.sh -c ./bmap_hg38.json  -r data
+
 python -mpdb ../../bgspy/command_line.py dnnb-write --w '1e-7,1e-8,1e-9' --t '0.1,0.01,1e-3,1e-4,1e-5' --dir ../../data/dnnb --recmap ../../data/annotation/hapmap_genetic_map.txt --annot ../../data/annotation/conserved_slop.bed.gz --seqlens ../../data/annotation/hg38_seqlens.tsv --max-map-dist 0.1 ../../data/slim_sims/bmap_hg38_reps/fits/bmap_hg38_reps_0n128_0n64_0n32_0n8_2nx_eluactiv_fit_0rep
+
+./snakemake_runner.sh -c bmap_hg38_reps_predict.json -l cluster_talapas_predict.json -s predict_snakefile 

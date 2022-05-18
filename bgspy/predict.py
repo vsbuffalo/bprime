@@ -1,5 +1,9 @@
+import os
+import json
 from itertools import product
 import numpy as np
+from bgspy.learn import LearnedFunction
+from bgspy.theory import BGS_MODEL_PARAMS
 
 
 def new_predict_matrix(w, t, L, rbp):
@@ -48,4 +52,21 @@ def predictions_to_B_tensor(y, nw, nt, nsegs, nan_bounds=False):
     y_segs_mat = y.reshape((nw*nt, nsegs))
     return np.exp(np.sum(np.log(y_segs_mat), axis=1).reshape((nw, nt)))
 
+def write_predinfo(jsonfile, model_files, w_grid, t_grid, step, nchunks, max_map_dist):
+    models = dict()
+    for filepath in model_files:
+        func = LearnedFunction.load(filepath)
+        # make sure this is the right bgs model
+        model_name = os.path.basename(filepath)
+        features = BGS_MODEL_PARAMS['bgs_segment']
+        islog = {f: func.logscale[f] for f in features}
+        bounds = {f: func.get_bounds(f) for f in features}
+        models[model_name] = dict(log=islog, bounds=bounds,
+                                  mean=func.scaler.mean_.tolist(),
+                                  scaler=func.scaler.scale_.tolist())
+
+    json_out = dict(w=w_grid.tolist(), t=t_grid.tolist(), step=step, nchunks=nchunks, 
+                    max_map_dist=max_map_dist, bounds=bounds, models=models)
+    with open(jsonfile, 'w') as f:
+        json.dump(json_out, f)
 

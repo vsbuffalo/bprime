@@ -10,6 +10,7 @@ from bgspy.recmap import RecMap
 from bgspy.utils import sum_logliks_over_chroms
 from bgspy.utils import load_dacfile, load_bed_annotation, load_seqlens, read_bed
 from bgspy.plots import chrom_plot, ll_grid
+from bgspy.predict import write_predinfo
 from bgspy.genome import Genome
 
 SPLIT_LENGTH_DEFAULT = 10_000
@@ -40,7 +41,6 @@ def parse_gridstr(x):
         try:
             return np.array(list(map(float, x.split(','))))
         except:
-            import pdb;pdb.set_trace()
             raise click.BadParameter("misformated grid string, needs to be 'x,y'")
     lower, upper, ngrid = list(map(float, x.split(':')))
     if int(ngrid) != ngrid:
@@ -93,7 +93,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, split_length, st
 
 
 @cli.command()
-@click.argument('learnfunc', type=str, required=True)
+@click.argument('learnfuncs', type=str, required=True, nargs=-1)
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
 @click.option('--name', type=str, help="genome name (otherwise inferred from seqlens file)")
@@ -116,25 +116,30 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, split_length, st
               "segment contributions to B' at", default=0.1)
 @click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
 @click.option('--progress/--no-progress', default=True, help="show progress")
-def dnnb_write(learnfunc, seqlens, name, annot, recmap, conv_factor, w, t,
+def dnnb_write(learnfuncs, seqlens, name, annot, recmap, conv_factor, w, t,
                step, split_length, nchunks, max_map_dist, dir, progress):
     """
     DNN B Map calculations (prediction, step 1)
     Output files necessary to run the DNN prediction across a cluster.
     Will output scripts to run on a SLURM cluster using job arrays.
 
-    learnfunc is a file path name (sans extensions) to the .pkl/h5 model.
+    learnfuns are file path name (sans extensions) to the .pkl/h5 model.
     """
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
                        chroms=None, name=name, split_length=split_length)
-    m.load_learnedfunc(learnfunc)
+    print(f"writing prediction chunks...  ")
+    m.write_prediction_chunks(dir, step=step, nchunks=nchunks, max_map_dist=max_map_dist)
+    print("done writing prediction chunks.")
+
     if os.path.exists(dir):
         assert os.path.isdir(dir)
     else:
         os.makedirs(dir)
-    m.bfunc.write_prediction_chunks(dir, step=step, nchunks=nchunks, max_map_dist=max_map_dist)
-
+    print("writing info.json...  ", end="")
+    write_predinfo(os.path.join(dir, "info.json"), learnfuncs, 
+                   m.w, m.t, step=step, nchunks=nchunks, max_map_dist=max_map_dist)
+    print("done.")
 
 
 @cli.command()
