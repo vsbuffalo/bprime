@@ -26,7 +26,7 @@ from bgspy.theory import bgs_segment
 from bgspy.predict import new_predict_matrix, inject_rf, predictions_to_B_tensor
 
 HALDANE = False
-FIX_BOUNDS = False
+FIX_BOUNDS = True
 
 # for playing nice on GPUs
 if USE_GPU and GPUSTAT_AVAIL:
