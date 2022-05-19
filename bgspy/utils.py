@@ -233,6 +233,8 @@ def get_files(dir, suffix):
 def signif(x, digits=4):
     if x == 0:
         return 0.
+    if np.isnan(x):
+        return np.nan
     return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
 def midpoint(x):

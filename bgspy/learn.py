@@ -62,9 +62,8 @@ class LearnedFunction(object):
         # have been applied
         self.X_test_raw = None
         self.X_train_raw = None
-        # raw y's not needed currently, no y transforms used
-        # self.y_test_raw = None
-        # self.y_train_raw = None
+        self.y_test_raw = None
+        self.y_train_raw = None
 
         # parse the data domains
         self._parse_domains(domain)
@@ -176,7 +175,7 @@ class LearnedFunction(object):
         self.transforms = {f: None for f in self.features}
         return self
 
-    def scale_features(self, normalize=True, normalize_target=False, 
+    def scale_features(self, normalize=True, normalize_target=False,
                        log10_target=False, transforms='match'):
         """
         Normalize (center and scale) the split features (test/train), optionally
@@ -233,7 +232,7 @@ class LearnedFunction(object):
             self.y_test = self.target_scaler.transform(y_test[:, None])
             self.y_train = self.target_scaler.transform(y_train[:, None])
             self.target_normalized = True
- 
+
         # if we've done the transforms once, save them to the object
         # and protect them
         self.X_test = X_test
@@ -540,6 +539,8 @@ class LearnedB(object):
             kwargs[feature] = X[:, i]
         return self.bgs_model(**kwargs)
 
+    def predict_train(self):
+        return self.func.predict_train()
 
     def predict_test(self):
         """
@@ -560,18 +561,24 @@ class LearnedB(object):
         X = np.array([[kwargs[k] for k in self.func.features.keys()]])
         return float(self.func.predict(X))
 
-    def binned_Bhats(self, bins):
-        predict = self.predict_test()
+    def binned_Bhats(self, bins, which='test'):
+        assert which in ('test', 'train'), "which must be 'test' or 'train'"
+        if which == 'test':
+            predict = self.predict_test()
+        else:
+            predict = self.predict_train()
         if isinstance(bins, int):
             bins = np.linspace(predict.min(), predict.max(), bins)
-        ytest_bins = stats.binned_statistic(predict, self.func.y_test.squeeze(),
-                                            bins=bins)
-        edges = ytest_bins.bin_edges
-        return edges, 0.5*(edges[:-1]+edges[1:]), ytest_bins.statistic
+        y = self.func.y_test if which == 'test' else self.func.y_train
+        y = y.squeeze()
+        y_bins = stats.binned_statistic(predict, y, bins=bins)
+        edges = y_bins.bin_edges
+        return edges, 0.5*(edges[:-1]+edges[1:]), y_bins.statistic
 
     def Bhat_mse(self, bins):
+        # x is the prediction midpoint, y is the mean y_test
         _, x, y = self.binned_Bhats(bins)
-        return np.mean((x - y)**2)
+        return np.nanmean((x - y)**2)
 
     def load_func(self, filepath):
         func = LearnedFunction.load(filepath)
@@ -678,8 +685,9 @@ class LearnedB(object):
 
     @classmethod
     def load_predictions(self, genome, path, chroms=None):
-        info_file = join(path, 'info.npz')
-        info = np.load(info_file)
+        info_file = join(path, 'info.json')
+        with open(info_file) as f:
+            info = json.load(f)
         chunks = MapPosChunkIterator(genome, w_grid=info['w'], t_grid=info['t'],
                                      step=info['step'], nchunks=info['nchunks'])
         chrom_dirs = os.listdir(join(path, 'preds'))

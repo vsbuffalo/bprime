@@ -49,22 +49,28 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     return fig, ax
 
 
-def bhat_plot(bfunc, bins, figax=None):
+def bhat_plot(bfunc, bins, c='0.22', figax=None):
     fig, ax = get_figax(figax)
     _, bin_mid, ytest = bfunc.binned_Bhats(bins=bins)
-    ax.scatter(bin_mid, ytest, c='0.22')
+    ax.scatter(bin_mid, ytest, c=c)
     ax.set_ylabel('$\hat{B}$')
     ax.set_xlabel('binned $B_\mathrm{ML}$')
-    ax.axline((0.4, 0.4), slope=1, c='r')
+    o = min(min(bin_mid), min(ytest))
+    ax.axline((o, o), slope=1, c='r')
     mse = signif(bfunc.Bhat_mse(bins), 4)
-    ax.text(0.4, 0.05, f"$MSE(\hat{{B}}, B_\mathrm{{ML}})$ = {mse}")
+    ax.text(0.55, 0.05, f"$MSE(\hat{{B}}, B_\mathrm{{ML}})$ = {mse}",
+            transform=ax.transAxes)
     return fig, ax
 
-def loss_plot(bfunc, figax=None):
+def loss_plot(bfunc, figax=None,
+              match_colors=False,
+              loss_label='training loss',
+              val_label='validation loss'):
     fig, ax = get_figax(figax)
     history = bfunc.func.history
-    ax.plot(history['loss'][1:], label='training loss')
-    ax.plot(history['val_loss'][1:], label='validation loss')
+    line = ax.plot(history['loss'][1:], label=loss_label)
+    col = None if not match_colors else line[0].get_color()
+    ax.plot(history['val_loss'][1:], c=col, linestyle='dashed', label=val_label)
     ax.set_ylabel("MSE")
     ax.set_xlabel("epoch")
     ax.legend()
@@ -104,7 +110,7 @@ def theory_loss_plot(bfunc, X=None, title="", color_rate=True, figax=None, **kwa
     ax.set_title(title, fontsize=8)
     return fig, ax
 
-def loss_limits_plot(bfunc, R=1, add_lowess=True, figax=None):
+def loss_limits_plot(bfunc, R=1, add_lowess=True, frac=1/10, figax=None):
     fig, ax = get_figax(figax)
     predict = bfunc.predict_test()
     y_test = bfunc.func.y_test
@@ -113,7 +119,7 @@ def loss_limits_plot(bfunc, R=1, add_lowess=True, figax=None):
     x = predict
     ax.scatter(x, y, color='0.44', linewidth=0, edgecolor='black', alpha=0.2)
     if add_lowess:
-        z = lowess(y, x, frac=1/10, it=0)
+        z = lowess(y, x, frac=frac, it=0)
         ax.plot(z[:, 0], z[:, 1], c='r', linewidth=2)
     b = np.linspace(x.min(), x.max(), 100)
     ax.plot(b, B_var_limit(b, R=R), c='0.22', linewidth=1.6, linestyle='dashed') # Note the 1/2 factor — see sim_power.ipynb! TODO
@@ -357,16 +363,43 @@ def rf_plot(bfunc, figax=None):
         ax.plot(np.log10(bs[0]), y.squeeze(), c=cmap[i])
     return fig, ax
 
+def yhat_vs_ytrain_plot(bfunc, alpha=0.5, add_lowess=True, frac=1/20, figax=None):
+    fig, ax = get_figax(figax)
+    predict = bfunc.predict_test()
+    actual = bfunc.func.y_test_raw
+    z = lowess(actual, predict, frac=frac, it=0)
+    ax.scatter(actual, predict, c='k', alpha=alpha, linewidth=0)
+    ax.plot(z[:, 0], z[:, 1], c='cornflowerblue', zorder=3, linewidth=2)
+    ox = min(actual)
+    oy = min(predict)
+    o = min(oy, ox)
+    ax.axline((o, o), slope=1, c='r', linewidth=2)
+    ax.set_ylim(0.99 * oy, predict.max()*1.01)
+    ax.set_xlim(0.99 * ox, actual.max()*1.01)
+    ax.set_ylabel('predict')
+    ax.set_xlabel('actual')
 
 
-def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), R=1, bhat=False, **rate_kwargs):
+def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), R=1,
+                            panel='bhat', **rate_kwargs):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=figsize)
     rate_plot(bfunc, **rate_kwargs, figax=(fig, ax1))
     loss_plot(bfunc, figax=(fig, ax2))
-    if bhat:
+    if panel == 'bhat':
         bhat_plot(bfunc, bins=bins, figax=(fig, ax3))
-    else:
+    elif panel == 'theory':
         theory_loss_plot(bfunc, figax=(fig, ax3))
+    elif panel =='predict':
+        yhat_vs_ytrain_plot(bfunc, figax=(fig, ax3))
+    else:
+        assert panel == 'both'
+        yhat_vs_ytrain_plot(bfunc, figax=(fig, ax3))
+        bhat_plot(bfunc, bins=bins, c='cornflowerblue', figax=(fig, ax3))
+    loss_limits_plot(bfunc, R=R, figax=(fig, ax4))
+    plt.tight_layout()
+    return fig, ((ax1, ax2), (ax3, ax4))
+
+
     loss_limits_plot(bfunc, R=R, figax=(fig, ax4))
     plt.tight_layout()
     return fig, ((ax1, ax2), (ax3, ax4))
