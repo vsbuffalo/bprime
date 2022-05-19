@@ -505,7 +505,6 @@ class LearnedB(object):
         self.params = params  # expected parameters under one of the BGS models
         self.w_grid = w_grid
         self.t_grid = t_grid
-        #
 
     @property
     def dim(self):
@@ -682,42 +681,3 @@ class LearnedB(object):
 
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
-
-    @classmethod
-    def load_predictions(self, genome, path, chroms=None):
-        info_file = join(path, 'info.json')
-        with open(info_file) as f:
-            info = json.load(f)
-        chunks = MapPosChunkIterator(genome, w_grid=info['w'], t_grid=info['t'],
-                                     step=info['step'], nchunks=info['nchunks'])
-        chrom_dirs = os.listdir(join(path, 'preds'))
-        if chroms is not None:
-            if isinstance(chroms, str):
-                chroms = set([chroms])
-            chrom_dirs = [c for c in chrom_dir if c in chroms]
-
-        B_chunks, pos_chunks = defaultdict(list), defaultdict(list)
-        for chrom in chrom_dirs:
-            chrom_pred_dir = join(path, 'preds', chrom)
-            chrom_chunk_dir = join(path, 'chunks', chrom)
-            files = os.listdir(chrom_pred_dir)
-            files = sorted(files, key=lambda x: int(basename(x).split('_')[2]))
-            ids = [int(basename(x).split('_')[2]) for x in files]
-            for file in files:
-                # this exploids the 1-to-1 correspodence between site chunk
-                # and results npy files
-                sites_chunk = np.load(join(chrom_chunk_dir, file))
-                B_pos = sites_chunk[:, 0]
-                Bs = np.load(join(chrom_pred_dir, file))
-                B_chunks[chrom].append(Bs)
-                pos_chunks[chrom].append(B_pos)
-        Bs, B_pos = dict(), dict()
-        for chrom in B_chunks:
-            Bs[chrom] = np.concatenate(B_chunks[chrom], axis=2)
-            positions = np.concatenate(pos_chunks[chrom])
-            B_pos[chrom] = positions
-            assert np.all(positions == np.sort(positions))
-        obj = LearnedB(t_grid=info['t'], w_grid=info['w'], genome=genome)
-        return BScores(Bs, B_pos, obj.w_grid, obj.t_grid, info['step'])
-
-

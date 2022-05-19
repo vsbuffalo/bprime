@@ -1,8 +1,13 @@
+import os
 import pytest
 from itertools import product
+import click
+from click.testing import CliRunner
+import shutil
 import numpy as np
 
 from bgspy.predict import new_predict_matrix, inject_rf, predictions_to_B_tensor
+from tools.predict import predict as predict_cli
 
 NW, NT = 2, 3
 NSEGS = 3
@@ -78,4 +83,31 @@ def test_predictions_to_B_tensor(X):
                                 [42560., 46332., 50320.]])
     np.testing.assert_allclose(fake_tensor, tensor_expected)
 
+@pytest.fixture
+def fake_prediction_chunk_data(tmpdir):
+    # change into the test directory
+    inputdir = tmpdir.mkdir("fake_dnnb")
+    infofile_fixture = inputdir.join("info.json")
+    chunkfile = "hg38_chr10_933_61305_92693.npy"
+    test_infofile = "test_data/fake_dnnb/info.json"
+    test_chunkfile = f"test_data/fake_dnnb/chunks/chr10/{chunkfile}"
+    chunkfile_fixture = inputdir.mkdir("chunks").mkdir("chr10").join("info.json")
+    shutil.copyfile(test_infofile, infofile_fixture)
+    shutil.copyfile(test_chunkfile, chunkfile_fixture)
+
+    return inputdir, chunkfile_fixture
+
+
+def test_cltool(fake_prediction_chunk_data):
+    """
+    Test the command line tool (which has fewer checks) against the
+    LearnedFunction.
+    """
+    inputdir, chunkfile = fake_prediction_chunk_data
+    print(str(inputdir), str(chunkfile))
+    # run the command manually; note, has side-effects of writing prediction
+    runner = CliRunner()
+    result = runner.invoke(predict_cli, f"--input-dir {str(inputdir)} {str(chunkfile)}")
+    assert result.exit_code == 0
+    np.load(outfile)
 

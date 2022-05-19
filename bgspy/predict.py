@@ -1,4 +1,5 @@
 import os
+from os.path import join, basename
 import json
 import tqdm
 from itertools import product
@@ -9,6 +10,8 @@ from bgspy.theory import bgs_segment
 from bgspy.utils import dist_to_segment, make_dirs, haldanes_mapfun
 from bgspy.learn import LearnedFunction
 from bgspy.theory import BGS_MODEL_PARAMS
+from bgspy.parallel import MapPosChunkIterator
+from bgspy.utils import BScores
 
 
 def new_predict_matrix(w, t, L, rbp):
@@ -72,22 +75,23 @@ def write_predinfo(dir, model_files, w_grid, t_grid, step, nchunks, max_map_dist
                                   mean=func.scaler.mean_.tolist(),
                                   scale=func.scaler.scale_.tolist())
 
-    json_out = dict(dir=dir, w=w_grid.tolist(), t=t_grid.tolist(), step=step, 
-                    nchunks=nchunks, max_map_dist=max_map_dist, bounds=bounds, 
+    json_out = dict(dir=dir, w=w_grid.tolist(), t=t_grid.tolist(), step=step,
+                    nchunks=nchunks, max_map_dist=max_map_dist, bounds=bounds,
                     models=models)
-    jsonfile = os.path.join(dir, "info.json")
+    jsonfile = join(dir, "info.json")
     with open(jsonfile, 'w') as f:
         json.dump(json_out, f)
 
+<<<<<<< HEAD
 
-def predict_chunk(sites_chunk, model_info_dict, segment_matrix, 
-                  bounds, w, t, lidx=None, uidx=None, 
+def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
+                  bounds, w, t, lidx=None, uidx=None,
                   use_haldane=False, output_xps=False, progress=True):
     FIX_BOUNDS = True # for debugging
     # let's alias some stuff for convienence
     models = model_info_dict
     Sm = segment_matrix
-  
+
     model_h5s = {m: keras.models.load_model(v['filepath']) for m, v in models.items()}
 
     # get the centering and scaling parameters
@@ -142,7 +146,7 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
     Xs = {m: np.copy(X) for m in models.keys()}
     for model in models.keys():
         for j, feature in enumerate(('mu', 'sh', 'L', 'rbp')):
-            Xs[model][:, j] = transfunc(X[:, j], feature, means[model][j], 
+            Xs[model][:, j] = transfunc(X[:, j], feature, means[model][j],
                                         scales[model][j], islogs[model][feature])
 
     # now calculate the recomb distances
@@ -201,7 +205,45 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
 
     return B
 
+def load_predictions(genome, path, chroms=None):
+    """
+    Load the predictions from a path to a prediction directory.
+    """
+    info_file = join(path, 'info.json')
+    with open(info_file) as f:
+        info = json.load(f)
+    chunks = MapPosChunkIterator(genome, w_grid=info['w'], t_grid=info['t'],
+                                 step=info['step'], nchunks=info['nchunks'])
+    chrom_dirs = os.listdir(join(path, 'preds'))
+    if chroms is not None:
+        if isinstance(chroms, str):
+            chroms = set([chroms])
+        chrom_dirs = [c for c in chrom_dir if c in chroms]
 
-
+    B_chunks, pos_chunks = defaultdict(list), defaultdict(list)
+    for chrom in chrom_dirs:
+        chrom_pred_dir = join(path, 'preds', chrom)
+        chrom_chunk_dir = join(path, 'chunks', chrom)
+        files = os.listdir(chrom_pred_dir)
+        files = sorted(files, key=lambda x: int(basename(x).split('_')[2]))
+        ids = [int(basename(x).split('_')[2]) for x in files]
+        for file in files:
+            # this exploids the 1-to-1 correspodence between site chunk
+            # and results npy files
+            sites_chunk = np.load(join(chrom_chunk_dir, file))
+            B_pos = sites_chunk[:, 0]
+            Bs = np.load(join(chrom_pred_dir, file))
+            B_chunks[chrom].append(Bs)
+            pos_chunks[chrom].append(B_pos)
+    Bs, B_pos = dict(), dict()
+    for chrom in B_chunks:
+        assert len(B_chunks[chrom]) == len(pos_chunks[chrom])
+        Bs[chrom] = np.concatenate(B_chunks[chrom], axis=2)
+        positions = np.concatenate(pos_chunks[chrom])
+        B_pos[chrom] = positions
+        assert np.all(positions == np.sort(positions))
+    w = np.array(info['w'])
+    t = np.array(info['t'])
+    return BScores(Bs, B_pos, w, t, info['step'])
 
 

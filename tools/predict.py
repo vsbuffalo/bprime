@@ -21,7 +21,7 @@ if USE_GPU:
         GPUSTAT_AVAIL = False
 import tensorflow as tf
 from tensorflow import keras
-from bgspy.utils import make_dirs 
+from bgspy.utils import make_dirs
 from bgspy.predict import predict_chunk
 
 # for playing nice on GPUs
@@ -53,9 +53,9 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
               'chromosome, or whether to use the supplied slices in filename')
 @click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
 @click.option('--output-xps/--no-xps', default=False, help='output unformatted chunk matrices for debugging')
-def predict(chunkfile, input_dir, constrain, progress, output_xps):
+def predict(chunkfile, input_dir, constrain=True, progress=True, output_xps=False):
     """
-    
+
     Note: bounds are determined for a group of models (e.g. all trained on the same
     simulation data, which sets the boudns). Centering and scaling parameters, and
     what features are log transfomed are model fit specific.
@@ -97,7 +97,7 @@ def predict(chunkfile, input_dir, constrain, progress, output_xps):
     w, t = np.array(info['w']), np.array(info['t'])
 
     # run the main prediction function
-    B = predict_chunk(sites_chunk, models, Sm, info['bounds'], w, t, 
+    B = predict_chunk(sites_chunk, models, Sm, info['bounds'], w, t,
                       lidx=lidx, uidx=uidx, output_xps=output_xps, progress=progress)
 
     # save real output
