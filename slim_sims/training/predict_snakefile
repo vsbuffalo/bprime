@@ -5,14 +5,7 @@ import re
 try:
     dir = config['dir']
 except:
-    raise ValueError("specify directory of chunks with --config dir=dnnb/")
-
-
-try:
-     h5_file = config['h5']
-except:
-    raise ValueError("specify Keras HDF5 model file with --config h5=model.h5")
-
+    dir = "../../data/dnnb/"
 
 
 chunks_dir = join(dir, 'chunks')
@@ -43,29 +36,12 @@ XPS_FILEPATH = join("xps", '{chromdir}/{chunkname}.npy')
 rule all:
   input: b_chunk_files
 
-rule debug:
-  input: chunk=CHUNK_FILEPATH, dir=dir, h5=h5_file
-  output: XPS_FILEPATH
-  run:
-      if isinstance(input.h5, list):
-          h5_args = ' '.join(f"--h5 {f}" for f in input.h5) 
-      else:
-          h5_args = f"--h5 {input.h5}"
-      cmd = f"""
-      python ../../tools/predict.py --input-dir {{input.dir}} {h5_args} --output-xps {{input.chunk}} 
-      """
-      shell(cmd)
-
 rule predict:
-  input: chunk=CHUNK_FILEPATH, dir=dir, h5=h5_file
+  input: chunk=CHUNK_FILEPATH, dir=dir
   output: PRED_FILEPATH
   run:
-      if isinstance(input.h5, list):
-          h5_args = ' '.join(f"--h5 {f}" for f in input.h5) 
-      else:
-          h5_args = f"--h5 {input.h5}"
       cmd = f"""
-      python ../../tools/predict.py --input-dir {{input.dir}} {h5_args} {{input.chunk}} 
+      python ../../tools/predict.py --input-dir {{input.dir}} {{input.chunk}} 
       """
       shell(cmd)
 

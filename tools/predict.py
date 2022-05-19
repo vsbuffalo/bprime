@@ -5,6 +5,7 @@ rf grid?
 """
 USE_GPU = False
 import os
+import json
 from os.path import join
 import numpy as np
 import itertools
@@ -52,22 +53,28 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
 @click.command()
 @click.argument('chunkfile', required=True)
 @click.option('--input-dir', required=True, help='main prediction directory')
-@click.option('--h5', required=True, help='HDF5 file of keras model', multiple=True)
 @click.option('--constrain/--no-constrain', default=True,
               help='whether to compute B using segments along the entire '
               'chromosome, or whether to use the supplied slices in filename')
 @click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
 @click.option('--output-xps/--no-xps', default=False, help='output unformatted chunk matrices for debugging')
-def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
-    h5_files = h5
+def predict(chunkfile, input_dir, constrain, progress, output_xps):
+    """
+    
+    Note: bounds are determined for a group of models (e.g. all trained on the same
+    simulation data, which sets the boudns). Centering and scaling parameters, and
+    what features are log transfomed are model fit specific.
+    """
     out_dir = make_dirs(input_dir, 'preds')
     chunk_dir = make_dirs(input_dir, 'chunks')
-    infofile = make_dirs(input_dir, 'info.npz')
+    infofile = make_dirs(input_dir, 'info.json')
     seg_dir = make_dirs(input_dir, 'segments')
-    info = np.load(infofile)
+    with open(infofile, 'r') as f:
+        info = json.load(f)
 
-    models = {f: keras.models.load_model(f) for f in h5_files}
-    print(f"h5 file order: {list(models.keys())}")
+    models = info['models']
+  
+    model_h5s = {m: keras.models.load_model(v['filepath']) for m, v in models.items()}
 
     # chunk to process
     chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
@@ -86,8 +93,10 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
 
     # segment and info stuff
     Sm = np.load(seg_file)
-    mean, scale = info['mean'], info['scale']
-    w, t = info['w'], info['t']
+    means = {m: np.array(v['mean']) for m, v in models.items()}
+    scales = {m: np.array(v['scale']) for m, v in models.items()}
+    islogs = {m: v['log'] for m, v in models.items()}
+    w, t = np.array(info['w']), np.array(info['t'])
 
     assert 0 <= lidx <= Sm.shape[0]
     assert 0 <= uidx <= Sm.shape[0]
@@ -111,35 +120,48 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
     # X[:, :2] = np.repeat(mesh, nsegs, axis=0)
     # X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
-    def transfunc(x, feature, mean, scale):
+    def transfunc(x, feature, mean, scale, islog):
+        # we need the feature to get global bounds for this feature
+        # The islog mean/scale are feature and model specific
+        # so we pass those in
         x = np.copy(x)
         if FIX_BOUNDS:
-            lower, upper = info[f"bounds_{feature}"]
+            lower, upper = info["bounds"][feature]
             x[x < lower] = lower
             x[x > upper] = upper
-        if info[f"islog_{feature}"]:
+        if islog:
             assert np.all(x > 0)
             x = np.log10(x)
         return (x-mean)/scale
 
+    # this is the unmodified transformed copy, e.g. for BGS theory
     Xp = np.copy(X)
+
     # apply necessary log10 transforms, and center and scale
-    for j, feature in enumerate(('mu', 'sh', 'L', 'rbp')):
-        X[:, j] = transfunc(X[:, j], feature, mean[j], scale[j])
+    # for *each* model, which can have different centering/scaling
+    # params
+    Xs = {m: np.copy(X) for m in models.keys()}
+    for model in models.keys():
+        for j, feature in enumerate(('mu', 'sh', 'L', 'rbp')):
+            Xs[model][:, j] = transfunc(X[:, j], feature, means[model][j], 
+                                        scales[model][j], islogs[model][feature])
 
     # now calculate the recomb distances
     nsites = sites_chunk.shape[0]
-    nmodels = len(h5_files)
+
+    nmodels = len(models)
+
     # plus one is for BGS theory
     B = np.empty((nw, nt, nsites, nmodels+1), dtype='f8')
-    #np.array(2 * [f"{i}-{j}" for i, j in itertools.product(range(5), range(4))]).reshape((5, 4, -1))
     sites_indices = np.arange(nsites)
+
     if progress:
         sites_iter = tqdm.tqdm(sites_indices)
     else:
         sites_iter = sites_indices
 
-    # optionally output the prediction matrices (for debugging)
+    # optionally output the prediction matrices (for debugging) only
+    # and don't continue
     if output_xps:
         # draw a random focal site
         i = np.random.choice(sites_indices)
@@ -162,20 +184,20 @@ def predict(chunkfile, input_dir, h5, constrain, progress, output_xps):
         rf = dist_to_segment(f, S[:, 2:4])
         if HALDANE:
             rf = haldanes_mapfun(rf)
-        rf = transfunc(rf, 'rf', mean[4], scale[4])
-        X = inject_rf(rf, X, nmesh)
 
         # let's calc B theory as a check!
         Xp = inject_rf(rf, Xp, nmesh)
         bp_theory = predictions_to_B_tensor(bgs_segment(*Xp.T), nw, nt, nsegs)
         B[:, :, i, 0] = bp_theory
 
-        for j, model in enumerate(models.values(), start=1):
+        # now do the DNN prediction stuff
+        for j, (model_name, model) in enumerate(model_h5s.items(), start=1):
+            X = Xs[model_name]
+            mean, scale = means[model_name][4], scales[model_name][4] # 4 = rf
+            islog = islogs[model_name]['rf']
+            rf = transfunc(rf, 'rf', mean, scale, islog)
+            X = inject_rf(rf, X, nmesh)
             b = predictions_to_B_tensor(model.predict(X), nw, nt, nsegs, nan_bounds=False)
-            # for debugging:
-            #np.savez("out.npz", X=X, Xp=Xp, rf=rf, f=f, Sm=Sm, b=b)
-            #__import__('pdb').set_trace()
-            #bp = np.nansum(np.log10(b), axis=0)
             B[:, :, i, j] = b
 
     # save real output

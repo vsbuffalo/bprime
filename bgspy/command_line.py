@@ -137,8 +137,8 @@ def dnnb_write(learnfuncs, seqlens, name, annot, recmap, conv_factor, w, t,
     else:
         os.makedirs(dir)
     print("writing info.json...  ", end="")
-    write_predinfo(os.path.join(dir, "info.json"), learnfuncs, 
-                   m.w, m.t, step=step, nchunks=nchunks, max_map_dist=max_map_dist)
+    write_predinfo(dir, learnfuncs, m.w, m.t, step=step, 
+                   nchunks=nchunks, max_map_dist=max_map_dist)
     print("done.")
 
 
