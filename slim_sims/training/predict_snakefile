@@ -16,6 +16,7 @@ chroms = set(['chr10'])
 
 # first get all the chunks
 b_chunk_files = []
+xps_chunk_files = []
 for root, dirs, files in os.walk(chunks_dir):
     for file in files:
         # get chromosome directory
@@ -27,14 +28,32 @@ for root, dirs, files in os.walk(chunks_dir):
         assert filepath.endswith('.npy')
         b_chunk_files.append(filepath)
 
+        # same for Xps matrices
+        this_xpr_dir = root.replace('chunks', 'xps')
+        filepath = join(this_xpr_dir, file)
+        print(filepath)
+        xps_chunk_files.append(filepath)
+
 assert len(b_chunk_files), "no chunk files found to predict!"
 
 CHUNK_FILEPATH = join(chunks_dir, '{chromdir}/{chunkname}.npy') 
 PRED_FILEPATH = join(pred_dir, '{chromdir}/{chunkname}.npy') 
-XPS_FILEPATH = join("xps", '{chromdir}/{chunkname}.npy') 
+XPS_FILEPATH = join(dir, "xps", '{chromdir}/{chunkname}.npy') 
 
 rule all:
   input: b_chunk_files
+
+rule debug:
+  input: xps_chunk_files
+
+rule output_xps:
+  input: chunk=CHUNK_FILEPATH, dir=dir
+  output: XPS_FILEPATH
+  run:
+      cmd = f"""
+      python ../../tools/predict.py --input-dir {{input.dir}} --output-xps {{input.chunk}} 
+      """
+      shell(cmd)
 
 rule predict:
   input: chunk=CHUNK_FILEPATH, dir=dir
