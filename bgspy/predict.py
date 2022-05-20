@@ -1,11 +1,12 @@
 import os
 from os.path import join, basename
 import json
-import tqdm
+from collections import defaultdict
 from itertools import product
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import tqdm
 from bgspy.theory import bgs_segment
 from bgspy.utils import dist_to_segment, make_dirs, haldanes_mapfun
 from bgspy.learn import LearnedFunction
@@ -86,7 +87,7 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
                   bounds, w, t, lidx=None, uidx=None,
                   use_haldane=False, output_xps=False,
                   dont_predict=False, progress=True):
-    FIX_BOUNDS = True # for debugging
+    FIX_BOUNDS = True # only for debugging
     # let's alias some stuff for convienence
     models = model_info_dict
     Sm = segment_matrix
@@ -188,6 +189,8 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
 
         # now do the DNN prediction stuff
         for j, (model_name, model) in enumerate(model_h5s.items(), start=1):
+            #  each model has it's own matrix, since they use diff
+            # center/scaling parameters
             X = Xs[model_name]
             mean, scale = means[model_name][4], scales[model_name][4] # 4 = rf
             islog = islogs[model_name]['rf']

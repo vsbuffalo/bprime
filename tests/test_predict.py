@@ -129,41 +129,41 @@ def test_predict_chunk(fake_prediction_chunk_data):
 
     manual_B_pred_parts = defaultdict(list)
     manual_B_preds = defaultdict(list)
-    manual_theory = []
-    with tf.device(device):
-        for j, model_file in enumerate(test_learnedfuncs):
-            func = LearnedFunction.load(model_file)
-            # each Xp is for ONE focal site... all segments "near" it
-            for Xp in Xps:
-                # each of these is for ONE focal site
+    for j, model_file in enumerate(test_learnedfuncs):
+        func = LearnedFunction.load(model_file)
+        # each Xp is for ONE focal site... all segments "near" it
+        manual_theory = [] # this is clobbered once, but it's identical for diff ML models
+        for Xp in Xps:
+            # each of these matrices is for ONE focal site
+            # func.predict() uses the LearnedFunction's center/scaling parameters
+            with tf.device(device):
                 Bm = func.predict(Xp)
-                Bm_theory = bgs_segment(*Xp.T)
-                manual_theory.append(Bm_theory)
+            Bm_theory = bgs_segment(*Xp.T)
 
-                # manually reshape things to avoid bugs
-                res = defaultdict(list)
-                res_theory = defaultdict(list)
-                for i, (mu, s) in enumerate(zip(*Xp[:, :2].T)):
-                    res[(mu, s)].append(Bm[i])
-                    res_theory[(mu, s)].append(Bm_theory[i])
+            # manually reshape things to avoid bugs
+            res = defaultdict(list)
+            res_theory = defaultdict(list)
+            for i, (mu, s) in enumerate(zip(*Xp[:, :2].T)):
+                res[(mu, s)].append(Bm[i])
+                res_theory[(mu, s)].append(Bm_theory[i])
 
-                # convert all lists of Bs across segments to numpy array
-                res = {k: np.array(v) for k, v in res.items()}
-                res_theory = {k: np.array(v) for k, v in res_theory.items()}
+            # convert all lists of Bs across segments to numpy array
+            res = {k: np.array(v) for k, v in res.items()}
+            res_theory = {k: np.array(v) for k, v in res_theory.items()}
 
-                manual_B_pred_parts[j].append(res)
+            manual_B_pred_parts[j].append(res)
 
-                # now, convert to matrix, taking product across segments
-                B = np.empty(shape=(len(w), len(t)))
-                Btheory = np.empty(shape=(len(w), len(t)))
-                for wi, ww in enumerate(w):
-                    for ti, tt in enumerate(t):
-                        B[wi, ti] = np.exp(np.log(res[(ww, tt)]).sum())
-                        Btheory[wi, ti] = np.exp(np.log(res_theory[(ww, tt)]).sum())
+            # now, convert to matrix, taking product across segments
+            B = np.empty(shape=(len(w), len(t)))
+            Btheory = np.empty(shape=(len(w), len(t)))
+            for wi, ww in enumerate(w):
+                for ti, tt in enumerate(t):
+                    B[wi, ti] = np.exp(np.log(res[(ww, tt)]).sum())
+                    Btheory[wi, ti] = np.exp(np.log(res_theory[(ww, tt)]).sum())
 
-                # append the prediction for this focal site
-                manual_B_preds[j].append(B)
-                # manual_theory.append(Btheory)
+            # append the prediction for this focal site
+            manual_B_preds[j].append(B)
+            manual_theory.append(Btheory)
 
     # manually build up the manual prediction tensor
     Bm = np.empty((len(w), len(t), sites_chunk.shape[0], len(models)))
@@ -172,8 +172,9 @@ def test_predict_chunk(fake_prediction_chunk_data):
             # which focal site
             Bm[:, :, f, j] = manual_B_preds[j][f]
 
-    assert np.testing.assert_allclose(Bm, Bo[..., 1:])
-    assert False
+    Bth = np.stack(manual_theory, axis=2)
 
+    np.testing.assert_allclose(Bth, Bo[..., 0])
+    np.testing.assert_allclose(Bm, Bo[..., 1:])
 
 
