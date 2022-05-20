@@ -75,7 +75,7 @@ def predict(chunkfile, input_dir, constrain=True, progress=True, output_xps=Fals
     chrom = chunk_parts['chrom']
     name = chunk_parts['name']
     seg_file = join(seg_dir, f"{name}_{chrom}.npy")
-    assert len(seg_file), "no appropriate chromosome segment file found!"
+    assert os.path.exists(seg_file), "no appropriate chromosome segment file found!"
 
     # deal with the focal position chunk file
     chrom_parts = CHROM_MATCHER.match(os.path.basename(seg_file)).groupdict()

@@ -82,11 +82,10 @@ def write_predinfo(dir, model_files, w_grid, t_grid, step, nchunks, max_map_dist
     with open(jsonfile, 'w') as f:
         json.dump(json_out, f)
 
-<<<<<<< HEAD
-
 def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
                   bounds, w, t, lidx=None, uidx=None,
-                  use_haldane=False, output_xps=False, progress=True):
+                  use_haldane=False, output_xps=False,
+                  dont_predict=False, progress=True):
     FIX_BOUNDS = True # for debugging
     # let's alias some stuff for convienence
     models = model_info_dict
@@ -163,33 +162,27 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
     else:
         sites_iter = sites_indices
 
-    # optionally output the prediction matrices (for debugging) only
-    # and don't continue
-    if output_xps:
-        # draw a random focal site
-        i = np.random.choice(sites_indices)
-        f = sites_chunk[i, 1]
-        rf = dist_to_segment(f, S[:, 2:4])
-        if use_haldane:
-            rf = haldanes_mapfun(rf)
-        Xp = inject_rf(rf, Xp, nmesh)
-        xpr_dir = make_dirs(input_dir, 'xps', chrom)
-        outfile = join(xpr_dir, os.path.basename(chunkfile))
-        np.save(outfile, Xp)
-        return
-
     #model = models[list(models.keys())[0]] # FOR DEBUG
 
+    Xps = []
     for i in sites_iter:
-        #p = np.round(i/len(focal_positions) * 100, 2)
-        #print(f"{i}/{len(focal_positions)}, {p}%", end='\r')
         f = sites_chunk[i, 1] # get map position
         rf = dist_to_segment(f, S[:, 2:4])
         if use_haldane:
             rf = haldanes_mapfun(rf)
 
-        # let's calc B theory as a check!
+        # build up the original, untransformed matrix for theory prediction
+        # and debugging/testing (see tests/test_predict.py). This can be used
+        # see if predictions on these Xps through LearnedFunction.predict()
+        # match the results below
         Xp = inject_rf(rf, Xp, nmesh)
+
+        if output_xps:
+            Xps.append(Xp)
+            if dont_predict:
+                continue
+
+        # let's calc B theory as a check!
         bp_theory = predictions_to_B_tensor(bgs_segment(*Xp.T), nw, nt, nsegs)
         B[:, :, i, 0] = bp_theory
 
@@ -203,7 +196,9 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
             b = predictions_to_B_tensor(model.predict(X), nw, nt, nsegs, nan_bounds=False)
             B[:, :, i, j] = b
 
-    return B
+    if not output_xps:
+        return B
+    return B, Xps
 
 def load_predictions(genome, path, chroms=None):
     """
