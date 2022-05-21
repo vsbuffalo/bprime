@@ -202,6 +202,8 @@ def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='s
     """
     Fit a DNN based on data in a LearnedFunction.
     """
+    assert func.X_train is not None, "func.X_train is not set -- split test/train data"
+    assert func.y_train is not None, "func.y_train is not set -- split test/train data"
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation=output_activation,
                     n128=n128, n64=n64, n32=n32, n8=n8, nx=nx, activation=activation)
@@ -212,7 +214,7 @@ def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='s
         #                  filepath=model_file.name, save_weights_only=True))
         callbacks.append(keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                        patience=100, restore_best_weights=True))
-        
+
     if progress and PROGRESS_BAR_ENABLED:
         callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
 
