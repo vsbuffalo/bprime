@@ -4,6 +4,10 @@ if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
 name = config['name']
+average_reps = '--average' if config['average'] else '--no-average'
+print(average_reps)
+import sys
+sys.exit()
 activs = config['activs']
 nreps = config['fit_nreps']
 archs = config['archs']
@@ -52,8 +56,8 @@ rule process_data:
   input: json=f"{name}.json", npz=npz_file
   output: data_file
   shell:
-     """
-     python ../../tools/fit_sims.py data --outfile {output} {input.json} {input.npz}
+     f"""
+     python ../../tools/fit_sims.py data --outfile {{output}} {average_reps} {{input.json}} {{input.npz}}
      """
 
 rule fit_dnn:

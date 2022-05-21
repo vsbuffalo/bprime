@@ -44,7 +44,7 @@ class LearnedFunction(object):
         self.y = y
         self.X.setflags(write=False)
         self.y.setflags(write=False)
-        self.test_size = None
+        self.test_split = None
         self.features = {}       # dict of features of X and their column
         self.bounds = {}         # dict of lower, upper boundaries
         self.logscale = {}       # dict of which features are log10 scale
@@ -138,7 +138,7 @@ class LearnedFunction(object):
         rows.append(f"Features normalized? {normed}")
         rows.append(f"Features split? {self.is_split}")
         if self.is_split:
-            rows[-1] += f", test size: {100*np.round(self.test_size, 2)}% (n={self.X_test.shape[0]:,})"
+            rows[-1] += f", test size: {100*np.round(self.test_split, 2)}% (n={self.X_test.shape[0]:,})"
 
         rows.append(f"Total size: {self.X.shape[0]:,}")
         return "\n".join(rows)
@@ -151,13 +151,13 @@ class LearnedFunction(object):
             if val is not None:
                 val.setflags(write=False)
 
-    def split(self, test_size=0.2):
+    def split(self, test_split=0.2):
         """
         Make a test/train split. This resets the state of the object
         to initialization (any scale_feature transforms will be reset).
         """
-        self.test_size = test_size
-        dat = train_test_split(self.X, self.y, test_size=test_size,
+        self.test_split = test_split
+        dat = train_test_split(self.X, self.y, test_size=test_split,
                                random_state=self.rng)
         Xtrn, Xtst, ytrn, ytst = dat
         self.X_train = Xtrn

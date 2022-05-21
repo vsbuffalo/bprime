@@ -197,7 +197,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     return func
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
-            valid_split=0.3, batch_size=64, epochs=400, early_stopping=True,
+            valid_split=0.2, batch_size=64, epochs=400, early_stopping=True,
             progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
@@ -207,9 +207,12 @@ def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='s
                     n128=n128, n64=n64, n32=n32, n8=n8, nx=nx, activation=activation)
     callbacks = []
     if early_stopping:
-        es = keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
-                                       patience=100, restore_best_weights=True)
-        callbacks.append(es)
+        #model_file = NamedTemporaryFile() if model_file is None else model_file
+        #callbacks.append(keras.callbacks.ModelCheckpoint(
+        #                  filepath=model_file.name, save_weights_only=True))
+        callbacks.append(keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
+                                       patience=100, restore_best_weights=True))
+        
     if progress and PROGRESS_BAR_ENABLED:
         callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
 
