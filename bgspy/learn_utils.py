@@ -1,6 +1,8 @@
 import json
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KernelDensity
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -16,6 +18,38 @@ from bgspy.sim_utils import fixed_params, get_bounds
 from bgspy.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.learn import LearnedFunction
 
+class TargetReweighter:
+    def __init__(self, y, kernel='gaussian'):
+        self.y = y
+        self.kde = KernelDensity(kernel=kernel)
+
+    def find_optimum_bandwidth(self, bandwidth_grid, cv=5, n_jobs=1, **kwargs):
+        param_grid = {'bandwidth': bandwidth_grid}
+        self._gcv = GridSearchCV(estimator=self.kde, param_grid={'bandwidth': bandwidth_grid}, cv=cv, n_jobs=n_jobs, **kwargs)
+        self._gcv.fit(self.y)
+        self.kde.set_params(**self._gcv.best_params_)
+        self.kde.fit(self.y)
+
+    def set_bandwidth(self, bandwidth):
+        self.kde.set_params(bandwidth=bandwidth)
+        self.kde.fit(self.y)
+
+    def weights(self, y=None, min_weight='min'):
+        y = y if y is not None else self.y
+        if y.ndim == 1:
+            y = y[:, None]
+        w = self.kde.score_samples(y)
+        rescaled = (w - min(w)) / (max(w) - min(w))
+        yp = 1-rescaled
+        # if there's a 0 weighted sample, replace with minimum weight
+        if min_weight == 'min':
+            yp[yp <= 0] = np.min(yp[yp > 0])
+        else:
+            assert isinstance(min_weight, float), "min_weight must be 'min' or a float"
+            yp[yp <= min_weight] = min_weight
+        assert np.all(yp > 0)
+        return yp
+
 def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
             output_activation='sigmoid', activation='elu'):
     """
@@ -24,7 +58,7 @@ def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
     """
     # build network
     model = keras.Sequential()
-    model.add(tf.keras.Input(shape=(input_size,)))
+    model.add(keras.Input(shape=(input_size,)))
     for i in range(nx):
         model.add(layers.Dense(input_size, activation=activation))
     for i in range(n128):
@@ -35,11 +69,13 @@ def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
         model.add(layers.Dense(32, activation=activation))
     for i in range(n8):
         model.add(layers.Dense(8, activation=activation))
-    model.add(tf.keras.layers.Dense(1, activation=output_activation))
+    model.add(keras.layers.Dense(1, activation=output_activation))
     model.compile(
         optimizer='Adam',
-        loss=tf.keras.losses.MeanSquaredError(),
-        metrics=['MeanAbsoluteError'],
+        loss=keras.losses.MeanSquaredError(),
+        metrics=[keras.metrics.MeanAbsoluteError(name='mae')],
+        weighted_metrics=[keras.metrics.MeanSquaredError(name='weighted_mse'),
+                          keras.metrics.MeanAbsoluteError(name='weighted_mae')],
         )
     return model
 
@@ -197,7 +233,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     return func
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
-            valid_split=0.2, batch_size=64, epochs=400, early_stopping=True,
+            valid_split=0.2, batch_size=64, epochs=1000, early_stopping=True,
             sample_weight=None, progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
