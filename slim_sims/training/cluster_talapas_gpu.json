@@ -15,12 +15,12 @@
     },
     "process_trees" :
     {
-        "time" : "0-04:00:00",
+        "time" : "0-06:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern",
         "mem" : "3G",
-        "cores" : "40",
+        "cores" : "20",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/training/",
         "name" : "slimprocess_{rule}_{wildcards}",
         "output": "logs/out/{rule}_{jobid}.out",

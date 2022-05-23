@@ -5,9 +5,6 @@ if not len(config):
 
 name = config['name']
 average_reps = '--average' if config['average'] else '--no-average'
-print(average_reps)
-import sys
-sys.exit()
 activs = config['activs']
 nreps = config['fit_nreps']
 archs = config['archs']
@@ -48,7 +45,7 @@ rule process_trees:
     output: npz_file
     shell:
         f"""
-        python ../../tools/trees2data.py --outfile {{output}} --ncores 40 \
+        python ../../tools/trees2data.py --outfile {{output}} --ncores 20 \
           --features 'mu,sh,L,rbp,rf,rep' {SIMDIR}
         """
 
