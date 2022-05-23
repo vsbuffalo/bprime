@@ -198,7 +198,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
             valid_split=0.2, batch_size=64, epochs=400, early_stopping=True,
-            progress=False):
+            sample_weight=None, progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
     """
@@ -221,7 +221,7 @@ def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='s
     history = model.fit(func.X_train, func.y_train,
                         validation_split=valid_split,
                         batch_size=batch_size, epochs=epochs, verbose=0,
-                        callbacks=callbacks)
+                        sample_weight=sample_weight, callbacks=callbacks)
     return model, history
 
 

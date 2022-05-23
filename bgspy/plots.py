@@ -49,7 +49,7 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     return fig, ax
 
 
-def bhat_plot(bfunc, bins, c='0.22', figax=None):
+def bhat_plot(bfunc, bins, c='0.22', label_pos=(0.55, 0.05), figax=None):
     fig, ax = get_figax(figax)
     _, bin_mid, ytest = bfunc.binned_Bhats(bins=bins)
     ax.scatter(bin_mid, ytest, c=c)
@@ -58,8 +58,9 @@ def bhat_plot(bfunc, bins, c='0.22', figax=None):
     o = min(min(bin_mid), min(ytest))
     ax.axline((o, o), slope=1, c='r')
     mse = signif(bfunc.Bhat_mse(bins), 4)
-    ax.text(0.55, 0.05, f"$MSE(\hat{{B}}, B_\mathrm{{ML}})$ = {mse}",
-            transform=ax.transAxes)
+    if label_pos is not None:
+        ax.text(*label_pos, f"$MSE(\hat{{B}}, B_\mathrm{{ML}})$ = {mse}",
+                color=c, transform=ax.transAxes)
     return fig, ax
 
 def loss_plot(bfunc, figax=None,
