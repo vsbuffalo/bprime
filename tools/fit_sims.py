@@ -71,7 +71,7 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
         activation='elu', output_activation='sigmoid', batch_size=64,
         balance_target=False, bandwidth=0.1, epochs=1000, early=True, test_split=0.2,
-        valid_split=0.2, reseed=True, match=True, normalize_target=False,
+        valid_split=0.1, reseed=True, match=True, normalize_target=False,
         progress=True):
     if outfile is None:
         outfile = funcfile.replace('_data.pkl', '_dnn')
@@ -89,9 +89,11 @@ def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
     sample_weight = None
     if balance_target:
         # the copy is because sklearn annoyingly doesn't like read only data (why?!)
-        trw = TargetReweighter(np.copy(func.y_train))
+        y = np.copy(func.y_train)
+        trw = TargetReweighter(y)
         trw.set_bandwidth(bandwidth)
-        sample_weight = trw.weights()
+        sample_weight = trw.weights(y)
+        func.trw = trw
 
     if match:
         # transform the features using log10 if the simulation scale is log10
