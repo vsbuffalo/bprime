@@ -545,15 +545,10 @@ class LearnedB(object):
 
     def predict_test(self):
         """
-        Predict X_test_raw, caching the results (invalidation
-        based on hash of X_test).
+        Predict X_test_raw.
         """
-        X_test_hash = hash(self.func.X_test_raw.data.tobytes())
-        if self._predict is None or X_test_hash != self._X_test_hash:
-            self._X_test_hash = X_test_hash
-            predict = self.func.predict_test()
-            self._predict = predict
-        return self._predict
+        predict = self.func.predict_test()
+        return predict
 
     def predict_datum(self, **kwargs):
         msg = f"kwargs: {', '.join(kwargs.keys())}, features: {', '.join(self.func.features.keys())}"

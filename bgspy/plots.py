@@ -49,10 +49,10 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     return fig, ax
 
 
-def bhat_plot(bfunc, bins, c='0.22', label_pos=(0.55, 0.05), figax=None):
+def bhat_plot(bfunc, bins, c='0.22', label_pos=(0.55, 0.05), label=None, figax=None):
     fig, ax = get_figax(figax)
     _, bin_mid, ytest = bfunc.binned_Bhats(bins=bins)
-    ax.scatter(bin_mid, ytest, c=c)
+    ax.scatter(bin_mid, ytest, c=c, label=label)
     ax.set_ylabel('$\hat{B}$')
     ax.set_xlabel('binned $B_\mathrm{ML}$')
     o = min(min(bin_mid), min(ytest))
