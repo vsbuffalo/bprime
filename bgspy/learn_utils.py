@@ -26,6 +26,9 @@ class TargetReweighter:
         https://www.informatik.uni-wuerzburg.de/datascience/news/single/news/our-article-density-based-weighting-for-imbalanced-regression-has-been-accepted-for-the-ecml-pkdd-2021-journal-track/
     """
     def __init__(self, y, kernel='gaussian'):
+        assert isinstance(y, np.ndarray), "y must be a numpy.ndarray"
+        if y.ndim == 1:
+            y = y[:, None]
         self.y = y
         self.kde = KernelDensity(kernel=kernel)
 

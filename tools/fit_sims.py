@@ -18,6 +18,7 @@ except ImportError:
 
 from bgspy.utils import index_cols
 from bgspy.learn_utils import load_data, data_to_learnedfunc, fit_dnn
+from bgspy.learn_utils import TargetReweighter
 from bgspy.learn import LearnedFunction
 
 
@@ -82,15 +83,15 @@ def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
     if reseed:
         func.reseed()
 
-    sample_weight = None
-    if balance_target:
-        trw = TargetReweighter(func.y_train)
-        trw.set_bandwidth(bandwidth)
-        sample_weight = trw.weights()
-
     # split the data into test/train
     func.split(test_split=test_split)
 
+    sample_weight = None
+    if balance_target:
+        # the copy is because sklearn annoyingly doesn't like read only data (why?!)
+        trw = TargetReweighter(np.copy(func.y_train))
+        trw.set_bandwidth(bandwidth)
+        sample_weight = trw.weights()
 
     if match:
         # transform the features using log10 if the simulation scale is log10
