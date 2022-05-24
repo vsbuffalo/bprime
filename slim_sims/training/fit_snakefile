@@ -73,7 +73,7 @@ rule fit_dnn:
      module load cuda/10.1
      python ../../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
       --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
-      --bandwidth 0.0138 \ # from grid CV
+      --bandwidth 0.01 \
       --activation {wildcards.activ} --output-activation {wildcards.outactiv} {balance_target} {input} 
      """
      shell(cmd)
