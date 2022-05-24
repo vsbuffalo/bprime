@@ -1,4 +1,5 @@
 from os.path import join
+from bgspy.sim_utils import param_grid
 
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
@@ -6,6 +7,8 @@ if not len(config):
 name = config['name']
 average_reps = '--average' if config['average'] else '--no-average'
 activs = config['activs']
+outactivs = config['outactivs']
+balances = config['balances']
 nreps = config['fit_nreps']
 archs = config['archs']
 
@@ -24,7 +27,7 @@ SIMDIR = os.path.join(DATADIR, name, "sims")
 
 
 # root filepath name for DNN fits
-FILENAME = join(DATADIR, name, "fits", f"{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep{{suffix}}")
+FILENAME = join(DATADIR, name, "fits", f"{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_{{outactiv}}outactiv_{{balance}}balance_{{rep}}_fit_rep{{suffix}}")
 npz_file = get_outfile(name, dir=join(DATADIR, name), suffix='.npz')
 data_file = get_outfile(name, dir=join(DATADIR, name), suffix='_data.pkl')
 
@@ -32,13 +35,17 @@ data_file = get_outfile(name, dir=join(DATADIR, name), suffix='_data.pkl')
 #sys.exit()
 
 dnn_files = []
-for arch in archs:
-    for activ in activs:
-        for rep in range(nreps):
-            kwargs = {**arch, 'activ': activ, 'rep': rep}
-            dnn_files.append(FILENAME.format(**kwargs, suffix='.pkl'))
-            dnn_files.append(FILENAME.format(**kwargs, suffix='.h5'))
 
+params = dict(activ=activs, outactiv=outactivs, 
+              balance=balances, rep=list(range(nreps)),
+              arch=archs)
+
+fit_params = param_grid(params)
+
+for param_set in fit_params:
+    kwargs = {**param_set, **param_set['arch']}
+    dnn_files.append(FILENAME.format(**kwargs, suffix='.pkl'))
+    dnn_files.append(FILENAME.format(**kwargs, suffix='.h5'))
 
 rule process_trees:
     input: # whole directory
@@ -65,7 +72,7 @@ rule fit_dnn:
      module load cuda/10.1
      python ../../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
       --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
-      --activation {activ} {input} 
+      --activation {wildcards.activ} --output-activation {wildcards.outactiv} --balance-target {wildcards.balance} {input} 
      """
 
 rule data:
@@ -74,3 +81,5 @@ rule data:
 rule train:
   input: dnn_files 
 
+rule all:
+  input: dnn_files

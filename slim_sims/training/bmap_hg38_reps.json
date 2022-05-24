@@ -15,9 +15,12 @@
   "nsamples": 100000,
   "nreps": 50,
   "average": true,
+  "balances": [true, false],
   "activs": ["elu"],
+  "outactivs": ["relu", "sigmoid"],
   "fit_nreps": 4,
   "archs": [{"n128": 0, "n64": 0, "n32": 4, "n8": 2, "nx": 0},
+            {"n128": 0, "n64": 0, "n32": 0, "n8": 2, "nx": 0},
             {"n128": 0, "n64": 0, "n32": 0, "n8": 0, "nx": 4},
             {"n128": 0, "n64": 0, "n32": 0, "n8": 0, "nx": 2}]
 }

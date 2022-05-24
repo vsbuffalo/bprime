@@ -2,7 +2,7 @@
 DRY=""
 MAXJOBS=999 # submit a ton of jobs, let the job scheduler handler it
 CLUSTER_CONFIG="./cluster_talapas_gpu.json"
-SNAKEFILE="./Snakefile"
+SNAKEFILE="./fit_snakefile"
 RULE="all"
 
 usage() { echo "Usage: $0 -c <config.json> [-d (dry-run)]" 1>&2; exit 1; }
