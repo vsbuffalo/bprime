@@ -191,6 +191,8 @@ class LearnedFunction(object):
         """
         if isinstance(transforms, dict):
             raise NotImplementedError("transforms cannot be a dict yet")
+        if normalize_target:
+            raise NotImplementedError("normalize_target not implemented yet")
         if not self.is_split:
             raise ValueError("X, y must be split first")
         if self.normalized or not all(x is None for x in self.transforms.values()):

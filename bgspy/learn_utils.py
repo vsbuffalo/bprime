@@ -1,3 +1,4 @@
+import warnings
 import json
 import numpy as np
 import pandas as pd
@@ -19,6 +20,11 @@ from bgspy.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.learn import LearnedFunction
 
 class TargetReweighter:
+    """
+    Very simple target reweighting. I was implementing a version and found
+    that our approach is quite similar to this:
+        https://www.informatik.uni-wuerzburg.de/datascience/news/single/news/our-article-density-based-weighting-for-imbalanced-regression-has-been-accepted-for-the-ecml-pkdd-2021-journal-track/
+    """
     def __init__(self, y, kernel='gaussian'):
         self.y = y
         self.kde = KernelDensity(kernel=kernel)
@@ -232,9 +238,10 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
-def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='sigmoid',
-            valid_split=0.2, batch_size=64, epochs=1000, early_stopping=True,
-            sample_weight=None, progress=False):
+def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu',
+            output_activation='sigmoid', valid_split=0.2, batch_size=64,
+            epochs=400, early_stopping=True, sample_weight=None,
+            progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
     """
@@ -248,12 +255,16 @@ def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu', output_activation='s
         #model_file = NamedTemporaryFile() if model_file is None else model_file
         #callbacks.append(keras.callbacks.ModelCheckpoint(
         #                  filepath=model_file.name, save_weights_only=True))
-        callbacks.append(keras.callbacks.EarlyStopping(monitor='val_loss', mode='min', verbose=1,
-                                       patience=100, restore_best_weights=True))
+        callbacks.append(keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                       mode='min', verbose=1,
+                                                       patience=100,
+                                                       restore_best_weights=True))
 
     if progress and PROGRESS_BAR_ENABLED:
         callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
 
+    if sample_weight is not None:
+        assert len(sample_weight) == len(func.y_train), "sample_weight is wrong size"
     history = model.fit(func.X_train, func.y_train,
                         validation_split=valid_split,
                         batch_size=batch_size, epochs=epochs, verbose=0,
