@@ -35,6 +35,8 @@ class TargetReweighter:
         self._gcv.fit(self.y)
         self.kde.set_params(**self._gcv.best_params_)
         self.kde.fit(self.y)
+        self._best_bandwidth = self._gcv.best_params_['bandwidth']
+        self._best_score = self._gcv.best_score_
 
     def set_bandwidth(self, bandwidth):
         self.kde.set_params(bandwidth=bandwidth)
@@ -54,7 +56,7 @@ class TargetReweighter:
             assert isinstance(min_weight, float), "min_weight must be 'min' or a float"
             yp[yp <= min_weight] = min_weight
         assert np.all(yp > 0)
-        return yp
+        return yp / yp.sum()
 
 def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
             output_activation='sigmoid', activation='elu'):
