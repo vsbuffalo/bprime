@@ -59,7 +59,7 @@ class TargetReweighter:
             assert isinstance(min_weight, float), "min_weight must be 'min' or a float"
             yp[yp <= min_weight] = min_weight
         assert np.all(yp > 0)
-        return yp / yp.sum()
+        return yp
 
 def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
             output_activation='sigmoid', activation='elu'):
