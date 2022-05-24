@@ -54,7 +54,7 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--activation', default='elu', help="layer activation")
 @click.option('--output-activation', default='sigmoid', help="output activation")
 @click.option('--batch-size', default=64, help="batch size")
-@click.option('--weight-target', is_flag=True, default=False, help="balance target with sample weights")
+@click.option('--balance-target', is_flag=True, default=False, help="balance target with sample weights")
 @click.option('--bandwidth', default=0.1, help="bandwidth for KDE for target reweighting")
 @click.option('--epochs', default=1000, help="number of epochs to run")
 @click.option('--early/--no-early', default=True, help="use early stopping")
@@ -69,7 +69,7 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--progress', is_flag=True, default=True, help="show progress")
 def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
         activation='elu', output_activation='sigmoid', batch_size=64,
-        weight_target=False, bandwidth=0.1, epochs=1000, early=True, test_split=0.2,
+        balance_target=False, bandwidth=0.1, epochs=1000, early=True, test_split=0.2,
         valid_split=0.2, reseed=True, match=True, normalize_target=False,
         progress=True):
     if outfile is None:
@@ -83,7 +83,7 @@ def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
         func.reseed()
 
     sample_weight = None
-    if weight_target:
+    if balance_target:
         trw = TargetReweighter(func.y_train)
         trw.set_bandwidth(bandwidth)
         sample_weight = trw.weights()
