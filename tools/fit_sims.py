@@ -57,7 +57,7 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--batch-size', default=64, help="batch size")
 @click.option('--balance-target', is_flag=True, default=False, help="balance target with sample weights")
 @click.option('--bandwidth', default=0.1, help="bandwidth for KDE for target reweighting")
-@click.option('--epochs', default=1000, help="number of epochs to run")
+@click.option('--epochs', default=500, help="number of epochs to run")
 @click.option('--early/--no-early', default=True, help="use early stopping")
 @click.option('--test-split', default=0.2, help="proportion to use as test data set")
 @click.option('--valid-split', default=0.2,
@@ -68,9 +68,9 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--normalize-target', is_flag=True, default=False,
               help="transform X to match if log10 scale")
 @click.option('--progress', is_flag=True, default=True, help="show progress")
-def fit(funcfile, outfile=None, n128=0, n64=4, n32=2, n8=0, nx=0,
+def fit(funcfile, outfile=None, n128=0, n64=0, n32=0, n8=0, nx=2,
         activation='elu', output_activation='sigmoid', batch_size=64,
-        balance_target=False, bandwidth=0.1, epochs=1000, early=True, test_split=0.2,
+        balance_target=False, bandwidth=0.1, epochs=500, early=True, test_split=0.2,
         valid_split=0.1, reseed=True, match=True, normalize_target=False,
         progress=True):
     if outfile is None:

@@ -245,7 +245,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
 
 def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu',
             output_activation='sigmoid', valid_split=0.2, batch_size=64,
-            epochs=400, early_stopping=True, sample_weight=None,
+            epochs=500, early_stopping=True, sample_weight=None,
             progress=False):
     """
     Fit a DNN based on data in a LearnedFunction.
@@ -269,7 +269,7 @@ def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu',
         callbacks.append(tfa.callbacks.TQDMProgressBar(show_epoch_progress=False))
 
     if sample_weight is not None:
-        assert len(sample_weight) == len(func.y_train), "sample_weight is wrong size"
+        assert sample_weight.size == func.y_train.size, "sample_weight is wrong size"
     history = model.fit(func.X_train, func.y_train,
                         validation_split=valid_split,
                         batch_size=batch_size, epochs=epochs, verbose=0,
