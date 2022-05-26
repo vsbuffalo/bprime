@@ -678,3 +678,4 @@ class LearnedB(object):
 
     def transform(self, *arg, **kwargs):
         return self.func.scaler.transform(*args, **kwargs)
+

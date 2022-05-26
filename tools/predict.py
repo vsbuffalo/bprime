@@ -23,6 +23,7 @@ import tensorflow as tf
 from tensorflow import keras
 from bgspy.utils import make_dirs
 from bgspy.predict import predict_chunk
+from bgspy.learn import LearnedFunction
 
 # for playing nice on GPUs
 if USE_GPU and GPUSTAT_AVAIL:
@@ -52,14 +53,19 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
               help='whether to compute B using segments along the entire '
               'chromosome, or whether to use the supplied slices in filename')
 @click.option('--progress/--no-progress', default=True, help='whether to display progress bar')
-@click.option('--output-xps/--no-xps', default=False, help='output unformatted chunk matrices for debugging')
-def predict(chunkfile, input_dir, constrain=True, progress=True, output_xps=False):
+@click.option('--output-xps', is_flag=True, default=False, help='output unformatted chunk matrices for debugging')
+@click.option('--output-preds', is_flag=True, default=False, help='output B predictions for each segment')
+@click.option('--dont-predict', is_flag=True, default=False, help='skip prediction (False if --output-preds)')
+def predict(chunkfile, input_dir, constrain=True, progress=True, 
+            output_xps=False, output_preds=False, dont_predict=False):
     """
 
     Note: bounds are determined for a group of models (e.g. all trained on the same
     simulation data, which sets the boudns). Centering and scaling parameters, and
     what features are log transfomed are model fit specific.
     """
+    dont_predict = False if output_preds else dont_predict
+
     out_dir = make_dirs(input_dir, 'preds')
     chunk_dir = make_dirs(input_dir, 'chunks')
     infofile = make_dirs(input_dir, 'info.json')
@@ -68,7 +74,7 @@ def predict(chunkfile, input_dir, constrain=True, progress=True, output_xps=Fals
         info = json.load(f)
 
     # get the model information dict from info.json
-    models = info['models']
+    models = {m: LearnedFunction.load(m) for m in info['models']}
 
     # get the chunk to process and get the right segments file
     chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
@@ -86,6 +92,7 @@ def predict(chunkfile, input_dir, constrain=True, progress=True, output_xps=Fals
     else:
         # use all segments on chromosome
         lidx, uidx = None, None
+
     chunk_i = int(chunk_parts['i'])
     # contains two columns: the physical and map positions of focal sites
     sites_chunk = np.load(chunkfile)
@@ -97,13 +104,34 @@ def predict(chunkfile, input_dir, constrain=True, progress=True, output_xps=Fals
     w, t = np.array(info['w']), np.array(info['t'])
 
     # run the main prediction function
-    B = predict_chunk(sites_chunk, models, Sm, info['bounds'], w, t,
-                      lidx=lidx, uidx=uidx, output_xps=output_xps, progress=progress)
+    B, Xps, Bpreds = predict_chunk(sites_chunk, models, Sm, w, t,
+                                   lidx=lidx, uidx=uidx, output_xps=output_xps, 
+                                   output_preds=output_preds,
+                                   # skip prediction if we just want matrices
+                                   dont_predict=dont_predict,
+                                   progress=progress)
 
     # save real output
     chrom_out_dir = make_dirs(out_dir, chrom)
     outfile = join(chrom_out_dir, os.path.basename(chunkfile))
     np.save(outfile, B.squeeze())
+
+    if output_xps:
+        xps_dir = make_dirs(input_dir, 'xps')
+        for i, Xp in enumerate(Xps):
+            outfile = join(xps_dir, os.path.basename(chunkfile))
+            outfile = outfile.replace('.npy', f"_{i}.npy")
+            np.save(outfile, Xp.squeeze())
+
+    if output_preds:
+        preds_dir = make_dirs(input_dir, 'bpreds')
+        for model, preds in Bpreds.items():
+            name = os.path.basename(model)
+            for i, pred in enumerate(preds):
+                outfile = join(preds_dir, os.path.basename(chunkfile))
+                outfile = outfile.replace('.npy', f"_{name}_{i}.npy")
+                np.save(outfile, pred.squeeze())
+        
 
 if __name__ == "__main__":
     predict()

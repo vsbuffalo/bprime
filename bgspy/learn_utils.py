@@ -49,7 +49,7 @@ class TargetReweighter:
         y = y if y is not None else self.y
         if y.ndim == 1:
             y = y[:, None]
-        w = self.kde.score_samples(y)
+        w = np.exp(self.kde.score_samples(y))
         rescaled = (w - min(w)) / (max(w) - min(w))
         yp = 1-rescaled
         # if there's a 0 weighted sample, replace with minimum weight
@@ -85,8 +85,8 @@ def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
         optimizer='Adam',
         loss=keras.losses.MeanSquaredError(),
         metrics=[keras.metrics.MeanAbsoluteError(name='mae')],
-        weighted_metrics=[keras.metrics.MeanSquaredError(name='weighted_mse'),
-                          keras.metrics.MeanAbsoluteError(name='weighted_mae')],
+        #weighted_metrics=[keras.metrics.MeanSquaredError(name='weighted_mse'),
+        #                  keras.metrics.MeanAbsoluteError(name='weighted_mae')],
         )
     return model
 

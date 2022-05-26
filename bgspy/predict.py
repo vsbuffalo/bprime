@@ -63,41 +63,20 @@ def predictions_to_B_tensor(y, nw, nt, nsegs, nan_bounds=False):
 
 def write_predinfo(dir, model_files, w_grid, t_grid, step, nchunks, max_map_dist):
     models = dict()
-    for filepath in model_files:
-        func = LearnedFunction.load(filepath)
-        # make sure this is the right bgs model
-        model_name = os.path.basename(filepath)
-        features = BGS_MODEL_PARAMS['bgs_segment']
-        islog = {f: func.logscale[f] for f in features}
-        bounds = {f: func.get_bounds(f) for f in features}
-        filepath = filepath + '.h5' if not filepath.endswith('.h5') else filepath
-        models[model_name] = dict(filepath=filepath,
-                                  log=islog, bounds=bounds,
-                                  mean=func.scaler.mean_.tolist(),
-                                  scale=func.scaler.scale_.tolist())
-
     json_out = dict(dir=dir, w=w_grid.tolist(), t=t_grid.tolist(), step=step,
-                    nchunks=nchunks, max_map_dist=max_map_dist, bounds=bounds,
-                    models=models)
+                    nchunks=nchunks, max_map_dist=max_map_dist, models=model_files)
     jsonfile = join(dir, "info.json")
     with open(jsonfile, 'w') as f:
         json.dump(json_out, f)
 
-def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
-                  bounds, w, t, lidx=None, uidx=None,
+def predict_chunk(sites_chunk, models, segment_matrix,
+                  w, t, lidx=None, uidx=None,
                   use_haldane=False, output_xps=False,
-                  dont_predict=False, progress=True):
+                  output_preds=False, dont_predict=False, 
+                  progress=True):
     FIX_BOUNDS = True # only for debugging
     # let's alias some stuff for convienence
-    models = model_info_dict
     Sm = segment_matrix
-
-    model_h5s = {m: keras.models.load_model(v['filepath']) for m, v in models.items()}
-
-    # get the centering and scaling parameters
-    means = {m: np.array(v['mean']) for m, v in models.items()}
-    scales = {m: np.array(v['scale']) for m, v in models.items()}
-    islogs = {m: v['log'] for m, v in models.items()}
 
     if lidx is None or uidx is None:
         # unconstrained -- use all segments on a chromosome
@@ -123,31 +102,8 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
     # X[:, :2] = np.repeat(mesh, nsegs, axis=0)
     # X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
-    def transfunc(x, feature, mean, scale, islog):
-        # we need the feature to get global bounds for this feature
-        # The islog mean/scale are feature and model specific
-        # so we pass those in
-        x = np.copy(x)
-        if FIX_BOUNDS:
-            lower, upper = bounds[feature]
-            x[x < lower] = lower
-            x[x > upper] = upper
-        if islog:
-            assert np.all(x > 0)
-            x = np.log10(x)
-        return (x-mean)/scale
-
     # this is the unmodified transformed copy, e.g. for BGS theory
     Xp = np.copy(X)
-
-    # apply necessary log10 transforms, and center and scale
-    # for *each* model, which can have different centering/scaling
-    # params
-    Xs = {m: np.copy(X) for m in models.keys()}
-    for model in models.keys():
-        for j, feature in enumerate(('mu', 'sh', 'L', 'rbp')):
-            Xs[model][:, j] = transfunc(X[:, j], feature, means[model][j],
-                                        scales[model][j], islogs[model][feature])
 
     # now calculate the recomb distances
     nsites = sites_chunk.shape[0]
@@ -156,16 +112,15 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
 
     # plus one is for BGS theory
     B = np.empty((nw, nt, nsites, nmodels+1), dtype='f8')
-    sites_indices = np.arange(nsites)
+    sites_indices = np.arange(nsites)[:10]
 
     if progress:
         sites_iter = tqdm.tqdm(sites_indices)
     else:
         sites_iter = sites_indices
 
-    #model = models[list(models.keys())[0]] # FOR DEBUG
-
     Xps = []
+    Bpreds = defaultdict(list)
     for i in sites_iter:
         f = sites_chunk[i, 1] # get map position
         rf = dist_to_segment(f, S[:, 2:4])
@@ -188,20 +143,19 @@ def predict_chunk(sites_chunk, model_info_dict, segment_matrix,
         B[:, :, i, 0] = bp_theory
 
         # now do the DNN prediction stuff
-        for j, (model_name, model) in enumerate(model_h5s.items(), start=1):
+        for j, (model_name, model) in enumerate(models.items(), start=1):
             #  each model has it's own matrix, since they use diff
             # center/scaling parameters
-            X = Xs[model_name]
-            mean, scale = means[model_name][4], scales[model_name][4] # 4 = rf
-            islog = islogs[model_name]['rf']
-            rf = transfunc(rf, 'rf', mean, scale, islog)
             X = inject_rf(rf, X, nmesh)
-            b = predictions_to_B_tensor(model.predict(X), nw, nt, nsegs, nan_bounds=False)
+            Bpred = model.predict(X)
+            import pdb
+            pdb.set_trace()
+            if output_preds:
+                Bpreds[model_name].append(Bpred)
+            b = predictions_to_B_tensor(Bpred, nw, nt, nsegs, nan_bounds=False)
             B[:, :, i, j] = b
 
-    if not output_xps:
-        return B
-    return B, Xps
+    return B, Xps, Bpreds
 
 def load_predictions(genome, path, chroms=None):
     """

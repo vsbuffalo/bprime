@@ -83,7 +83,7 @@ def cli():
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
-def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, split_length, step, nchunks,
+def calcb(recmap, annot, seqlens, name, conv_factor, t, w, split_length, step, nchunks,
           ncores, output):
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
@@ -110,7 +110,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, dnn, t, w, split_length, st
 @click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
-@click.option('--nchunks', default=100,
+@click.option('--nchunks', default=500,
               help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--max-map-dist', help="maximum map distance (Morgans) to consider"
               "segment contributions to B' at", default=0.1)

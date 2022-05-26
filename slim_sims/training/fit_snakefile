@@ -67,16 +67,13 @@ rule process_data:
 rule fit_dnn:
   input: data_file
   output: model=fill_suffix(FILENAME, '.pkl'), keras=fill_suffix(FILENAME, '.h5')
-  run:
-     balance_target = '--balance-target' if wildcards.balance else ''
-     cmd = """\
+  shell:
+     """
      module load cuda/10.1
      python ../../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
       --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
-      --bandwidth 0.01 \
-      --activation {wildcards.activ} --output-activation {wildcards.outactiv} {balance_target} {input} 
+      --activation {wildcards.activ} --output-activation {wildcards.outactiv} {input} 
      """
-     shell(cmd)
 
 
 
@@ -87,4 +84,4 @@ rule train:
   input: dnn_files 
 
 rule all:
-  input: dnn_files
+  input: npz_file, data_file, dnn_files
