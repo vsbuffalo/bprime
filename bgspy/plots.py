@@ -397,6 +397,7 @@ def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), R=1,
         yhat_vs_ytrain_plot(bfunc, figax=(fig, ax3))
         bhat_plot(bfunc, bins=bins, c='cornflowerblue', figax=(fig, ax3))
     loss_limits_plot(bfunc, R=R, figax=(fig, ax4))
+    ax2.axhline(2 / (9*R), linestyle='dashed', c='0.44')
     plt.tight_layout()
     return fig, ((ax1, ax2), (ax3, ax4))
 
