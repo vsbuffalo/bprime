@@ -44,7 +44,7 @@ def inject_rf(rf, X, nmesh):
     X[:, 4] = np.tile(rf, (nmesh, 1)).squeeze()
     return X
 
-def predictions_to_B_tensor(y, nw, nt, nsegs, nan_bounds=False):
+def predictions_to_B_tensor(y, nw, nt, nsegs):
     """
     Take the product (actually, log sum) across all segments.
 
@@ -54,15 +54,10 @@ def predictions_to_B_tensor(y, nw, nt, nsegs, nan_bounds=False):
     We need reshape these so that we end up with a nw x nt by nsegs
     matrix, which can then be log-summed.
     """
-    if nan_bounds:
-        out_of_bounds = np.logical_or(y > 1, y <= 0)
-        y[out_of_bounds] = np.nan
-
     y_segs_mat = y.reshape((nw*nt, nsegs))
     return np.exp(np.sum(np.log(y_segs_mat), axis=1).reshape((nw, nt)))
 
 def write_predinfo(dir, model_files, w_grid, t_grid, step, nchunks, max_map_dist):
-    models = dict()
     json_out = dict(dir=dir, w=w_grid.tolist(), t=t_grid.tolist(), step=step,
                     nchunks=nchunks, max_map_dist=max_map_dist, models=model_files)
     jsonfile = join(dir, "info.json")
@@ -140,7 +135,7 @@ def predict_chunk(sites_chunk, models, segment_matrix,
         B[:, :, i, 0] = bp_theory
 
         # now do the DNN prediction stuff
-        for j, (model_name, model) in enumerate(models.items(), start=1):
+        for j, (model_name, model) in enumerate(models, start=1):
             #  each model has it's own matrix, since they use diff
             # center/scaling parameters
             Bpred = model.predict(X)
@@ -148,7 +143,7 @@ def predict_chunk(sites_chunk, models, segment_matrix,
             #pdb.set_trace()
             if output_preds:
                 Bpreds[model_name].append(Bpred)
-            b = predictions_to_B_tensor(Bpred, nw, nt, nsegs, nan_bounds=False)
+            b = predictions_to_B_tensor(Bpred, nw, nt, nsegs)
             B[:, :, i, j] = b
 
     return B, Xps, Bpreds

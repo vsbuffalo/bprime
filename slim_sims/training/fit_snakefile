@@ -27,7 +27,7 @@ SIMDIR = os.path.join(DATADIR, name, "sims")
 
 
 # root filepath name for DNN fits
-FILENAME = join(DATADIR, name, "fits", f"{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_{{outactiv}}outactiv_{{balance}}balance_fit_{{rep}}rep{{suffix}}")
+FILENAME = join(DATADIR, name, "fits", f"{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{n4}}n4_{{n2}}n2_{{nx}}nx_{{activ}}activ_{{outactiv}}outactiv_{{balance}}balance_fit_{{rep}}rep{{suffix}}")
 npz_file = get_outfile(name, dir=join(DATADIR, name), suffix='.npz')
 data_file = get_outfile(name, dir=join(DATADIR, name), suffix='_data.pkl')
 

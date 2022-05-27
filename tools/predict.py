@@ -68,13 +68,14 @@ def predict(chunkfile, input_dir, constrain=True, progress=True,
 
     out_dir = make_dirs(input_dir, 'preds')
     chunk_dir = make_dirs(input_dir, 'chunks')
-    infofile = make_dirs(input_dir, 'info.json')
     seg_dir = make_dirs(input_dir, 'segments')
+
+    infofile = join(input_dir, 'info.json')
     with open(infofile, 'r') as f:
         info = json.load(f)
 
     # get the model information dict from info.json
-    models = {m: LearnedFunction.load(m) for m in info['models']}
+    models = [(m, LearnedFunction.load(m)) for m in info['models']]
 
     # get the chunk to process and get the right segments file
     chunk_parts = CHUNK_MATCHER.match(os.path.basename(chunkfile)).groupdict()
@@ -105,7 +106,9 @@ def predict(chunkfile, input_dir, constrain=True, progress=True,
 
     # run the main prediction function
     B, Xps, Bpreds = predict_chunk(sites_chunk, models, Sm, w, t,
-                                   lidx=lidx, uidx=uidx, output_xps=output_xps, 
+                                   lidx=lidx, uidx=uidx, 
+                                   use_haldane=False,
+                                   output_xps=output_xps, 
                                    output_preds=output_preds,
                                    # skip prediction if we just want matrices
                                    dont_predict=dont_predict,

@@ -243,7 +243,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
-def fit_dnn(func, n128, n64, n32, n8, nx, activation='elu',
+def fit_dnn(func, n128, n64, n32, n8, n4, n2, nx, activation='elu',
             output_activation='sigmoid', valid_split=0.2, batch_size=64,
             epochs=500, early_stopping=True, sample_weight=None,
             progress=False):

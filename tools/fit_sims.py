@@ -50,6 +50,8 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--n64', default=0, help="number of 64 neuron dense layers")
 @click.option('--n32', default=0, help="number of 32 neuron dense layers")
 @click.option('--n8', default=0, help="number of 8 neuron dense layers")
+@click.option('--n4', default=0, help="number of 4 neuron dense layers")
+@click.option('--n2', default=0, help="number of 2 neuron dense layers")
 @click.option('--nx', default=2,
               help="number of x neuron dense layers where x is input size")
 @click.option('--activation', default='elu', help="layer activation")
@@ -68,8 +70,8 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--normalize-target', is_flag=True, default=False,
               help="transform X to match if log10 scale")
 @click.option('--progress', is_flag=True, default=True, help="show progress")
-def fit(funcfile, outfile=None, n128=0, n64=0, n32=0, n8=0, nx=2,
-        activation='elu', output_activation='sigmoid', batch_size=64,
+def fit(funcfile, outfile=None, n128=0, n64=0, n32=0, n8=0, 
+        n4=0, n2=0, nx=2, activation='elu', output_activation='sigmoid', batch_size=64,
         balance_target=False, bandwidth=0.1, epochs=500, early=True, test_split=0.2,
         valid_split=0.1, reseed=True, match=True, normalize_target=False,
         progress=True):
@@ -104,8 +106,8 @@ def fit(funcfile, outfile=None, n128=0, n64=0, n32=0, n8=0, nx=2,
         func.scale_features(transforms=None, normalize_target=normalize_target)
 
     # TODO -- CLI
-    model, history = fit_dnn(func, n128=n128, n64=n64, n32=n32, n8=n8, nx=nx,
-                             activation=activation,
+    model, history = fit_dnn(func, n128=n128, n64=n64, n32=n32, n8=n8, 
+                             n4=n4, n2=n2, nx=nx, activation=activation,
                              output_activation=output_activation,
                              valid_split=valid_split,
                              batch_size=batch_size,
