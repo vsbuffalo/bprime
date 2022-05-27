@@ -110,7 +110,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, split_length, step, n
 @click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=1_000)
-@click.option('--nchunks', default=500,
+@click.option('--nchunks', default=800,
               help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--max-map-dist', help="maximum map distance (Morgans) to consider"
               "segment contributions to B' at", default=0.1)

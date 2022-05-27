@@ -102,9 +102,6 @@ def predict_chunk(sites_chunk, models, segment_matrix,
     # X[:, :2] = np.repeat(mesh, nsegs, axis=0)
     # X[:, 2:4] = np.tile(S[:, :2], (nmesh, 1))
 
-    # this is the unmodified transformed copy, e.g. for BGS theory
-    Xp = np.copy(X)
-
     # now calculate the recomb distances
     nsites = sites_chunk.shape[0]
 
@@ -112,14 +109,14 @@ def predict_chunk(sites_chunk, models, segment_matrix,
 
     # plus one is for BGS theory
     B = np.empty((nw, nt, nsites, nmodels+1), dtype='f8')
-    sites_indices = np.arange(nsites)[:10]
+    sites_indices = np.arange(nsites)
 
     if progress:
         sites_iter = tqdm.tqdm(sites_indices)
     else:
         sites_iter = sites_indices
 
-    Xps = []
+    Xps = [] # for debugging
     Bpreds = defaultdict(list)
     for i in sites_iter:
         f = sites_chunk[i, 1] # get map position
@@ -131,25 +128,24 @@ def predict_chunk(sites_chunk, models, segment_matrix,
         # and debugging/testing (see tests/test_predict.py). This can be used
         # see if predictions on these Xps through LearnedFunction.predict()
         # match the results below
-        Xp = inject_rf(rf, Xp, nmesh)
+        X = inject_rf(rf, X, nmesh)
 
         if output_xps:
-            Xps.append(Xp)
+            Xps.append(np.copy(X))
             if dont_predict:
                 continue
 
         # let's calc B theory as a check!
-        bp_theory = predictions_to_B_tensor(bgs_segment(*Xp.T), nw, nt, nsegs)
+        bp_theory = predictions_to_B_tensor(bgs_segment(*X.T), nw, nt, nsegs)
         B[:, :, i, 0] = bp_theory
 
         # now do the DNN prediction stuff
         for j, (model_name, model) in enumerate(models.items(), start=1):
             #  each model has it's own matrix, since they use diff
             # center/scaling parameters
-            X = inject_rf(rf, X, nmesh)
             Bpred = model.predict(X)
-            import pdb
-            pdb.set_trace()
+            #import pdb
+            #pdb.set_trace()
             if output_preds:
                 Bpreds[model_name].append(Bpred)
             b = predictions_to_B_tensor(Bpred, nw, nt, nsegs, nan_bounds=False)
