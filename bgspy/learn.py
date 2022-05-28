@@ -303,8 +303,13 @@ class LearnedFunction(object):
             # need to fix that here.
             obj._protect()
         model_path = f"{filepath}.h5"
-        if load_model and os.path.exists(model_path):
-            obj.model = keras.models.load_model(model_path)
+        if os.path.exists(model_path):
+            if load_model:
+                obj.model = keras.models.load_model(model_path)
+            else:
+                # this can be lazy
+                obj.model = None
+            obj.model_path = model_path
         return obj
 
     @property
@@ -317,7 +322,6 @@ class LearnedFunction(object):
         already been transformed and scaled). This function expects
         transformed/scaled data -- it's fed directly into model prediction.
         """
-        assert self.has_model
         return self.predict(self.X_test_raw, **kwargs).squeeze()
 
     def test_mae(self):
@@ -391,6 +395,14 @@ class LearnedFunction(object):
         return X
 
 
+    def _lazy_load_model(self):
+        """
+        Lazy load in the model off the saved path and return it for prediction, etc.
+        """
+        assert os.path.exists(self.model_path), "cannot lazy load model path"
+        return keras.models.load_model(self.model_path)
+
+
     def predict(self, X=None, transform_to_match=True, correct_bounds=True,
                 **kwargs):
         """
@@ -402,19 +414,23 @@ class LearnedFunction(object):
         """
         if X is None:
             X = self.X_test_raw
-        assert self.has_model
+
+        if not self.has_model:
+            model = self._lazy_load_model()
+        else:
+            model = self.model
+
         X = np.copy(X) # protect the original object
         X = self.check_bounds(X, correct_bounds=correct_bounds)
         if transform_to_match:
             # bounds already correct...
             X = self.transform_X_to_match(X, correct_bounds=False)
-        return self.model.predict(X, **kwargs).squeeze()
+        return model.predict(X, **kwargs).squeeze()
 
     def predict_train(self, **kwargs):
         """
         Predict the training data.
         """
-        assert self.has_model
         return self.predict(self.X_train_raw, **kwargs).squeeze()
 
     def domain_grids(self, n, fix_X=None, manual_domains=None):
@@ -468,7 +484,6 @@ class LearnedFunction(object):
           - A meshgrid that's been normalized and transformed as the original
             data has.
         """
-        assert self.has_model
         domain_grids = self.domain_grids(n, fix_X=fix_X, manual_domains=manual_domains)
         #if verbose:
         #    grid_dims = 'x'.join(map(str, n.values()))
