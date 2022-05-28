@@ -1,0 +1,122 @@
+\documentclass[11pt]{article}
+\RequirePackage{fullpage}
+\RequirePackage[font=small,labelfont=bf]{caption}
+\RequirePackage{amsmath,amssymb,amsthm}
+\RequirePackage{graphicx}
+\RequirePackage[hidelinks]{hyperref}
+\RequirePackage{subcaption}
+\RequirePackage{wasysym}
+\RequirePackage{authblk}
+\RequirePackage{bm}
+\RequirePackage{bbm}
+% \RequirePackage[osf]{mathpazo}
+\RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,maxbibnames=9,maxcitenames=1,backend=biber,natbib=true,uniquelist=false,hyperref=true]{biblatex}
+\usepackage{color}
+\usepackage{nicefrac}
+
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\text{V}}
+\DeclareMathOperator{\var}{Var}
+\DeclareMathOperator{\cov}{cov}
+
+\addbibresource{biblio.bib}
+
+\title{Learning Theory Notes}
+
+\begin{document}
+\maketitle
+
+\section*{Learning Limits}
+
+\subsection*{The Simulation Sample $\bar{B}$ Estimator}
+
+Our goal is to approximate the function $B = f(X)$ with some learned function
+$\widehat{B} = \hat{f}(X)$ from evolutionary simulations. In each evolutionary
+simulation, we sample some evolutionary parameters $X_k$ and evolve $r$
+independent populations forward in time under these parameters and observe some
+genealogy. From this genealogy, we estimate the reduction in neutral diversity
+as:
+
+\begin{align}
+  \bar{B}_k = \frac{1}{r} \sum_{i=1}^r \frac{\hat{\pi}_{k,i}}{4N\mu}
+\end{align}
+
+there $\hat{\pi}$ is Tajima's estimator for pairwise diversity within a tree.
+When we estimate $\hat{\pi}$ from using branch-mode tree statistics from an
+observed genealogy, $\mu \to 1$, so we can ignore mutation.  If we take
+expectation over the evolutionary process,
+
+\begin{align}
+  \E(\bar{B}_k) &= \frac{1}{4Nr} \sum_{i=1}^r \E(\hat{\pi}_{k,i}) \\
+                &= \frac{T_k^{(2)}}{4N}  \\
+                &= \frac{4B_kN}{4N}  \\
+                &= B_k  \\
+\end{align}
+
+thus, the estimated reduction in diversity from simulations $\bar{B}$ is
+unbiased, since $\E(\hat{\pi}_k) = 2T_k^{(2)} = 4B_k N$. For independent
+evolutionary replicates, we calculate the variance of this estimator using
+Tajima's equation for the variance of $\hat{\pi}$ as  
+
+\begin{align}
+  \var(\bar{B}_k) &= \frac{1}{16 N^2 r^2} \sum_{i=1}^r \var(\hat{\pi}_{k,i}) \\
+                  &= \frac{\var(\hat{\pi}_{k,i})}{16 N^2 r} \\
+                  &= \frac{1}{16N^2 r} \left( \frac{n + 1}{3(n-1)}\theta  + \frac{2(n^2 + n + 3)}{9n(n-1)}\theta^2 \right) \\
+                  &= \frac{1}{16N^2 r} \left( \frac{n + 1}{3(n-1)} 4BN + \frac{2(n^2 + n + 3)}{9n(n-1)} 16B^2N^2 \right) \\
+                  &= \underbrace{\frac{n + 1}{12(n-1)} \frac{B}{N r}}_\text{sampling noise} + \underbrace{\frac{2(n^2 + n + 3)}{9n(n-1)} \frac{B^2}{r}}_\text{evolutionary variance}
+\end{align}
+
+Now, let us look at the consistency of the estimator $\bar{B}$ (we drop the
+parameter set $k$ for clarity) both in $r$ (over evolutionary replicates) and
+in $n$ (as the sample size increases). Let $\bar{B}_r$ be the estimator of $B$
+after $r$ evolutionary replicates (conditioning on some $n$). By Chebyshev's
+inequality and for some $\epsilon > 0$,
+
+\begin{align}
+  \P\left(|\bar{B}_r - B| \ge \epsilon \right)  \le \frac{\var(\bar{B}_r)}{\epsilon^2}
+\end{align}
+%
+and since $\lim_{r \to \infty} \var(\bar{B}_r) = 0$,
+
+\begin{align}
+  \lim_{r \to \infty} \P\left(|\bar{B}_r - B| \ge \epsilon \right)  = 0.
+\end{align}
+
+Thus, $\bar{B}_r \xrightarrow{p} B$ as $r \to \infty$ and $\bar{B}_r$ is
+consistent in $r$. Now, let us look at the consistency of $\bar{B}_n$ in sample
+size $n$. Note that $n \le 2N$ (i.e. our sample size is bounded by the number
+of gametes in the population), so we imagine setting $n = 2N$ and taking the
+limit $N \to \infty$,
+
+\begin{align}
+  \lim_{N \to \infty} \P\left(|\bar{B}_N - B| \ge \epsilon \right)  &\le \lim_{N \to \infty} \frac{\var(\bar{B}_N)}{\epsilon^2} \\
+  \lim_{N \to \infty} \P\left(|\bar{B}_N - B| \ge \epsilon \right)  &\le \frac{2B^2}{9 r \epsilon^2}. \\
+\end{align}
+
+Thus, even if we sample the entire population, and let the population size $N
+\to \infty$, $\bar{B}_n$ is still an inconsistent estimator in $n$. Intuitively
+this is because 
+
+
+In our case, we estimate pairwise diversity from the genealogical tree of the
+entire population, so $n = 2N$
+
+\begin{align}
+  \var(\bar{B}_k) &= \frac{n + 1}{12(n-1)} \frac{B}{N r} + \frac{2(n^2 + n + 3)}{9n(n-1)} \frac{B^2}{r} \\
+                  &= \frac{2N + 1}{12(2N-1)} \frac{B}{N r} + \frac{2(4N^2 + 2N + 3)}{18N(2N-1)} \frac{B^2}{r} \\
+                  &\approx \frac{B}{12N r} + \frac{2N^2 + N}{9N^2} \frac{B^2}{r}
+\end{align}
+
+If we take the infinite population size limit,
+
+\begin{align}
+  \lim_{N \to \infty} \var(\bar{B}_k) &= \frac{2B^2}{9r}
+\end{align}
+
+
+
+
+\printbibliography
+
+\end{document}
