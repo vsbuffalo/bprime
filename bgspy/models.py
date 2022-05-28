@@ -394,7 +394,6 @@ class BGSModel(object):
         name = self.genome.name
         self.genome._build_segment_idx_interpol()
         self._build_segment_matrices()
-
         # build main directory if it doesn't exist
         dir = make_dirs(dir)
 

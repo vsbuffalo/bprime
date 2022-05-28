@@ -7,6 +7,7 @@ from sklearn.neighbors import KernelDensity
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras import regularizers
 try:
     import tensorflow_addons as tfa
     PROGRESS_BAR_ENABLED = True
@@ -19,49 +20,23 @@ from bgspy.sim_utils import fixed_params, get_bounds
 from bgspy.theory import BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.learn import LearnedFunction
 
-class TargetReweighter:
-    """
-    Very simple target reweighting. I was implementing a version and found
-    that our approach is quite similar to this:
-        https://www.informatik.uni-wuerzburg.de/datascience/news/single/news/our-article-density-based-weighting-for-imbalanced-regression-has-been-accepted-for-the-ecml-pkdd-2021-journal-track/
-    """
-    def __init__(self, y, kernel='epanechnikov'):
-        assert isinstance(y, np.ndarray), "y must be a numpy.ndarray"
-        if y.ndim == 1:
-            y = y[:, None]
-        self.y = y
-        self.kde = KernelDensity(kernel=kernel)
 
-    def find_optimum_bandwidth(self, bandwidth_grid, cv=5, n_jobs=1, **kwargs):
-        param_grid = {'bandwidth': bandwidth_grid}
-        self._gcv = GridSearchCV(estimator=self.kde, param_grid={'bandwidth': bandwidth_grid}, cv=cv, n_jobs=n_jobs, **kwargs)
-        self._gcv.fit(self.y)
-        self.kde.set_params(**self._gcv.best_params_)
-        self.kde.fit(self.y)
-        self._best_bandwidth = self._gcv.best_params_['bandwidth']
-        self._best_score = self._gcv.best_score_
+def new_layer(size, activation, weight_l2=None, bias_l2=None):
+    if weight_l2 is not None:
+        # this is called kernel_regularizer by keras(?!)
+        assert isinstance(weight_l2, (int, float))
+        weight_l2 = regularizers.L2(weight_l2)
+    if bias_l2 is not None:
+        assert isinstance(bias_l2, (int, float))
+        bias_l2 = regularizers.L2(bias_l2) 
+    return layers.Dense(size, activation=activation, 
+                        kernel_regularizer=weight_l2,
+                        bias_regularizer=bias_l2)
 
-    def set_bandwidth(self, bandwidth):
-        self.kde.set_params(bandwidth=bandwidth)
-        self.kde.fit(self.y)
 
-    def weights(self, y=None, min_weight='min'):
-        y = y if y is not None else self.y
-        if y.ndim == 1:
-            y = y[:, None]
-        w = np.exp(self.kde.score_samples(y))
-        rescaled = (w - min(w)) / (max(w) - min(w))
-        yp = 1-rescaled
-        # if there's a 0 weighted sample, replace with minimum weight
-        if min_weight == 'min':
-            yp[yp <= 0] = np.min(yp[yp > 0])
-        else:
-            assert isinstance(min_weight, float), "min_weight must be 'min' or a float"
-            yp[yp <= min_weight] = min_weight
-        assert np.all(yp > 0)
-        return yp
 
-def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
+def network(input_size=2, n8=0, n4=0, n2=0, nx=2, 
+            weight_l2=None, bias_l2=None,
             output_activation='sigmoid', activation='elu'):
     """
     Build a sequential network given the specified layers. nx specifies the
@@ -71,18 +46,20 @@ def network(input_size=2, n128=0, n64=0, n32=0, n8=0, nx=2,
     model = keras.Sequential()
     model.add(keras.Input(shape=(input_size,)))
     for i in range(nx):
-        model.add(layers.Dense(input_size, activation=activation))
-    for i in range(n128):
-        model.add(layers.Dense(128, activation=activation))
-    for i in range(n64):
-        model.add(layers.Dense(64, activation=activation))
-    for i in range(n32):
-        model.add(layers.Dense(32, activation=activation))
+        model.add(new_layer(input_size, activation=activation, 
+                            weight_l2=weight_l2, bias_l2=bias_l2))
+    for i in range(n2):
+        model.add(new_layer(2, activation=activation, 
+                            weight_l2=weight_l2, bias_l2=bias_l2))
+    for i in range(n4):
+        model.add(new_layer(4, activation=activation, 
+                            weight_l2=weight_l2, bias_l2=bias_l2))
     for i in range(n8):
-        model.add(layers.Dense(8, activation=activation))
+        model.add(new_layer(8, activation=activation, 
+                            weight_l2=weight_l2, bias_l2=bias_l2))
     model.add(keras.layers.Dense(1, activation=output_activation))
     model.compile(
-        optimizer='Adam',
+        optimizer='SGD',
         loss=keras.losses.MeanSquaredError(),
         metrics=[keras.metrics.MeanAbsoluteError(name='mae')],
         #weighted_metrics=[keras.metrics.MeanSquaredError(name='weighted_mse'),
@@ -243,7 +220,9 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
-def fit_dnn(func, n128, n64, n32, n8, n4, n2, nx, activation='elu',
+def fit_dnn(func, n8, n4, n2, nx, 
+            weight_l2=None, bias_l2=None,
+            activation='elu',
             output_activation='sigmoid', valid_split=0.2, batch_size=64,
             epochs=500, early_stopping=True, sample_weight=None,
             progress=False):
@@ -254,7 +233,8 @@ def fit_dnn(func, n128, n64, n32, n8, n4, n2, nx, activation='elu',
     assert func.y_train is not None, "func.y_train is not set -- split test/train data"
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation=output_activation,
-                    n128=n128, n64=n64, n32=n32, n8=n8, nx=nx, activation=activation)
+                    weight_l2=weight_l2, bias_l2=bias_l2,
+                    n8=n8, n4=n4, n2=n2, nx=nx, activation=activation)
     callbacks = []
     if early_stopping:
         #model_file = NamedTemporaryFile() if model_file is None else model_file
@@ -276,5 +256,46 @@ def fit_dnn(func, n128, n64, n32, n8, n4, n2, nx, activation='elu',
                         sample_weight=sample_weight, callbacks=callbacks)
     return model, history
 
+class TargetReweighter:
+    """
+    Very simple target reweighting. I was implementing a version and found
+    that our approach is quite similar to this:
+        https://www.informatik.uni-wuerzburg.de/datascience/news/single/news/our-article-density-based-weighting-for-imbalanced-regression-has-been-accepted-for-the-ecml-pkdd-2021-journal-track/
+    """
+    def __init__(self, y, kernel='epanechnikov'):
+        assert isinstance(y, np.ndarray), "y must be a numpy.ndarray"
+        if y.ndim == 1:
+            y = y[:, None]
+        self.y = y
+        self.kde = KernelDensity(kernel=kernel)
+
+    def find_optimum_bandwidth(self, bandwidth_grid, cv=5, n_jobs=1, **kwargs):
+        param_grid = {'bandwidth': bandwidth_grid}
+        self._gcv = GridSearchCV(estimator=self.kde, param_grid={'bandwidth': bandwidth_grid}, cv=cv, n_jobs=n_jobs, **kwargs)
+        self._gcv.fit(self.y)
+        self.kde.set_params(**self._gcv.best_params_)
+        self.kde.fit(self.y)
+        self._best_bandwidth = self._gcv.best_params_['bandwidth']
+        self._best_score = self._gcv.best_score_
+
+    def set_bandwidth(self, bandwidth):
+        self.kde.set_params(bandwidth=bandwidth)
+        self.kde.fit(self.y)
+
+    def weights(self, y=None, min_weight='min'):
+        y = y if y is not None else self.y
+        if y.ndim == 1:
+            y = y[:, None]
+        w = np.exp(self.kde.score_samples(y))
+        rescaled = (w - min(w)) / (max(w) - min(w))
+        yp = 1-rescaled
+        # if there's a 0 weighted sample, replace with minimum weight
+        if min_weight == 'min':
+            yp[yp <= 0] = np.min(yp[yp > 0])
+        else:
+            assert isinstance(min_weight, float), "min_weight must be 'min' or a float"
+            yp[yp <= min_weight] = min_weight
+        assert np.all(yp > 0)
+        return yp
 
 

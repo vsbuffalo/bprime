@@ -30,7 +30,7 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t,
     g.load_annot(annot)
     g.load_recmap(recmap, conversion_factor=conv_factor)
     g.create_segments(split_length=split_length)
-    m = BGSModel(g, w_grid=w, t_grid=t)
+    m = BGSModel(g, w_grid=w, t_grid=t, split_length=split_length)
     return m
 
 def parse_gridstr(x):
@@ -125,6 +125,9 @@ def dnnb_write(learnfuncs, seqlens, name, annot, recmap, conv_factor, w, t,
 
     learnfuns are file path name (sans extensions) to the .pkl/h5 model.
     """
+    for func in learnfuncs:
+        assert os.path.exists(func + '.pkl'), f"no model pickle file found for {func}"
+        assert os.path.exists(func + '.h5'), f"no keras HDF5 file found for {func}"
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        parse_gridstr(w), parse_gridstr(t),
                        chroms=None, name=name, split_length=split_length)
