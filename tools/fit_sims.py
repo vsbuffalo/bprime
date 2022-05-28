@@ -50,8 +50,7 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--n4', default=0, help="number of 4 neuron dense layers")
 @click.option('--n2', default=0, help="number of 2 neuron dense layers")
 @click.option('--nx', default=2, help="number of x neuron dense layers where x is input size")
-@click.option('--weight-l2', default=None, help="L2 regularizer for weights")
-@click.option('--bias-l2', default=None, help="L2 regularizer for biases")
+@click.option('--l2-penalty', default=None, help="L2 regularizer for weights and biases")
 @click.option('--activation', default='elu', help="layer activation")
 @click.option('--output-activation', default='sigmoid', help="output activation")
 @click.option('--batch-size', default=64, help="batch size")
@@ -67,7 +66,7 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
               help="transform X to match if log10 scale")
 @click.option('--progress', is_flag=True, default=True, help="show progress")
 def fit(funcfile, outfile=None, n8=0, n4=0, n2=0, nx=2, 
-        weight_l2=None, bias_l2=None, activation='elu', 
+        l2_penalty=None, activation='elu', 
         output_activation='sigmoid', batch_size=64,
         epochs=500, early=True, test_split=0.2,
         valid_split=0.1, reseed=True, match=True, normalize_target=False,
@@ -104,8 +103,9 @@ def fit(funcfile, outfile=None, n8=0, n4=0, n2=0, nx=2,
         # just normalize
         func.scale_features(transforms=None, normalize_target=normalize_target)
 
-    weight_l2 = None if weight_l2 == "None" else float(weight_l2)
-    bias_l2 = None if bias_l2 == "None" else float(bias_l2)
+    # currently we use same penalty for weights and biaes
+    weight_l2 = None if l2_penalty == "None" else float(l2_penalty)
+    bias_l2 = None if l2_penalty == "None" else float(l2_penalty)
 
     # TODO -- CLI
     model, history = fit_dnn(func, n8=n8, n4=n4, n2=n2, nx=nx, 

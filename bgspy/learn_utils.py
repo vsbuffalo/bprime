@@ -59,7 +59,7 @@ def network(input_size=2, n8=0, n4=0, n2=0, nx=2,
                             weight_l2=weight_l2, bias_l2=bias_l2))
     model.add(keras.layers.Dense(1, activation=output_activation))
     model.compile(
-        optimizer='SGD',
+        optimizer='Adam',
         loss=keras.losses.MeanSquaredError(),
         metrics=[keras.metrics.MeanAbsoluteError(name='mae')],
         #weighted_metrics=[keras.metrics.MeanSquaredError(name='weighted_mse'),

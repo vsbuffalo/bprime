@@ -8,15 +8,14 @@ name = config['name']
 average_reps = '--average' if config['average'] else '--no-average'
 activs = config['activs']
 outactivs = config['outactivs']
-weight_l2s = config['weight_l2']
-bias_l2s = config['bias_l2']
+l2penalties = config['l2_penalty']
 #balances = config['balances']
 nreps = config['fit_nreps']
 archs = config['archs']
 
 DATADIR = "../../data/slim_sims/"
 
-FILENAME_PATTERN = f"{name}_{{n8}}n8_{{n4}}n4_{{n2}}n2_{{nx}}nx_{{weight_l2}}weightl2_{{bias_l2}}biasl2_{{activ}}activ_{{outactiv}}outactiv_fit_{{rep}}rep{{suffix}}"
+FILENAME_PATTERN = f"{name}_{{n8}}n8_{{n4}}n4_{{n2}}n2_{{nx}}nx_{{l2penalty}}l2penalty_{{activ}}activ_{{outactiv}}outactiv_fit_{{rep}}rep{{suffix}}"
 
 def get_outfile(name, dir=None, suffix=''):
      dir = dir if dir is not None else ''
@@ -41,8 +40,7 @@ dnn_files = []
 
 params = dict(activ=activs, outactiv=outactivs, 
               #balance=balances, 
-              weight_l2=weight_l2s, 
-              bias_l2=bias_l2s, 
+              l2penalty=l2penalties,
               rep=list(range(nreps)),
               arch=archs)
 
@@ -78,8 +76,7 @@ rule fit_dnn:
      module load cuda/10.1
      python ../../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 \
       --n8 {wildcards.n8} --n4 {wildcards.n4} --n2 {wildcards.n2} --nx {wildcards.nx} \
-      --weight-l2 {wildcards.weight_l2} --bias-l2 {wildcards.bias_l2} \
-      --activation {wildcards.activ} \
+      --l2-penalty {wildcards.l2penalty} --activation {wildcards.activ} \
       --output-activation {wildcards.outactiv} {input} 
      """
 
