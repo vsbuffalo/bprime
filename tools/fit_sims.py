@@ -93,7 +93,7 @@ def fit(funcfile, outfile=None, n16=0, n8=0, n4=0, n2=0, nx=2,
     sample_weight = None
     if var_sample_weights:
         train_idx = func._train_idx
-        emp_vars = func.y_var.values[train_idx, :]
+        emp_vars = func.bhat_var.values[train_idx, :]
         assert emp_vars is not None, "LearnedFunction.y_var not set!"
         sample_weight = emp_vars/emp_vars.sum()
 

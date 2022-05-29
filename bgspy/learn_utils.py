@@ -165,14 +165,14 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
         yd['key'] = keys
         Xd = pd.DataFrame(Xo, columns=sim_data['features'])
         Xd['key'] = keys
-        Xo_ave = Xd.groupby('key').mean().drop('key', axis=1).values
+        Xo_ave = Xd.groupby('key').mean().reset_index().drop('key', axis=1)
         msg ="keys not mapped to unique parameters!"
-        Xo_var = Xd.groupby('key').var().values.drop('key', axis=1).values
+        Xo_var = Xd.groupby('key').var().reset_index().drop(['key', 'rep'], axis=1).values
         # if there is a 5th column, it's the replicate number -- it does vary
         assert np.allclose(Xo_var, 0), msg
-        yo_ave = yd.groupby('key').mean().drop('key', axis=1).values
-        yo_var = yd.groupby('key').var().drop('key', axis=1)
-        bhat_var = yo_var['bhat'].values
+        yo_ave = yd.groupby('key').mean().reset_index().drop('key', axis=1)
+        yo_var = yd.groupby('key').var().reset_index()
+        bhat_var = yo_var['Bhat'].values
         Xo, yo = Xo_ave.values, yo_ave.values
 
     # first deal with y -- here we only care about Bhat, so we get that
@@ -227,7 +227,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     domain = {p: sim_bounds[p] for p in features}
 
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
-    func.bhat_var = Bhat_var # set the empirical y variance
+    func.bhat_var = bhat_var # set the empirical y variance
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
