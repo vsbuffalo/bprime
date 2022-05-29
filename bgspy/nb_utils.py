@@ -39,7 +39,8 @@ def load_learnedfuncs_in_dir(dir):
         bf = LearnedB(model=lf.metadata['model'])
         bf.func = lf
 
-        row = {'key': stem(os.path.basename(file)), **arch, **keys, 'bf': bf}
+        row = {'key': stem(os.path.basename(file)), **arch,
+               **{k: v for k, v in keys.items() if k not in arch}, 'bf': bf}
                #'mae': bf.func.test_mae(), 'mse': bf.func.test_mse()}
         rows.append(row)
     return pd.DataFrame(rows)

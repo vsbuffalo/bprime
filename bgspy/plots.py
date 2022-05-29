@@ -542,10 +542,9 @@ def marginal_plot(bfs, var, nbins,
             var_val = mids
             # we take a random sample of the whole dataset
             # and inject the mid Ls in to estimate predictions
-            X = grp.drop([bin_col, 'y'], axis=1)
-            sample_size = 500
-            predicts = np.zeros(len(mids))
+            X = bf.func.X
             predict = bf.func.predict(X)
+            predict = pd.DataFrame(dict(y=predict, bin=bins)).groupby(['bin']).mean().reset_index()['y'].values
         ax.plot(mids, predict.squeeze())
     if log:
         ax.semilogx()
