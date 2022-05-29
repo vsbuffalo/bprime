@@ -34,7 +34,6 @@ def new_layer(size, activation, weight_l2=None, bias_l2=None):
                         bias_regularizer=bias_l2)
 
 
-
 def network(input_size=2, n16=0, n8=0, n4=0, n2=0, nx=2, 
             weight_l2=None, bias_l2=None,
             output_activation='sigmoid', activation='elu'):
@@ -70,7 +69,8 @@ def network(input_size=2, n16=0, n8=0, n4=0, n2=0, nx=2,
         )
     return model
 
-def load_data(jsonfile, npzfile):
+
+def load_data(jsonfile, *npzfiles):
     """
     Load the JSON file with the parameters (and other details) of a simulation,
     and the NPZ file containing the features and targets matrices.
@@ -82,8 +82,34 @@ def load_data(jsonfile, npzfile):
     with open(jsonfile) as f:
         sim_config = json.load(f)
     sim_params, model = sim_config['params'], sim_config['model']
-    sim_data = np.load(npzfile, allow_pickle=True)
-    assert(len(sim_data['features']) == sim_data['X'].shape[1])
+
+    # load in all the sime data and merge
+    all_X = []
+    all_y = []
+    all_features = None
+    all_targets = None
+    all_keys = []
+    for npzfile in npzfiles:
+        sim_data = np.load(npzfile, allow_pickle=True)
+        assert(len(sim_data['features']) == sim_data['X'].shape[1])
+        all_X.append(sim_data['X'])
+        all_y.append(sim_data['y'])
+        all_keys.append(sim_data['keys'])
+        if all_features is None:
+            all_features = sim_data['features']
+        else:
+            assert np.all(all_features == sim_data['features']), "mismatching features!"
+        if all_targets is None:
+            all_targets = sim_data['targets']
+        else:
+            assert np.all(all_targets == sim_data['targets']), "mismatching targets!"
+
+    sim_data = dict(X=np.concatenate(all_X, axis=0),
+                    y=np.concatenate(all_y, axis=0),
+                    keys=np.concatenate(all_keys, axis=0),
+                    features=all_features,
+                    targets=all_targets)
+
     return sim_params, sim_data, model
 
 def fixed_cols(X, colnames=None):
@@ -160,7 +186,6 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     bhat_var = None
     if average_reps:
         keys = sim_data['keys']
-        assert np.all(sorted(keys) == keys)
         yd = pd.DataFrame(yo, columns=sim_data['targets'])
         yd['key'] = keys
         Xd = pd.DataFrame(Xo, columns=sim_data['features'])

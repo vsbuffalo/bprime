@@ -13,21 +13,12 @@ import pyslim
 import msprime
 import tqdm
 from bgspy.theory import BGS_MODEL_PARAMS
-from bgspy.utils import get_files
+from bgspy.utils import get_files, Bhat
 
 FILENAME_RE = re.compile("(.*)_seed(\d+)_rep\d+_treeseq\.tree")
 
 # we mirror the BGS segment model
 DEFAULT_FEATURES = tuple(list(BGS_MODEL_PARAMS['bgs_segment']) + ['rep'])
-
-def Bhat(pi, N):
-    """
-    Branch statistics π is 4N (e.g. if μ --> 1)
-    If there's a reduction factor B, such that
-    E[π] = 4BN, a method of moments estimator of
-    B is Bhat = π / 4N.
-    """
-    return 0.25 * pi / N
 
 def process_tree_file(tree_file, features, recap='auto'):
 

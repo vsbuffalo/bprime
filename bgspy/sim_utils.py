@@ -168,5 +168,3 @@ def load_b_chrom_sims(dir, progress=True, **kwargs):
         b = list(map(operator.itemgetter(1), res))
         sims[key] = np.stack(pos)[0, :], np.stack(b).T
     return sims
-
-

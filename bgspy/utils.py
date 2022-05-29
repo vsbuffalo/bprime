@@ -72,6 +72,16 @@ def subsampler_factory(frac, init_size=10_000_000, rng=None):
                 yield item
     return subsampler
 
+def Bhat(pi, N):
+    """
+    Branch statistics π is 4N (e.g. if μ --> 1)
+    If there's a reduction factor B, such that
+    E[π] = 4BN, a method of moments estimator of
+    B is Bhat = π / 4N.
+    Note: this should be called bbar but I didn't and now we're stuck with this
+    """
+    return 0.25 * pi / N
+
 
 def genome_emp_dists(genome, step, mu, s, B_subsample_frac, subsample_frac):
     """

@@ -48,6 +48,8 @@ params = dict(activ=activs, outactiv=outactivs,
 
 fit_params = param_grid(params)
 
+COAL_NPZ = "msprime_spike_100total_50reps_1000N_12seed.npz"
+
 for param_set in fit_params:
     kwargs = {**param_set, **param_set['arch']}
     dnn_files.append(FILENAME.format(**kwargs, suffix='.pkl'))
@@ -62,12 +64,23 @@ rule process_trees:
           --features 'mu,sh,L,rbp,rf,rep' {SIMDIR}
         """
 
+rule msprime_spike:
+    input: json=f"{name}.json"
+    output: "msprime_spike_{total}total_{reps}reps_{N}N_{seed}seed.npz"
+    shell:
+        """
+        python ../../tools/fit_sims.py spike --outfile {output} \
+        --N {wildcards.N} --total {wildcards.total} --reps {wildcards.reps} \
+        --seed {wildcards.seed} {input.json}
+        """
+
 rule process_data:
-  input: json=f"{name}.json", npz=npz_file
+  input: json=f"{name}.json", fwd_npz=npz_file, coal_npz=COAL_NPZ
   output: data_file
   shell:
      f"""
-     python ../../tools/fit_sims.py data --outfile {{output}} {average_reps} {{input.json}} {{input.npz}}
+     python ../../tools/fit_sims.py data --outfile {{output}} {average_reps} \
+        {{input.json}} {{input.fwd_npz}} {{input.coal_npz}}
      """
 
 rule fit_dnn:
@@ -85,7 +98,8 @@ rule fit_dnn:
       --output-activation {wildcards.outactiv} {input}
      """
 
-
+rule spike:
+  input: COAL_NPZ
 
 rule data:
   input: data_file

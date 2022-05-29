@@ -20,21 +20,47 @@ from bgspy.utils import index_cols
 from bgspy.learn_utils import load_data, data_to_learnedfunc, fit_dnn
 from bgspy.learn_utils import TargetReweighter
 from bgspy.learn import LearnedFunction
+from bgspy.sim_utils import random_seed
+from bgspy.msprime import msprime_spike
 
 
 @click.group()
 def cli():
     pass
 
+
 @cli.command()
 @click.argument('jsonfile', required=True)
-@click.argument('npzfile', required=True)
+@click.option('--outfile', default=None, help="output file")
+@click.option('--N', required=True, type=int, help='population size')
+@click.option('--total', required=True, type=int, help='how many sims')
+@click.option('--reps', required=True, type=int, help='how many replicates per parameter set')
+@click.option('--seed', default=None, help='random seed for test/train split')
+def spike(jsonfile, outfile, n, total, reps, seed):
+    """
+    Experimental: spike in L=0 neutral sims
+    """
+    N = n # click lowercases stuff
+    if seed is None:
+        seed = random_seed()
+    else:
+        seed = int(seed)
+    if outfile is None:
+        outfile = f"msprime_spike_{total}total_{reps}reps_{N}N_{seed}seed.npz"
+    config = json.load(open(jsonfile))
+    X, y, features, targets, keys = msprime_spike(config, N, total, reps, seed=seed)
+    np.savez(outfile, X=X, y=y, features=features, targets=targets, keys=keys)
+
+
+@cli.command()
+@click.argument('jsonfile', required=True)
+@click.argument('npzfile', required=True, nargs=-1)
 @click.option('--average/--no-average', default=True, help="whether to average over replicates")
 @click.option('--outfile', default=None, help="output file (default <jsonfile>_data.pkl")
 @click.option('--seed', default=None, help='random seed for test/train split')
 def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
          seed=None, match=True):
-    func = data_to_learnedfunc(*load_data(jsonfile, npzfile),
+    func = data_to_learnedfunc(*load_data(jsonfile, *npzfile),
                                average_reps=average, seed=seed)
     if outfile is None:
         # suffix is handled by LearnedFunction.save
@@ -92,10 +118,12 @@ def fit(funcfile, outfile=None, n16=0, n8=0, n4=0, n2=0, nx=2,
 
     sample_weight = None
     if var_sample_weights:
+        assert func.bhat_var is not None, "LearnedFunction.bhat_var not set!"
         train_idx = func._train_idx
-        emp_vars = func.bhat_var.values[train_idx, :]
-        assert emp_vars is not None, "LearnedFunction.y_var not set!"
-        sample_weight = emp_vars/emp_vars.sum()
+        emp_vars = func.bhat_var[train_idx]
+        # calculate the precision
+        emp_precision = 1/emp_vars
+        sample_weight = emp_precision/emp_precision.sum()
 
     if balance_target:
         # the copy is because sklearn annoyingly doesn't like read only data (why?!)
