@@ -6,6 +6,9 @@ import json
 import numpy as np
 from collections import defaultdict
 import click
+from sklearn.preprocessing import PolynomialFeatures 
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
 
 import tensorflow as tf
 from tensorflow import keras
@@ -122,8 +125,14 @@ def fit(funcfile, outfile=None, n16=0, n8=0, n4=0, n2=0, nx=2,
         train_idx = func._train_idx
         emp_vars = func.bhat_var[train_idx]
         # calculate the precision
-        emp_precision = 1/emp_vars
-        sample_weight = emp_precision/emp_precision.sum()
+        pipe = Pipeline(steps=[('poly', PolynomialFeatures(degree=3)),
+                               ('regr', LinearRegression())])
+        pipe.fit(func.y_train[:, None], emp_vars[:, None])
+        # weight by the conditional mean
+        pred_vars = pipe.predict(func.y_train[:, None])
+        sample_weight = 1/pred_vars # precision
+        sample_weight = sample_weight / sample_weight.sum()
+
 
     if balance_target:
         # the copy is because sklearn annoyingly doesn't like read only data (why?!)
@@ -158,6 +167,12 @@ def fit(funcfile, outfile=None, n16=0, n8=0, n4=0, n2=0, nx=2,
                              progress=(progress and PROGRESS_BAR_ENABLED))
     func.model = model
     func.history = history.history
+    # save some time later on
+    mse = np.mean((func.predict_test() - func.y_test)**2)
+    if func.metadata is not None:
+        func.metadata['test_mse'] = mse
+    else:
+        func.metadata = dict(test_mse=mse)
     func.save(outfile)
 
 

@@ -48,7 +48,7 @@ params = dict(activ=activs, outactiv=outactivs,
 
 fit_params = param_grid(params)
 
-COAL_NPZ = "msprime_spike_100total_50reps_1000N_12seed.npz"
+COAL_NPZ = "msprime_spike_10000total_5reps_1000N_12seed.npz"
 
 for param_set in fit_params:
     kwargs = {**param_set, **param_set['arch']}
@@ -74,9 +74,12 @@ rule msprime_spike:
         --seed {wildcards.seed} {input.json}
         """
 
+# Note: we add in _raw.pkl to avoid a cyclic dependency graph
+# caused by just modifying a file
+
 rule process_data:
   input: json=f"{name}.json", fwd_npz=npz_file, coal_npz=COAL_NPZ
-  output: data_file
+  output: fill_suffix(FILENAME, '_raw.pkl')
   shell:
      f"""
      python ../../tools/fit_sims.py data --outfile {{output}} {average_reps} \
@@ -84,7 +87,7 @@ rule process_data:
      """
 
 rule fit_dnn:
-  input: data_file 
+  input: fill_suffix(FILENAME, '_raw.pkl')
   output: model=fill_suffix(FILENAME, '.pkl'), keras=fill_suffix(FILENAME, '.h5')
   shell:
      """
