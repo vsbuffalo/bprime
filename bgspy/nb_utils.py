@@ -9,7 +9,7 @@ LAYERS = [8, 4, 2, 'x']
 LAYER_COMPONENT = '_'.join([f"(?P<n{i}>\d+)n{i}" for i in LAYERS])
 
 # this needs to match the FILENAME_PATTERN in fit_snakefile
-PATH = rf'\w+_{LAYER_COMPONENT}_(?P<weightl2>[^w]+)weightl2_(?P<biasl2>[^b]+)biasl2_(?P<activ>(relu|elu|tanh))activ_(?P<outactive>(sigmoid|relu))outactiv_fit_(?P<rep>\d+)rep'
+PATH = rf'\w+_{LAYER_COMPONENT}_(?P<l2penalty>[^w]+)l2penalty_(?P<activ>(relu|elu|tanh))activ_(?P<outactive>(sigmoid|relu))outactiv_fit_(?P<rep>\d+)rep'
 
 def stem(x):
     return x.replace('.h5', '')

@@ -1,10 +1,12 @@
 import numpy as np
 from math import ceil
 import itertools
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import statsmodels.api as sm
 import scipy.stats as stats
+from sklearn.neighbors import KNeighborsRegressor
 from bgspy.theory import B_var_limit
 from bgspy.utils import signif
 from bgspy.learn import LearnedB
@@ -397,7 +399,12 @@ def b_learn_diagnostic_plot(bfunc, bins=50, figsize=(10, 7), R=1,
         yhat_vs_ytrain_plot(bfunc, figax=(fig, ax3))
         bhat_plot(bfunc, bins=bins, c='cornflowerblue', figax=(fig, ax3))
     loss_limits_plot(bfunc, R=R, figax=(fig, ax4))
-    ax2.axhline(2 / (9*R), linestyle='dashed', c='0.44')
+    # assume B = 1
+    ax2.axhline(2 / (9*R), linestyle='dashed', c='red')
+    # this is random, np.mean((bf.func.y - 1)**2)
+    ax2.axhline(0.004711, linestyle='dashed', c='0.77')
+    # this is random, np.mean((bf.func.y - np.mean(bf.func.y))**2)
+    ax2.axhline(0.004681412, linestyle='dashed', c='cornflowerblue')
     plt.tight_layout()
     return fig, ((ax1, ax2), (ax3, ax4))
 
@@ -472,3 +479,76 @@ def ll_grid(m, row_vals, col_vals,
     if xlabel is not None:
         ax.set_xlabel(xlabel)
     return fig, ax
+
+
+def marginal_plot(bfs, var, nbins,
+                  add_interval=True, nstd=1,
+                  fix={'mu': 1e-8, 'sh': 1e-2, 'rf': 1e-6, 'L': 1000, 'rbp': 1e-7},
+                  figax=None, log=False):
+    if figax is not None:
+        fig, ax = figax
+    else:
+        fig, ax = plt.subplots()
+    bf = bfs[0] # all use same training usually
+    cols = ('mu', 'sh', 'L', 'rbp', 'rf')
+    X = pd.DataFrame(bf.func.X, columns=cols)
+    y = bf.func.y
+    # bins
+    x = X[var]
+    if log:
+        x = np.log10(x)
+    bins = pd.cut(x, nbins).values
+
+    X['y'] = y
+    bin_col = f'{var}_bin'
+    X[bin_col] = bins
+    grp = X.groupby([bin_col]).mean().reset_index()
+    grp_std = np.sqrt(X.groupby([bin_col]).var().reset_index()['y'].values)
+    mids = np.array([(x.left + x.right)/2 for x in grp[bin_col].values])
+    ybin = grp['y'].values
+
+    if log:
+        mids = 10**mids
+    ax.plot(mids, ybin, c='0.22')
+    if add_interval:
+        ax.fill_between(mids, ybin - nstd*grp_std, ybin + nstd*grp_std, linewidth=0, color='0.22', alpha=0.2)
+
+    if fix is not None:
+        # exclude the variable
+        fix = {k: v for k, v in fix.items() if k != var}
+    for bf in bfs:
+        if fix is not None:
+            lower, upper = bf.func.bounds[var]
+            log_it = log
+            if not log:
+                # if we want something on the linear scale, be sure to
+                # get the linear bounds
+                if bf.func.logscale[var]:
+                    lower, upper = 10**lower, 10**upper
+                # and don't log scale the grid!
+                log_it = False
+
+            # we need this exception for linear scale variables so we don't try
+            # to log them
+            if log and not bf.func.logscale[var]:
+                log_it = False
+            manual = {var: (lower, upper, nbins, log_it)}
+            (mu, sh, L, rbp, rf), X_mesh_raw, _, predict = bf.func.predict_grid(#{var: nbins},
+                                                                                None,
+                                                                                manual_domains=manual,
+                                                                                fix_X=fix, verbose=False)
+            var_val = X_mesh_raw[:, cols.index(var)]
+        else:
+            var_val = mids
+            # we take a random sample of the whole dataset
+            # and inject the mid Ls in to estimate predictions
+            X = grp.drop([bin_col, 'y'], axis=1)
+            sample_size = 500
+            predicts = np.zeros(len(mids))
+            predict = bf.func.predict(X)
+        ax.plot(mids, predict.squeeze())
+    if log:
+        ax.semilogx()
+    ax.set_title(var)
+    return fig, ax
+

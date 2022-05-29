@@ -364,6 +364,7 @@ class LearnedFunction(object):
         """
         X = np.copy(X)
         n_lowers, n_uppers = Counter(), Counter()
+        bad = defaultdict(list)
         for i, feature in enumerate(self.features):
             lower, upper = self.get_bounds(feature)
             out_lower = X[:, i] < lower
@@ -371,6 +372,8 @@ class LearnedFunction(object):
             if np.any(out_lower) or np.any(out_upper):
                 #print(feature, 'lower', X[out_lower, i])
                 #print(feature, 'upper', X[out_upper, i])
+                bad[feature].extend(X[out_upper, i])
+                bad[feature].extend(X[out_lower, i])
                 if correct_bounds:
                     X[out_lower, i] = lower
                     X[out_upper, i] = upper
@@ -399,6 +402,8 @@ class LearnedFunction(object):
         """
         Lazy load in the model off the saved path and return it for prediction, etc.
         """
+        if self.has_model:
+            return model
         assert os.path.exists(self.model_path), "cannot lazy load model path"
         return keras.models.load_model(self.model_path)
 
@@ -496,7 +501,8 @@ class LearnedFunction(object):
         X_meshcols_raw = X_meshcols.copy()
         # transform/scale the new mesh
         X_meshcols = self.transform_X_to_match(X_meshcols, correct_bounds=correct_bounds)
-        predict = self.model.predict(X_meshcols, verbose=int(verbose)).squeeze()
+        model = self._lazy_load_model()
+        predict = model.predict(X_meshcols, verbose=int(verbose)).squeeze()
         return domain_grids, X_meshcols_raw, X_meshcols, predict.reshape(mesh[0].shape)
 
 
