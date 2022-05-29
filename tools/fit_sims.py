@@ -46,10 +46,13 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--outfile', default=None,
               help="output filepath (default <funcfile>, "
                    "creating <_dnn.pkl> and <funcfile>_dnn.h5")
+@click.option('--n16', default=0, help="number of 16 neuron dense layers")
 @click.option('--n8', default=0, help="number of 8 neuron dense layers")
 @click.option('--n4', default=0, help="number of 4 neuron dense layers")
 @click.option('--n2', default=0, help="number of 2 neuron dense layers")
 @click.option('--nx', default=2, help="number of x neuron dense layers where x is input size")
+@click.option('--var-sample-weights', default=False, 
+              help="weight the samples by empirical variances")
 @click.option('--l2-penalty', default=None, help="L2 regularizer for weights and biases")
 @click.option('--activation', default='elu', help="layer activation")
 @click.option('--output-activation', default='sigmoid', help="output activation")
@@ -65,7 +68,8 @@ def data(jsonfile, npzfile, average=True, outfile=None, test_size=0.3,
 @click.option('--normalize-target', is_flag=True, default=False,
               help="transform X to match if log10 scale")
 @click.option('--progress', is_flag=True, default=True, help="show progress")
-def fit(funcfile, outfile=None, n8=0, n4=0, n2=0, nx=2, 
+def fit(funcfile, outfile=None, n16=0, n8=0, n4=0, n2=0, nx=2,
+        var_sample_weights=False,
         l2_penalty=None, activation='elu', 
         output_activation='sigmoid', batch_size=64,
         epochs=500, early=True, test_split=0.2,
@@ -87,6 +91,12 @@ def fit(funcfile, outfile=None, n8=0, n4=0, n2=0, nx=2,
     func.split(test_split=test_split)
 
     sample_weight = None
+    if var_sample_weights:
+        train_idx = func._train_idx
+        emp_vars = func.y_var.values[train_idx, :]
+        assert emp_vars is not None, "LearnedFunction.y_var not set!"
+        sample_weight = emp_vars/emp_vars.sum()
+
     if balance_target:
         # the copy is because sklearn annoyingly doesn't like read only data (why?!)
         y = np.copy(func.y_train)
@@ -108,7 +118,7 @@ def fit(funcfile, outfile=None, n8=0, n4=0, n2=0, nx=2,
     bias_l2 = None if l2_penalty == "None" else float(l2_penalty)
 
     # TODO -- CLI
-    model, history = fit_dnn(func, n8=n8, n4=n4, n2=n2, nx=nx, 
+    model, history = fit_dnn(func, n16=n16, n8=n8, n4=n4, n2=n2, nx=nx, 
                              weight_l2=weight_l2,
                              bias_l2=bias_l2,
                              activation=activation,

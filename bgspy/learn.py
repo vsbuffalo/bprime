@@ -10,7 +10,7 @@ from collections import Counter, defaultdict
 import numpy as np
 import tqdm
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, ShuffleSplit
 import scipy.stats as stats
 from tensorflow import keras
 
@@ -144,6 +144,7 @@ class LearnedFunction(object):
         return "\n".join(rows)
 
     def _protect(self):
+        "set read only flag on these numpy arrays"
         protectables = ['X', 'y', 'X_test', 'X_train', 'y_test', 'y_train',
                         'X_test_raw', 'X_train_raw']
         for protectable in protectables:
@@ -157,13 +158,18 @@ class LearnedFunction(object):
         to initialization (any scale_feature transforms will be reset).
         """
         self.test_split = test_split
-        dat = train_test_split(self.X, self.y, test_size=test_split,
-                               random_state=self.rng)
-        Xtrn, Xtst, ytrn, ytst = dat
-        self.X_train = Xtrn
-        self.X_test = Xtst
-        self.y_train = ytrn.squeeze()
-        self.y_test = ytst.squeeze()
+        #dat = train_test_split(self.X, self.y, test_size=test_split,
+        #                       random_state=self.rng)
+        # note: wtf isn't this an infinite iterator?
+        # we could use this to shuffle over data many times for ensemble
+        rs = ShuffleSplit(n_splits=1, test_size=test_split, random_state=self.rng)
+        train_idx, test_idx = list(rs.split(self.X, self.y))[0]
+        self._train_idx = train_idx
+        self._test_idx = test_idx
+        self.X_train = self.X[train_idx, :]
+        self.X_test = self.X[test_idx, :] 
+        self.y_train = self.y[train_idx, :].squeeze()
+        self.y_test = self.y[test_idx, :].squeeze()
         # store the pre-transformed daata, which is useful for figures, etc
         self.X_test_raw = np.copy(self.X_test)
         self.X_train_raw = np.copy(self.X_train)

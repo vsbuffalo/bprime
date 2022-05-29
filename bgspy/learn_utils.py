@@ -35,7 +35,7 @@ def new_layer(size, activation, weight_l2=None, bias_l2=None):
 
 
 
-def network(input_size=2, n8=0, n4=0, n2=0, nx=2, 
+def network(input_size=2, n16=0, n8=0, n4=0, n2=0, nx=2, 
             weight_l2=None, bias_l2=None,
             output_activation='sigmoid', activation='elu'):
     """
@@ -56,6 +56,9 @@ def network(input_size=2, n8=0, n4=0, n2=0, nx=2,
                             weight_l2=weight_l2, bias_l2=bias_l2))
     for i in range(n8):
         model.add(new_layer(8, activation=activation, 
+                            weight_l2=weight_l2, bias_l2=bias_l2))
+    for i in range(n16):
+        model.add(new_layer(16, activation=activation, 
                             weight_l2=weight_l2, bias_l2=bias_l2))
     model.add(keras.layers.Dense(1, activation=output_activation))
     model.compile(
@@ -154,15 +157,22 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     # raw (original) data -- this contains extraneous columns, e.g.
     # ones that aren't fixed
     Xo, yo = np.array(sim_data['X']), sim_data['y']
+    bhat_var = None
     if average_reps:
         keys = sim_data['keys']
         assert np.all(sorted(keys) == keys)
-        yd = pd.DataFrame(yo)
+        yd = pd.DataFrame(yo, columns=sim_data['targets'])
         yd['key'] = keys
-        Xd = pd.DataFrame(Xo)
+        Xd = pd.DataFrame(Xo, columns=sim_data['features'])
         Xd['key'] = keys
-        Xo_ave = Xd.groupby('key').mean()
-        yo_ave = yd.groupby('key').mean()
+        Xo_ave = Xd.groupby('key').mean().drop('key', axis=1).values
+        msg ="keys not mapped to unique parameters!"
+        Xo_var = Xd.groupby('key').var().values.drop('key', axis=1).values
+        # if there is a 5th column, it's the replicate number -- it does vary
+        assert np.allclose(Xo_var, 0), msg
+        yo_ave = yd.groupby('key').mean().drop('key', axis=1).values
+        yo_var = yd.groupby('key').var().drop('key', axis=1)
+        bhat_var = yo_var['bhat'].values
         Xo, yo = Xo_ave.values, yo_ave.values
 
     # first deal with y -- here we only care about Bhat, so we get that
@@ -217,10 +227,11 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     domain = {p: sim_bounds[p] for p in features}
 
     func = LearnedFunction(X, y, domain=domain, fixed=fixed_vals, seed=seed)
+    func.bhat_var = Bhat_var # set the empirical y variance
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
-def fit_dnn(func, n8, n4, n2, nx, 
+def fit_dnn(func, n16, n8, n4, n2, nx, 
             weight_l2=None, bias_l2=None,
             activation='elu',
             output_activation='sigmoid', valid_split=0.2, batch_size=64,
@@ -234,7 +245,7 @@ def fit_dnn(func, n8, n4, n2, nx,
     input_size = len(func.features)
     model = network(input_size=input_size, output_activation=output_activation,
                     weight_l2=weight_l2, bias_l2=bias_l2,
-                    n8=n8, n4=n4, n2=n2, nx=nx, activation=activation)
+                    n16=n16, n8=n8, n4=n4, n2=n2, nx=nx, activation=activation)
     callbacks = []
     if early_stopping:
         #model_file = NamedTemporaryFile() if model_file is None else model_file
