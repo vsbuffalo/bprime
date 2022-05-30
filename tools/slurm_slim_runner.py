@@ -26,7 +26,7 @@ TEMPLATE = """\
 #SBATCH --time={job_time}
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=500M
+#SBATCH --mem=1G
 #SBATCH --account=kernlab
 #SBATCH --array=1-{max_array}
 
