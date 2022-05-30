@@ -31,37 +31,75 @@
 
 \subsection*{The Simulation Sample $\bar{B}$ Estimator}
 
-Our goal is to approximate the function $B = f(X)$ with some learned function
-$\widehat{B} = \hat{f}(X)$ from evolutionary simulations. In each evolutionary
-simulation, we sample some evolutionary parameters $X_k$ and evolve $r$
-independent populations forward in time under these parameters and observe some
-genealogy. From this genealogy, we estimate the reduction in neutral diversity
-as:
+Our goal is to approximate a function that describes the reduction in pairwise
+diversity (relative to the neutral expectation) $B$ due to BGS for some set of
+evolutionary parameters $\mathbf{x}$. The true reduction function is a
+conditional expectation $B(\mathbf{x}) = \E[T_2(\mathbf{x}) | \mathbf{x}]$
+taken over an infinite number of evolutionary replicates. Here
+$T_2(\mathbf{x})$ is the pairwise coalescent rate under BGS for parameters
+$\mathbf{x}$, with time scaled in $2N$ generation units.
+
+We approximate this function $B(\mathbf{x})$ with $\widehat{B}(\mathbf{x})$
+from evolutionary simulations using statistical learning. In each evolutionary
+simulation, we sample some parameter set $\mathbf{x}$ and evolve $r$
+independent populations forward in time and observe the resulting genealogy at
+a neutral site a given recombination distance away (this is one of the
+parameters). From this full population genealogy of $2N$ gametes, we estimate
+the reduction in neutral diversity as
 
 \begin{align}
-  \bar{B}_k = \frac{1}{r} \sum_{i=1}^r \frac{\hat{\pi}_{k,i}}{4N\mu}
+  \bar{B} = \frac{1}{r} \sum_{i=1}^r \frac{\hat{\pi}_{i}}{4N\mu}
 \end{align}
-
-there $\hat{\pi}$ is Tajima's estimator for pairwise diversity within a tree.
-When we estimate $\hat{\pi}$ from using branch-mode tree statistics from an
-observed genealogy, $\mu \to 1$, so we can ignore mutation.  If we take
-expectation over the evolutionary process,
+%
+where $\hat{\pi}$ is Tajima's estimator for pairwise diversity within a tree.
+For now, we can imagine letting the neutral mutations saturate as $\mu \to 1$
+so we can ignore mutation rate hereafter. If we take expectation over the evolutionary
+process,
 
 \begin{align}
-  \E(\bar{B}_k) &= \frac{1}{4Nr} \sum_{i=1}^r \E(\hat{\pi}_{k,i}) \\
-                &= \frac{T_k^{(2)}}{4N}  \\
-                &= \frac{4B_kN}{4N}  \\
-                &= B_k  \\
+  \E[\bar{B}] &= \frac{1}{4Nr} \sum_{i=1}^r \E[\hat{\pi}_{i}] \\
+                          &= \frac{2T_2}{4N}  \\
+                          %&= \frac{4B(\mathbf{x})N}{4N}  \\
+                          &= B
 \end{align}
-
+%
 thus, the estimated reduction in diversity from simulations $\bar{B}$ is
-unbiased, since $\E(\hat{\pi}_k) = 2T_k^{(2)} = 4B_k N$. For independent
-evolutionary replicates, we calculate the variance of this estimator using
-Tajima's equation for the variance of $\hat{\pi}$ as  
+unbiased, since $\E[\hat{\pi}] = 2T_2 = 4BN$.
+
+\subsection*{The variance of the estimator $\bar{B}$}
+
+Using the law of total variance, we can write the variance of $\bar{B}$ as 
 
 \begin{align}
-  \var(\bar{B}_k) &= \frac{1}{16 N^2 r^2} \sum_{i=1}^r \var(\hat{\pi}_{k,i}) \\
-                  &= \frac{\var(\hat{\pi}_{k,i})}{16 N^2 r} \\
+  \var(\bar{B}) = \underbrace{\E(\var(\bar{B} | \mathcal{G}))}_\text{sampling noise} + \underbrace{\var(\E(\bar{B} | \mathcal{G}))}_\text{evolutionary variance}
+\end{align}
+
+where $\mathcal{G}$ is the genealogy at the focal neutral site affected by BGS
+at some segment. The distribution of genealogies $P(\mathcal{G})$ is unknown
+and quite complex under BGS, but we can use a simplifying assumption to get a
+rough estimate of the variance of $\bar{B}$.
+
+Under strong BGS (e.g. $\nicefrac{\mu}{s}N \gg 1$), the genealogy is often
+modeled as a neutral coalescent process with rescaled with an effective
+population size $N_e = BN$ (though see Cvijovi\'{c} et al. 2018). In the weak
+selection limit $s \to 0$, approximation becomes exact as BGS becomes
+effectively neutral. In both regimes, selection is treated as rescaling a
+neutral genealogical process to $N_e = BN$. We refer to this the
+\textbf{neutral-BGS model}, and it allows for us to approximate $\var(\bar{B})$
+with some $\var(\bar{B}')$ where $\bar{B}'$ is the mean reduction if we
+averaged over neutral genealogies from a population of $BN$
+diploids, rather than averaged over exact selection simulations. Note that at
+$B=1$, the neutral-BGS model becomes exact, as there is no reduction in
+diversity due to background selection and the only evolutionary variance is
+through the neutral coalescent process.
+
+If the genealogies are neutral, we can calculate the variance of $\bar{B}$
+using Tajima's equation for the variance of $\hat{\pi}$. For $n$ samples and
+$r$ evolutionary replicates,
+
+\begin{align}
+  \var(\bar{B}') &= \frac{1}{16 N^2 r^2} \sum_{i=1}^r \var(\hat{\pi}_{i}) \\
+                &= \frac{\var(\hat{\pi}_{i})}{16 N^2 r} \\
                   &= \frac{1}{16N^2 r} \left( \frac{n + 1}{3(n-1)}\theta  + \frac{2(n^2 + n + 3)}{9n(n-1)}\theta^2 \right) \\
                   &= \frac{1}{16N^2 r} \left( \frac{n + 1}{3(n-1)} 4BN + \frac{2(n^2 + n + 3)}{9n(n-1)} 16B^2N^2 \right) \\
                   &= \underbrace{\frac{n + 1}{12(n-1)} \frac{B}{N r}}_\text{sampling noise} + \underbrace{\frac{2(n^2 + n + 3)}{9n(n-1)} \frac{B^2}{r}}_\text{evolutionary variance}
@@ -91,31 +129,95 @@ limit $N \to \infty$,
 
 \begin{align}
   \lim_{N \to \infty} \P\left(|\bar{B}_N - B| \ge \epsilon \right)  &\le \lim_{N \to \infty} \frac{\var(\bar{B}_N)}{\epsilon^2} \\
-  \lim_{N \to \infty} \P\left(|\bar{B}_N - B| \ge \epsilon \right)  &\le \frac{2B^2}{9 r \epsilon^2}. \\
+  \lim_{N \to \infty} \P\left(|\bar{B}_N - B| \ge \epsilon \right)  &\le \frac{2B^2}{9 r \epsilon^2}. \label{eq:bound}
 \end{align}
 
 Thus, even if we sample the entire population, and let the population size $N
 \to \infty$, $\bar{B}_n$ is still an inconsistent estimator in $n$. Intuitively
-this is because 
+this is because the evolutionary variance is not decreased by taking more
+samples, \emph{only by taking more evolutionary replicates}.
 
-
-In our case, we estimate pairwise diversity from the genealogical tree of the
-entire population, so $n = 2N$
+Below I work through where this bound came from. If we estimate pairwise
+diversity from the genealogical tree of the entire population such that $n =
+2N$,
 
 \begin{align}
-  \var(\bar{B}_k) &= \frac{n + 1}{12(n-1)} \frac{B}{N r} + \frac{2(n^2 + n + 3)}{9n(n-1)} \frac{B^2}{r} \\
-                  &= \frac{2N + 1}{12(2N-1)} \frac{B}{N r} + \frac{2(4N^2 + 2N + 3)}{18N(2N-1)} \frac{B^2}{r} \\
-                  &\approx \frac{B}{12N r} + \frac{2N^2 + N}{9N^2} \frac{B^2}{r}
+  \var(\bar{B}) &= \frac{n + 1}{12(n-1)} \frac{B}{N r} + \frac{2(n^2 + n + 3)}{9n(n-1)} \frac{B^2}{r} \\
+                &= \frac{2N + 1}{12(2N-1)} \frac{B}{N r} + \frac{2(4N^2 + 2N + 3)}{18N(2N-1)} \frac{B^2}{r} \\
+                &\approx \frac{B}{12N r} + \frac{2N^2 + N}{9N^2} \frac{B^2}{r}
 \end{align}
 
 If we take the infinite population size limit,
 
 \begin{align}
-  \lim_{N \to \infty} \var(\bar{B}_k) &= \frac{2B^2}{9r}
+  \lim_{N \to \infty} \var(\bar{B}) &= \frac{2B^2}{9r}
 \end{align}
 
+In practice, we use a different, better estimator of pairwise diversity than
+Tajima's $\pi$: branch statistic pairwise diversity (Ralph 2019, Ralph et al.
+2020). This estimator removes mutation as a source of sampling noise and since
+$n = 2N$, our only source of variance in $\bar{B}$ is in the evolutionary
+process.
 
 
+% Note that since the bound in Equation \eqref{eq:bound} is a probability, it
+% must be that $\frac{2B^2}{9 r \epsilon^2} \le 1$. Thus this equation is limited
+% to considering bounds $\epsilon$ that are
+
+% \begin{align}
+%   \sqrt{\frac{2}{9r}} B \le \epsilon \\
+% \end{align}
+
+% For $B \approx 1$, $\sqrt{\frac{2}{9r}} \le \epsilon$, such that if $r = 50$,
+% we can only consider bounds $\epsilon \ge \sqrt{\nicefrac{1}{225}} \approx
+% 0.067$ because Chebyshev isn't a particularly sharp inequality. 
+
+
+\subsection*{Partitioning the Prediction Error}
+
+To learn the function $B(\mathbf{x})$, we run evolutionary simulations under a
+training set of parameters, giving us $\{(\mathbf{x}_1, \bar{B}_1),
+(\mathbf{x}_2, \bar{B}_2), \ldots, (\mathbf{x}_n, \bar{B}_n)\}$, where each
+$\bar{B}_i$ is the observed reduction over $r$ replicates. Since our goal is to
+approximate $\hat{B}(\mathbf{x})$ as closely as possible to $B(\mathbf{x})$
+over the distribution of $\mathbf{x}$ most close to that across the genome, we
+find some $\hat{B}(\mathbf{x})$ that minimizes expected loss. An important
+metric, even if training is conducted with a different loss, is the mean
+squared error 
+
+\begin{align}
+  MSE(\bar{B}, \hat{B}) = \E[(\bar{B}(\mathbf{x}) - \hat{B}(\mathbf{x}))^2].
+\end{align}
+
+We can think of $\bar{B}(\mathbf{x})$ as a true reduction $B(\mathbf{x})$ plus
+a deviation $\varepsilon$ due to the particular evolutionary replicates
+simulated, e.g. $\bar{B}(\mathbf{x}) = B(\mathbf{x}) + \varepsilon$.
+
+
+\begin{align}
+  MSE(\bar{B}, \hat{B}) &= \E[(\bar{B}(\mathbf{x}) - \hat{B}(\mathbf{x}))^2] \\
+                        &= \E[(B(\mathbf{x}) + \varepsilon - \hat{B}(\mathbf{x}))^2] \\
+                        &= \underbrace{\var(\hat{B}(\mathbf{x}))}_\text{training variance} + 
+                      \underbrace{\var(\varepsilon)}_\text{evolutionary variance} + \underbrace{\E[\hat{B}(\mathbf{x}) - B(\mathbf{x})]^2}_{\mathrm{bias}^2}
+\end{align}
+
+At $B=1$, the evolutionary variance is exactly the neutral variance given by
+$\var(\varepsilon) = \nicefrac{2B^2}{9r}$. Thus, MSE loss has an absolute bound at
+$B=1$,
+
+\begin{align}
+  MSE(\bar{B}, \hat{B} | B = 1) \ge \frac{2}{9r}
+\end{align}
+
+For $B < 1$, we can write the evolutionary variance as some deviation
+away from the coalescent noise under the neutral-BGS model $\var(\varepsilon) =
+\var(\bar{B}') + e$.
+
+
+
+% For a particular training set
+% $\mathcal{T} = \{\mathbf{X}_\text{train}, \mathbf{B}_\text{train}\}$, the mean
+% squared error is 
 
 \printbibliography
 
