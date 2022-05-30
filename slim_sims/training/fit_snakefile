@@ -48,7 +48,7 @@ params = dict(activ=activs, outactiv=outactivs,
 
 fit_params = param_grid(params)
 
-COAL_NPZ = "msprime_spike_10000total_5reps_1000N_12seed.npz"
+COAL_NPZ = "msprime_spike_10000total_50reps_1000N_12seed.npz"
 
 for param_set in fit_params:
     kwargs = {**param_set, **param_set['arch']}

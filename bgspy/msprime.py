@@ -1,16 +1,14 @@
 import numpy as np
 import msprime
-from bgspy.sim_utils import random_seed, read_params
-from bgspy.utils import Bhat
+from bgspy.utils import Bhat, random_seed 
 from bgspy.samplers import Sampler
 
-def msprime_spike(config, N, total, reps, tracklen=10, seed=None):
+def msprime_spike(params, N, total, reps, tracklen=10, seed=None):
     """
     Experimental: spike in L=0 neutral sims
 
     If L = 0, there is no selection, so this is invariant to all other params.
     """
-    params, types = read_params(config)
     params['L'] = {'dist': {'name': 'fixed', 'val': 0}, 'type': 'int'}
     expected_features = ('mu', 'sh', 'L', 'rbp', 'rf')
     # put things in the right order

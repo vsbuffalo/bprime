@@ -69,6 +69,11 @@ initialize() {
   // segment deleterious mutations
   initializeMutationType("m1", h, "f", 0.0);
   initializeMutationType("m2", h, "f", -s);
+  // if a recurrent mutation happens, ignore it if one exists
+  // NOTE: this was added after some apparent bias in B from
+  // the stacking policy
+  // m1.mutationStackPolicy = "f";
+  
 
   // Neutral tracked region from [0, tracklen-1] with no mutation
   // followed by a 1bp spacer (this is a bit silly but we don't want any

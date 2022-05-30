@@ -15,7 +15,7 @@ import scipy.stats as stats
 from tensorflow import keras
 
 from bgspy.utils import signif, index_cols, dist_to_segment, make_dirs
-from bgspy.sim_utils import random_seed
+from bgspy.utils import random_seed
 from bgspy.theory import bgs_segment, bgs_rec, BGS_MODEL_PARAMS, BGS_MODEL_FUNCS
 from bgspy.loss import get_loss_func
 from bgspy.parallel import MapPosChunkIterator

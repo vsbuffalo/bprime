@@ -13,6 +13,8 @@ from math import floor, log10
 from scipy import interpolate
 import numpy as np
 from bgspy.theory import bgs_segment
+SEED_MAX = 2**32-1
+
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
@@ -82,6 +84,10 @@ def Bhat(pi, N):
     """
     return 0.25 * pi / N
 
+def random_seed(rng=None):
+    if rng is None:
+        return np.random.randint(0, SEED_MAX)
+    return rng.integers(0, SEED_MAX)
 
 def genome_emp_dists(genome, step, mu, s, B_subsample_frac, subsample_frac):
     """

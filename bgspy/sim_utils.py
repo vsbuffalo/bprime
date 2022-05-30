@@ -6,14 +6,7 @@ from collections import defaultdict
 import numpy as np
 import pyslim
 import tqdm
-from bgspy.utils import get_files
-
-SEED_MAX = 2**32-1
-
-def random_seed(rng=None):
-    if rng is None:
-        return np.random.randint(0, SEED_MAX)
-    return rng.integers(0, SEED_MAX)
+from bgspy.utils import get_files, random_seed
 
 def fixed_params(params):
     """

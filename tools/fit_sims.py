@@ -23,7 +23,7 @@ from bgspy.utils import index_cols
 from bgspy.learn_utils import load_data, data_to_learnedfunc, fit_dnn
 from bgspy.learn_utils import TargetReweighter
 from bgspy.learn import LearnedFunction
-from bgspy.sim_utils import random_seed
+from bgspy.utils import random_seed, read_params
 from bgspy.msprime import msprime_spike
 
 
@@ -51,7 +51,8 @@ def spike(jsonfile, outfile, n, total, reps, seed):
     if outfile is None:
         outfile = f"msprime_spike_{total}total_{reps}reps_{N}N_{seed}seed.npz"
     config = json.load(open(jsonfile))
-    X, y, features, targets, keys = msprime_spike(config, N, total, reps, seed=seed)
+    params = read_params(config)[0]
+    X, y, features, targets, keys = msprime_spike(params, N, total, reps, seed=seed)
     np.savez(outfile, X=X, y=y, features=features, targets=targets, keys=keys)
 
 
