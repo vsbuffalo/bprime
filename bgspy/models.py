@@ -356,7 +356,7 @@ class BGSModel(object):
             sites_chunk = np.array((pos_chunk, mpos_chunk)).T
             yield chrom, sites_chunk, (lidx, uidx)
 
-    def _build_segment_matrix(self, chrom, min_size=200):
+    def _build_segment_matrix(self, chrom):
         """
         The columns are the features of the B' training data are
                0,      1,          2,        3
@@ -367,17 +367,12 @@ class BGSModel(object):
         checking at the lower level, so it's done entirely during prediction.
         """
         segments = self.genome.segments
-        if min_size is not None:
-            idx = self.segments.L[chrom] >= min_size
-            nsegs = idx.sum()
-        else:
-            idx = slice(None)
-            nsegs = self.genome.segments.nsegs[chrom]
+        nsegs = self.genome.segments.nsegs[chrom]
         S = np.empty((nsegs, 4))
-        S[:, 0] = self.segments.L[chrom][idx]
-        S[:, 1] = self.segments.rbp[chrom][idx]
-        S[:, 2] = self.segments.mpos[chrom][idx, 0]
-        S[:, 3] = self.segments.mpos[chrom][idx, 1]
+        S[:, 0] = self.segments.L[chrom]
+        S[:, 1] = self.segments.rbp[chrom]
+        S[:, 2] = self.segments.mpos[chrom][:, 0]
+        S[:, 3] = self.segments.mpos[chrom][:, 1]
         return S
 
     def _build_segment_matrices(self):

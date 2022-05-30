@@ -5,18 +5,26 @@
   "model": "bgs_segment",
   "params":
      {
-       "N": {"dist": {"name": "fixed", "val":1000}, "type": "int"},
+       "N": {"dist": {"name": "fixed", "val": 1000}, "type": "int"},
        "mu": {"dist": {"name": "log10_uniform", "low": -10, "high": -7}, "type": "float"},
        "sh": {"dist": {"name": "log10_uniform", "low": -5, "high": -1}, "type": "float"},
-       "rf": {"dist": {"name": "uniform", "low": 0, "high": 0.15}, "type": "float"},
+       "rf": {"dist": {"name": "log10_uniform", "low": -10, "high": -0.824}, "type": "float"},
        "rbp": {"dist": {"name": "log10_uniform", "low": -12, "high": -7}, "type": "float"},
-       "L": {"dist": {"name": "discrete_uniform", "low": 1, "high": 10000}, "type": "int"}
+       "L": {"dist": {"name": "discrete_uniform", "low": 0, "high": 10000}, "type": "int"}
      },
-  "nsamples": 1000000,
-  "nreps": 5,
+  "nsamples": 200000,
+  "nreps": 50,
+  "average": true,
   "activs": ["elu"],
+  "outactivs": ["sigmoid"],
   "fit_nreps": 4,
-  "archs": [{"n128": 0, "n64": 0, "n32": 4, "n8": 2, "nx": 0},
-            {"n128": 0, "n64": 0, "n32": 0, "n8": 0, "nx": 4},
-            {"n128": 0, "n64": 0, "n32": 0, "n8": 0, "nx": 2}]
+  "var_sample_weights": [false, true],
+  "l2_penalty": ["None", 1e-5, 1e-6, 1e-7, 1e-8],
+  "archs": [
+            {"n16": 0, "n8": 0, "n4": 0, "n2": 2, "nx": 0},
+            {"n16": 0, "n8": 0, "n4": 0, "n2": 0, "nx": 2},
+            {"n16": 0, "n8": 4, "n4": 0, "n2": 0, "nx": 0},
+            {"n16": 0, "n8": 10, "n4": 0, "n2": 0, "nx": 2},
+            {"n16": 0, "n8": 0, "n4": 0, "n2": 0, "nx": 1}
+           ]
 }

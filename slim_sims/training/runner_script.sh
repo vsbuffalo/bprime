@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NSCRIPTS=167
+NSCRIPTS=334
 
 i=0
 while [ $i -lt $NSCRIPTS ]

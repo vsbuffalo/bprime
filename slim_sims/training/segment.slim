@@ -28,6 +28,9 @@ initialize() {
         // note: new change, group all the sim seed subdirs into a sims/ directory
 	defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
+  if (!fileExists(datadir)) {
+    createDirectory(datadir);
+  }
 
   defineConstant("region_length", tracklen + L);
   cat(paste("region_length: ", region_length, "\n"));
@@ -68,11 +71,16 @@ initialize() {
   
   // segment deleterious mutations
   initializeMutationType("m1", h, "f", 0.0);
-  initializeMutationType("m2", h, "f", -s);
-  // if a recurrent mutation happens, ignore it if one exists
+  if (L == 0) {
+    selcoef = 0; // mimic L = 0 with s
+  } else {
+    selcoef = s;
+  }
+  initializeMutationType("m2", h, "f", -selcoef);
+  // stacking policy: if a recurrent mutation happens, ignore it if one exists
   // NOTE: this was added after some apparent bias in B from
   // the stacking policy
-  // m1.mutationStackPolicy = "f";
+  m2.mutationStackPolicy = "f";
   
 
   // Neutral tracked region from [0, tracklen-1] with no mutation
