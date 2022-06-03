@@ -10,7 +10,7 @@ from bgspy.recmap import RecMap
 from bgspy.utils import sum_logliks_over_chroms
 from bgspy.utils import load_dacfile, load_bed_annotation, load_seqlens, read_bed
 from bgspy.plots import chrom_plot, ll_grid
-from bgspy.predict import write_predinfo
+from bgspy.predict import write_predinfo, swap_models_in_predinfo
 from bgspy.genome import Genome
 
 SPLIT_LENGTH_DEFAULT = 10_000
@@ -90,6 +90,15 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, split_length, step, n
                        chroms=None, name=name, split_length=split_length)
     m.calc_B(ncores=ncores, nchunks=100, step=step)
     m.save_B(output)
+
+@cli.command()
+@click.argument('learnfuncs', type=str, required=True, nargs=-1)
+@click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
+def swap_models(learnfuncs, dir):
+    """
+    Swap the models in an dnnb/info.json file.
+    """
+    swap_models_in_predinfo(dir, learnfuncs)
 
 
 @cli.command()

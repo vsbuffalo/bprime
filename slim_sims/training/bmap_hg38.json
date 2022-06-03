@@ -16,7 +16,7 @@
   "nreps": 50,
   "average": true,
   "activs": ["elu"],
-  "outactivs": ["sigmoid"],
+  "outactivs": ["sigmoid", "relu"],
   "fit_nreps": 4,
   "var_sample_weights": [false, true],
   "l2_penalty": ["None", 1e-5, 1e-6, 1e-7, 1e-8],

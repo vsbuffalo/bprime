@@ -62,7 +62,20 @@ def write_predinfo(dir, model_files, w_grid, t_grid, step, nchunks, max_map_dist
                     nchunks=nchunks, max_map_dist=max_map_dist, models=model_files)
     jsonfile = join(dir, "info.json")
     with open(jsonfile, 'w') as f:
-        json.dump(json_out, f)
+        json.dump(json_out, f, indent=2)
+
+def swap_models_in_predinfo(dir, model_files):
+    "Swap the models in the JSON prediction file"
+    jsonfile = join(dir, "info.json")
+    with open(jsonfile, 'r') as f:
+        json_out = json.load(f)
+    for file in model_files:
+        assert os.path.exists(file + '.pkl'), f"file {file}.pkl does not exist!"
+    json_out['models'] = model_files
+    with open(jsonfile, 'w') as f:
+        json.dump(json_out, f, indent=2)
+
+
 
 def predict_chunk(sites_chunk, models, segment_matrix,
                   w, t, lidx=None, uidx=None,

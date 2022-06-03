@@ -107,7 +107,7 @@ def predict(chunkfile, input_dir, constrain=True, progress=True,
     # run the main prediction function
     B, Xps, Bpreds = predict_chunk(sites_chunk, models, Sm, w, t,
                                    lidx=lidx, uidx=uidx, 
-                                   use_haldane=True, # TODO FIXME
+                                   use_haldane=False,
                                    output_xps=output_xps, 
                                    output_preds=output_preds,
                                    # skip prediction if we just want matrices
