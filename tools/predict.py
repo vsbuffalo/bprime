@@ -56,7 +56,7 @@ CHUNK_MATCHER = re.compile(r'(?P<name>\w+)_(?P<chrom>\w+)_(?P<i>\d+)_(?P<lidx>\d
 @click.option('--output-xps', is_flag=True, default=False, help='output unformatted chunk matrices for debugging')
 @click.option('--output-preds', is_flag=True, default=False, help='output B predictions for each segment')
 @click.option('--dont-predict', is_flag=True, default=False, help='skip prediction (False if --output-preds)')
-def predict(chunkfile, input_dir, constrain=True, progress=True, 
+def predict(chunkfile, input_dir, constrain=True, progress=True,
             output_xps=False, output_preds=False, dont_predict=False):
     """
 
@@ -106,9 +106,9 @@ def predict(chunkfile, input_dir, constrain=True, progress=True,
 
     # run the main prediction function
     B, Xps, Bpreds = predict_chunk(sites_chunk, models, Sm, w, t,
-                                   lidx=lidx, uidx=uidx, 
+                                   lidx=lidx, uidx=uidx,
                                    use_haldane=False,
-                                   output_xps=output_xps, 
+                                   output_xps=output_xps,
                                    output_preds=output_preds,
                                    # skip prediction if we just want matrices
                                    dont_predict=dont_predict,
@@ -134,7 +134,7 @@ def predict(chunkfile, input_dir, constrain=True, progress=True,
                 outfile = join(preds_dir, os.path.basename(chunkfile))
                 outfile = outfile.replace('.npy', f"_{name}_{i}.npy")
                 np.save(outfile, pred.squeeze())
-        
+
 
 if __name__ == "__main__":
     predict()

@@ -1,0 +1,13 @@
+{
+  "name": "validate",
+  "runtype": "grid",
+  "slim": "segment.slim",
+  "params":
+     {
+       "mu": {"grid":[1e-8, 1e-9], "type": "float"},
+       "sh": {"grid": [1e-1, 1e-2, 1e-5], "type": "float"},
+       "L": {"grid": [1, 100, 1000], "type": "float"},
+       "rbp": {"grid": [1e-9, 1e-8], "type": "float"},
+       "rf": {"grid": [1e-9, 1e-1], "type": "float"}},
+   "nreps": 200
+}
