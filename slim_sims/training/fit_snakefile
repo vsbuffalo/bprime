@@ -32,7 +32,7 @@ SIMDIR = os.path.join(DATADIR, name, "sims")
 FILENAME = join(DATADIR, name, "fits", FILENAME_PATTERN)
 
 npz_file = get_outfile(name, dir=join(DATADIR, name), suffix='.npz')
-data_file = get_outfile(name, dir=join(DATADIR, name), suffix='_data.pkl')
+data_file = get_outfile(name, dir=join(DATADIR, name), suffix='_raw.pkl')
 
 #print(npz_file, data_file)
 #sys.exit()
@@ -48,8 +48,6 @@ params = dict(activ=activs, outactiv=outactivs,
 
 fit_params = param_grid(params)
 
-COAL_NPZ = "msprime_spike_10000total_50reps_1000N_12seed.npz"
-
 for param_set in fit_params:
     kwargs = {**param_set, **param_set['arch']}
     dnn_files.append(FILENAME.format(**kwargs, suffix='.pkl'))
@@ -64,30 +62,20 @@ rule process_trees:
           --features 'mu,sh,L,rbp,rf,rep' {SIMDIR}
         """
 
-rule msprime_spike:
-    input: json=f"{name}.json"
-    output: "msprime_spike_{total}total_{reps}reps_{N}N_{seed}seed.npz"
-    shell:
-        """
-        python ../../tools/fit_sims.py spike --outfile {output} \
-        --N {wildcards.N} --total {wildcards.total} --reps {wildcards.reps} \
-        --seed {wildcards.seed} {input.json}
-        """
-
 # Note: we add in _raw.pkl to avoid a cyclic dependency graph
 # caused by just modifying a file
 
 rule process_data:
-  input: json=f"{name}.json", fwd_npz=npz_file, coal_npz=COAL_NPZ
-  output: fill_suffix(FILENAME, '_raw.pkl')
+  input: json=f"{name}.json", fwd_npz=npz_file
+  output: data_file
   shell:
      f"""
      python ../../tools/fit_sims.py data --outfile {{output}} {average_reps} \
-        {{input.json}} {{input.fwd_npz}} {{input.coal_npz}}
+        {{input.json}} {{input.fwd_npz}} 
      """
 
 rule fit_dnn:
-  input: fill_suffix(FILENAME, '_raw.pkl')
+  input: data_file
   output: model=fill_suffix(FILENAME, '.pkl'), keras=fill_suffix(FILENAME, '.h5')
   shell:
      """
@@ -100,9 +88,6 @@ rule fit_dnn:
       --var-sample-weights {wildcards.varsampleweight} \
       --output-activation {wildcards.outactiv} {input}
      """
-
-rule spike:
-  input: COAL_NPZ
 
 rule data:
   input: data_file

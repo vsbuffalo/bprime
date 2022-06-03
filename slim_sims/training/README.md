@@ -69,3 +69,4 @@ python  ../../bgspy/command_line.py dnnb-write --w '1e-7,1e-8,1e-9' --t '0.1,0.0
 python ../../tools/slurm_slim_runner.py generate  --slim '~/src/SLiM_build/slim' --max-array 1000 --num-files 10  --secs-per-job 10 --batch-size 30 --dir '../../data/slim_sims/' --seed 13  --script slurm.sh ./bmap_hg38_reps.json 
 
 python ../../tools/slurm_slim_runner.py generate  --slim '~/src/SLiM_build/slim' --max-array 1000 --num-files 10  --secs-per-job 10 --batch-size 30 --dir '../../data/slim_sims/' --seed 14  --script slurm.sh ./bmap_hg38_reps.json
+ python ../../tools/slurm_slim_runner.py generate  --slim '~/src/SLiM_build/slim' --max-array 1000 --num-files 10  --secs-per-job 10 --batch-size 30 --dir '../../data/slim_sims/' --seed 3  --script slurm.sh ./bmap_hg38.json

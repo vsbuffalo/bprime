@@ -24,7 +24,11 @@ def process_tree_file(tree_file, features, recap='auto'):
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore") # so many warnings
-        ts = tskit.load(tree_file)
+        try:
+            ts = tskit.load(tree_file)
+        except Exception as Error:
+            print(f"error reading file {tree_file}! Skipping...")
+            return None
         md = ts.metadata['SLiM']['user_metadata']
         needs_recap = max(t.num_roots for t in ts.trees()) > 1
         if (recap is True) or (recap == 'auto' and needs_recap):
@@ -72,15 +76,20 @@ def trees2training_data(dir, features, recap='auto', progress=True,
         tree_files_iter = iter(tree_files)
     func = partial(process_tree_file, features=features, recap=recap)
     if ncores in (None, 1):
-        X, y = zip(*map(func, tree_files_iter))
+        res = map(func, tree_files_iter)
     else:
         with multiprocessing.Pool(ncores) as p:
-            X, y = zip(*list(p.imap(func, tree_files_iter)))
+            res = list(p.imap(func, tree_files_iter))
+    # if any files were skipped, drop the Nones returned here
+    drop = [r is None for r in res]
+    res = [r for r in res if r is not None]
+    X, y = zip(*res)
     targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load')
-    keys = [filename_key(os.path.basename(f)) for f in tree_files]
-    idx = np.argsort(keys)
+    keys = [filename_key(os.path.basename(f)) for f, ignore in zip(tree_files, drop) if not ignore]
+    assert len(keys) == len(X)
+    assert len(keys) == len(y)
     X, y, keys = np.array(X), np.array(y), np.array(keys)
-    return X[idx, :], y[idx, :], features, targets, keys[idx]
+    return X, y, features, targets, keys
 
 @click.command()
 @click.argument('dir')

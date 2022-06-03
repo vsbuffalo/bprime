@@ -36,11 +36,10 @@ python {this_script} getjob {batches} --num-files {num_files} --index $INDEX | b
 
 """
 
-
-RUNNER = """\
+RUNNER = f"""\
 #!/bin/bash
 
-NSCRIPTS={nscripts}
+NSCRIPTS={{nscripts}}
 
 i=0
 while [ $i -lt $NSCRIPTS ]
@@ -73,8 +72,13 @@ def make_job_script_lines(jobs):
     dirs = []
     for job in jobs:
         outfile, cmd = job
+        if os.path.exists(outfile):
+            sys.stderr.write(f"skipping {outfile} since it exists!")
+            continue
         dirs.append(os.path.split(outfile)[0])
         rows.append(cmd)
+    if not len(rows):
+        return ""
     mkdirs = "mkdir -p " + " ".join(dirs) + "\n"
     return mkdirs + "\n".join(rows) + "\n"
 

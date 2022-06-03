@@ -23,7 +23,7 @@ from bgspy.utils import index_cols
 from bgspy.learn_utils import load_data, data_to_learnedfunc, fit_dnn
 from bgspy.learn_utils import TargetReweighter
 from bgspy.learn import LearnedFunction
-from bgspy.utils import random_seed, read_params
+from bgspy.sim_utils import random_seed, read_params
 from bgspy.msprime import msprime_spike
 
 
