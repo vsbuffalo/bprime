@@ -28,13 +28,13 @@ def new_layer(size, activation, weight_l2=None, bias_l2=None):
         weight_l2 = regularizers.L2(weight_l2)
     if bias_l2 is not None:
         assert isinstance(bias_l2, (int, float))
-        bias_l2 = regularizers.L2(bias_l2) 
-    return layers.Dense(size, activation=activation, 
+        bias_l2 = regularizers.L2(bias_l2)
+    return layers.Dense(size, activation=activation,
                         kernel_regularizer=weight_l2,
-                        bias_regularizer=bias_l2)
+                        bias_regularizer=bias_l2, dtype=tf.float64)
 
 
-def network(input_size=2, n16=0, n8=0, n4=0, n2=0, nx=2, 
+def network(input_size=2, n16=0, n8=0, n4=0, n2=0, nx=2,
             weight_l2=None, bias_l2=None,
             output_activation='sigmoid', activation='elu'):
     """
@@ -45,21 +45,21 @@ def network(input_size=2, n16=0, n8=0, n4=0, n2=0, nx=2,
     model = keras.Sequential()
     model.add(keras.Input(shape=(input_size,)))
     for i in range(nx):
-        model.add(new_layer(input_size, activation=activation, 
+        model.add(new_layer(input_size, activation=activation,
                             weight_l2=weight_l2, bias_l2=bias_l2))
     for i in range(n2):
-        model.add(new_layer(2, activation=activation, 
+        model.add(new_layer(2, activation=activation,
                             weight_l2=weight_l2, bias_l2=bias_l2))
     for i in range(n4):
-        model.add(new_layer(4, activation=activation, 
+        model.add(new_layer(4, activation=activation,
                             weight_l2=weight_l2, bias_l2=bias_l2))
     for i in range(n8):
-        model.add(new_layer(8, activation=activation, 
+        model.add(new_layer(8, activation=activation,
                             weight_l2=weight_l2, bias_l2=bias_l2))
     for i in range(n16):
-        model.add(new_layer(16, activation=activation, 
+        model.add(new_layer(16, activation=activation,
                             weight_l2=weight_l2, bias_l2=bias_l2))
-    model.add(keras.layers.Dense(1, activation=output_activation))
+    model.add(keras.layers.Dense(1, activation=output_activation, dtype=tf.float64))
     model.compile(
         optimizer='Adam',
         loss=keras.losses.MeanSquaredError(),
@@ -256,7 +256,7 @@ def data_to_learnedfunc(sim_params, sim_data, model, seed,
     func.metadata = {'model': model, 'params': sim_params, 'yextra': yextra}
     return func
 
-def fit_dnn(func, n16, n8, n4, n2, nx, 
+def fit_dnn(func, n16, n8, n4, n2, nx,
             weight_l2=None, bias_l2=None,
             activation='elu',
             output_activation='sigmoid', valid_split=0.2, batch_size=64,

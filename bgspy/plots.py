@@ -45,7 +45,7 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     if ncontour is not None:
         cs = ax.contour(x, y, z, ncontour, colors='0.44',
                         linestyles='dashed', linewidths=0.8, alpha=0.4)
-        ax.clabel(cs, inline=True, fontsize=8)
+        ax.clabel(cs, inline=True, fontsize=6)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     return fig, ax
@@ -551,3 +551,57 @@ def marginal_plot(bfs, var, nbins,
     ax.set_title(var)
     return fig, ax
 
+
+def marginal_plot2(bfs, var, nbins, add_interval=False, nstd=1, figax=None):
+    if figax is not None:
+        fig, ax = figax
+    else:
+        fig, ax = plt.subplots()
+    bf = bfs[0] # all use same training usually
+    cols = ('mu', 'sh', 'L', 'rbp', 'rf')
+    X = pd.DataFrame(bf.func.X, columns=cols)
+    y = bf.func.y
+    # bins
+    x = X[var]
+    log = bf.func.logscale[var]
+    if log:
+        x = np.log10(x)
+    bins = pd.cut(x, nbins).values
+
+    X['y'] = y
+    bin_col = f'{var}_bin'
+    X[bin_col] = bins
+    grp = X.groupby([bin_col]).mean().reset_index()
+    grp_std = np.sqrt(X.groupby([bin_col]).var().reset_index()['y'].values)
+    mids = np.array([(x.left + x.right)/2 for x in grp[bin_col].values])
+    ybin = grp['y'].values
+
+    if log:
+        mids = 10**mids
+    ax.plot(mids, ybin, c='0.22')
+    if add_interval:
+        ax.fill_between(mids, ybin - nstd*grp_std, ybin + nstd*grp_std, linewidth=0, color='0.22', alpha=0.2)
+
+    for bf in bfs:
+        var_val = mids
+        # we take a random sample of the whole dataset
+        # and inject the mid Ls in to estimate predictions
+        X = bf.func.X
+        predict = bf.func.predict(X)
+        predict = pd.DataFrame(dict(y=predict, bin=bins)).groupby(['bin']).mean().reset_index()['y'].values
+        ax.plot(mids, predict.squeeze())
+    if log:
+        ax.semilogx()
+    ax.set_title(var)
+    return fig, ax
+
+def marginal_plots(bfs, nbins, add_interval=False, nstd=1):
+    fig, ax = plt.subplots(ncols=3, nrows=2)
+    marginal_plot2(bfs, 'mu', nbins, add_interval=add_interval, nstd=nstd, figax=(fig, ax[0, 0]))
+    marginal_plot2(bfs, 'sh', nbins, add_interval=add_interval, nstd=nstd, figax=(fig, ax[0, 1]))
+    marginal_plot2(bfs, 'L', nbins,  add_interval=add_interval, nstd=nstd, figax=(fig, ax[0, 2]))
+    marginal_plot2(bfs, 'rbp', nbins, add_interval=add_interval, nstd=nstd,  figax=(fig, ax[1, 0]))
+    marginal_plot2(bfs, 'rf', nbins, add_interval=add_interval, nstd=nstd,  figax=(fig, ax[1, 1]))
+    ax[1, 2].axis('off')
+    plt.tight_layout()
+    return fig, ax

@@ -9,7 +9,7 @@ LAYERS = [8, 4, 2, 'x']
 LAYER_COMPONENT = '_'.join([f"(?P<n{i}>\d+)n{i}" for i in LAYERS])
 
 # this needs to match the FILENAME_PATTERN in fit_snakefile
-PATH = rf'\w+_{LAYER_COMPONENT}_(?P<l2penalty>[^w]+)l2penalty_(?P<activ>(relu|elu|tanh))activ_(?P<outactive>(sigmoid|relu))outactiv_fit_(?P<rep>\d+)rep'
+PATH = rf'\w+_{LAYER_COMPONENT}_(?P<l2penalty>[^w]+)l2penalty_(?P<activ>(relu|elu|tanh))activ_(?P<outactive>(sigmoid|relu))outactiv_(?P<vsw>(True|False))vsw_fit_(?P<rep>\d+)rep'
 
 def stem(x):
     return x.replace('.h5', '')
@@ -40,8 +40,9 @@ def load_learnedfuncs_in_dir(dir):
         bf.func = lf
 
         row = {'key': stem(os.path.basename(file)), **arch,
-               **{k: v for k, v in keys.items() if k not in arch}, 'bf': bf}
-               #'mae': bf.func.test_mae(), 'mse': bf.func.test_mse()}
+               **{k: v for k, v in keys.items() if k not in arch}, 'bf': bf,
+                  'mse': bf.func.metadata['test_mse']}
+               #'mae': bf.func.test_mae(),
         rows.append(row)
     return pd.DataFrame(rows)
 
