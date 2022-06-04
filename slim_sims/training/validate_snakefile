@@ -1,0 +1,36 @@
+import os
+from bgspy.slim import SlimRuns, read_params
+from bgspy.samplers import ParamGrid
+
+
+name = config['name']
+DATADIR = "../../data/slim_sims/"
+SLIM = '~/src/SLiM_build/slim'
+SIMDIR = os.path.join(DATADIR, name, "sims")
+
+SIM_OUTPUTS = ['treeseq.tree']
+npz_file = os.path.join(DATADIR, name, 'validate.npz')
+
+run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, sims_subdir=True, split_dirs=3, seed=1)
+run.generate(SIM_OUTPUTS)
+
+results = run.targets
+
+rule validate:
+  input: run.script
+  output: 
+    run.wildcard_output(suffix=SIM_OUTPUTS)
+  shell:
+    run.slim_call(slim_cmd=SLIM)
+
+rule process_trees:
+    input: # whole directory
+    output: npz_file
+    shell:
+        f"""
+        python ../../tools/trees2data.py --outfile {{output}} --ncores 20 \
+          --features 'mu,sh,L,rbp,rf,rep' {SIMDIR}
+        """
+
+rule all:
+  input: results, npz_file
