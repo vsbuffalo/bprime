@@ -238,34 +238,41 @@ the total learning error. Taking logs,
 \begin{align}
   \hat{B}(v) &= \prod_i^n (B_i + \epsilon_i) \\
   \log(\hat{B}(v)) &= \log\left(\prod_i^n (B_i + \epsilon_i) \right) \\
-                   &= \sum_i^n \log(B_i + \epsilon_i). \\
+                   &= \sum_i^n \log(B_i + \epsilon_i).
 \end{align}
 
-If we approximate the expected log with a Taylor series,
 
-\begin{align}
-  \E[\log(B_i + \epsilon_i)^2] &\approx \log(B_i)^2 + \frac{2 \log(B_i)}{B_i} \E[\epsilon_i] + \frac{(1-\log(B_i))}{B_i^2} \E[\epsilon_i^2]\\
-                               &\approx \log(B_i)^2 + \frac{2 \log(B_i)}{B_i}b + \frac{(1-\log(B_i)) }{B_i^2}(\sigma^2 + b^2)
-\end{align}
+Assume that the noise terms $\epsilon_i \sim N(b_i, \sigma^2)$, where $b_i$ is
+some fixed bias. Then, if we approximate the log with a Taylor series around
+$b_i$,
 
-Then,
-
-\begin{align}
+\begin{align*}
   \E[\log(\hat{B}(v))] &= \sum_i^n \E[\log(B_i + \epsilon_i)]  \\
-                                        &\approx \sum_i^n \log(B_i) + \sum_i^n \frac{b}{B_i} - \sum_i^n \frac{\sigma^2 + b^2}{2B_i^2}  \\
-\end{align}
+                       &\approx \sum_i^n \log(B_i + b_i) - \sum_i^n \frac{\sigma^2}{2(B_i + b_i)^2} 
+\end{align*}
 
+Then, the bias of $\log(\hat{B}(v))$ is
 
+\begin{align*}
+  \E[\log(\hat{B}(v))] - \log(B(v)) &\approx \sum_i^n \log(B_i + b_i) - \sum_i^n \frac{\sigma^2}{2(B_i + b_i)^2} - \sum_i^n \log(B_i) \\
+  \E\left[\log\left(\frac{\hat{B}(v)}{B(v)}\right)\right]   &\approx \sum_i^n \log\left(\frac{B_i + b_i}{B_i}\right) - \sum_i^n \frac{\sigma^2}{2(B_i + b_i)^2} 
+\end{align*}
 
-Bias:
+For now, assume the training is not biased, e.g. $b=0$. Then, noise around the
+true $B_i$ values creates negative log bias, 
 
-\begin{align}
-  \E[\log(\hat{B}(v))] - \E[\log(B(v))] &= \sum_i^n \E[\log(B_i + \epsilon_i)] - \sum_i^n \log(B_i) \\
-                                        &\approx \sum_i^n \log(B_i) + \sum_i^n \frac{b}{B_i} - \sum_i^n \frac{\sigma^2 + b^2}{2B_i^2} - \sum_i^n \log(B_i) \\
-                                        &\approx \sum_i^n \frac{b}{B_i} - \sum_i^n \frac{\sigma^2 + b^2}{2B_i^2} 
-\end{align}
+\begin{align*}
+  \E\left[\log\left(\frac{\hat{B}(v)}{B(v)}\right)\right]   &\approx - \sum_i^n \frac{\sigma^2}{2B_i^2} \le 0.
+\end{align*}
 
-By Jensen's inequality $f(\E(X)) \le \E(f(X))$ for some convex function $f$, 
+Thus, any noise in the predictions will lead to $\hat{B}(v)$ values that are a
+fraction of the true value. Furthermore, by Jensen's inequality,
+
+\begin{align*}
+  \log\left(\E\left[\frac{\hat{B}(v)}{B(v)}\right]\right)  &\le \E\left[\log\left(\frac{\hat{B}(v)}{B(v)}\right)\right]    \\
+  \E\left[\frac{\hat{B}(v)}{B(v)}\right]  &\le \exp \left(- \sum_i^n \frac{\sigma^2}{2B_i^2} \right) \\
+  \E[\hat{B}(v)]  &\le B(v) \exp \left(- \sum_i^n \frac{\sigma^2}{2B_i^2} \right)
+\end{align*}
 
 \section*{Likelihood}
 
