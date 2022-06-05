@@ -27,6 +27,7 @@
 \begin{document}
 \maketitle
 
+
 \section*{Learning Limits}
 
 \subsection*{The Simulation Sample $\bar{B}$ Estimator}
@@ -218,6 +219,87 @@ away from the coalescent noise under the neutral-BGS model $\var(\varepsilon) =
 % For a particular training set
 % $\mathcal{T} = \{\mathbf{X}_\text{train}, \mathbf{B}_\text{train}\}$, the mean
 % squared error is 
+
+\section*{Multiplicative Error Model}
+
+The predicted reduction for segment $i$ from the machine learned model
+$\hat{B}_i$ can be partitioned as $\hat{B}_i = B_i + \epsilon_i$, where
+$\epsilon_i$ is the cumulative error due to bias, irreducible evolutionary
+variance, and training variance. Then, our total predicted reduction at some
+focal site $v$ is:
+
+\begin{align}
+  \hat{B}(v) = \prod_i^n (B_i + \epsilon_i)
+\end{align}
+
+We want to understand the bias and variance of this product estimator based on
+the total learning error. Taking logs, 
+
+\begin{align}
+  \hat{B}(v) &= \prod_i^n (B_i + \epsilon_i) \\
+  \log(\hat{B}(v)) &= \log\left(\prod_i^n (B_i + \epsilon_i) \right) \\
+                   &= \sum_i^n \log(B_i + \epsilon_i). \\
+\end{align}
+
+If we approximate the expected log with a Taylor series,
+
+\begin{align}
+  \E[\log(B_i + \epsilon_i)^2] &\approx \log(B_i)^2 + \frac{2 \log(B_i)}{B_i} \E[\epsilon_i] + \frac{(1-\log(B_i))}{B_i^2} \E[\epsilon_i^2]\\
+                               &\approx \log(B_i)^2 + \frac{2 \log(B_i)}{B_i}b + \frac{(1-\log(B_i)) }{B_i^2}(\sigma^2 + b^2)
+\end{align}
+
+Then,
+
+\begin{align}
+  \E[\log(\hat{B}(v))] &= \sum_i^n \E[\log(B_i + \epsilon_i)]  \\
+                                        &\approx \sum_i^n \log(B_i) + \sum_i^n \frac{b}{B_i} - \sum_i^n \frac{\sigma^2 + b^2}{2B_i^2}  \\
+\end{align}
+
+
+
+Bias:
+
+\begin{align}
+  \E[\log(\hat{B}(v))] - \E[\log(B(v))] &= \sum_i^n \E[\log(B_i + \epsilon_i)] - \sum_i^n \log(B_i) \\
+                                        &\approx \sum_i^n \log(B_i) + \sum_i^n \frac{b}{B_i} - \sum_i^n \frac{\sigma^2 + b^2}{2B_i^2} - \sum_i^n \log(B_i) \\
+                                        &\approx \sum_i^n \frac{b}{B_i} - \sum_i^n \frac{\sigma^2 + b^2}{2B_i^2} 
+\end{align}
+
+By Jensen's inequality $f(\E(X)) \le \E(f(X))$ for some convex function $f$, 
+
+\section*{Likelihood}
+
+The likelihood in Eyalshiv et al. (2016) has the form: 
+
+\begin{align}
+  \log\mathcal{L} = \sum_{v \in V} \sum_{i \ne j \in S} \log(P(O_{i,j}(v) | \theta))
+\end{align}
+
+where $V$ is the collection of neutral sites, $S$ is the set of samples, and
+$\theta$ are the BGS parameters. The indicator variable $O_{i,j}(v)$ is 1 if
+samples $i$ and $j$ are different at site $v$, and zero otherwise. Thus as they
+specify in the paper, 
+
+\begin{align}
+  P(O_{i,j}(v) | \theta) = 
+    \begin{cases}
+      \pi(v | \theta), & O_{i,j}(v) = 1 \\
+      1-\pi(v | \theta), & O_{i,j}(v) = 0 \\
+    \end{cases}.
+\end{align}
+
+For $S$ samples, there are $|S| \choose 2$ pairwise comparisons that we can
+partition into the different and same classes; we assign their counts to
+$n_\text{D}(v)$ and $n_\text{S}(v)$. Then, 
+
+\begin{align}
+  \log\mathcal{L} = \sum_{v \in V} \left(\log(\pi(v | \theta)) n_\text{S}(v) + \log(1-\pi(v | \theta)) n_\text{D}(v)\right)
+\end{align}
+
+Since $B$ is discretized into genomic windows of length $K$ basepairs, $\pi(v |
+\theta)$ is constant in a window.
+
+
 
 \printbibliography
 
