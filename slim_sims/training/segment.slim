@@ -23,10 +23,14 @@ initialize() {
     defineConstant("N", 1000);
     defineConstant("sh", 1e-2);
     defineConstant("mu", 1e-8);
-	defineConstant("datadir", 'tests/');
+    defineConstant("datadir", 'tests/');
   } else {
-        // note: new change, group all the sim seed subdirs into a sims/ directory
-	defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
+     // note: new change, group all the sim seed subdirs into a sims/ directory
+     defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
+  }
+
+  if (!fileExists(datadir)) {
+    stop("output directory does not exist!");
   }
 
   // we need an L that if L = 0, it doesn't try to use that (since handled by selcoef)
@@ -69,13 +73,13 @@ initialize() {
   // == Mutations, Regions, and Recombination
   initializeMutationRate(mu);
   
-  // segment deleterious mutations
   initializeMutationType("m1", h, "f", 0.0);
   if (L == 0) {
     selcoef = 0; // mimic L = 0 with s
   } else {
     selcoef = s;
   }
+  // segment deleterious mutations
   initializeMutationType("m2", h, "f", -selcoef);
   // stacking policy: if a recurrent mutation happens, ignore it if one exists
   // NOTE: this was added after some apparent bias in B from
@@ -88,9 +92,9 @@ initialize() {
   // mutation or recombination in that 1bp)
 
   // gene segment under selection
-  initializeGenomicElementType("g1", m1, 1);
+  //initializeGenomicElementType("g1", m1, 1);
   initializeGenomicElementType("g2", m2, 1);
-  initializeGenomicElement(g1, 0, tracklen-1);
+  //initializeGenomicElement(g1, 0, tracklen-1);
   initializeGenomicElement(g2, tracklen, tracklen+safeL-1);
 
   // recombination between segments
@@ -109,14 +113,14 @@ initialize() {
 1 {
   // check that the selected length is really the length we want
   // in zero-indexed right inclusive systems, length is e-s+1
-  seg_length = element_length(sim.chromosome.genomicElements[1]);
+  seg_length = element_length(sim.chromosome.genomicElements[0]);
   assert(seg_length == safeL, "actual segment length does not match specified length (L or safeL)");
-  track_length = element_length(sim.chromosome.genomicElements[0]);
-  assert(track_length == tracklen, "actual tracking length does not match expected length (tracklen)");
+  //track_length = element_length(sim.chromosome.genomicElements[0]);
+  //assert(track_length == tracklen, "actual tracking length does not match expected length (tracklen)");
   //print(paste(region_length, sim.chromosome.genomicElements[1].endPosition));
   //print(paste("bob", region_length,  sim.chromosome.genomicElements[1].endPosition));
   // why + 1 at the end? SLiM is 0-indexed so the last position + bp 0 = total length.
-  assert(region_length == sim.chromosome.genomicElements[1].endPosition+1);
+  assert(region_length == sim.chromosome.genomicElements[0].endPosition+1);
 
   sim.addSubpop("p1", N);
   sim.rescheduleScriptBlock(s1, start=2, end=burnin);
@@ -139,6 +143,7 @@ s2 late() {
   popfit = pop_fitness(m2);
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
+  //print(treeseq_file);
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
 }
 

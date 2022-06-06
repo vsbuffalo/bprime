@@ -168,7 +168,6 @@ class SlimRuns(object):
                     # package_rep is whether to include 'rep' into sample dict
                     sample['rep'] = rep
 
-                run_needed = False
                 target_files = []
                 for end in suffix:
                     filename = f"{self.filename_pattern}_{end}"
@@ -186,6 +185,8 @@ class SlimRuns(object):
                         # place holder so we know what suffix isn't complete
                         target_files.append(None)
 
+
+                # figure out if a run is needed
                 if not all(v is None for v in target_files):
                     # some filename wasn't in ignore_files and we need to
                     # include in the run/target file lists
@@ -226,7 +227,7 @@ class SlimRuns(object):
         """
         assert self.runs is not None, "runs not generated!"
         n = len(self.runs)
-        assert n >= 1
+        assert n > 0
 
         # get cmds
         runs = self.runs

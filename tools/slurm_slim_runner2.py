@@ -17,9 +17,11 @@ import sys
 import click
 from bgspy.slim import SlimRuns, read_params, time_grower
 from bgspy.samplers import Sampler, ParamGrid
+from bgspy.utils import make_dirs
 
-CMD = "squeue --user vsb -r --array-unique -h -t  pending,running"
+CMD = "squeue --user vsb -r --array-unique -h -t  pending,running --format='%.18i %.30j'"
 JOBNAME = "slurm_slim"
+DATADIR = '../../data/slim_sims/'
 
 TEMPLATE = f"""\
 #!/bin/bash
@@ -61,7 +63,7 @@ def query_jobs():
     run = subprocess.run(CMD, shell=True, capture_output=True)
     stdout = [x.strip() for x in run.stdout.decode().split('\n') if len(x)]
     # note: only look for part of jobname, squeue truncates
-    jobs = [x for x in stdout if JOBNAME[:7] in x]
+    jobs = [x.split()[0] for x in stdout if JOBNAME[:30] in x]
     return jobs
 
 def make_job_script_lines(batch):
@@ -93,43 +95,72 @@ def make_job(batch, job_time):
     
     
 
-def job_dispatcher(jobs, max_jobs, batch_size, secs_per_job, buffer=10, sleep=30):
+def job_dispatcher(jobs, max_jobs, batch_size, secs_per_job, sleep=30):
     """
     Submit multiple sbatch scripts through standard in.
     """
+    t0 = time.time()
+    nbatches = len(jobs)
+
+    live_jobs = dict()
+    done_jobs = dict()
+    total_time = 0
+    total_done = 0
+
+    def update_jobs():
+        running_jobs = query_jobs()
+        nonlocal total_time
+        nonlocal total_done
+        for job in list(live_jobs):
+            if job not in running_jobs:
+                t1 = time.time()
+                tdelta = t1 - live_jobs.pop(job)
+                done_jobs[jobid] = (t1, tdelta)
+                total_time += tdelta 
+                total_done += 1
+        return running_jobs
+ 
     while True:
-        njobs = len(query_jobs())
-        while njobs + batch_size + buffer < max_jobs:
-            # submit a batch
+        running_jobs = update_jobs()
+        while len(running_jobs) < max_jobs:
+            # submit batches until the queue is full
             try:
                 this_batch = jobs.pop()
             except IndexError:
                 break
             sbatch_cmd = make_job(this_batch, job_time=est_time(secs_per_job, batch_size))
-            res = subprocess.run(["sbatch"], input=sbatch_cmd, text=True)
-            sys.stderr.write(f"submitted batch of {len(this_batch)} simulations\n")
+            res = subprocess.run(["sbatch"], input=sbatch_cmd, text=True, capture_output=True)
             assert res.returncode == 0, "sbatch had a non-zero exit code!"
-            njobs = len(query_jobs())
-            sys.stderr.write(f"{njobs} jobs currently running...\n")
-            sys.stderr.flush()
+            jobid = res.stdout.strip().replace('Submitted batch job ', '')
+            # put this new job in the tracker
+            live_jobs[jobid] = time.time()
 
-        if not len(jobs):
+            running_jobs = update_jobs()
+            # clean out the live jobs
+            njobs = len(running_jobs)
+
+            ave = total_time/total_done if total_done > 0 else 0
+            line = f"{nbatches - len(jobs)}/{nbatches} ({100*np.round(len(jobs)/nbatches, 3)}%) batches submitted, {njobs} jobs currently running, ~{np.round(ave/60, 2)} mins per job...\r"
+            sys.stderr.write(line)
+            sys.stderr.flush()
+        
+        if not len(jobs) and not len(live_jobs):
             break
         time.sleep(sleep)
+    return time.time() - t0, done_jobs
 
 
 
 @click.command()
 @click.argument('config', type=click.File('r'), required=True)
 @click.option('--secs-per-job', required=True, type=int, help="number of seconds per simulation")
-@click.option('--dir', required=True, help="output directory")
-@click.option('--max-jobs', default=500, help="max number of jobs before launching more")
+@click.option('--max-jobs', default=1000, help="max number of jobs before launching more")
 @click.option('--seed', required=True, type=int, help='seed to use')
 @click.option('--split-dirs', default=3, type=int, help="number of seed digits to use as subdirectory")
 @click.option('--slim', default='slim', help='path to SLiM executable')
 @click.option('--max-array', default=None, type=int, help='max number of array jobs')
 @click.option('--batch-size', default=None, type=int, help='size of number of sims to run in one job')
-def generate(config, secs_per_job, max_jobs, dir, seed, split_dirs=3,
+def generate(config, secs_per_job, max_jobs,  seed, split_dirs=3,
              slim='slim', max_array=None, batch_size=None):
     suffix = 'treeseq.tree'
     config = json.load(config)
@@ -141,7 +172,7 @@ def generate(config, secs_per_job, max_jobs, dir, seed, split_dirs=3,
         assert config['runtype'] == 'samples', "config file must have 'grid' or 'samples' runtype."
         sampler = Sampler
 
-    run = SlimRuns(config, dir=dir, sims_subdir=True, sampler=sampler, 
+    run = SlimRuns(config, dir=DATADIR, sims_subdir=True, sampler=sampler, 
                    split_dirs=split_dirs, seed=seed)
 
     # get the existing files
@@ -152,13 +183,22 @@ def generate(config, secs_per_job, max_jobs, dir, seed, split_dirs=3,
 
     # generate and batch all the sims
     run.generate(suffix=suffix, ignore_files=existing)
+    total_size = len(run.runs)
+    if not total_size:
+        print("no files need to be generated, exiting successfully")
+        sys.exit(0)
+    print(f"beginning dispatching of {total_size:,} jobs...")
     job_batches = run.batch_runs(batch_size=batch_size, slim_cmd=slim)
 
     # turn these into a list
     job_batches = list(job_batches.values())
 
-    job_dispatcher(job_batches, max_jobs, batch_size, secs_per_job)
-
+    # set out the output directory
+    sim_dir = make_dirs(DATADIR, config['name'])
+    total_time, done_jobs = job_dispatcher(job_batches, max_jobs, batch_size, secs_per_job)
+    print(f"\n\ntotal run time: {str(total_time)}")
+    with open(f"{config['name']}_stats.pkl", 'wb') as f:
+        pickle.dump(done_jobs, f)
 
 if __name__ == "__main__":
     generate()
