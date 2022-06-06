@@ -28,9 +28,6 @@ initialize() {
         // note: new change, group all the sim seed subdirs into a sims/ directory
 	defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
-  if (!fileExists(datadir)) {
-    createDirectory(datadir);
-  }
 
   // we need an L that if L = 0, it doesn't try to use that (since handled by selcoef)
   defineConstant("safeL", max(1, L));

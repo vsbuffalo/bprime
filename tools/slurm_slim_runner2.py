@@ -1,0 +1,164 @@
+"""
+"""
+import sys
+# todo: maybe remove this middle one -- used for testing in the slim/training
+# dir
+sys.path.extend(['..', '../../', '../bgspy'])
+
+import json
+import __main__
+import subprocess
+import pickle
+import time
+import os
+from math import ceil
+import numpy as np
+import sys
+import click
+from bgspy.slim import SlimRuns, read_params, time_grower
+from bgspy.samplers import Sampler, ParamGrid
+
+CMD = "squeue --user vsb -r --array-unique -h -t  pending,running"
+JOBNAME = "slurm_slim"
+
+TEMPLATE = f"""\
+#!/bin/bash
+#SBATCH --chdir={{cwd}}
+#SBATCH --error=logs/error/{JOBNAME}_%j.err
+#SBATCH --output=logs/out/{JOBNAME}_%j.out
+#SBATCH --partition=kern,kerngpu,preempt
+#SBATCH --job-name={JOBNAME}_%j
+#SBATCH --time={{job_time}}
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=1G
+#SBATCH --account=kernlab
+
+{{cmd}}
+
+"""
+
+def est_time(secs_per_job, batch_size, factor=5):
+    tot_secs = secs_per_job * batch_size * factor
+    tot_hours = tot_secs / 60 / 60
+    days = int(tot_hours // 24)
+    time_left = tot_hours % 24
+    hours = int(time_left // 1)
+    minutes = ceil(60*time_left)
+    return f"{days:02d}-{hours}:{minutes}:00"
+
+def get_files(dir, suffix):
+    results = []
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            if file.endswith(suffix):
+                results.append(os.path.join(root, file))
+    return results
+
+
+def query_jobs():
+    "Return lines from squeue containing this jobname."
+    run = subprocess.run(CMD, shell=True, capture_output=True)
+    stdout = [x.strip() for x in run.stdout.decode().split('\n') if len(x)]
+    # note: only look for part of jobname, squeue truncates
+    jobs = [x for x in stdout if JOBNAME[:7] in x]
+    return jobs
+
+def make_job_script_lines(batch):
+    """
+    Write a command strig that concatenates all the lines for a job, 
+    and make the output directories if they don't exist.
+    """
+    rows = []
+    dirs = []
+    for job in batch:
+        outfile, cmd = job
+        if os.path.exists(outfile):
+            sys.stderr.write(f"skipping {outfile} since it exists!")
+            continue
+        dirs.append(os.path.split(outfile)[0])
+        rows.append(cmd)
+    if not len(rows):
+        return ""
+    mkdirs = "mkdir -p " + " ".join(dirs) + "\n"
+    return mkdirs + "\n".join(rows) + "\n"
+
+def make_job(batch, job_time):
+    "Take a batch of (outfile, cmd) tuples and make a sbatch script to run the commands"
+    cmd = make_job_script_lines(batch)
+    sbatch = TEMPLATE.format(job_time=job_time, 
+                             cwd=os.getcwd(),
+                             cmd=cmd)
+    return sbatch
+    
+    
+
+def job_dispatcher(jobs, max_jobs, batch_size, secs_per_job, buffer=10, sleep=30):
+    """
+    Submit multiple sbatch scripts through standard in.
+    """
+    while True:
+        njobs = len(query_jobs())
+        while njobs + batch_size + buffer < max_jobs:
+            # submit a batch
+            try:
+                this_batch = jobs.pop()
+            except IndexError:
+                break
+            sbatch_cmd = make_job(this_batch, job_time=est_time(secs_per_job, batch_size))
+            res = subprocess.run(["sbatch"], input=sbatch_cmd, text=True)
+            sys.stderr.write(f"submitted batch of {len(this_batch)} simulations\n")
+            assert res.returncode == 0, "sbatch had a non-zero exit code!"
+            njobs = len(query_jobs())
+            sys.stderr.write(f"{njobs} jobs currently running...\n")
+            sys.stderr.flush()
+
+        if not len(jobs):
+            break
+        time.sleep(sleep)
+
+
+
+@click.command()
+@click.argument('config', type=click.File('r'), required=True)
+@click.option('--secs-per-job', required=True, type=int, help="number of seconds per simulation")
+@click.option('--dir', required=True, help="output directory")
+@click.option('--max-jobs', default=500, help="max number of jobs before launching more")
+@click.option('--seed', required=True, type=int, help='seed to use')
+@click.option('--split-dirs', default=3, type=int, help="number of seed digits to use as subdirectory")
+@click.option('--slim', default='slim', help='path to SLiM executable')
+@click.option('--max-array', default=None, type=int, help='max number of array jobs')
+@click.option('--batch-size', default=None, type=int, help='size of number of sims to run in one job')
+def generate(config, secs_per_job, max_jobs, dir, seed, split_dirs=3,
+             slim='slim', max_array=None, batch_size=None):
+    suffix = 'treeseq.tree'
+    config = json.load(config)
+
+    # note: we package all the sim seed-based subdirs into a sims/ directory
+    if config['runtype'] == 'grid':
+        sampler = ParamGrid
+    else:
+        assert config['runtype'] == 'samples', "config file must have 'grid' or 'samples' runtype."
+        sampler = Sampler
+
+    run = SlimRuns(config, dir=dir, sims_subdir=True, sampler=sampler, 
+                   split_dirs=split_dirs, seed=seed)
+
+    # get the existing files
+    print("searching for existing simulation results...   ", end='')
+    existing = get_files(run.dir, suffix)  # run.dir has the name included
+    print("done.")
+    print(f"{len(existing):,} result files have been found -- these are ignored.")
+
+    # generate and batch all the sims
+    run.generate(suffix=suffix, ignore_files=existing)
+    job_batches = run.batch_runs(batch_size=batch_size, slim_cmd=slim)
+
+    # turn these into a list
+    job_batches = list(job_batches.values())
+
+    job_dispatcher(job_batches, max_jobs, batch_size, secs_per_job)
+
+
+if __name__ == "__main__":
+    generate()
