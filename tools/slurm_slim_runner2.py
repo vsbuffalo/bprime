@@ -140,7 +140,7 @@ def job_dispatcher(jobs, max_jobs, batch_size, secs_per_job, sleep=30):
             njobs = len(running_jobs)
 
             ave = total_time/total_done if total_done > 0 else 0
-            line = f"{nbatches - len(jobs)}/{nbatches} ({100*np.round(len(jobs)/nbatches, 3)}%) batches submitted, {njobs} jobs currently running, ~{np.round(ave/60, 2)} mins per job...\r"
+            line = f"{nbatches - len(jobs)}/{nbatches} ({100*np.round((nbatches - len(jobs))/nbatches, 3)}%) batches submitted, {njobs} jobs currently running, {len(done_jobs)} batches done, ~{np.round(ave/60, 2)} mins per job...\r"
             sys.stderr.write(line)
             sys.stderr.flush()
         
