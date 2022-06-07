@@ -75,9 +75,7 @@ def make_job_script_lines(batch):
     dirs = []
     for job in batch:
         outfile, cmd = job
-        if os.path.exists(outfile):
-            sys.stderr.write(f"skipping {outfile} since it exists!")
-            continue
+        assert not os.path.exists(outfile), f"file {outfile} exists!"
         dirs.append(os.path.split(outfile)[0])
         rows.append(cmd)
     if not len(rows):
@@ -154,7 +152,7 @@ def job_dispatcher(jobs, max_jobs, batch_size, secs_per_job, sleep=30):
 @click.command()
 @click.argument('config', type=click.File('r'), required=True)
 @click.option('--secs-per-job', required=True, type=int, help="number of seconds per simulation")
-@click.option('--max-jobs', default=1000, help="max number of jobs before launching more")
+@click.option('--max-jobs', default=5000, help="max number of jobs before launching more")
 @click.option('--seed', required=True, type=int, help='seed to use')
 @click.option('--split-dirs', default=3, type=int, help="number of seed digits to use as subdirectory")
 @click.option('--slim', default='slim', help='path to SLiM executable')
@@ -184,10 +182,11 @@ def generate(config, secs_per_job, max_jobs,  seed, split_dirs=3,
     # generate and batch all the sims
     run.generate(suffix=suffix, ignore_files=existing)
     total_size = len(run.runs)
+    #import pdb;pdb.set_trace()
     if not total_size:
         print("no files need to be generated, exiting successfully")
         sys.exit(0)
-    print(f"beginning dispatching of {total_size:,} jobs...")
+    print(f"beginning dispatching of {total_size:,} simulations...")
     job_batches = run.batch_runs(batch_size=batch_size, slim_cmd=slim)
 
     # turn these into a list

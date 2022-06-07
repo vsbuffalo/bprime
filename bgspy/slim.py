@@ -148,26 +148,27 @@ class SlimRuns(object):
             suffix_is_str = True
             suffix = [suffix]
 
-        ignore_files = set() if ignore_files is None else set([os.path.normpath(f) for f in ignore_files])
+        ignore_files = set() if ignore_files is None else set([os.path.basename(f) for f in ignore_files])
         targets = []
-        self.runs = []
+        runs = []
         nreps = 1 if self.nreps is None else self.nreps
+        ignored = set()
         for sample in self.sampler:
             # each sample is a dict of params that are like Snakemake's
             # wildcards
             for rep in range(nreps):
                 # draw nreps samples
-                if rep > 0:
-                    sample = copy.copy(sample)
-                    # we have more than one replicate, so we need to use the same
-                    # params, but with a different random seed
-                    seed = random_seed(self.sampler.rng)
-                    sample['seed'] = seed
+                sample = copy.copy(sample)
+                # we have more than one replicate, so we need to use the same
+                # params, but with a different random seed
+                seed = random_seed(self.sampler.rng)
+                sample['seed'] = seed
 
                 if self.nreps is not None or package_rep:
                     # package_rep is whether to include 'rep' into sample dict
                     sample['rep'] = rep
 
+                # the expected output files for this run
                 target_files = []
                 for end in suffix:
                     filename = f"{self.filename_pattern}_{end}"
@@ -175,30 +176,21 @@ class SlimRuns(object):
                     if self.split_dirs is not None:
                         dir_seed = str(sample['seed'])[:self.split_dirs]
                         sample = {**sample, 'subdir': dir_seed}
-
-                    # propogate the sample into the filename
+                    # propagate the sample into the filename
                     filename = filename.format(**sample)
-                    # append if it's not in ignore_files
-                    if os.path.normpath(filename) not in ignore_files:
-                        target_files.append(filename)
-                    else:
-                        # place holder so we know what suffix isn't complete
-                        target_files.append(None)
+                    target_files.append(filename)
 
-
-                # figure out if a run is needed
-                if not all(v is None for v in target_files):
-                    # some filename wasn't in ignore_files and we need to
-                    # include in the run/target file lists
+                needed_target_files = [os.path.basename(f) not in ignore_files for f in target_files]
+                if any(needed_target_files):
+                    # if we only have one target file per sim, just add that not in a list
                     if suffix_is_str:
-                        #  simplify stuff, don't package in a tuple of
-                        # file with their different suffices
+                        assert len(target_files) == 1
                         target_files = target_files[0]
-                    else:
-                        target_files = tuple(target_files)
                     targets.append(target_files)
-                    self.runs.append(sample)
+                    runs.append(sample)
+
         self.targets = targets
+        self.runs = runs
         assert len(self.targets) == len(self.runs)
 
     def generate(self, suffix, ignore_files=None, package_rep=True):
