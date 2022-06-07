@@ -23,6 +23,7 @@ initialize() {
     defineConstant("N", 1000);
     defineConstant("sh", 1e-2);
     defineConstant("mu", 1e-8);
+    defineConstant("basename", name + "_test");
     defineConstant("datadir", 'tests/');
   } else {
      // note: new change, group all the sim seed subdirs into a sims/ directory
@@ -62,13 +63,13 @@ initialize() {
 
   // == File Output
   // this must be the same order as the bgs_params in the Snakefile
-  params = c('N', 'mu', 'sh', 'rf', 'rbp', 'L', 'seed');
-  if (exists("rep")) {
-    params = c(params, 'rep');
-  }
-  filestr = filename_str(params);
-  defineConstant("basename", name + "_" + filestr);
-  defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
+  //params = c('N', 'mu', 'sh', 'rf', 'rbp', 'L', 'seed');
+  //if (exists("rep")) {
+  //params = c(params, 'rep');
+  //}
+  //filestr = filename_str(params);
+  //defineConstant("basename", name + "_" + filestr);
+  defineConstant("treeseq_file", datadir + basename + "_treeseq.tree");
 
   // == Mutations, Regions, and Recombination
   initializeMutationRate(mu);

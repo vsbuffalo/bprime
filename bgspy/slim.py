@@ -133,7 +133,7 @@ class SlimRuns(object):
         self.sampler = None
         self.batches = None
 
-    def _generate_runs(self, suffix, ignore_files=None, package_rep=True):
+    def _generate_runs(self, suffix, ignore_files=None, package_basename=True, package_rep=True):
         """
         For samplers only, not param grids!
 
@@ -176,6 +176,11 @@ class SlimRuns(object):
                     if self.split_dirs is not None:
                         dir_seed = str(sample['seed'])[:self.split_dirs]
                         sample = {**sample, 'subdir': dir_seed}
+                    if package_basename:
+                        # this is a sim basename, which has all the parameters
+                        # slightly different than the basename in this class.
+                        basename = os.path.basename(self.filename_pattern.format(**sample))
+                        sample = {**sample, 'basename': basename}
                     # propagate the sample into the filename
                     filename = filename.format(**sample)
                     target_files.append(filename)
@@ -185,15 +190,28 @@ class SlimRuns(object):
                     # if we only have one target file per sim, just add that not in a list
                     if suffix_is_str:
                         assert len(target_files) == 1
-                        target_files = target_files[0]
-                    targets.append(target_files)
+                        targets.append(target_files[0])
+                    else:
+                        targets.append(target_files)
                     runs.append(sample)
-
+                else:
+                    assert suffix_is_str
+                    ignored.add(target_files[0])
+        
+        # find weird files -- not in target, not in ignored
+        ignored = set(os.path.basename(f) for f in ignored)
+        # certain files are not being ignored even though they exist
+        weird = ignore_files.difference(ignored)
+        if len(weird):
+            import pdb;pdb.set_trace()
+        target_set = set(os.path.basename(f) for f in targets)
+        #not_in_targets = [f for f in weird if f not in target_set]
+        #import pdb;pdb.set_trace()
         self.targets = targets
         self.runs = runs
         assert len(self.targets) == len(self.runs)
 
-    def generate(self, suffix, ignore_files=None, package_rep=True):
+    def generate(self, suffix, ignore_files=None, package_basename=True, package_rep=True):
         """
         Run the sampler to generate samples or expand out the parameter grid.
         """
@@ -203,6 +221,7 @@ class SlimRuns(object):
             self.sampler = self.sampler_func(self.params, total=self.nsamples,
                                              add_seed=True, seed=self.seed)
         self._generate_runs(suffix=suffix, ignore_files=ignore_files,
+                            package_basename=package_basename,
                             package_rep=package_rep)
 
 
@@ -268,6 +287,11 @@ class SlimRuns(object):
                          manual=manual)
 
     def slim_command(self, wildcards, **slim_call_kwargs):
+        if 'basename' in wildcards:
+            # this is not a parameter, so we include it in manual
+            manual = slim_call_kwargs.get('manual', {})
+            manual['basename'] = wildcards.pop('basename')
+            slim_call_kwargs['manual'] = manual
         call = self.slim_call(**slim_call_kwargs).replace("wildcards.", "")
         return call.format(**wildcards)
 
