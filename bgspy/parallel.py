@@ -106,6 +106,30 @@ class MapPosChunkIterator(object):
     def total(self):
         return sum(map(len, list(itertools.chain(self.chrom_mpos_chunks.values()))))
 
+    def __next__(self):
+        """
+        Iterate over the map positions of each site to calculate B at, with the
+        requisite data for that chromosome to calculate B.
+
+        Each iteration yields the standard components to calculate B
+            - A chunk of many map positions to calculate B at
+            - The conserved segments on this chromosome.
+            - The grid of mutation rates.
+            - The features matrix of classes of conserved segments
+            - The pre-computed segment parts (for efficiently calculating B
+              under the classic approach).
+        """
+        next_chunk = next(self.mpos_iter)
+        chrom, mpos_chunk = next_chunk
+        chrom_seg_L = self.chrom_seg_L.get(chrom, None)
+        chrom_seg_rbp = self.chrom_seg_rbp.get(chrom, None)
+        return (mpos_chunk,
+                self.chrom_seg_mpos[chrom],
+                chrom_seg_L,
+                chrom_seg_rbp,
+                self.w_grid, self.t_grid)
+
+
     def collate(self, results):
         """
         Take the B calculations from the parallel operation and collate

@@ -46,7 +46,7 @@ from bgspy.utils import load_seqlens, make_dirs
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
-from bgspy.classic import calc_B, calc_B_parallel
+from bgspy.classic import calc_B, calc_B_parallel, calc_B_SC16_parallel
 from bgspy.learn import LearnedFunction, LearnedB
 from bgspy.parallel import MapPosChunkIterator
 
@@ -312,6 +312,19 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
+    def calc_BSC16(self, step=10_000, ncores=None, nchunks=None):
+        if ncores is not None and nchunks is None:
+            raise ValueError("if ncores is set, nchunks must be specified")
+        self.step = step
+        Bs, B_pos = calc_B_SC16_parallel(self.genome, self.w, self.t,
+                                         step=step, nchunks=nchunks,
+                                         ncores=ncores)
+        stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
+        self.Bs = stacked_Bs
+        self.B_pos = B_pos
+        #self.xs = xs
+
+
     def load_learnedfunc(self, filepath):
         func = LearnedFunction.load(filepath)
         bfunc = LearnedB(self.t, self.w, genome=self.genome)
@@ -389,7 +402,7 @@ class BGSModel(object):
          - dir/segments/
 
         Note that these data are prediction model agnostic, e.g. they work regardless
-        of the prediction model. Other information is needed, e.g. whether to 
+        of the prediction model. Other information is needed, e.g. whether to
         transform these features and the parameters for centering/scaling.
         """
         name = self.genome.name
@@ -404,7 +417,7 @@ class BGSModel(object):
             filename = os.path.join(chrom_dir, f"{name}_{chrom}.npy")
             np.save(filename, S.astype('f8'))
 
-        focal_pos_iter = self._focal_positions(step=step, nchunks=nchunks, 
+        focal_pos_iter = self._focal_positions(step=step, nchunks=nchunks,
                                                max_map_dist=max_map_dist)
 
         for i, (chrom, sites_chunk, segslice) in enumerate(focal_pos_iter):

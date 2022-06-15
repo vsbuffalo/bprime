@@ -7,7 +7,8 @@ import numpy as np
 import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
 from bgspy.utils import haldanes_mapfun
-from bgspy.parallel import BChunkIterator
+from bgspy.parallel import BChunkIterator, MapPosChunkIterator
+from bgspy.theory import bgs_segment_sc16, bgs_rec
 
 # pre-computed optimal einsum_path
 BCALC_EINSUM_PATH = ['einsum_path', (0, 2), (0, 1)]
@@ -66,6 +67,7 @@ def calc_B(genome, mut_grid, step):
 
         # pre-compute the optimal path -- this shouldn't vary accros positions
         if optimal_einsum_path is None:
+            # TODO FIX
             print(f"computing optimal contraction with np.einsum_path()")
             focal_map_pos = np.random.choice(map_pos)
             # as an approx, this only considers dist to start of segement
@@ -146,18 +148,56 @@ def calc_B_chunk_worker(args):
         Bs.append(B)
     return Bs
 
-
 def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
-    debug = False
-    if debug:
+    not_parallel = ncores <= 1 or ncores is None
+    if not_parallel:
         res = []
         for chunk in tqdm.tqdm(chunks):
             res.append(calc_B_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
             res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
+                                 total=chunks.total))
+    return chunks.collate(res)
+
+def calc_B_SC16_chunk_worker(args):
+    # ignore rbp, no need here yet under this approximation
+    map_positions, chrom_seg_mpos, seg_L, _, w_grid, t_grid = args
+    Bs = []
+    # F is a features matrix -- eventually, we'll add support for
+    # different feature annotation class, but for now we just fix this
+    #F = np.ones(len(chrom_seg_mpos))[:, None]
+    mu = w_grid[:, None, None]
+    sh = t_grid[None, :, None]
+    max_dist = 0.1
+    for f in map_positions:
+        rf = dist_to_segment(f, chrom_seg_mpos)
+        idx = rf <= max_dist
+        rf = rf[idx]
+        L = seg_L[idx]
+        x = bgs_segment_sc16(mu, sh, L, rf, N=1000)
+        assert(not np.any(np.isnan(x)))
+        B = np.sum(np.log(x), axis=2)
+        # the einsum below is for when a features dimension exists, e.g.
+        # there are feature-specific μ's and t's -- commented out now...
+        #B = np.einsum('ts,w,sf->wtf', x, mut_grid,
+        #              F, optimize=BCALC_EINSUM_PATH)
+        Bs.append(B)
+    return Bs
+
+def calc_B_SC16_parallel(genome, w_grid, t_grid, step, nchunks=1000, ncores=2):
+    chunks = MapPosChunkIterator(genome,  w_grid, t_grid, step, nchunks)
+    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    not_parallel = ncores <= 1 or ncores is None
+    if not_parallel:
+        res = []
+        for chunk in tqdm.tqdm(chunks):
+            res.append(calc_B_SC16_chunk_worker(chunk))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(calc_B_SC16_chunk_worker, chunks),
                                  total=chunks.total))
     return chunks.collate(res)
 
