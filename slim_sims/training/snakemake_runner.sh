@@ -1,7 +1,7 @@
 #!/bin/bash
 DRY=""
 MAXJOBS=999 # submit a ton of jobs, let the job scheduler handler it
-CLUSTER_CONFIG="./cluster_talapas_gpu.json"
+CLUSTER_CONFIG="./cluster_talapas_validate.json"
 SNAKEFILE="./fit_snakefile"
 RULE="all"
 

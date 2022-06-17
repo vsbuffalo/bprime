@@ -6,7 +6,7 @@
      {
        "N": {"grid": [1000], "type": "int"},
        "mu": {"grid":[1e-8, 1e-9], "type": "float"},
-       "sh": {"grid": [1e-1, 2e-1, 5e-1, 1e-2, 2e-2, 5e-1, 1e-3, 2e-3, 2e-3], "type": "float"},
+       "sh": {"grid": [1e-1, 2e-1, 5e-1, 1e-2, 2e-2, 5e-1, 1e-3, 2e-3, 2e-3, 1e-4, 2e-4, 1e-5, 2e-5], "type": "float"},
        "rf": {"grid": [1e-9], "type": "float"},
        "rbp": {"grid": [1e-8], "type": "float"}, 
        "L": {"grid": [10000], "type": "int"}},

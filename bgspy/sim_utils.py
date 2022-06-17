@@ -16,12 +16,18 @@ def fixed_params(params):
     """
     fixed = dict()
     for key, param in params.items():
-        if param['dist']['name'] == 'fixed':
-            fixed[key] = param['dist']['val']
+        if 'grid' in param:
+            # handle grid params
+            if len(param['grid']) == 1:
+                fixed[key] = param['grid'][0]
         else:
-            if param['dist']['low'] == param['dist']['high']:
-                warnings.warn(f"parameter '{key}' is fixed implicitly!")
-                fixed[key] = param['dist']['low']
+           # it's a distribution parameter set
+            if param['dist']['name'] == 'fixed':
+                fixed[key] = param['dist']['val']
+            else:
+                if param['dist']['low'] == param['dist']['high']:
+                    warnings.warn(f"parameter '{key}' is fixed implicitly!")
+                    fixed[key] = param['dist']['low']
     return fixed
 
 def param_grid(params, add_seed=False, rng=None):
@@ -80,12 +86,17 @@ def get_bounds(params):
     """
     domain = dict()
     for key, param in params.items():
-        is_fixed = param['dist']['name'] == 'fixed'
-        is_log10 = param['dist']['name'].startswith('log10_')
-        if is_fixed:
-            low, high = param['dist']['val'], param['dist']['val']
+        if 'grid' in param:
+            is_fixed = len(param['grid']) == 1
+            is_log10 = False
+            low, high = np.min(param['grid']), np.max(param['grid'])
         else:
-            low, high = param['dist']['low'], param['dist']['high']
+            is_fixed = param['dist']['name'] == 'fixed'
+            is_log10 = param['dist']['name'].startswith('log10_')
+            if is_fixed:
+                low, high = param['dist']['val'], param['dist']['val']
+            else:
+                low, high = param['dist']['low'], param['dist']['high']
         domain[key] = (low, high, is_log10)
     return domain
 

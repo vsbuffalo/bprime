@@ -202,9 +202,9 @@ class SlimRuns(object):
         ignored = set(os.path.basename(f) for f in ignored)
         # certain files are not being ignored even though they exist
         weird = ignore_files.difference(ignored)
-        if len(weird):
-            import pdb;pdb.set_trace()
-        target_set = set(os.path.basename(f) for f in targets)
+        if len(weird) > 0:
+            warnings.warn("there are existing simulation results that are not being ignored!")
+        #target_set = set(os.path.basename(f) for f in targets)
         #not_in_targets = [f for f in weird if f not in target_set]
         #import pdb;pdb.set_trace()
         self.targets = targets

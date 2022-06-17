@@ -48,6 +48,9 @@ initialize() {
   defineConstant("burnin", 10*N);
   defineConstant("endsim", burnin);
 
+  // record subs
+  defineConstant("subs", integer(10*N));
+
   metadata.setValue("N", N);
   metadata.setValue("sh", sh);
   metadata.setValue("s", s);
@@ -131,6 +134,7 @@ initialize() {
 s1 {
   // if (sim.generation % N == 0) 
   //   print(sim.generation);
+  subs[sim.generation-1] = length(sim.substitutions);
 }
 
 s2 late() {
@@ -138,6 +142,7 @@ s2 late() {
   inds = p1.individuals;
   ndel_subs = length(sim.substitutions.mutationType == m2);
   fixed_load = sum(sim.substitutions[sim.substitutions.mutationType == m2].selectionCoeff);
+  metadata.setValue("subs", subs);
   metadata.setValue("ndel_subs", sum(ndel_subs));
   metadata.setValue("fixed_load", sum(fixed_load));
   metadata.setValue("generations", sim.generation);
