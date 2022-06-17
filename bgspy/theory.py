@@ -37,7 +37,7 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
     return np.exp(val)
 
 @np.vectorize
-def bgs_segment_sc16(mu, sh, L, r, N, full_output=False):
+def bgs_segment_sc16(mu, sh, L, r, N, full_output=False, return_both=False):
     U = L*mu
     #G = L*r
     Vm = U*sh**2
@@ -56,12 +56,14 @@ def bgs_segment_sc16(mu, sh, L, r, N, full_output=False):
     if out[2] != 1:
         warnings.warn("no solution found!")
         return np.nan
+    if return_both:
+        return out[0][0], out[0][1]/N
     return out[0][1]/N
 
 def bgs_segment_sc16_manual_vec(mu, sh, L, r, N):
     """
     This is a manually vectorized version of
-    bgs_segment_sc16 for comparison.
+    bgs_segment_sc16 for comparison/testing.
     """
     x = np.empty((mu.size, sh.size, L.size))
     mu = mu.squeeze()
