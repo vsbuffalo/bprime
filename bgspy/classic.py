@@ -8,7 +8,7 @@ import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
 from bgspy.utils import haldanes_mapfun
 from bgspy.parallel import BChunkIterator, MapPosChunkIterator
-from bgspy.theory import bgs_segment_sc16, bgs_rec
+from bgspy.theory import bgs_segment_sc16, bgs_rec, bgs_segment_sc16_manual_vec
 
 # pre-computed optimal einsum_path
 BCALC_EINSUM_PATH = ['einsum_path', (0, 2), (0, 1)]
@@ -177,7 +177,9 @@ def calc_B_SC16_chunk_worker(args):
         idx = rf <= max_dist
         rf = rf[idx]
         L = seg_L[idx]
+        #xm = bgs_segment_sc16_manual_vec(mu, sh, L, rf, N=1000)
         x = bgs_segment_sc16(mu, sh, L, rf, N=1000)
+        #__import__('pdb').set_trace()
         assert(not np.any(np.isnan(x)))
         B = np.sum(np.log(x), axis=2)
         # the einsum below is for when a features dimension exists, e.g.
@@ -190,7 +192,7 @@ def calc_B_SC16_chunk_worker(args):
 def calc_B_SC16_parallel(genome, w_grid, t_grid, step, nchunks=1000, ncores=2):
     chunks = MapPosChunkIterator(genome,  w_grid, t_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
-    not_parallel = ncores <= 1 or ncores is None
+    not_parallel = ncores is None or ncores <= 1
     if not_parallel:
         res = []
         for chunk in tqdm.tqdm(chunks):

@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from scipy.optimize import fsolve
+from scipy.interpolate import interp2d
 
 
 BGS_MODEL_PARAMS = {'bgs_rec': ('mu', 'sh', 'L', 'rbp'),
@@ -38,7 +39,7 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
 @np.vectorize
 def bgs_segment_sc16(mu, sh, L, r, N, full_output=False):
     U = L*mu
-    G = L*r
+    #G = L*r
     Vm = U*sh**2
     #print(U, G, np.exp((-2*U / (2*sh + G))))
     start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
@@ -56,6 +57,40 @@ def bgs_segment_sc16(mu, sh, L, r, N, full_output=False):
         warnings.warn("no solution found!")
         return np.nan
     return out[0][1]/N
+
+def bgs_segment_sc16_manual_vec(mu, sh, L, r, N):
+    """
+    This is a manually vectorized version of
+    bgs_segment_sc16 for comparison.
+    """
+    x = np.empty((mu.size, sh.size, L.size))
+    mu = mu.squeeze()
+    sh = sh.squeeze()
+    for i, m in enumerate(np.nditer(mu)):
+        for j, s in enumerate(np.nditer(sh)):
+            # if np.allclose(m, 1e-8) and np.allclose(s, 1e-3):
+                # __import__('pdb').set_trace()
+            x[i, j, :] = bgs_segment_sc16(m, s, L, r, N)
+            #for l in range(len(L)):
+    return x
+
+
+def interpolate_bgs_sc16(mu, sh, L, rf, N, verbose=True):
+    interpols = dict()
+    nmu, nsh = len(mu), len(sh)
+    LL, rr = np.meshgrid(L, rf)
+    print("building theory interpolators...\t", end='')
+    for i, s in enumerate(np.nditer(sh)):
+        for j, m in enumerate(np.nditer(mu)):
+            z = bgs_segment_sc16(m, s, LL, rr, N)
+            key = (float(m), float(s))
+            interpols[key] = interp2d(LL, rr, z, kind='cubic')
+    print("done.")
+    def func(L, rf):
+        assert len(L) == len(rf)
+        return np.array([interpol(L, rf) for key, interpol in interpols.items()]).reshape(nsh, nmu, len(L)).T
+    return func
+
 
 @np.vectorize
 def B_var_limit(B, R=1, N=None, n=None):
