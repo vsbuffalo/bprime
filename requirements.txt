@@ -13,9 +13,6 @@ pyslim
 tskit
 msprime
 ipykernel
-tensorflow
-tensorflow-gpu
-keras
 click
 bedtools
 bioawk

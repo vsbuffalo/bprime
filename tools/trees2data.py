@@ -52,12 +52,14 @@ def process_tree_file(tree_file, features, recap='auto'):
     ngens = int(md['generations'][0])
     load = float(md['fixed_load'][0])
     nsubs = md['subs']
+    ndels = md['ndel_muts']
+    popfit = md['popfit']
 
     # get features from metadata
     X = tuple(md[f][0] for f in features)
     # get targets and other data
     tracking_pi = pi[0]
-    y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load, nsubs)
+    y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load, nsubs, ndels, popfit)
     return X, y
 
 def filename_key(filename):
@@ -85,7 +87,7 @@ def trees2training_data(dir, features, recap='auto', progress=True,
     drop = [r is None for r in res]
     res = [r for r in res if r is not None]
     X, y = zip(*res)
-    targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load', 'nsubs')
+    targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load', 'nsubs', 'pop_ndels', 'pop_fit')
     keys = [filename_key(os.path.basename(f)) for f, ignore in zip(tree_files, drop) if not ignore]
     assert len(keys) == len(X)
     assert len(keys) == len(y)
