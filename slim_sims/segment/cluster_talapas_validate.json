@@ -1,0 +1,30 @@
+{
+    "__default__" :
+    {
+        "time" : "0-00:15:00",
+        "n" : 1,
+        "account" : "kernlab",
+        "partition" : "kern,kerngpu,preempt",
+        "mem" : "500M",
+        "cores" : "1",
+        "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/training/",
+        "name" : "bprime_{rule}_{wildcards}",
+        "output" : "../logs/out/{rule}_{jobid}.out",
+        "error" : "../logs/error/{rule}_{jobid}.err"
+    },
+    "process_trees" :
+    {
+        "time" : "0-06:00:00",
+        "n" : 1,
+        "account" : "kernlab",
+        "partition" : "kern",
+        "mem" : "5G",
+        "cores" : "40",
+        "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/training/",
+        "name" : "slimprocess_{rule}_{wildcards}",
+        "output": "logs/out/{rule}_{jobid}.out",
+        "error" : "logs/error/{rule}_{jobid}.err"
+    }
+
+}
+
