@@ -51,7 +51,7 @@ def process_tree_file(tree_file, features, recap='auto'):
     Vf = float(md['Vf'][0])
     ngens = int(md['generations'][0])
     load = float(md['fixed_load'][0])
-    nsubs = md['subs'][0]
+    nsubs = md['subs']
 
     # get features from metadata
     X = tuple(md[f][0] for f in features)
