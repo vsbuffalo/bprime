@@ -51,14 +51,18 @@ def bgs_segment_sc16(mu, sh, L, r, N, full_output=False, return_both=False):
         return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
                  np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
     out = fsolve(func, [start_T, N], full_output=True)
+    Ne = out[0][1]
+    T =  out[0][0]
+    V = U*sh - sh/T
+    Q2 = (1/((Vm/V) + r))**2
     if full_output:
         return out
     if out[2] != 1:
         warnings.warn("no solution found!")
         return np.nan
     if return_both:
-        return out[0][0], out[0][1]/N
-    return out[0][1]/N
+        return T, Ne, Q2, V
+    return Ne
 
 def bgs_segment_sc16_manual_vec(mu, sh, L, r, N):
     """
