@@ -38,33 +38,31 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
 
 
 @np.vectorize
-def bgs_segment_sc16(mu, sh, L, rbp, rf, N, full_output=False, return_both=False):
+def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
     U = L*mu
-    #G = L*r
     Vm = U*sh**2
-    #print(U, G, np.exp((-2*U / (2*sh + G))))
     start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
     def func(x):
         T, Ne = x
         V = U*sh - sh/T
-        #Q2 = V*np.log(1 + L*rbp*V/(rf*V + Vm)) / (rbp*Vm)
-        Q2 = L*V**2 / ((rf*V + Vm) * (rf*V + L*rbp*Vm + Vm))
+        VmV = Vm/V
+        Q2 = 1/(VmV * (VmV + L*rbp/2))
         return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
                  np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
     out = fsolve(func, [start_T, N], full_output=True)
     Ne = out[0][1]
     T =  out[0][0]
     V = U*sh - sh/T
-    return out
-    Q2 = L*V**2 / ((rf*V + Vm) * (rf*V + L*rbp*Vm + Vm))
+    VmV = Vm/V
+    Q2 = 1/(VmV * (VmV + L*rbp/2))
     if full_output:
         return out
     if out[2] != 1:
         warnings.warn("no solution found!")
         return np.nan
     if return_both:
-        return float(T), float(Ne), float(Q2), float(V)
-    return Ne
+        return float(T), float(Ne), float(Q2), float(V), float(Vm), float(U)
+    return float(Ne)
 
 
 @np.vectorize

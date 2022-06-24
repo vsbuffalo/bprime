@@ -4,7 +4,7 @@ from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
 from bgspy.utils import load_seqlens, load_bed_annotation
 from bgspy.recmap import RecMap
-from bgspy.classic import B_segment_lazy
+from bgspy.classic import B_segment_lazy, BSC16_segment_lazy
 
 @dataclass
 class Segments:
@@ -26,6 +26,7 @@ class Segments:
     feature_map: dict
     index: defaultdict
     _segment_parts: tuple = None
+    _segment_parts_sc16: tuple = None
 
     def __repr__(self):
         nfeats = len(self.feature_map)
@@ -62,7 +63,7 @@ class Segments:
         "Return a dict of number of segments per chrom"
         return {c: len(self.index[c]) for c in self.chroms}
 
-    def _calc_segparts(self, t):
+    def _calc_segparts(self, w, t, N=None):
         """
         Calculate the fixed components of the classic BGS theory
         equation for each segment, to avoid unnecessary repeated calcs.
@@ -72,6 +73,8 @@ class Segments:
         if t.ndim == 1:
             t = t[:, None]
         self._segment_parts = B_segment_lazy(rbp, L, t)
+        if N is not None:
+            self._segment_parts_sc16 = BSC16_segment_lazy(w, t, self, N)
 
     def _calc_features(self):
         """

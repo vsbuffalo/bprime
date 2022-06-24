@@ -156,7 +156,7 @@ class MapPosChunkIterator(object):
 
 
 class BChunkIterator(MapPosChunkIterator):
-    def __init__(self, genome, w_grid, step, nchunks):
+    def __init__(self, genome, w_grid, step, nchunks, use_SC16=False):
 
         """
         An iterator for chunk the components to calculate B' along the genome in
@@ -166,8 +166,13 @@ class BChunkIterator(MapPosChunkIterator):
         efficiency), which is why this is not necessary for this class.
         """
         super().__init__(genome, w_grid, None, step, nchunks)
-        assert genome.segments._segment_parts is not None, "Genome.segments does not have segment parts"
-        segment_parts = genome.segments._segment_parts
+        if not use_SC16:
+            assert genome.segments._segment_parts is not None, "Genome.segments does not have segment parts"
+            segment_parts = genome.segments._segment_parts
+        else:
+            # we're using the S&C '16 approach
+            assert genome.segments._segment_parts_sc16 is not None, "Genome.segments does not have S&C '16 segment parts"
+            segment_parts = genome.segments._segment_parts_sc16
         seqlens = genome.seqlens
         # Group the segement parts (these are the parts of the pre-computed
         # equation for calculating B quickly) into chromosomes by the indices
@@ -176,9 +181,14 @@ class BChunkIterator(MapPosChunkIterator):
             idx = self.chrom_idx[chrom]
             # share the following arrays across processes, to save memory
             # (these should not be changed!)
-            chrom_segparts[chrom] = tuple(map(share_array,
-                                              (segment_parts[0][:, idx], segment_parts[1],
-                                               segment_parts[2][:, idx], segment_parts[3][:, idx])))
+            if use_SC16:
+                # these are all segment-specific
+                segparts = tuple(x[:, :, idx] for x in segment_parts)
+            else:
+                # the b element is not segment specific
+                segparts = (segment_parts[0][:, idx], segment_parts[1],
+                            segment_parts[2][:, idx], segment_parts[3][:, idx])
+            chrom_segparts[chrom] = tuple(map(share_array, segparts))
 
         # custom stuff for the classic B calculation
         self.chrom_segparts = chrom_segparts

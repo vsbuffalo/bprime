@@ -25,12 +25,28 @@ def B_segment_lazy(rbp, L, t):
     d = t**2 + r*t*(1-t) # constant terms
     return a, b, c, d
 
-def T_interpolator(mu, sh, L, rbp, N):
-    pass
 
-def BSC16_segment_lazy(mu, sh, rbp, L, t):
-    pass
+def BSC16_segment_lazy(mu, sh, segments, N):
+    """
+    Compute the fixation time, Ne, etc for each segment, using the
+    equation that integrates over the entire segment.
+    """
+    L = segments.lengths
+    rbp = segments.rates
+    mu = mu.squeeze()[:, None, None]
+    sh = sh.squeeze()[None, :, None]
+    rbp = rbp.squeeze()[None, None, :]
+    L = L.squeeze()[None, None, :]
+    T, Ne, Q2, V, Vm, U = bgs_segment_sc16(mu, sh, L, rbp, N, return_both=True)
+    return T, Ne, Q2, V, Vm, U
 
+
+def bgs_segment_from_parts_sc16(parts, rf):
+    T, Ne, _, V, Vm, U = parts
+    assert T.shape[2] == rf.shape[2]
+    Q2 = (1/(Vm/V + rf))**2
+    B = np.exp(-V * Q2)
+    return B
 
 def calc_B(genome, mut_grid, step):
     """
@@ -168,24 +184,23 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
                                  total=chunks.total))
     return chunks.collate(res)
 
-def calc_B_SC16_chunk_worker(args):
+
+def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation
-    map_positions, chrom_seg_mpos, seg_L, _, w_grid, t_grid = args
+    map_positions, chrom_seg_mpos, segment_parts, mut_grid = args
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
     # different feature annotation class, but for now we just fix this
     #F = np.ones(len(chrom_seg_mpos))[:, None]
-    mu = w_grid[:, None, None]
-    sh = t_grid[None, :, None]
-    max_dist = 0.1
+    #mu = w_grid[:, None, None]
+    #sh = t_grid[None, :, None]
+    #max_dist = 0.1
     for f in map_positions:
-        rf = dist_to_segment(f, chrom_seg_mpos)
-        idx = rf <= max_dist
-        rf = rf[idx]
-        L = seg_L[idx]
-        #xm = bgs_segment_sc16_manual_vec(mu, sh, L, rf, N=1000)
-        x = bgs_segment_sc16(mu, sh, L, rf, N=1000)
-        #__import__('pdb').set_trace()
+        rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
+        # idx = rf <= max_dist
+        # rf = rf[idx]
+        # L = seg_L[idx]
+        x = bgs_segment_from_parts_sc16(segment_parts, rf)
         assert(not np.any(np.isnan(x)))
         B = np.sum(np.log(x), axis=2)
         # the einsum below is for when a features dimension exists, e.g.
@@ -195,17 +210,19 @@ def calc_B_SC16_chunk_worker(args):
         Bs.append(B)
     return Bs
 
-def calc_B_SC16_parallel(genome, w_grid, t_grid, step, nchunks=1000, ncores=2):
-    chunks = MapPosChunkIterator(genome,  w_grid, t_grid, step, nchunks)
+def calc_BSC16_parallel(genome, step, nchunks=1000, ncores=2):
+    # the None argument is because we do not need to pass in the mutations
+    # for the S&C calculation
+    chunks = BChunkIterator(genome, None, step, nchunks, use_SC16=True)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     not_parallel = ncores is None or ncores <= 1
     if not_parallel:
         res = []
         for chunk in tqdm.tqdm(chunks):
-            res.append(calc_B_SC16_chunk_worker(chunk))
+            res.append(calc_BSC16_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_B_SC16_chunk_worker, chunks),
+            res = list(tqdm.tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
                                  total=chunks.total))
     return chunks.collate(res)
 

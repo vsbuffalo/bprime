@@ -46,8 +46,9 @@ from bgspy.utils import load_seqlens, make_dirs
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
-from bgspy.classic import calc_B, calc_B_parallel, calc_B_SC16_parallel
+from bgspy.classic import calc_B, calc_B_parallel, calc_BSC16_parallel
 from bgspy.parallel import MapPosChunkIterator
+
 
 class BGSModel(object):
     def __init__(self, genome, t_grid=None, w_grid=None, split_length=1_000):
@@ -284,7 +285,7 @@ class BGSModel(object):
         self.step = step
         if self.genome.segments._segment_parts is None:
             print(f"pre-computing segment contributions...\t", end='')
-            self.genome.segments._calc_segparts(self.t)
+            self.genome.segments._calc_segparts(self.w, self.t)
             print(f"done.")
         segment_parts = self.genome.segments._segment_parts
         if ncores is None or ncores <= 1:
@@ -298,13 +299,14 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def calc_BSC16(self, step=10_000, ncores=None, nchunks=None):
+    def calc_BSC16(self, N, step=10_000, ncores=None, nchunks=None):
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
-        Bs, B_pos = calc_B_SC16_parallel(self.genome, self.w, self.t,
-                                         step=step, nchunks=nchunks,
-                                         ncores=ncores)
+        if self.genome.segments._segment_parts_sc16 is None:
+            self.genome.segments._calc_segparts(self.w, self.t, N)
+        Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
+                                        nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
         self.Bs = stacked_Bs
         self.B_pos = B_pos
