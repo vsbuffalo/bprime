@@ -47,7 +47,6 @@ from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import calc_B, calc_B_parallel, calc_B_SC16_parallel
-from bgspy.learn import LearnedFunction, LearnedB
 from bgspy.parallel import MapPosChunkIterator
 
 class BGSModel(object):
@@ -88,7 +87,6 @@ class BGSModel(object):
         self.pi0_ll = None
         self.pi0_grid = None
         self.pi0i_mle = None
-        #self._calc_features()  # TODO, not full implemented
 
         # machine learning stuff
         self.bfunc = None
@@ -227,18 +225,6 @@ class BGSModel(object):
         self.pi0 = pi0
         self.ll = ll
         return ll, pi0
-
-    def _calc_features(self):
-        """
-        Create a dummy matrix of features for each segment.
-        """
-        raise NotImplementedError("only support for one feature type")
-        # nfeats = len(self.segments.feature_map)
-        # nsegs = len(self.segments.features)
-        # F = np.zeros(shape=(nsegs, nfeats), dtype='bool')
-        # # build a one-hot matrix of features
-        # np.put_along_axis(F, self.segments.features[:, None], 1, axis=1)
-        # self.F = F
 
     @property
     def BScores(self):

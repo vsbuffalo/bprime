@@ -25,6 +25,12 @@ def B_segment_lazy(rbp, L, t):
     d = t**2 + r*t*(1-t) # constant terms
     return a, b, c, d
 
+def T_interpolator(mu, sh, L, rbp, N):
+    pass
+
+def BSC16_segment_lazy(mu, sh, rbp, L, t):
+    pass
+
 
 def calc_B(genome, mut_grid, step):
     """

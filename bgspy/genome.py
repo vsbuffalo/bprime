@@ -73,7 +73,16 @@ class Segments:
             t = t[:, None]
         self._segment_parts = B_segment_lazy(rbp, L, t)
 
-
+    def _calc_features(self):
+        """
+        Create a dummy matrix of features for each segment.
+        """
+        nfeats = len(self.feature_map)
+        nsegs = len(self.features)
+        F = np.zeros(shape=(nsegs, nfeats), dtype='bool')
+        # build a one-hot matrix of features
+        np.put_along_axis(F, self.features[:, None], 1, axis=1)
+        self.F = F
 
 def process_annotation(features, recmap, split_length=None):
     """
