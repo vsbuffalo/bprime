@@ -5,9 +5,9 @@
   "params":
      {
        "N": {"grid": [1000], "type": "int"},
-       "mu": {"grid":[1e-8, 1e-9], "type": "float"},
-       "sh": {"grid": [1e-1, 2e-4, 1e-2, 1e-3, 1e-4, 1e-5], "type": "float"},
+       "mu": {"grid":[1e-10, 2e-10, 1e-9, 2e-9, 1e-8, 2e-8], "type": "float"},
+       "sh": {"grid": [0.0001, 0.00022, 0.00046, 0.001, 0.0022, 0.0046, 0.01, 0.022, 0.046, 0.1], "type": "float"},
        "chr": {"grid": ["10"], "type": "str"}
      },
-   "nreps": 100
+   "nreps": 200
 }

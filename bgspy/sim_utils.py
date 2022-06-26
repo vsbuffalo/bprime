@@ -101,7 +101,7 @@ def get_bounds(params):
     return domain
 
 
-def calc_b_from_treeseqs(file,  width=1000, recrate=1e-8, seed=None):
+def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
     """
     Recapitate trees and calc B for whole-chromosome BGS simulations
 
@@ -129,7 +129,7 @@ def calc_b_from_treeseqs(file,  width=1000, recrate=1e-8, seed=None):
 def load_b_chrom_sims(dir, progress=True, **kwargs):
     """
     Load a batch of BGS simulations for an entire chromosome, and store the
-    positions and arary of Bs (across simulation replicates!) in a dictionary
+    positions and array of Bs (across simulation replicates!) in a dictionary
     with (sh, mu) parameters.
 
 
@@ -168,7 +168,7 @@ def load_b_chrom_sims(dir, progress=True, **kwargs):
 
     for key, res in sims.items():
         # get the position and Bs; skip 0 in pos so they're the same size
-        pos = list(map(operator.itemgetter(0), res))[1:]
+        pos = list(map(operator.itemgetter(0), res))
         b = list(map(operator.itemgetter(1), res))
         sims[key] = np.stack(pos)[0, :], np.stack(b).T
     return sims

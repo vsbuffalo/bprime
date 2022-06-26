@@ -51,19 +51,20 @@ from bgspy.parallel import MapPosChunkIterator
 
 
 class BGSModel(object):
-    def __init__(self, genome, t_grid=None, w_grid=None, split_length=1_000):
+    def __init__(self, genome, t_grid=None, w_grid=None, split_length=None):
         # main genome data needed to calculate B
         self.genome = genome
         assert self.genome.is_complete(), "genome is missing data!"
-        diff_split_lengths = split_length != genome.split_length
+        diff_split_lengths = genome.split_length is not None and split_length != genome.split_length
         if self.genome.segments is None or diff_split_lengths:
             if diff_split_lengths:
                 warnings.warn("supplied Genome object has segment split lengths that differ from that specified -- resegmenting")
             self.genome.create_segments(split_length=split_length)
         # stuff for B
         self.Bs = None
-        self.Bps = None
         self.B_pos = None
+        self.Bps = None
+        self.Bp_pos = None
         self.step = None
 
         # B parameters
@@ -232,6 +233,11 @@ class BGSModel(object):
         Bs = {c: b for c, b in self.Bs.items()}
         return BScores(Bs, self.B_pos, self.w, self.t, self.step)
 
+    @property
+    def BpScores(self):
+        Bs = {c: b for c, b in self.Bps.items()}
+        return BScores(Bs, self.B_pos, self.w, self.t, self.step)
+
     def BScores_interpolater(self, **kwargs):
         defaults = {'kind': 'quadratic',
                     'assume_sorted': True,
@@ -299,7 +305,7 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def calc_BSC16(self, N, step=10_000, ncores=None, nchunks=None):
+    def calc_Bp(self, N, step=10_000, ncores=None, nchunks=None):
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
@@ -308,10 +314,8 @@ class BGSModel(object):
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
-        self.Bs = stacked_Bs
-        self.B_pos = B_pos
-        #self.xs = xs
-
+        self.Bps = stacked_Bs
+        self.Bp_pos = B_pos
 
     def load_learnedfunc(self, filepath):
         func = LearnedFunction.load(filepath)

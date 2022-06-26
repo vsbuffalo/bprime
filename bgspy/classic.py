@@ -41,10 +41,12 @@ def BSC16_segment_lazy(mu, sh, segments, N):
     return T, Ne, Q2, V, Vm, U
 
 
-def bgs_segment_from_parts_sc16(parts, rf):
+def bgs_segment_from_parts_sc16(parts, rf, log=True):
     T, Ne, _, V, Vm, U = parts
     assert T.shape[2] == rf.shape[2]
     Q2 = (1/(Vm/V + rf))**2
+    if log:
+        return -V * Q2
     B = np.exp(-V * Q2)
     return B
 
@@ -200,9 +202,9 @@ def calc_BSC16_chunk_worker(args):
         # idx = rf <= max_dist
         # rf = rf[idx]
         # L = seg_L[idx]
-        x = bgs_segment_from_parts_sc16(segment_parts, rf)
+        x = bgs_segment_from_parts_sc16(segment_parts, rf, log=True)
         assert(not np.any(np.isnan(x)))
-        B = np.sum(np.log(x), axis=2)
+        B = np.sum(x, axis=2)
         # the einsum below is for when a features dimension exists, e.g.
         # there are feature-specific μ's and t's -- commented out now...
         #B = np.einsum('ts,w,sf->wtf', x, mut_grid,

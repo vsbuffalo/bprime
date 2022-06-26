@@ -36,7 +36,7 @@ class BScores:
     def __getitem__(self, tup):
         chrom, w, t = tup
         pos = self.pos[chrom]
-        Bs = 10**self.B[chrom][:, w == self.w, t == self.t, ...].squeeze()
+        Bs = np.exp(self.B[chrom][:, w == self.w, t == self.t, ...].squeeze())
         return pos, Bs
 
     def get_nearest(self, chrom, w, t):
