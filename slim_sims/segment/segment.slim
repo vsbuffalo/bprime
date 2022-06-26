@@ -147,9 +147,9 @@ s2 late() {
   popfit = pop_fitness(m1);
   metadata.setValue("Ef", mean(popfit));
   metadata.setValue("Vf", var(popfit));
-  metadata.setValue("popfit", popfit);
-  ndels = sim.subpopulations.individuals.countOfMutationsOfType(m1);
-  metadata.setValue("ndel_muts", ndels);
+  //metadata.setValue("popfit", popfit);
+  //ndels = sim.subpopulations.individuals.countOfMutationsOfType(m1);
+  //metadata.setValue("ndel_muts", ndels);
   //print(treeseq_file);
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
 }

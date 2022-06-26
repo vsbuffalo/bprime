@@ -18,7 +18,7 @@
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern",
-        "mem" : "5G",
+        "mem" : "10G",
         "cores" : "20",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/training/",
         "name" : "slimprocess_{rule}_{wildcards}",

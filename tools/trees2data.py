@@ -35,6 +35,24 @@ def process_tree_file(tree_file, features, recap='auto'):
             ts = pyslim.slim_tree_sequence.SlimTreeSequence(ts)
             ts = pyslim.recapitate(ts, recombination_rate=0,
                                    ancestral_Ne=md['N'][0]).simplify()
+    r2_sum, r2_mean = np.nan, np.nan
+    ld_sum, ld_mean = np.nan, np.nan
+    num_muts = len(list(ts.mutations()))
+    if num_muts:
+        idx = np.triu_indices(num_muts, k=1)
+        try:
+            r2 = tskit.LdCalculator(ts).r2_matrix()[idx]
+            r2_sum = r2.sum()
+            r2_mean = r2.mean()
+        except:
+            # this is due to infinite sites issues -- rare exception
+            pass
+        ld = np.cov(ts.genotype_matrix())
+        if ld.ndim == 0:
+            ld_sum, ld_mean = ld, ld
+        else:
+            ld_sum = ld[idx].sum()
+            ld_mean = ld[idx].mean()
     nroots = max(t.num_roots for t in ts.trees())
     assert(nroots == 1)
     region_length = int(md['region_length'][0])
@@ -52,14 +70,14 @@ def process_tree_file(tree_file, features, recap='auto'):
     ngens = int(md['generations'][0])
     load = float(md['fixed_load'][0])
     nsubs = md['subs']
-    ndels = md['ndel_muts']
-    popfit = md['popfit']
+    #ndels = md['ndel_muts']
+    #popfit = md['popfit']
 
     # get features from metadata
     X = tuple(md[f][0] for f in features)
     # get targets and other data
     tracking_pi = pi[0]
-    y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load, nsubs, ndels, popfit)
+    y = (tracking_pi, Bhat(tracking_pi, N), Ef, Vf, load, nsubs, r2_sum, r2_mean, ld_sum, ld_mean, num_muts)
     return X, y
 
 def filename_key(filename):
@@ -87,7 +105,7 @@ def trees2training_data(dir, features, recap='auto', progress=True,
     drop = [r is None for r in res]
     res = [r for r in res if r is not None]
     X, y = zip(*res)
-    targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load', 'nsubs', 'pop_ndels', 'pop_fit')
+    targets = ('pi', 'Bhat', 'Ef', 'Vf', 'load', 'nsubs', 'r2_sum', 'r2_mean', 'ld_sum', 'ld_mean', 'ld_nmuts')
     keys = [filename_key(os.path.basename(f)) for f, ignore in zip(tree_files, drop) if not ignore]
     assert len(keys) == len(X)
     assert len(keys) == len(y)
