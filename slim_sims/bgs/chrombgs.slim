@@ -29,9 +29,9 @@ initialize() {
     defineConstant("N", 1000);
     defineConstant("sh", 1e-4);
     defineConstant("mu", 1e-8);
-	defineConstant("datadir", '');
+    defineConstant("datadir", '');
   } else {
-	defineConstant("datadir", '../../data/slim_sims/'+name+'/'+subdir_);
+    defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
   //defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
   defineConstant("recmap_file", "../../data/annotation/hapmap/genetic_map_GRCh37_chr"+chr+".txt");

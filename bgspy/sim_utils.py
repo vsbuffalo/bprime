@@ -1,4 +1,6 @@
 ## sim_utils.py -- common utility functions for msprime and slim
+import os
+import re
 import warnings
 import itertools
 import operator
@@ -6,7 +8,9 @@ from collections import defaultdict
 import numpy as np
 import pyslim
 import tqdm
-from bgspy.utils import get_files, random_seed
+from bgspy.utils import get_files, random_seed, bin_chrom
+
+SIM_REGEX = re.compile(r'chrombgs_chr10_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
 
 def fixed_params(params):
     """
@@ -120,11 +124,19 @@ def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
     rts = pyslim.recapitate(ts, recombination_rate=recrate, sequence_length=ts.sequence_length,
                             ancestral_Ne=N, random_seed=seed)
     length = int(ts.sequence_length)
-    neut_positions = np.linspace(0, length, length // width).astype(int)
+    neut_positions = bin_chrom(length+1, width).astype(int)
     # extract the specified simulation parameters from the ts metadata
     params = {k: md[k][0] for k in md.keys()}
     B = rts.diversity(mode='branch', windows=neut_positions) / (4*N)
     return params, neut_positions, B
+
+
+def parse_sim_filename(file):
+    res = SIM_REGEX.match(os.path.basename(file)).groupdict()
+    res['mu'] = float(res['mu'])
+    res['sh'] = float(res['sh'])
+    res['rep'] = int(res['rep'])
+    return res
 
 def load_b_chrom_sims(dir, progress=True, **kwargs):
     """
@@ -142,33 +154,31 @@ def load_b_chrom_sims(dir, progress=True, **kwargs):
     **kwargs are passed to calc_b_from_treeseqs().
     """
     tree_files = get_files(dir, suffix='.tree')
+    params = [parse_sim_filename(x) for x in tree_files]
+    mus = set(x['mu'] for x in params)
+    shs = set(x['sh'] for x in params)
+    reps = set(x['rep'] for x in params)
+
+    # read one file in to get the number of positions
+    _, pos, b = calc_b_from_treeseqs(tree_files[0], **kwargs)
+    npos = len(pos)
+
+    # allocate matrix for results
+    X = np.full((npos, len(mus), len(shs), len(reps)), np.nan, dtype=np.single)
+
+    # for indices
+    mu_lookup = {mu: i for i, mu in enumerate(sorted(mus))}
+    sh_lookup = {sh: i for i, sh in enumerate(sorted(shs))}
+
     sims = defaultdict(list)
 
     if progress:
         tree_files = tqdm.tqdm(tree_files)
 
-    # this is a check to make sure no other  parameters are varying
-    # across these simulations other than mu and sh
-    unique_keys = defaultdict(set)
     for file in tree_files:
         sim_params, pos, b = calc_b_from_treeseqs(file, **kwargs)
-        # merge s and h into sh since that's what we care about now
-        sim_params['sh'] = sim_params.pop('s') * sim_params.pop('h')
-        for param in sim_params:
-            unique_keys[param].add(sim_params[param])
-        param_key = (sim_params['sh'], sim_params['mu'])
-        sims[param_key].append((pos, b))
+        rep = parse_sim_filename(file)['rep']
+        mu, sh = sim_params['mu'], sim_params['sh']
+        X[:, mu_lookup[mu], sh_lookup[sh], rep]
 
-    # now, let's check to make sure that only sh and mu vary
-    for param in unique_keys:
-        if len(unique_keys[param]) > 1:
-            if param in ('sh', 'mu'):
-                continue
-            raise ValueError(f"key '{param}' has multiple values!")
-
-    for key, res in sims.items():
-        # get the position and Bs; skip 0 in pos so they're the same size
-        pos = list(map(operator.itemgetter(0), res))
-        b = list(map(operator.itemgetter(1), res))
-        sims[key] = np.stack(pos)[0, :], np.stack(b).T
-    return sims
+    return X

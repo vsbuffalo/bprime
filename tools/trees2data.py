@@ -51,6 +51,7 @@ def process_tree_file(tree_file, features, recap='auto'):
         if ld.ndim == 0:
             ld_sum, ld_mean = ld, ld
         else:
+            idx = np.triu_indices(ld.shape[0], k=1)
             ld_sum = ld[idx].sum()
             ld_mean = ld[idx].mean()
     nroots = max(t.num_roots for t in ts.trees())

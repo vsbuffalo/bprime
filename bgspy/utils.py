@@ -243,7 +243,7 @@ def get_files(dir, suffix):
                 if not file.endswith(suffix):
                     continue
             all_files.add(os.path.join(root, *dirs, file))
-    return all_files
+    return list(all_files)
 
 
 def signif(x, digits=4):
