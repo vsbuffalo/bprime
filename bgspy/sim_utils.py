@@ -2,12 +2,14 @@
 import os
 import re
 import warnings
+from functools import partial
 import itertools
 import operator
 from collections import defaultdict
 import numpy as np
 import pyslim
 import tqdm
+import multiprocessing
 from bgspy.utils import get_files, random_seed, bin_chrom
 
 SIM_REGEX = re.compile(r'chrombgs_chr10_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
@@ -138,7 +140,7 @@ def parse_sim_filename(file):
     res['rep'] = int(res['rep'])
     return res
 
-def load_b_chrom_sims(dir, progress=True, **kwargs):
+def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     """
     Load a batch of BGS simulations for an entire chromosome, and store the
     positions and array of Bs (across simulation replicates!) in a dictionary
@@ -164,21 +166,31 @@ def load_b_chrom_sims(dir, progress=True, **kwargs):
     npos = len(pos)
 
     # allocate matrix for results
-    X = np.full((npos, len(mus), len(shs), len(reps)), np.nan, dtype=np.single)
+    # we do one less than position since these are window boundaries
+    # including start
+    X = np.full((npos-1, len(mus), len(shs), len(reps)), np.nan, dtype=np.single)
 
     # for indices
     mu_lookup = {mu: i for i, mu in enumerate(sorted(mus))}
     sh_lookup = {sh: i for i, sh in enumerate(sorted(shs))}
 
-    sims = defaultdict(list)
-
-    if progress:
-        tree_files = tqdm.tqdm(tree_files)
-
-    for file in tree_files:
-        sim_params, pos, b = calc_b_from_treeseqs(file, **kwargs)
-        rep = parse_sim_filename(file)['rep']
-        mu, sh = sim_params['mu'], sim_params['sh']
-        X[:, mu_lookup[mu], sh_lookup[sh], rep]
-
-    return X
+    if ncores is None or ncores == 1:
+        if progress:
+            tree_files = tqdm.tqdm(tree_files)
+        for file in tree_files:
+            sim_params, pos, b = calc_b_from_treeseqs(file, **kwargs)
+            rep = parse_sim_filename(file)['rep']
+            mu, sh = sim_params['mu'], sim_params['sh']
+            X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            func = partial(calc_b_from_treeseqs, **kwargs)
+            res = list(tqdm.tqdm(p.imap(func, tree_files), total=len(tree_files)))
+            for (sim_params, pos, b), file in zip(res, tree_files):
+                rep = parse_sim_filename(file)['rep']
+                mu, sh = sim_params['mu'], sim_params['sh']
+                X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
+    
+    mu = np.fromiter(mu_lookup.keys(), dtype=float)
+    sh = np.fromiter(sh_lookup.keys(), dtype=float)
+    return mu, sh, pos, X
