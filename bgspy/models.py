@@ -35,7 +35,6 @@ import tqdm
 import time
 import numpy as np
 import allel
-from scipy import interpolate
 from scipy.stats import binned_statistic, binned_statistic_dd
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
@@ -228,49 +227,52 @@ class BGSModel(object):
         self.ll = ll
         return ll, pi0
 
+    def save(self, filename):
+        assert filename.endswith('.pkl'), "filename should end in '.pkl'"
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(self, filename):
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+        return obj
+
     @property
     def BScores(self):
-        Bs = {c: b for c, b in self.Bs.items()}
-        return BScores(Bs, self.B_pos, self.w, self.t, self.step)
+        return BScores(self.Bs, self.B_pos, self.w, self.t, self.step)
 
     @property
     def BpScores(self):
-        Bs = {c: b for c, b in self.Bps.items()}
-        return BScores(Bs, self.B_pos, self.w, self.t, self.step)
-
-    def BScores_interpolater(self, **kwargs):
-        defaults = {'kind': 'quadratic',
-                    'assume_sorted': True,
-                    'bounds_error': False,
-                    'copy': False}
-        kwargs = {**defaults, **kwargs}
-        interpols = defaultdict(dict)
-        x = self.B_pos
-        Bs = {c: b for c, b in self.Bs.items()}
-        for i, w in enumerate(self.w):
-            for j, t in enumerate(self.t):
-                for chrom in Bs:
-                    # The last dimension is features matrix -- for now, only
-                    # one feature is supported
-                    y = Bs[chrom][:, i, j, 0]
-                    func = interpolate.interp1d(x[chrom], y,
-                                                fill_value=(y[0], y[-1]),
-                                                **kwargs)
-                    interpols[chrom][(w, t)] = func
-        return interpols
+        return BScores(self.Bps, self.B_pos, self.w, self.t, self.step)
 
     def save_B(self, filename):
+        """
+        Save both B and B'.
+        """
         if self.Bs is None or self.B_pos is None:
             raise ValueError("B scores not yet calculated.")
         assert filename.endswith('.pkl'), "filename should end in '.pkl'"
-        self.BScores.save(filename)
+        with open(filename, 'wb') as f:
+            pickle.dump({'B': self.BScores, 'Bp': self.BpScores})
 
     def load_B(self, filename):
+        """
+        Load both B and B'.
+        """
         assert filename.endswith('.pkl'), "filename should end in '.pkl'"
-        obj = BScores.load(filename)
-        self.Bs, self.B_pos = obj.B, obj.pos
-        self.w, self.t, self.step = obj.w, obj.t, obj.step
-        return obj
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+        # check the consistency
+        assert obj['B'].w == obj['Bp'].w
+        assert obj['B'].t == obj['Bp'].t
+        assert obj['B'].pos == obj['Bp'].pos
+        b = obj['B']
+        self.Bs, self.B_pos = b, b.pos
+        self.w, self.t, self.step = b.w, b.t, b.step
+        self.Bs = obj['B'].B
+        self.Bps = obj['Bp'].B
+        return self
 
     @property
     def B_bins(self):
@@ -316,106 +318,3 @@ class BGSModel(object):
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
-
-    def load_learnedfunc(self, filepath):
-        func = LearnedFunction.load(filepath)
-        bfunc = LearnedB(self.t, self.w, genome=self.genome)
-        bfunc.func = func
-        bfunc.is_valid_grid()
-        try:
-            bfunc.is_valid_segments()
-        except AssertionError as msg:
-            warnings.warn("Some segments are out of training bounds.\n"
-                          "This is not inherently a problem; their values will be "
-                          "set to the boundary values. Message: " + str(msg))
-
-        self.bfunc = bfunc
-
-    def _focal_positions(self, step, nchunks, max_map_dist, progress=True):
-        """
-        Get the focal positions for each position that B is calculated at, with
-        the indices max_map_dist apart.
-
-
-        nchunks is how many chunks across the genome to break this up
-        to (for parallel processing)
-        """
-        chunks = MapPosChunkIterator(self.genome, self.w, self.t,
-                                     step=step, nchunks=nchunks)
-
-        # we iterate over the physical and map position chunks --
-        # these are each packaged with their chromosomes
-        sites_iter = zip(chunks.pos_iter, chunks.mpos_iter)
-
-        if progress:
-            sites_iter = tqdm.tqdm(sites_iter, total=chunks.total)
-
-        for ((chrom, pos_chunk), (_, mpos_chunk)) in sites_iter:
-            # for this chunk of map positions, get the segment indices
-            # within max_map_dist from the start/end of map positions
-            lidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[0], map_dist=max_map_dist)[0]
-            uidx = self.genome.get_segment_slice(chrom, mpos=mpos_chunk[-1], map_dist=max_map_dist)[1]
-
-            # package physical and map positions together -- this makes
-            # stitching these back together safe across distributed computing
-            sites_chunk = np.array((pos_chunk, mpos_chunk)).T
-            yield chrom, sites_chunk, (lidx, uidx)
-
-    def _build_segment_matrix(self, chrom):
-        """
-        The columns are the features of the B' training data are
-               0,      1,          2,        3
-              'L', 'rbp', 'map_start' 'map_end'
-
-        Note: previously this fixed the bounds. But because rf bounds *have*
-        to be fixed when the focal sites are filled in, this requires bounds
-        checking at the lower level, so it's done entirely during prediction.
-        """
-        segments = self.genome.segments
-        nsegs = self.genome.segments.nsegs[chrom]
-        S = np.empty((nsegs, 4))
-        S[:, 0] = self.segments.L[chrom]
-        S[:, 1] = self.segments.rbp[chrom]
-        S[:, 2] = self.segments.mpos[chrom][:, 0]
-        S[:, 3] = self.segments.mpos[chrom][:, 1]
-        return S
-
-    def _build_segment_matrices(self):
-        self._Ss = {}
-        for chrom in self.genome.seqlens.keys():
-            self._Ss[chrom] = self._build_segment_matrix(chrom)
-
-    def write_prediction_chunks(self, dir, step=1000, nchunks=1000, max_map_dist=0.1):
-        """
-        Write files necessary for B' prediction across a cluster.
-        All files (and later predictions) are stored in the supplied 'dir'.
-
-         - dir/chunks/
-         - dir/segments/
-
-        Note that these data are prediction model agnostic, e.g. they work regardless
-        of the prediction model. Other information is needed, e.g. whether to
-        transform these features and the parameters for centering/scaling.
-        """
-        name = self.genome.name
-        self.genome._build_segment_idx_interpol()
-        self._build_segment_matrices()
-        # build main directory if it doesn't exist
-        dir = make_dirs(dir)
-
-        chrom_dir = make_dirs(dir, 'segments')
-        for chrom, S in self._Ss.items():
-            nsegs = self.segments.nsegs[chrom]
-            filename = os.path.join(chrom_dir, f"{name}_{chrom}.npy")
-            np.save(filename, S.astype('f8'))
-
-        focal_pos_iter = self._focal_positions(step=step, nchunks=nchunks,
-                                               max_map_dist=max_map_dist)
-
-        for i, (chrom, sites_chunk, segslice) in enumerate(focal_pos_iter):
-            chunk_dir = make_dirs(dir, 'chunks', chrom)
-            lidx, uidx = segslice
-            filename = os.path.join(chunk_dir, f"{name}_{chrom}_{i}_{lidx}_{uidx}.npy")
-            np.save(filename, sites_chunk)
-
-

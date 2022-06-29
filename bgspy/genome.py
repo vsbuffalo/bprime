@@ -1,3 +1,4 @@
+import pickle
 from dataclasses import dataclass
 import numpy as np
 from scipy import interpolate
@@ -74,7 +75,9 @@ class Segments:
             t = t[:, None]
         self._segment_parts = B_segment_lazy(rbp, L, t)
         if N is not None:
+            print(f"calculating SC16 components...\t", end='')
             self._segment_parts_sc16 = BSC16_segment_lazy(w, t, self, N)
+            print("done.")
 
     def _calc_features(self):
         """
@@ -255,6 +258,16 @@ class Genome(object):
         assert self.recmap is not None, msg
         self.split_length = split_length
         self.segments = process_annotation(self.annot, self.recmap, split_length)
+
+    def save(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(self, filename):
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+        return obj
 
     def __repr__(self):
         rows = [f"Genome '{self.name}' with {len(self.seqlens)} chromosome(s)"]

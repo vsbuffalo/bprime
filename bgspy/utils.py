@@ -25,17 +25,20 @@ RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))
 
-@dataclass
 class BScores:
-    B: np.ndarray
-    pos: np.ndarray
-    w: np.ndarray
-    t: np.ndarray
-    step: (None, int)
+    def __init__(self, B, pos, w, t, step=None):
+        self.B = B
+        self.pos = pos
+        self.w = w
+        self.t = t
+        self.step = step
+        self._interpolators = None
 
     def __getitem__(self, tup):
         chrom, w, t = tup
         pos = self.pos[chrom]
+        assert w in self.w, f"'{w}' is not in w array '{self.w}'"
+        assert t in self.t, f"'{t}' is not in w array '{self.t}'"
         Bs = np.exp(self.B[chrom][:, w == self.w, t == self.t, ...].squeeze())
         return pos, Bs
 
@@ -53,6 +56,38 @@ class BScores:
         with open(filepath, 'rb') as f:
             obj = pickle.load(f)
         return obj
+
+    def _build_interpolators(self, **kwargs):
+        defaults = {'kind': 'quadratic',
+                    'assume_sorted': True,
+                    'bounds_error': False,
+                    'copy': False}
+        kwargs = {**defaults, **kwargs}
+        interpols = defaultdict(dict)
+        x = self.pos
+        Bs = {c: b for c, b in self.B.items()}
+        for i, w in enumerate(self.w):
+            for j, t in enumerate(self.t):
+                for chrom in Bs:
+                    # The last dimension is features matrix -- for now, only
+                    # one feature is supported
+                    y = Bs[chrom][:, i, j]
+                    func = interpolate.interp1d(x[chrom], y,
+                                                fill_value=(y[0], y[-1]),
+                                                **kwargs)
+                    interpols[chrom][(w, t)] = func
+        self._interpolators = interpols
+
+    def B_at_pos(self, chrom, pos):
+        if self._interpolators is None:
+            print(f"building interpolators...\t", end='\t')
+            self._build_interpolators()
+            print("done.")
+        X = np.full((self.w.size, self.t.size, pos.size), np.nan)
+        for i, w in enumerate(self.w):
+            for j, t in enumerate(self.t):
+                X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
+        return X
 
 def read_npy_dir(dir):
     return {f: np.load(os.path.join(dir, f)) for f in os.listdir(dir)}
@@ -268,7 +303,7 @@ def arg_nearest(val, array):
     i = np.argmin(np.abs(val-array))
     return i
 
-def exact_indice(val, array, tol=1e-30):
+def exact_index(val, array, tol=1e-30):
     """
     Get the index of element of 'array' to the point within 'tol' to
     'val'.
@@ -317,8 +352,13 @@ def make_dirs(*args):
         os.makedirs(dir)
     return dir
 
+def inverse_haldanes_mapfun(rec):
+    return -0.5*np.log(1-2*rec)
 
-def dist_to_segment(focal, seg_map_pos):
+def haldanes_mapfun(dist):
+    return 0.5*(1 - np.exp(-dist))
+
+def dist_to_segment(focal, seg_map_pos, haldane=False):
     """
     Return the map distance between a focal site (in map coords)
     and the segments end and start positions (also in map coords).
@@ -343,13 +383,9 @@ def dist_to_segment(focal, seg_map_pos):
     dists[is_left] = np.abs(f-seg_map_pos[is_left, 0])
     dists[is_right] = np.abs(f-seg_map_pos[is_right, 1])
     assert len(dists) == seg_map_pos.shape[0], (len(dists), seg_map_pos.shape)
+    if haldane:
+        dists = haldanes_mapfun(dists)
     return dists
-
-def inverse_haldanes_mapfun(rec):
-    return -0.5*np.log(1-2*rec)
-
-def haldanes_mapfun(dist):
-    return 0.5*(1 - np.exp(-dist))
 
 def rel_error(est, truth):
     return 100*np.abs((est - truth)/truth)
