@@ -6,7 +6,7 @@ initialize() {
   defineConstant("seqlen_file", "../../data/annotation/hg38_seqlens.tsv");
   for (line in readFile(seqlen_file)) {
     parts = strsplit(line, "\t");
-    if (parts[0] == "chr10") {
+    if (parts[0] == "chr"+chr) {
       chrom_length = asInteger(parts[1]);
     }
   }
@@ -33,8 +33,7 @@ initialize() {
   } else {
     defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
-  //defineConstant("recmap_file", "../data/annotation/rec_100kb_chr"+chr+".bed");
-  defineConstant("recmap_file", "../../data/annotation/hapmap/genetic_map_GRCh37_chr"+chr+".txt");
+  defineConstant("recmap_file", "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr"+chr+".txt");
   defineConstant("annot_file", "../../data/annotation/conserved_by_chrom/chr"+chr+".bed");
 
   // We fix h = 0.5 and calculate the proper homozygous selection
@@ -88,7 +87,9 @@ initialize() {
     rates = c(rates, 1e-8 * asFloat(parts[2]));
     bins = c(bins, asInteger(parts[1]));
   }
-  print(bins[0:10]);
+  bins = c(bins, region_length);
+  rates = c(rates, 0);
+  //print(bins[(length(rates)-10):(length(rates)-1)]);
   defineConstant('rec_rates', rates);
   defineConstant('rec_bins', bins);
   //print(rec_bins);

@@ -55,61 +55,32 @@ rule human_100kb:
 ## === Human Recombination Maps
 
 ## ==== DeCode Recombination Map
-decode = ["sex-averaged.rmap", "sex-averaged.bed", "rec_100kb.bed"]
+decode = ["decode_sex_averaged.txt"]
 rule decode_map:
-  output: "sex-averaged.rmap"
+  output: "decode_sex_averaged.txt"
   shell:
     """
-    wget https://www.decode.com/additional/sex-averaged.rmap
+    #wget https://www.decode.com/additional/sex-averaged.rmap
+    wget https://stdpopsim.s3.us-west-2.amazonaws.com/genetic_maps/HomSap/DeCodeSexAveraged_GRCh36_liftedOverTo_Hg38.tar.gz
+    tar -xvzf DeCodeSexAveraged_GRCh36_liftedOverTo_Hg38.tar.gz
+    find DeCodeSexAveraged_GRCh36_liftedOverTo_Hg38 -name "*.txt" | sort --version-sort | xargs -n1 cat  | sed '2,${{/^Chr/d}}' > {output}
+    rm -f DeCodeSexAveraged_GRCh36_liftedOverTo_Hg38.tar.gz
     """
-
-rule decode_map_bed:
-  input: "sex-averaged.rmap"
-  output: "sex-averaged.bed"
-  shell:
-     """
-     # bioawk is picky about the numeric column being an integer, so we scale up
-     sed 1d {input} | bioawk -t '{{ print $1,$2,$2+10000,".",int($4*100000) }}' | sort --version-sort -k1,1 -k2,2n > {output}
-     """
-
-# scales column back down to float
-rule decode_binned:
-  input: map="sex-averaged.bed", win="hg38_100kb.bed"
-  output: "rec_100kb.bed"
-  shell:
-     """
-     bedtools map -a {input.win} -b {input.map} -c 5 -o mean | bioawk -t '{{ print $1, $2, $3, $4/100000 }}' > {output}
-     """
 
 ## ==== HapMap Recombination Map 
-hapmap_files = [f"hapmap/genetic_map_GRCh37_chr{chrom}.txt" for chrom in AUTOS + ['X', 'X_par1', 'X_par2']]
-hapmap = ["HapmapII_GRCh37_RecombinationHotspots.tar.gz", "hapmap_genetic_map.txt"] + hapmap_files + []
+hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
+hapmap = ["hapmap_genetic_map.txt"]
 
 rule download_hapmap:
-  output: "HapmapII_GRCh37_RecombinationHotspots.tar.gz"
-  shell:
-    """
-    wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/technical/working/20110106_recombination_hotspots/HapmapII_GRCh37_RecombinationHotspots.tar.gz
-    """
-
-# this untars all chroms
-rule untar_hapmap:
-  input: "HapmapII_GRCh37_RecombinationHotspots.tar.gz"
-  output: hapmap_files + ["hapmap/README_hapmapII_GRCh37_map"]
-  shell:
-     """
-     mkdir -p hapmap
-     tar -xvzf {input} -C hapmap
-     """
-
-rule combine_hapmap:
-  input: hapmap_files
   output: "hapmap_genetic_map.txt"
   shell:
-      """
-      (head -n1 hapmap/genetic_map_GRCh37_chr1.txt; (find hapmap/ -name "genetic_map_GRCh37_chr*txt" | grep -P "chr[0-9]+.txt" | sort --version-sort | \
-        xargs -n 1 cat | grep -v Chromosome)) > {output}
-      """
+    """
+    wget https://stdpopsim.s3.us-west-2.amazonaws.com/genetic_maps/HomSap/HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
+    tar -xvzf HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
+
+    find HapMapII_GRCh37_liftedOverTo_Hg38 -name "*.txt" | sort --version-sort | xargs -n1 cat  | sed '2,${{/^Chr/d}}' > {output}
+    rm -f HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
+    """
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. exons

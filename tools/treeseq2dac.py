@@ -7,6 +7,8 @@ import collections
 import tskit
 import msprime
 import pyslim
+from bgspy.recmap import RecMap
+from bgspy.utils import load_seqlens
 
 def load_recrates(file, conversion_factor=1e-8):
     chroms = set()
@@ -93,66 +95,37 @@ def serialize_metadata(md):
 
 
 @click.command()
-@click.argument('treefile', help="tree file from tskit")
+@click.argument('treefile')
+@click.option('--chrom', required=True, help="output DAC file")
 @click.option('--outfile', default=None, help="output DAC file")
-@click.option('--regions', default=None,
+@click.option('--regions', required=True,
               help="BED track of regions to drop mutations onto")
-@click.option('--recmap', default=None, help="BED recombination map")
-@click.option('--mu', default=None, help="mutation rate")
+@click.option('--recmap', required=True, help="BED recombination map")
+@click.option('--mu', default=1.5e-8, help="mutation rate")
 @click.option('--seed', default=None, help="random seed")
-def treeseq2dac(trees, outfile, regions, recmap, mu, seed=None):
+def treeseq2dac(treefile, chrom, outfile, regions, recmap, mu, seed=None):
     """
     Take a tree seequence file, recapitate, and overlay mutations.
     """
-    ts = pyslim.load(trees)
-    recmap = load_recrates(recmap)
+    ts = pyslim.load(treefile)
+    rm = RecMap(recmap, seqlens={chrom: ts.sequence_length})
+    rp = rm.rates[chrom]
+    ends, rates = rp.end, rp.rate
+    rates[0] = 0
+    recmap = msprime.RecombinationMap(ends, rates)
     md = ts.metadata['SLiM']['user_metadata']
     N = md['N'][0]
-    rts = ts.recapitate(recombination_map=recmap, Ne=N, random_seed=args.seed)
+    rts = ts.recapitate(recombination_map=recmap, Ne=N, random_seed=seed)
 
     region_length = ts.sequence_length
-    ratemap = load_neutregions(args.regions, args.mu, region_length)
+    ratemap = load_neutregions(regions, mu, region_length)
     # for debugging; TODO comment out
     print_rate_map(ratemap)
     rts = rts.delete_sites([m.site for m in rts.mutations()])
     ts = msprime.sim_mutations(rts, rate=ratemap, discrete_genome=True)
     #__import__('pdb').set_trace()
-    if args.outfile is None:
-        outfile = args.trees.replace('_treeseq.tree', '_dac.tsv.gz')
-    else:
-        outfile = args.outfile
-
-
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='')
-    #parser.add_argument('--regions')
-    #parser.add_argument('--recmap')
-    parser.add_argument('--seed', default=np.random.randint(0, 2**31 - 1))
-    parser.add_argument('--outfile', default=None)
-    #parser.add_argument('--mu', type=float)
-    parser.add_argument('trees')
-    args = parser.parse_args()
-
-    ts = pyslim.load(args.trees)
-    recmap = load_recrates(args.recmap)
-    md = ts.metadata['SLiM']['user_metadata']
-    N = md['N'][0]
-    rts = ts.recapitate(recombination_map=recmap, Ne=N, random_seed=args.seed)
-
-    region_length = ts.sequence_length
-    ratemap = load_neutregions(args.regions, args.mu, region_length)
-    # for debugging; TODO comment out
-    print_rate_map(ratemap)
-    rts = rts.delete_sites([m.site for m in rts.mutations()])
-    ts = msprime.sim_mutations(rts, rate=ratemap, discrete_genome=True)
-    #__import__('pdb').set_trace()
-    if args.outfile is None:
-        outfile = args.trees.replace('_treeseq.tree', '_dac.tsv.gz')
-    else:
-        outfile = args.outfile
-
+    if outfile is None:
+        outfile = treefile.replace('_treeseq.tree', '_dac.tsv.gz')
 
     chrom = ratemap.chrom
     pos, nanc = count_ancestral(ts)
@@ -165,3 +138,8 @@ if __name__ == "__main__":
             row = [chrom, pos[i], 2*N, nderv[i]]
             f.write("\t".join(map(str, row)) + "\n")
 
+
+
+
+if __name__ == "__main__":
+    treeseq2dac()

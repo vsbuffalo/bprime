@@ -48,6 +48,7 @@ class RecMap(object):
         self.conversion_factor = conversion_factor
         self.ends = dict()
         self.rates = None
+        assert isinstance(seqlens, dict), "seqlens must be a dict"
         self.seqlens = seqlens
         self.cumm_rates = None
         self.params = []
