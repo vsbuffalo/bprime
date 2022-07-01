@@ -1,0 +1,37 @@
+import itertools 
+import numpy as np
+np.random.seed(1)
+from collections import defaultdict, namedtuple
+import pickle
+import pyslim
+import tskit
+from bgspy.slim import SlimRuns, read_params
+from bgspy.sim_utils import load_b_chrom_sims
+from bgspy.samplers import ParamGrid
+
+if not len(config):
+    raise ValueError("config file not specified on command line, use --configfile config.json")
+
+# ------- Shared Parameters -------
+DATADIR = "../../data/slim_sims/"
+SLIM = '~/src/SLiM_build/slim'
+
+# the output of one region simulation
+SIM_OUTPUTS = ["log.tsv.gz", "treeseq.tree"]
+
+# ------- Region Simulations -------
+run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, add_seed=False, 
+               sims_subdir=True, split_dirs=None)
+run.generate(SIM_OUTPUTS)
+results = run.targets
+
+rule simulation:
+  input: run.script
+  output: 
+    run.wildcard_output(suffix=SIM_OUTPUTS)
+  shell:
+    run.slim_call(slim_cmd=SLIM)
+
+rule all:
+  input:
+    results

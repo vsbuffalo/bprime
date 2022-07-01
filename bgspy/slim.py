@@ -33,8 +33,8 @@ def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False)
     return pattern
 
 
-def slim_call(param_types, script, slim_cmd="slim", add_seed=False,
-              add_rep=False, manual=None):
+def slim_call(param_types, script, slim_cmd="slim", 
+              add_seed=False, add_rep=False, manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
     wildcards based on the provided parameter names and types (as a dict).
@@ -93,7 +93,7 @@ def time_grower(start_time, factor=1.8):
 
 class SlimRuns(object):
     def __init__(self, config, dir='.', sims_subdir=False, sampler=None, 
-                 split_dirs=None, seed=None):
+                 split_dirs=None, add_seed=True, seed=None):
         msg = "runtype must be 'grid' or 'samples'"
         assert config.get('runtype', None) in ['grid', 'samples'], msg
         self.runtype = config['runtype']
@@ -111,8 +111,9 @@ class SlimRuns(object):
         assert os.path.exists(self.script), msg
 
         self.params, self.param_types = read_params(config)
-        self.add_seed = True
+        self.add_seed = add_seed
         if split_dirs is not None:
+            assert self.add_seed, "add_seed must be True"
             # this is to prevent thousands/millions of simulation files going
             # to same directory
             assert isinstance(split_dirs, int), "split_dirs needs to be int"
@@ -268,7 +269,7 @@ class SlimRuns(object):
     def is_samples(self):
         return self.runtype == 'samples'
 
-    def slim_call(self, slim_cmd='slim', manual=None):
+    def slim_call(self, slim_cmd='slim', package_basename=False, manual=None):
         """
         Return a string SLiM call, with SLiM variables passed as command
         line arguments and retrieved from SLiM wildcards, e.g.
@@ -281,6 +282,8 @@ class SlimRuns(object):
             manual = {**name, **manual}
         else:
             manual = name
+        if package_basename:
+            manual[basename] = str
 
         return slim_call(self.param_types, self.script, slim_cmd=slim_cmd,
                          add_seed=self.add_seed, add_rep=self.has_reps,

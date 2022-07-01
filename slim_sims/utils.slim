@@ -75,4 +75,19 @@ function (void)output_substitutions(string chrom, string filename, object subpop
   }
 }
 
+function (float) central_moment(numeric vals, integer n) {
+  return mean((vals - mean(vals))^n);
+}
+
+function (float) ssh(object mut_type) {
+  muts = sim.mutationsOfType(mut_type);
+  inds = sim.subpopulations.individuals;
+  f = sim.mutationFrequencies(NULL, muts);
+  //Fc = sapply(inds, 'cov(asInteger(applyValue.genome1.containsMutations(muts)),asInteger(applyValue.genome2.containsMutations(muts)));');
+  //if (isNULL(Fc))
+  //Fc = 0;
+  //return 2*sum(f*(1-f)) + 2*sum(Fc);
+  return 2*sum(f*(1-f));
+}
+
 

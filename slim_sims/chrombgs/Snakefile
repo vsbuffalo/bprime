@@ -42,16 +42,16 @@ rule bgs_map:
   shell:
     bgs_run.slim_call(slim_cmd=SLIM)
 
-SIM_NP = os.path.join(DATADIR, bgs_run.name, "chr10_B_sims.npy")
+SIM_NP = os.path.join(DATADIR, bgs_run.name, "chr10_B_sims.npz")
 
-#rule process:
-#  input: sims=bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name, 'sims')
-#  output: np=SIM_NP
-#  shell:
-#    """
-#    python ../../tools/process_sims.py {input.dir} {output.np}
-#    """
-#
+rule process:
+  input: sims=bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name, 'sims')
+  output: np=SIM_NP
+  shell:
+    """
+    python ../../tools/process_sims.py {input.dir} {output.np}
+    """
+
 
 #rule bgs_dac:
 #  input:
@@ -71,4 +71,4 @@ SIM_NP = os.path.join(DATADIR, bgs_run.name, "chr10_B_sims.npy")
 rule all:
   input:
     #sim_results, lls_results, fig_results, bgstrees_results
-    bgs_results #, SIM_NP
+    bgs_results, SIM_NP
