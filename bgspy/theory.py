@@ -46,7 +46,8 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
         T, Ne = x
         V = U*sh - sh/T
         VmV = Vm/V
-        Q2 = 1/(VmV * (VmV + L*rbp/2))
+        #Q2 = 1/(VmV * (VmV + L*rbp/2))
+        Q2 = 2*V**2 / (Vm*(L*(V-Vm) + 2*Vm))
         return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
                  np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
     out = fsolve(func, [start_T, N], full_output=True)
@@ -54,7 +55,8 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
     T =  out[0][0]
     V = U*sh - sh/T
     VmV = Vm/V
-    Q2 = 1/(VmV * (VmV + L*rbp/2))
+    #Q2 = 1/(VmV * (VmV + L*rbp/2))
+    Q2 = 2*V**2 / (Vm*(L*(V-Vm) + 2*Vm))
     if full_output:
         return out
     if out[2] != 1:

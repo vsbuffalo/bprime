@@ -244,7 +244,7 @@ class BGSModel(object):
 
     @property
     def BpScores(self):
-        return BScores(self.Bps, self.B_pos, self.w, self.t, self.step)
+        return BScores(self.Bps, self.Bp_pos, self.w, self.t, self.step)
 
     def save_B(self, filename):
         """

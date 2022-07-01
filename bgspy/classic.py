@@ -44,7 +44,10 @@ def BSC16_segment_lazy(mu, sh, segments, N):
 def bgs_segment_from_parts_sc16(parts, rf, log=True):
     T, Ne, _, V, Vm, U = parts
     assert T.shape[2] == rf.shape[2]
-    Q2 = (1/(Vm/V + rf))**2
+    #Q2 = (1/(Vm/V + rf))**2
+    VmV = Vm/V
+    Q2 = (1/(rf + VmV - rf*VmV))**2
+    #Q2 += (rf*V**2 / ((V-Vm)*(rf*(V-Vm) + Vm)))**2
     if log:
         return -V * Q2
     B = np.exp(-V * Q2)
