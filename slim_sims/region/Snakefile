@@ -32,6 +32,7 @@ rule simulation:
   shell:
     run.slim_call(slim_cmd=SLIM)
 
+
 rule all:
   input:
     results
