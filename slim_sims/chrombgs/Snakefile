@@ -55,18 +55,17 @@ rule process:
     python ../../tools/process_sims.py {input.dir} {output.np}
     """
 
-rule bgs_dac:
+rbgs_dac:
   input:
     bgs_run.wildcard_output("treeseq.tree"), neutral=NEUTRAL, recmap=RECMAP, seqlens=SEQLENS
   output: 
     bgs_run.wildcard_output("dac.tsv.gz")
   shell:
       f"""
-      python  ../../tools/treeseq2dac.py \
+      python ../../tools/treeseq2dac.py \
         --regions {input.neutral} \
-        --seqlens {input.seqlens} \
         --recmap {input.recmap} \
-        --mu 1.5e-8 {{input}}
+        --chrom chr10 --mu 1.5e-8 {input}
       """
  
 

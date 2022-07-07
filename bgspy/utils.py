@@ -427,8 +427,29 @@ def ranges_to_masks(range_dict, seqlens):
             masks[chrom][slice(*rng)] = 1
     return masks
 
+def load_bed_ranges(file):
+    """
+    Load 3 column BED file of neutral regions.
+    """
+    ranges = {}
+    with readfile(file) as f:
+        for line in f:
+            if line.startswith('#'):
+                params.append(line.strip().lstrip('#'))
+                continue
+            cols = line.strip().split('\t')
+            assert(len(cols) >= 3)
+            chrom, start, end = cols[:3]
+            if chrom not in ranges:
+                ranges[chrom] = ([], [])
+            ranges[chrom][0].append((int(start), int(end)))
+    return ranges
+ 
+
 def load_bed_annotation(file, chroms=None):
     """
+    Load a four column BED-(ish) file of chrom, start, end, feature name.
+    If chroms is not None, this is the set of chroms to keep annotation for.   
     """
     ranges = dict()
     params = []
