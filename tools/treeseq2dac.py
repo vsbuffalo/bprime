@@ -39,7 +39,7 @@ def load_neutregions(file, rate, seqlen):
     ratemap.chrom = list(chroms)[0]
     return ratemap
 
-def print_rate_map(ratemap):
+def write_rate_map(ratemap):
     """
     Pretty print the RateMap as ranges.
     """
@@ -105,7 +105,7 @@ def treeseq2dac(treefile, chrom, outfile, regions, recmap, mu, seed=None):
     region_length = ts.sequence_length
     ratemap = load_neutregions(regions, mu, region_length)
     # for debugging; TODO comment out
-    print_rate_map(ratemap)
+    #write_rate_map(ratemap)
     rts = rts.delete_sites([m.site for m in rts.mutations()])
     ts = msprime.sim_mutations(rts, rate=ratemap, discrete_genome=True)
     #__import__('pdb').set_trace()

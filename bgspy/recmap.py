@@ -44,7 +44,7 @@ class RecMap(object):
     """
     def __init__(self, mapfile, seqlens, fill_to_end=True,
                  cumm_interpolation='quadratic',
-                 rate_interpol='linear',
+                 rate_interpolation='linear',
                  conversion_factor=1e-8):
         self.mapfile = mapfile
         self.conversion_factor = conversion_factor
