@@ -19,9 +19,12 @@ SLIM = '~/src/SLiM_build/slim'
 # the output of one BGS slim sim (chrombgs.slim)
 #SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
 SIM_OUTPUTS = ["treeseq.tree"]
-ANNOT_FILES = ["../../data/annotation/hg38_seqlens.tsv", 
-               "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt", 
-               "../../data/annotation/conserved_by_chrom/chr10.bed"]
+SEQLENS = "../../data/annotation/hg38_seqlens.tsv" 
+RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
+CONSERVED = "../../data/annotation/conserved_by_chrom/chr10.bed"
+NEUTRAL = "../../data/annotation/neutral_chr10.bed"
+ANNOT_FILES = [SEQLENS, RECMAP, CONSERVED, NEUTRAL]
+               
 
 # ------- Simple BGS for B Maps -------
 bgs_run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, sims_subdir=True, split_dirs=3)
@@ -52,20 +55,19 @@ rule process:
     python ../../tools/process_sims.py {input.dir} {output.np}
     """
 
-
-#rule bgs_dac:
-#  input:
-#    bgs_run.wildcard_output("treeseq.tree")
-#  output: 
-#    bgs_run.wildcard_output("dac.tsv.gz")
-#  shell:
-#      f"""
-#      python  ../../tools/treeseq2dac.py \
-#        --regions \ ../../data/annotation/neutral_chr{{wildcards.chr}}.bed \
-#        --seqlens \ ../../data/annotation/hg38_seqlens.tsv \
-#        --recmap ../../data/annotation/hapmap/genetic_map_GRCh37_{{wildcards.chr}}.bed \
-#        --mu 1.5e-8 {{input}}
-#      """
+rule bgs_dac:
+  input:
+    bgs_run.wildcard_output("treeseq.tree"), neutral=NEUTRAL, recmap=RECMAP, seqlens=SEQLENS
+  output: 
+    bgs_run.wildcard_output("dac.tsv.gz")
+  shell:
+      f"""
+      python  ../../tools/treeseq2dac.py \
+        --regions {input.neutral} \
+        --seqlens {input.seqlens} \
+        --recmap {input.recmap} \
+        --mu 1.5e-8 {{input}}
+      """
  
 
 rule all:

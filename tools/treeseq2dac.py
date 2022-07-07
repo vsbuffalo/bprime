@@ -10,21 +10,6 @@ import pyslim
 from bgspy.recmap import RecMap
 from bgspy.utils import load_seqlens
 
-def load_recrates(file, conversion_factor=1e-8):
-    chroms = set()
-    positions, rates = [0], [0.0]
-    with open(file) as f:
-        for line in f:
-            chrom, start, end, rate = line.strip().split('\t')
-            chroms.add(chrom)
-            positions.append(int(end))
-            rates.append(conversion_factor*float(rate))
-    positions[-1] += 1
-    assert(len(chroms) == 1) # only one chromosome
-    recmap = msprime.RecombinationMap(positions, rates)
-    recmap.chrom = list(chroms)[0]
-    return recmap
-
 def load_neutregions(file, rate, seqlen):
     chroms = set()
     positions, rates = [], []
