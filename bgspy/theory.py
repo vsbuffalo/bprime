@@ -37,29 +37,29 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
     return np.exp(val)
 
 
-def TRatchet(N, s, U):
-    return np.expm1(4*N*s)*(np.cosh(s)/np.sinh(s) - 1)/(4*N*U)
+def TRatchet(N, s, U, ploidy=2):
+    return np.expm1(2*ploidy*N*s)*(np.cosh(s)/np.sinh(s) - 1)/(2*ploidy*N*U)
 
 @np.vectorize
-def bgs_segment_sc16(mu, sh, L, rbp, N, ploidy=1, full_output=False, return_both=False):
+def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
     U = L*mu
     Vm = U*sh**2
-    start_T = TRatchet(N, sh, U)
+    start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
     def func(x):
         T, Ne = x
         V = U*sh - sh/T
         VmV = Vm/V
-        Q2 = 1/(VmV * (VmV + L*rbp/2))
-        #Q2 = 2*V**2 / (Vm*(L*rbp*(V-Vm) + 2*Vm))
-        return [np.log(TRatchet(N, sh, U)) - np.log(T),
+        #Q2 = 1/(VmV * (VmV + L*rbp/2))
+        Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
+        return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
                  np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
     out = fsolve(func, [start_T, N], full_output=True)
     Ne = out[0][1]
     T =  out[0][0]
     V = U*sh - sh/T
     VmV = Vm/V
-    Q2 = 1/(VmV * (VmV + L*rbp/2))
-    #Q2 = 2*V**2 / (Vm*(L*rbp*(V-Vm) + 2*Vm))
+    #Q2 = 1/(VmV * (VmV + L*rbp/2))
+    Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
     if full_output:
         return out
     if out[2] != 1:
@@ -68,7 +68,6 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, ploidy=1, full_output=False, return_both
     if return_both:
         return float(T), float(Ne), float(Q2), float(V), float(Vm), float(U)
     return float(Ne)
-
 
 @np.vectorize
 def bgs_rec_sc16(mu, sh, L, r, N, Q_segment=False, full_output=False, return_both=False):

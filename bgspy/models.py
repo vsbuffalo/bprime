@@ -287,11 +287,12 @@ class BGSModel(object):
                                 B_subsample_frac=B_subsample_frac,
                                 subsample_frac=subsample_frac)
 
-    def calc_B(self, step=10_000, ncores=None, nchunks=None):
+    def calc_B(self, step=10_000, recalc_segments=False,
+               ncores=None, nchunks=None):
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
-        if self.genome.segments._segment_parts is None:
+        if recalc_segments or self.genome.segments._segment_parts is None:
             print(f"pre-computing segment contributions...\t", end='')
             self.genome.segments._calc_segparts(self.w, self.t)
             print(f"done.")
@@ -307,11 +308,11 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def calc_Bp(self, N, step=10_000, ncores=None, nchunks=None):
+    def calc_Bp(self, N, step=10_000, recalc_segments=False, ncores=None, nchunks=None):
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
-        if self.genome.segments._segment_parts_sc16 is None:
+        if recalc_segments or self.genome.segments._segment_parts_sc16 is None:
             self.genome.segments._calc_segparts(self.w, self.t, N)
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
                                         nchunks=nchunks, ncores=ncores)

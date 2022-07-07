@@ -42,17 +42,21 @@ class RecMap(object):
     for cM/Mb rates (1cM = 0.01M, 1Mb = 10^6 bases, 0.01 / 1e6 = 1e-8).
 
     """
-    def __init__(self, mapfile, seqlens, interpolation='quadratic',
+    def __init__(self, mapfile, seqlens, fill_to_end=True,
+                 cumm_interpolation='quadratic',
+                 rate_interpol='linear',
                  conversion_factor=1e-8):
         self.mapfile = mapfile
         self.conversion_factor = conversion_factor
         self.ends = dict()
         self.rates = None
+        self._fill = fill_to_end
         assert isinstance(seqlens, dict), "seqlens must be a dict"
         self.seqlens = seqlens
         self.cumm_rates = None
         self.params = []
-        self.interpolation = interpolation
+        self.cumm_interpolation = cumm_interpolation
+        self.rate_interpolation = rate_interpolation
         self._readmap()
 
     def _readmap(self):
@@ -100,11 +104,16 @@ class RecMap(object):
                 last_chrom = chrom
                 last_end = int(end)
 
+        self.ends[last_chrom] = last_end
+
         if len(ignored_chroms):
             print(f"RecMap._readmap() ignored {', '.join(ignored_chroms)}")
 
-        # end of loop, put the last position in ends
-        self.ends[last_chrom] = last_end
+        if self._fill:
+            for chrom in rates.keys():
+                not_to_end = rates[chrom][-1][0] < self.seqlens[chrom]
+                if not_to_end:
+                    rates[chrom].append((self.seqlens[chrom], 0.0))
 
         cumm_rates = dict()
         for chrom, data in rates.items():
@@ -119,10 +128,10 @@ class RecMap(object):
             cumm_rates[chrom] = RecPair(pos, pad_cumrates)
         self.rates = rates
         self.cumm_rates = cumm_rates
-        self.cumm_interpol = rate_interpol(cumm_rates, kind=self.interpolation)
+        self.cumm_interpol = rate_interpol(cumm_rates, kind=self.cumm_interpolation)
         self.inverse_cumm_interpol = rate_interpol(cumm_rates, inverse=True,
-                                                   kind=self.interpolation)
-        self.rate_interpol = rate_interpol(rates, kind=self.interpolation)
+                                                   kind=self.cumm_interpolation)
+        self.rate_interpol = rate_interpol(rates, kind=self.rate_interpolation)
 
     def lookup(self, chrom, pos, cummulative=False):
         #assert(np.all(0 <= pos <= self.ends[chrom]))
