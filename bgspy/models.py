@@ -35,7 +35,6 @@ import tqdm
 import time
 import numpy as np
 import allel
-from scipy.stats import binned_statistic, binned_statistic_dd
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
@@ -191,8 +190,13 @@ class BGSModel(object):
             binned_B[chrom] = BinnedStat(means, wins, nitems)
         return binned_B
 
-    def loglikelihood(self, pi0=None, pi0_bounds=None, pi0_grid=None):
-        b = self.BScores
+    def loglikelihood(self, pi0=None, pi0_bounds=None, pi0_grid=None, method='SC16'):
+        if method == 'SC16':
+            b = self.BpScores
+        elif method == 'classic':
+            b = self.BScores
+        else:
+            raise ValueError("method must be either 'SC16' or 'classic'")
         Y_binned, midpoint_Bs, pi_win = calc_loglik_components(b, self.Y, self.neut_pos, self.neut_masks, self.nchroms)
         # for pi0, merge all chromosomes
         bs = np.stack(list(*midpoint_Bs.values()), axis=0)

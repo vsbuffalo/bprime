@@ -441,15 +441,15 @@ def load_bed_ranges(file):
             assert(len(cols) >= 3)
             chrom, start, end = cols[:3]
             if chrom not in ranges:
-                ranges[chrom] = ([], [])
-            ranges[chrom][0].append((int(start), int(end)))
+                ranges[chrom] = []
+            ranges[chrom].append((int(start), int(end)))
     return ranges
- 
+
 
 def load_bed_annotation(file, chroms=None):
     """
     Load a four column BED-(ish) file of chrom, start, end, feature name.
-    If chroms is not None, this is the set of chroms to keep annotation for.   
+    If chroms is not None, this is the set of chroms to keep annotation for.
     """
     ranges = dict()
     params = []

@@ -1,5 +1,8 @@
 ## likelihood.py -- functions for likelihood stuff
+from collections import Counter
 import numpy as np
+from scipy.stats import binned_statistic
+from scipy import interpolate
 
 def loglik2(pi0, B, y):
     # y is nsame, ndiff as cols
