@@ -1,0 +1,89 @@
+\documentclass[11pt]{article}
+\RequirePackage{fullpage}
+\RequirePackage[font=small,labelfont=bf]{caption}
+\RequirePackage{amsmath,amssymb,amsthm}
+\RequirePackage{graphicx}
+\RequirePackage[hidelinks]{hyperref}
+\RequirePackage{subcaption}
+\RequirePackage{wasysym}
+\RequirePackage{authblk}
+\RequirePackage{bm}
+\RequirePackage{bbm}
+% \RequirePackage[osf]{mathpazo}
+\RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,maxbibnames=9,maxcitenames=1,backend=biber,natbib=true,uniquelist=false,hyperref=true]{biblatex}
+\usepackage{color}
+\usepackage{nicefrac}
+
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\text{V}}
+\DeclareMathOperator{\var}{Var}
+\DeclareMathOperator{\cov}{cov}
+
+\addbibresource{biblio.bib}
+
+\title{Statistical Methods}
+
+\begin{document}
+\maketitle
+
+
+\section*{Likelihood}
+
+The likelihood in Eyalshiv et al. (2016) has the form,
+
+\begin{align}
+  \log\mathcal{L} = \sum_{v \in \mathcal{V}} \sum_{i \ne j \in \mathcal{S}} \log(P(O_{i,j}(v) | \theta))
+\end{align}
+
+where $\mathcal{V}$ is the set of putatively neutral sites, $\mathcal{S}$ is
+the set of samples, and $\theta$ are the BGS parameters. The indicator variable
+$O_{i,j}(v)$ is 1 if samples $i$ and $j$ are different at site $v$, and zero
+otherwise. Thus as they specify in the paper, 
+
+\begin{align}
+  P(O_{i,j}(v) | \theta) = 
+    \begin{cases}
+      \pi(v | \theta), & O_{i,j}(v) = 1 \\
+      1-\pi(v | \theta), & O_{i,j}(v) = 0 \\
+    \end{cases}.
+\end{align}
+
+The total size of the set of samples $\mathcal{S}$ is $n_\mathcal{S} =
+|\mathcal{S}|$. Assuming all sites are biallelic, we can simplify the
+calculation of the likelihood by noting that for a site $v$'s vector of allele
+counts $[c_1, c_2]$, the total number of pairwise combinations with the same
+alleles is
+
+\begin{align}
+  n_s(v) = {c_1 \choose 2} + {c_2 \choose 2}
+\end{align}
+
+and the number of different pairwise combinations is 
+
+\begin{align}
+  n_d(v) = n_T - n_s(v)
+\end{align}
+
+where $n_T = n_\mathcal{S} (n_\mathcal{S} - 1) / 2$  is the total number of
+pairwise combinations across the sample set $\mathcal{S}$. Furthermore, note
+that we can partition the set $\mathcal{V}$ of neutral sites into polymorphic
+($\mathcal{P}$) and fixed sites ($\mathcal{F}$), i.e. $\mathcal{V} =
+\mathcal{P} \cup \mathcal{F}$ and $\mathcal{P} \cap \mathcal{F} = \varnothing$.
+For all $v \in \mathcal{F}$, $n_d(v) = 0$ and $n_s(v) = n_T$.
+
+Then, 
+
+\begin{align}
+  \log\mathcal{L} &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] \\
+                  &= \sum_{v \in \mathcal{P}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] + \sum_{v \in \mathcal{F}} \log(1-\pi(v | \theta)) n_T  \\
+\end{align}
+
+
+
+\section{B Scores}
+
+
+
+
+\end{document}
