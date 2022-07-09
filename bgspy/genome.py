@@ -20,14 +20,17 @@ class Segments:
         - index, a dict of chrom->indices of the ranges array, which contains
           info for all chroms
     """
-    ranges: np.ndarray
-    rates: np.ndarray
-    map_pos: np.ndarray
-    features: np.ndarray
-    feature_map: dict
-    index: defaultdict
-    _segment_parts: tuple = None
-    _segment_parts_sc16: tuple = None
+    def __init__(self, ranges, rates, map_pos, features, feature_map, index):
+        self.ranges = ranges
+        self.rates = rates
+        self.map_pos = map_pos
+        self.features = features
+        self.feature_map = feature_map
+        self.index = index
+        self._segment_parts = None
+        self._segment_parts_sc16 = None
+        self.F = None
+        self._calc_features()
 
     def __repr__(self):
         nfeats = len(self.feature_map)

@@ -75,7 +75,7 @@ class MapPosChunkIterator(object):
         L = segments.lengths
         chrom_seg_L = {c: share_array(L[idx]) for c, idx in chrom_idx.items()}
         # group by chrom and share features matrix
-        chrom_features = {c: share_array(segments.features[idx]) for c, idx
+        chrom_features = {c: share_array(segments.F[idx]) for c, idx
                           in chrom_idx.items()}
         self.chrom_idx = chrom_idx
         # this is the main thing iterated over -- a generator over the
@@ -181,6 +181,7 @@ class BChunkIterator(MapPosChunkIterator):
             idx = self.chrom_idx[chrom]
             # share the following arrays across processes, to save memory
             # (these should not be changed!)
+            F = self.genome.segments.F[idx, :]
             if use_SC16:
                 # these are all segment-specific
                 segparts = tuple(x[:, :, idx] for x in segment_parts)
@@ -211,6 +212,7 @@ class BChunkIterator(MapPosChunkIterator):
         chrom_segparts = self.chrom_segparts.get(chrom, None)
         return (mpos_chunk,
                 self.chrom_seg_mpos[chrom],
+                self.chrom_features[chrom],
                 chrom_segparts,
                 self.w_grid)
 

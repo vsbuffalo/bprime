@@ -84,7 +84,11 @@ rule download_hapmap:
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. exons
-conserved_tracks = [f"conserved_by_chrom/chr{chrom}.bed" for chrom in AUTOS]
+conserved_tracks_slop = [f"conserved_by_chrom/chr{chrom}.bed" for chrom in AUTOS]
+
+# this one is to test the multiple features 
+conserved_tracks = [f"conserved_by_chrom_features/chr{chrom}.bed" for chrom in AUTOS]
+
 simtracks = ["conserved.bed.gz", "conserved_slop.bed.gz"] + conserved_tracks
 
 # merged exons/phastcons "conservation" track -- mostly a place holder for simulations
@@ -95,9 +99,9 @@ rule conserved_track:
       """
       # combine the files, sort and merge overlapping tracks
       (zcat {input.exons}; (zcat {input.phastcons} | \
-        bioawk -t '{{ print $1,$2,$3,"conserved" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
         sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge  -c 4 -o distinct | gzip > {output}
+        bedtools merge  -c 4 -o distinct | sed 's/phastcons,exon/exon/' | gzip > {output}
       """
 
 rule conserved_slop:
@@ -110,13 +114,23 @@ rule conserved_slop:
      """
 
 # sepearate out conserved tracks into separate chromosome files
-rule split_conserved:
-  output: conserved_tracks
+rule split_conserved_slop:
+  output: conserved_tracks_slop
   input: "conserved_slop.bed.gz"
   shell:
       """
       mkdir -p conserved_by_chrom/
       for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom/chr$i.bed; done
+      """
+
+# sepearate out conserved tracks into separate chromosome files
+rule split_conserved:
+  output: conserved_tracks
+  input: "conserved.bed.gz"
+  shell:
+      """
+      mkdir -p conserved_by_chrom_features/
+      for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom_features/chr$i.bed; done
       """
 
 ## === Rules for the chr10 SLiM Simulations

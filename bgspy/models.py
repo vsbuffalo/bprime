@@ -38,7 +38,7 @@ import allel
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
-from bgspy.utils import bin_chrom, genome_emp_dists
+from bgspy.utils import bin_chrom, bin_chroms, genome_emp_dists
 from bgspy.utils import readfile, load_dacfile
 from bgspy.utils import load_seqlens, make_dirs
 from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
@@ -190,19 +190,28 @@ class BGSModel(object):
             binned_B[chrom] = BinnedStat(means, wins, nitems)
         return binned_B
 
-    def loglikelihood(self, pi0=None, pi0_bounds=None, pi0_grid=None, method='SC16'):
+    def loglikelihood(self, width, pi0=None, pi0_bounds=None, pi0_grid=None,
+                      method='SC16'):
         if method == 'SC16':
             b = self.BpScores
         elif method == 'classic':
             b = self.BScores
         else:
             raise ValueError("method must be either 'SC16' or 'classic'")
-        Y_binned, midpoint_Bs, pi_win = calc_loglik_components(b, self.Y, self.neut_pos, self.neut_masks, self.nchroms)
+        assert b is not None, "BScores are not calculated!"
+
+        # create the windows that are the unit of analysis
+        chrom_bins = bin_chroms(self.genome.seqlens, width)
+        comps = calc_loglik_components(b, self.Y, self.neut_pos, self.neut_masks,
+                                     self.nchroms, chrom_bins)
+        Y_binned, midpoint_Bs, pi_win = comps
+
         # for pi0, merge all chromosomes
         bs = np.stack(list(*midpoint_Bs.values()), axis=0)
         ys = np.stack(list(*Y_binned.values()), axis=0)
         chroms = list(b.pos.keys())
         nset = sum([x is not None for x in (pi0, pi0_bounds, pi0_grid)])
+
         if nset > 1:
             raise ValueError("no more than one pi0, pi0_grid, pi0_bounds can be set")
         if nset == 0:
@@ -223,13 +232,13 @@ class BGSModel(object):
             self.pi0_ll = lls_mat
             self.pi0i_mle = max_idx[0]
             self.pi0_grid = pi0_grid
+
+        # main likelihood routine
         ll = loglik(pi0, bs, ys)
         lls = ll.sum(axis=0)
-        self.wi_mle, self.ti_mle = np.where(lls == np.nanmax(lls))
-        self.pi_win = pi_win
-        self.pi0 = pi0
-        self.ll = ll
-        return ll, pi0
+        mle = MLEFit(m.w, m.t, lls, pi0_grid, pi0)
+        mle._pi_win = pi_win
+        return mle
 
     def save(self, filename):
         assert filename.endswith('.pkl'), "filename should end in '.pkl'"
@@ -301,12 +310,9 @@ class BGSModel(object):
             self.genome.segments._calc_segparts(self.w, self.t)
             print(f"done.")
         segment_parts = self.genome.segments._segment_parts
-        if ncores is None or ncores <= 1:
-            Bs, B_pos = calc_B(self.genome, self.w, step=step)
-        else:
-            Bs, B_pos = calc_B_parallel(self.genome, self.w,
-                                        step=step, nchunks=nchunks,
-                                        ncores=ncores)
+        Bs, B_pos = calc_B_parallel(self.genome, self.w,
+                                    step=step, nchunks=nchunks,
+                                    ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
         self.Bs = stacked_Bs
         self.B_pos = B_pos

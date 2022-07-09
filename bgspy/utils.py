@@ -320,6 +320,14 @@ def sum_logliks_over_chroms(ll_dict):
     ll = np.stack(list(*ll_dict.values())).sum(axis=0)
     return ll
 
+def bin_midpoints(chrom_bins):
+    "Get the midpoint of all bins"
+    return {c: 0.5*(x[1:] + x[:-1]) for c, x in chrom_bins.items()}
+
+def bin_chroms(seqlens, width, dtype='uint32'):
+    "Bin all chromosomes and put the results in a dictionary."
+    return {c: bin_chrom(seqlens[c], width, dtype) for c in seqlens}
+
 def bin_chrom(end, width, dtype='uint32'):
     """
     Bin a chromsome of length 'end' into bins of 'width', with the last

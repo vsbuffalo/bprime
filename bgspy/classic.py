@@ -155,7 +155,7 @@ def calc_B(genome, mut_grid, step):
 
 
 def calc_B_chunk_worker(args):
-    map_positions, chrom_seg_mpos, segment_parts, mut_grid = args
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid = args
     a, b, c, d = segment_parts
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
@@ -168,7 +168,7 @@ def calc_B_chunk_worker(args):
             raise ValueError("divide by zero in calc_B_chunk_worker")
         x = a/(b*rf**2 + c*rf + d)
         assert(not np.any(np.isnan(x)))
-        B = np.einsum('ts,w->wt', x, mut_grid)
+        B = np.einsum('ts,w,sf->wtf', x, mut_grid, F)
         # the einsum below is for when a features dimension exists, e.g.
         # there are feature-specific μ's and t's -- commented out now...
         #B = np.einsum('ts,w,sf->wtf', x, mut_grid,
@@ -193,7 +193,7 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
 
 def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation
-    map_positions, chrom_seg_mpos, segment_parts, mut_grid = args
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid = args
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
     # different feature annotation class, but for now we just fix this
@@ -208,7 +208,8 @@ def calc_BSC16_chunk_worker(args):
         # L = seg_L[idx]
         x = bgs_segment_from_parts_sc16(segment_parts, rf, log=True)
         assert(not np.any(np.isnan(x)))
-        B = np.sum(x, axis=2)
+        #B = np.sum(x, axis=2)
+        B = np.einsum('wts,sf->wtf', x, F)
         # the einsum below is for when a features dimension exists, e.g.
         # there are feature-specific μ's and t's -- commented out now...
         #B = np.einsum('ts,w,sf->wtf', x, mut_grid,

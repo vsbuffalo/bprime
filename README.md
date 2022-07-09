@@ -26,15 +26,9 @@ and extracts all variable columns in the data. The output of this is a
  
  
 
-## TODO -- next sim run
+## TODO
 
- - We should get rid of the L = 0 case, it's messy.
- - Inflate s lower x 2 so sh = 1e-1; this should fix the awkward t grid default, 
-   `default='-6:-1.302:6'` (`command_line.py:89`).
- - run with N=10k
- - use the command line stats program to get the right bounds for training
+ - feature annotations
+ - double check nfixed calc in likelihood.py line 132
+ - we're merging all Bs in loglikelihood() is this right?
 
- - we are in the processing of converting s and h to a single sh param -- beware
-   stuff will break
-
-  - test bgs_segment against segment parts stuff

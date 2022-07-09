@@ -3,6 +3,7 @@ from collections import Counter
 import numpy as np
 from scipy.stats import binned_statistic
 from scipy import interpolate
+from bgspy.utils import bin_midpoints
 
 def loglik2(pi0, B, y):
     # y is nsame, ndiff as cols
@@ -54,14 +55,6 @@ def loglik_pi0(B, y):
         return (-ll.sum(axis=0)).min()
     return obj
 
-#def loglike_deriv_pi0(B, y, minimize=True):
-#    R = np.exp(B).squeeze()
-#    nD = y[:, 1, None, None]
-#    nS = y[:, 0, None, None]
-#    a = -1 if minimize else 1
-#    fun = lambda x: a*(nS/x - R * nD / (1-R*x)).sum(axis=0)
-#    return fun
-
 def num_nonpoly(neut_pos, bins, masks):
     """
     Get the number of non-polymorphic sites from
@@ -79,23 +72,30 @@ def num_nonpoly(neut_pos, bins, masks):
     return nfixed
 
 
-def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms):
+def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms, chrom_bins):
     """
-    Interpolate the B values at midpoints, and sum the
-    number of same and different pairs of these B windows. Also computes
-    pi in the windows.
+    The MLE for parameters is always calculated per-window (here the window bins
+    defined in chrom_bins). This function aggregates the site-level data (the
+    number of diff/same sites in Y), counts the number of neutral sites that
+    could be polymorphic form the masks (neut_masks), and interpolates the Bs
+    at the window midpoints. It also computes windowed π in these windows from
+    the data, as a check.
+
+    b: BScores object
+    Y: DAC matrix
+    neut_pos: neutral region masks
+    nchroms: how many chromosomes were sequenced
+    bins: dictionary of window endpoints
     """
     chroms = b.pos.keys()
-    # interpolate B at the midpoints of the steps
-    interpol = {c: interpolate.interp1d(b.pos[c], b.B[c], copy=False,
-                                        assume_sorted=True, axis=0)
-                for c in chroms}
-    midpoints = {c: 0.5*(b.pos[c][1:]+b.pos[c][:-1]) for c in chroms}
-    midpoint_Bs = {c: interpol[c](m) for c, m in midpoints.items()}
+
+    win_midpoints = bin_midpoints(chrom_bins)
+    win_Bs = {c: b.B_at_pos(c, x) for c, x in win_midpoints.items()}
+
     # get the number of positions that are not polymorphic in the window
-    nonpoly = num_nonpoly(neut_pos, b.pos, neut_masks)
-    # next, we need to calculate the components of diversity (n_same,
-    # n_diff)
+    nonpoly = num_nonpoly(neut_pos, chrom_bins, neut_masks)
+
+    # next, we need to calculate the components of diversity (n_same, n_diff)
     Y_binned = dict()
     pi_win = dict()
     n = nchroms
@@ -104,11 +104,34 @@ def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms):
             nfixed = nonpoly[chrom]
             nsame = binned_statistic(neut_pos[chrom],
                                     Y[chrom][:, 0], np.sum,
-                                    bins=b.pos[chrom]).statistic
+                                    bins=chrom_bins[chrom]).statistic
             ndiff = binned_statistic(neut_pos[chrom],
                                     Y[chrom][:, 1], np.sum,
-                                    bins=b.pos[chrom]).statistic
+                                    bins=chrom_bins[chrom]).statistic
             nsame_fixed = nfixed * n*(n-1)/2
-            Y_binned[chrom] = np.stack((ndiff + nsame_fixed, ndiff)).T
-            pi_win[chrom] = ndiff / (ndiff + nsame_fixed)
-    return Y_binned, midpoint_Bs, pi_win
+            Y_binned[chrom] = np.stack((nsame + nsame_fixed, ndiff)).T
+            pi_win[chrom] = ndiff / (ndiff + nsame + nsame_fixed)
+    return Y_binned, win_Bs, pi_win
+
+class WindowedMLE:
+    def __init__(self, Y, B, w, t, chrom_bins):
+        self.bins = chrom_bins
+        self.Y = Y
+        self.B = B
+        self.w = w
+        self.t = t
+        self.ll = ll
+
+    @property
+    def w_mle(self):
+        return self.w[np.where(self.lls == np.nanmax(self.lls))[0]]
+
+    @property
+    def t_mle(self):
+        return self.t[np.where(self.lls == np.nanmax(self.lls))[1]]
+
+    def __repr__(self):
+        return f"MLE Fit: w={self.w_mle}, t={self.t_mle}"
+
+
+
