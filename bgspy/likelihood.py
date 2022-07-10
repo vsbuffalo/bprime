@@ -57,22 +57,35 @@ def loglik_pi0(B, y):
 
 def num_nonpoly(neut_pos, bins, masks):
     """
-    Get the number of non-polymorphic sites from
+    Get the number of non-polymorphic sites that overlap the neutral regions
+    specified by the boolean masks. This is calculated as:
+        # neutral masked sites in bin - # polymorphic sites in bins
+
+    neut_pos: chrom dict of positions of the neutral polymorphic sites
+    bins: chrom dict of bin end positions
+    masks: chrom dict of neutral regions as boolean masks
     """
     chroms = bins.keys()
+
+    # validate the neutral sites
+    for chrom in chroms:
+        for pos in neut_pos[chrom]:
+            msg = f"Position {pos} is not in the '{chrom}' neutral mask!"
+            assert masks[chrom][pos] == 1, msg
+
     # find window indices of all neutral SNPs
     idx = {c: np.digitize(neut_pos[c], bins[c])-1 for c in chroms}
     # count the indices (SNPs) per window
     poly_counts = {c: Counter(idx[c].tolist()) for c in chroms}
     npoly = {c: np.array([poly_counts[c][i] for i, _ in enumerate(e)]) for c, e in bins.items()}
-    # what's the width of the neutral regions
+    # what's the width of the neutral regions overlapping the bins?
     widths = {c: [masks[c][a:b].sum() for a, b in zip(e[:-1], e[1:])] for c, e in bins.items()}
     #__import__('pdb').set_trace()
-    nfixed = {c: widths[c]-npoly[c][1:] for c in bins.keys()}
+    nfixed = {c: widths[c]-npoly[c][:-1] for c in bins.keys()}
     return nfixed
 
 
-def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms, chrom_bins):
+def calc_loglik_components(b, Y, Y_pos, neut_masks, nchroms, chrom_bins):
     """
     The MLE for parameters is always calculated per-window (here the window bins
     defined in chrom_bins). This function aggregates the site-level data (the
@@ -83,7 +96,7 @@ def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms, chrom_bins):
 
     b: BScores object
     Y: DAC matrix
-    neut_pos: neutral region masks
+    Y_pos: neutral region masks
     nchroms: how many chromosomes were sequenced
     bins: dictionary of window endpoints
     """
@@ -93,7 +106,7 @@ def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms, chrom_bins):
     win_Bs = {c: b.B_at_pos(c, x) for c, x in win_midpoints.items()}
 
     # get the number of positions that are not polymorphic in the window
-    nonpoly = num_nonpoly(neut_pos, chrom_bins, neut_masks)
+    nonpoly = num_nonpoly(Y_pos, chrom_bins, neut_masks)
 
     # next, we need to calculate the components of diversity (n_same, n_diff)
     Y_binned = dict()
@@ -102,21 +115,32 @@ def calc_loglik_components(b, Y, neut_pos, neut_masks, nchroms, chrom_bins):
     with np.errstate(divide='ignore', invalid='ignore'): # for pi_win
         for chrom in chroms:
             nfixed = nonpoly[chrom]
-            nsame = binned_statistic(neut_pos[chrom],
-                                    Y[chrom][:, 0], np.sum,
-                                    bins=chrom_bins[chrom]).statistic
-            ndiff = binned_statistic(neut_pos[chrom],
-                                    Y[chrom][:, 1], np.sum,
-                                    bins=chrom_bins[chrom]).statistic
+            nsame = binned_statistic(Y_pos[chrom],
+                                     Y[chrom][:, 0], np.sum,
+                                     bins=chrom_bins[chrom]).statistic
+            ndiff = binned_statistic(Y_pos[chrom],
+                                     Y[chrom][:, 1], np.sum,
+                                     bins=chrom_bins[chrom]).statistic
+            # for each fixed site, it adds (n choose 2) same combinations
             nsame_fixed = nfixed * n*(n-1)/2
             Y_binned[chrom] = np.stack((nsame + nsame_fixed, ndiff)).T
             pi_win[chrom] = ndiff / (ndiff + nsame + nsame_fixed)
     return Y_binned, win_Bs, pi_win
 
 class WindowedMLE:
-    def __init__(self, Y, B, w, t, chrom_bins):
+    """
+    nchroms: number of chromosomes sequenced.
+
+    Note: currently the fixed
+    """
+    def __init__(self, Y, Y_pos, B, w, t, neut_masks, chrom_bins):
         self.bins = chrom_bins
         self.Y = Y
+        # validate Y, Y_pos
+        ytot = sum([len(Y_pos[c]) for c in Y_pos.keys()])
+        assert Y.shape[0] == ytot, "Y and Y_pos are not equal lengths"
+        parts = calc_loglik_components(B, Y, Y_pos, neut_masks, nchroms)
+        self.Y_binned =
         self.B = B
         self.w = w
         self.t = t
