@@ -700,68 +700,6 @@ def parse_param_str(x):
     x = x[0]
     return dict([y.split('=')  for y in x.lstrip('#').rstrip().split(';')])
 
-def load_dacfile(dacfile, neut_masks=None):
-    """
-    Read derived allele counts datafile. These should be sorted
-    (TODO: check) and only in regions that are neutral (e.g. as
-    specified by neut_regions, TODO: check).
-
-    Returns:
-        - positions: a dict(list) of positions per chromosome.
-        - indices: a dict(list) indicating the indices of the DAC list
-                   per chromosome.
-        - nchroms: array of number of chromosomes per site.
-        - dacs: array of the derived allele counts per site.
-        - position_map: a dict(list) with keys corresponding to chromosomes
-                        and values are a dictionary mapping of positions to
-                        indices in the dacs/nchroms arrays.
-    """
-    params = []
-    indices = defaultdict(list)
-    positions = defaultdict(list)
-    position_map = dict()
-    nchroms = []
-    dacs = []
-    i = 0
-    last_chrom = None
-    neut_sites = None
-    skipped_sites = 0
-    with readfile(dacfile) as f:
-        for line in f:
-            if line.startswith('#'):
-                params.append(line.strip().lstrip('#'))
-                continue
-            chrom, pos, nchrom, dac = line.strip().split('\t')[:4]
-            if last_chrom != chrom:
-                if neut_masks is not None:
-                    neut_sites = set(np.where(neut_masks[chrom])[0])
-                last_chrom = chrom
-            pos = int(pos)
-            if neut_sites is not None and pos not in neut_sites:
-                skipped_sites += 1
-                continue
-            indices[chrom].append(i)
-            positions[chrom].append(pos)
-            nchroms.append(int(nchrom))
-            dacs.append(int(dac))
-            i += 1
-    if neut_masks is not None:
-        print(f"{skipped_sites} sites in non-neutral regions skipped.")
-    for chrom in positions:
-        try:
-            assert(sorted(positions[chrom]) == positions[chrom])
-        except AssertionError:
-            raise AssertionError(f"positions in {dacfile} are not sorted.")
-        position_map[chrom] = {p: i for i, p in enumerate(positions[chrom])}
-
-    # use a minimal dtype for data of this size
-    max_val = max(nchroms)**2
-    uint_dtype = np.min_scalar_type(max_val)
-    dac = np.array(dacs, dtype=uint_dtype)
-    nchrom = np.array(nchroms, dtype=uint_dtype)
-    # ancestral and derived allele counts
-    ac = np.stack((nchrom - dac, dac)).T
-    return positions, indices, ac, position_map, parse_param_str(params)
 
 # deprecated; see load_seqlens
 # def read_seqlens(file, keep_seqs=None):

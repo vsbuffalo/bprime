@@ -84,6 +84,15 @@ def num_nonpoly(neut_pos, bins, masks):
     nfixed = {c: widths[c]-npoly[c][:-1] for c in bins.keys()}
     return nfixed
 
+def binned_data_reduction():
+    """
+    Reduces the site-level data into binned data summaries for the binned-
+    likelihood approach.
+
+    Currently we don't account in fixed site's depth, we just assume the total
+    number of chromosomes sequenced
+    """
+
 
 def calc_loglik_components(b, Y, Y_pos, neut_masks, nchroms, chrom_bins):
     """
