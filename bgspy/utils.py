@@ -337,13 +337,23 @@ def bin_chrom(end, width, dtype='uint32'):
     cend = width * np.ceil(end / width) + 1
     bins = np.arange(0, cend, width, dtype=dtype)
 
-    # if there's overrun, make one short bin at the end
-    last_pos = end - 1
+    # if there's overrun, make the last bin position the chromosome length
+    # (remember, not right inclusive)
+    last_pos = end
     if bins[-1] > last_pos:
         bins[-1] = last_pos
-    assert np.all(bins < end)
+    assert np.all(bins < end+1)
     return bins
 
+def aggregate_site_array(x, bins, func, **kwargs):
+    """
+    Given a site array (an np.ndarray of length equal to a chromosome)
+    calculate some summary of values with func on the specified bins.
+    """
+    vals = np.zeros((len(bins), x.shape[1]))
+    for i in range(1, len(bins)):
+        vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
+    return vals
 
 def get_unique_indices(x):
     "Get the indices of unique elements in a list/array"
@@ -404,9 +414,9 @@ def readfile(filename):
         return gzip.open(filename, mode='rt')
     return open(filename, mode='r')
 
-def read_bed(file, keep_chroms=None):
+def read_bed3(file, keep_chroms=None):
     """
-    Read a BED3 or BED5 file (strand column ignored).
+    Read a BED3 file.
 
     file: the (possibly gzipped) BED file)
     keep_chroms: only keep entries with these chromosomes
@@ -417,9 +427,6 @@ def read_bed(file, keep_chroms=None):
             cols = line.strip().split('\t')
             assert(len(cols) >= 3)
             chrom, start, end = cols[:3]
-            bed4 = len(cols) == 4
-            if bed4:
-                name = cols[3]
             if keep_chroms is not None and chrom not in keep_chroms:
                 continue
             ranges[chrom].append((int(start), int(end)))
@@ -434,24 +441,6 @@ def ranges_to_masks(range_dict, seqlens):
         for rng in ranges:
             masks[chrom][slice(*rng)] = 1
     return masks
-
-def load_bed_ranges(file):
-    """
-    Load 3 column BED file of neutral regions.
-    """
-    ranges = {}
-    with readfile(file) as f:
-        for line in f:
-            if line.startswith('#'):
-                params.append(line.strip().lstrip('#'))
-                continue
-            cols = line.strip().split('\t')
-            assert(len(cols) >= 3)
-            chrom, start, end = cols[:3]
-            if chrom not in ranges:
-                ranges[chrom] = []
-            ranges[chrom].append((int(start), int(end)))
-    return ranges
 
 
 def load_bed_annotation(file, chroms=None):

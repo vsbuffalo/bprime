@@ -149,7 +149,7 @@ class WindowedMLE:
         ytot = sum([len(Y_pos[c]) for c in Y_pos.keys()])
         assert Y.shape[0] == ytot, "Y and Y_pos are not equal lengths"
         parts = calc_loglik_components(B, Y, Y_pos, neut_masks, nchroms)
-        self.Y_binned =
+        #self.Y_binned =
         self.B = B
         self.w = w
         self.t = t
