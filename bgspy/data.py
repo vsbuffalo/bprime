@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from bgspy.utils import read_bed3, ranges_to_masks
+from bgspy.utils import read_bed3, ranges_to_masks, bin_chroms
 
 def load_dacfile(dacfile, neut_masks=None):
     """
@@ -65,6 +65,39 @@ def load_dacfile(dacfile, neut_masks=None):
     ac = np.stack((nchrom - dac, dac)).T
     return positions, indices, ac, position_map, parse_param_str(params)
 
+
+def aggregate_site_array(x, bins, func, **kwargs):
+    """
+    Given a site array (an np.ndarray of length equal to a chromosome)
+    calculate some summary of values with func on the specified bins.
+    """
+    vals = np.zeros((len(bins), x.shape[1]))
+    for i in range(1, len(bins)):
+        vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
+    return vals
+
+
+def pairwise_summary(ac):
+    """
+    Compute the number of pairwise same and different differenes per position,
+    given an allele count matrix.
+
+    Based on the approach in scikit-allel and Nei.
+    """
+    ac = ac.astype(np.int32)
+    an = np.sum(ac, axis=1)
+    n_pairs = an * (an - 1) / 2
+    n_same = np.sum(ac * (ac - 1) / 2, axis=1)
+    n_diff = n_pairs - n_same
+    return np.stack((n_same, n_diff)).T
+
+def pi_from_pairwise_summaries(npairs):
+    """
+    Given a summary of pairwise combinations (nsame, ndiff cols) return
+    π. This assumes site arrays (e.g. the denominator is handled naturally).
+    """
+    return npairs[:, 1] / npairs.sum(axis=1)
+
 class CountsDirectory:
     """
     Lazy load a directory of .npy files of chromosome count data.
@@ -90,12 +123,24 @@ class GenomeData:
         self.counts = None
         self.dac = None
 
+    def _load_mask(self, file):
+        """
+        Load a 3-column BED file into a mask objects.
+        """
+        ranges = read_bed3(file, keep_chroms=set(self.genome.seqlens.keys()))
+        return ranges_to_masks(ranges, self.genome.seqlens)
+
+    def load_accessibile_masks(self, file):
+        """
+        Load a 3-column BED file of accessible ranges into mask objects.
+        """
+        self.accesssible_masks = self._load_mask(file)
+
     def load_neutral_masks(self, file):
         """
         Load a 3-column BED file of neutral ranges into mask objects.
         """
-        ranges = read_bed3(file, keep_chroms=set(self.genome.seqlens.keys()))
-        self.neutral_masks = ranges_to_masks(ranges, self.genome.seqlens)
+        self.neutral_masks = self._load_mask(file)
 
     def load_counts_dir(self, dir, lazy=True):
         """
@@ -107,16 +152,54 @@ class GenomeData:
         self.dac = False
 
     def load_dac_file(self, filename):
+        """
+        Load a file of only polymorphic sites into site arrays.
+        """
         pass
 
-    def bin_reduce(self, width):
+    def bin_reduce(self, width, filter_neutral=True, filter_accessible=True):
         """
         Given a genomic window width, bin the data and compute bin-level
         summaries for the likelihood.
 
-        Returns: Y matrix and a chrom dict of bin ends.
+        Returns: Y matrix (nsame, ndiff cols) and a chrom dict of bin ends.
         """
         assert self.neutral_masks is not None, "GenomeData.neutral_masks not set!"
         assert self.counts is not None, "GenomeData.counts is not set!"
-        #wins = bin_chroms(self.genome.seqlens(), width)
+
+        bins = bin_chroms(self.genome.seqlens, width)
+        reduced = dict()
+        for chrom in self.genome.chroms:
+            site_ac = self.counts[chrom]
+            if filter_neutral:
+                msg = "GenomeData.neutral_masks not set!"
+                assert self.neutral_masks is not None, msg
+                site_ac = site_ac * self.neutral_masks[:, None]
+
+            if filter_accessible:
+                msg = "GenomeData.accesssible_masks not set!"
+                assert self.accesssible_masks is not None, msg
+                site_ac = site_ac * self.accesssible_masks[:, None]
+
+            site_ac[site_ac == -1] = 0 # TODO remove
+            d = pairwise_summary(site_ac)
+            reduced[chrom] = aggregate_site_array(d, bins[chrom], np.nansum, axis=0)
+
+        return reduced
+
+    def bin_pi(self, **kwargs):
+        """
+        Calculate π from the binned summaries.
+        """
+        reduced = self.bin_reduce(**kwargs)
+        pi = dict()
+        for chrom in reduced.keys():
+            pi[chrom] = pi_from_pairwise_summaries(reduced[chrom])
+        return pi
+
+
+
+
+
+
 

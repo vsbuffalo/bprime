@@ -345,16 +345,6 @@ def bin_chrom(end, width, dtype='uint32'):
     assert np.all(bins < end+1)
     return bins
 
-def aggregate_site_array(x, bins, func, **kwargs):
-    """
-    Given a site array (an np.ndarray of length equal to a chromosome)
-    calculate some summary of values with func on the specified bins.
-    """
-    vals = np.zeros((len(bins), x.shape[1]))
-    for i in range(1, len(bins)):
-        vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
-    return vals
-
 def get_unique_indices(x):
     "Get the indices of unique elements in a list/array"
     indices = defaultdict(list)

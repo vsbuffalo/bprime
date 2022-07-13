@@ -58,7 +58,7 @@ def main(vcf_file, outdir, samples=None, pass_only=True, min_qual=50, min_gq=30)
                 np.save(filepath, counts)
             # create a new counts table
             pbar = tqdm.tqdm(total = seqlens[var.CHROM], unit_scale=True)
-            counts = np.full((seqlens[var.CHROM], 2), -1, dtype=np.short)
+            counts = np.zeros((seqlens[var.CHROM], 2), dtype=np.short)
             ncomplete = 0
             last_chrom = var.CHROM
 
@@ -83,24 +83,24 @@ def main(vcf_file, outdir, samples=None, pass_only=True, min_qual=50, min_gq=30)
         # this is slower: 7k it/sec vs 9k for np
         #gt_counts = Counter(gts)
         #nhom_ref, nhom_alt, nhet = [gt_counts[k] for k in (0, 2, 1)]
-        qual_pass = var.QUAL is not None and var.QUAL >= min_qual
+        qual_pass = int(var.QUAL is not None and var.QUAL >= min_qual)
         nref = 2*nhom_ref + nhet*qual_pass
         nalt = (2*nhom_alt + nhet)*qual_pass
-        stats[QUAL] += ~ qual_pass
+        stats[QUAL] += int(not qual_pass)
         assert nref + 1 < COUNT_MAX, "counts dtype overflow!"
         assert nalt + 1 < COUNT_MAX, "counts dtype overflow!"
         i = var.POS
         counts[i, 0] = nref
         counts[i, 1] = nalt
         pbar.update(i - pbar.n)
-        ncomplete += (counts[i, :] > -1).sum()
+        ncomplete += (counts[i, :] > 0).sum()
 
     # save the last chromosome
     filepath = os.path.join(outdir, f"{last_chrom}_counts.npy")
     np.save(filepath, counts)
-
-    print(stats)
     vcf.close()
+
+    print(f"failed filter: {stats[0]}\nfailed qual (<{min_qual}): {stats[1]})")
 
 
 if __name__ == "__main__":

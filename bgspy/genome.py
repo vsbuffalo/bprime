@@ -237,6 +237,10 @@ class Genome(object):
         self._idx2map = None
         self._map2idx = None
 
+    @property
+    def chroms(self):
+        return list(self.seqlens.keys())
+
     def load_seqlens(self, file, chroms):
         if isinstance(chroms, str):
             chroms = set([chroms])

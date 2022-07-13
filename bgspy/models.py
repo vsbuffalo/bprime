@@ -39,9 +39,6 @@ from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
 from bgspy.utils import bin_chrom, bin_chroms, genome_emp_dists
-from bgspy.utils import readfile, load_dacfile
-from bgspy.utils import load_seqlens, make_dirs
-from bgspy.utils import ranges_to_masks, sum_logliks_over_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import calc_B, calc_B_parallel, calc_BSC16_parallel
