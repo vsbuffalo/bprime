@@ -89,6 +89,13 @@ class BScores:
                 X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
         return X
 
+    def bin_means(self, width):
+        """
+        """
+        assert width > self.step, "bin width is < step width; use interpolation"
+        pass # TODO
+
+
 def read_npy_dir(dir):
     return {f: np.load(os.path.join(dir, f)) for f in os.listdir(dir)}
 

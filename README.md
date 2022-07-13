@@ -23,7 +23,10 @@ and `fit`. `fit_sims.py data` reads the `.npz` file, takes the product of the
 selection and dominance coefficient columns (currently, we treat `h` as fixed),
 and extracts all variable columns in the data. The output of this is a
 `LearnedFunction` object, which contains the data for model training.
- 
+
+## Thoughts
+
+ - if the ratchet is clicking, can we trust mutational density maps?
  
 
 ## TODO

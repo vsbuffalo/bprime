@@ -2,6 +2,9 @@ import os
 import numpy as np
 from bgspy.utils import read_bed3, ranges_to_masks, bin_chroms
 
+# error out on overflows
+np.seterr(all='raise')
+
 def load_dacfile(dacfile, neut_masks=None):
     """
     Read derived allele counts datafile. These should be sorted
@@ -91,12 +94,15 @@ def pairwise_summary(ac):
     n_diff = n_pairs - n_same
     return np.stack((n_same, n_diff)).T
 
-def pi_from_pairwise_summaries(npairs):
+def pi_from_pairwise_summaries(pair_data):
     """
     Given a summary of pairwise combinations (nsame, ndiff cols) return
     π. This assumes site arrays (e.g. the denominator is handled naturally).
     """
-    return npairs[:, 1] / npairs.sum(axis=1)
+    denom = pair_data.sum(axis=1)
+    return np.divide(pair_data[:, 1], denom,
+                     out=np.full(denom.shape[0], np.nan),
+                     where=denom > 0)
 
 class CountsDirectory:
     """
@@ -185,17 +191,17 @@ class GenomeData:
             d = pairwise_summary(site_ac)
             reduced[chrom] = aggregate_site_array(d, bins[chrom], np.nansum, axis=0)
 
-        return reduced
+        return bins, reduced
 
     def bin_pi(self, **kwargs):
         """
         Calculate π from the binned summaries.
         """
-        reduced = self.bin_reduce(**kwargs)
+        bins, reduced = self.bin_reduce(**kwargs)
         pi = dict()
         for chrom in reduced.keys():
             pi[chrom] = pi_from_pairwise_summaries(reduced[chrom])
-        return pi
+        return bins, pi
 
 
 

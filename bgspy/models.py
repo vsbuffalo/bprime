@@ -38,7 +38,7 @@ import allel
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
-from bgspy.utils import bin_chrom, bin_chroms, genome_emp_dists
+from bgspy.utils import bin_chrom, bin_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
 from bgspy.likelihood import calc_loglik_components, loglik
 from bgspy.classic import calc_B, calc_B_parallel, calc_BSC16_parallel
@@ -66,27 +66,13 @@ class BGSModel(object):
         self.t = np.sort(t_grid)
         self.w = np.sort(w_grid)
 
-        # variation data, etc to calculate likelihoods
-        self.dacfile = None
-        self.metadata = None #
-        self._indices = None
-        self.neut_pos = None
-        self.neut_pos_map = None
-        # neutral region info
-        self.neut_masks = None
+        # Genomic Data
+        self.data = None
 
-        self.nloci = None
-        self.ac = None
-
-        # grid of pairwise same/diff counts
-        self.Y = None
         #likelihood
         self.pi0_ll = None
         self.pi0_grid = None
         self.pi0i_mle = None
-
-        # machine learning stuff
-        self.bfunc = None
 
     @property
     def seqlens(self):
@@ -99,93 +85,6 @@ class BGSModel(object):
     @property
     def segments(self):
         return self.genome.segments
-
-    def load_dacfile(self, dacfile, neut_regions):
-        neut_masks = ranges_to_masks(neut_regions, self.seqlens)
-        self.neut_masks = neut_masks
-        res = load_dacfile(dacfile, neut_masks)
-        self.neut_pos, self._indices, self.ac, self.neut_pos_map, self.metadata = res
-        self.nloci = len(list(*itertools.chain(self.neut_pos.values())))
-        ac = self.ac
-        assert(self.nloci == ac.shape[0])
-        an = ac.sum(axis=1)
-        # the number of chromosomes at fixed sites is set
-        # to the highest number of chromosomes in the sample (TODO, change?)
-        self.nchroms = an.max()
-        n_pairs = an * (an - 1) / 2
-        n_same = np.sum(ac * (ac - 1) / 2, axis=1)
-        n_diff = n_pairs - n_same
-        self.Y = dict()
-        m = np.stack((n_same, n_diff)).T
-        for chrom, indices in self._indices.items():
-            self.Y[chrom] = m[indices, :]
-
-    def pi(self, width=None):
-        """
-        Return pairwise diversity calculated in windows of 'width', or
-        if width is None, using the same windows as B.
-        """
-        # note, scikit-allel uses 1-based coordinates
-        pis = dict()
-        b = self.BScores
-        for chrom in self.neut_pos:
-            ac = self.ac
-            mask = self.neut_masks[chrom]
-            pos = np.array(self.neut_pos[chrom]) + 1
-            if width is None:
-                bins = self.B_bins[chrom]
-            else:
-                bins = bin_chrom(self.seqlens[chrom], width)
-            # again, allel uses 1-based
-            wins = np.stack((bins[:-1]+1, bins[1:])).T
-            pis[chrom] = allel.windowed_diversity(pos, ac, windows=wins,
-                                                  is_accessible=mask)
-        return pis
-
-    def gwpi(self):
-        """
-        Genome-wide pi.
-        """
-        pis = dict()
-        for chrom in self.neut_pos:
-            ac = self.ac
-            mask = self.neut_masks[chrom]
-            # allel is 1-indexed
-            pos = np.array(self.neut_pos[chrom]) + 1
-            pis[chrom] = allel.sequence_diversity(pos, ac, is_accessible=mask)
-        x = list(pis.values())
-        y = [self.seqlens[c] for c in pis.keys()]
-        pi_bar = np.average(x, weights=y)
-        assert(np.isfinite(pi_bar) and not np.isnan(pi_bar))
-        return pi_bar
-
-    def bin_B(self, width):
-        """
-        Bin B into genomic windows with width 'width'.
-        """
-        if width < 10*self.step:
-            msg = f"bin width ({width}) <= 10*step size ({self.step}); recommended it's larger"
-            raise ValueError(msg)
-        B = self.BScores
-        binned_B = dict()
-        chroms = B.pos.keys()
-        for chrom in chroms:
-            bins = bin_chrom(self.seqlens[chrom], width)
-            n = bins.shape[0] - 1 # there are one less windows than binends
-            wins = np.stack((bins[:-1], bins[1:])).T
-            idx = np.digitize(B.pos[chrom], bins[1:]) # ignore zero
-            grps = np.unique(idx)
-            shape = (n, B.B[chrom].shape[1], B.B[chrom].shape[2])
-            means = np.full(shape, np.nan)
-            nitems = np.zeros(n)
-            for i in range(n):
-                y = B.B[chrom][i == idx, :, :]
-                nitm = (i == idx).sum()
-                if nitm > 0:
-                    means[i, :, :] = np.nanmean(y, axis=0).squeeze()
-                nitems[i] = nitm
-            binned_B[chrom] = BinnedStat(means, wins, nitems)
-        return binned_B
 
     def loglikelihood(self, width, pi0=None, pi0_bounds=None, pi0_grid=None,
                       method='SC16'):
@@ -283,19 +182,6 @@ class BGSModel(object):
         self.Bs = obj['B'].B
         self.Bps = obj['Bp'].B
         return self
-
-    @property
-    def B_bins(self):
-        if self.step is None:
-            raise ValueError("step is not set, cannot calculate bins")
-        chroms = self.B_pos.keys()
-        return {c: bin_chrom(self.seqlens[c], self.step) for c in chroms}
-
-    def calc_stats(self, mu, s, subsample_frac=0.01, B_subsample_frac=0.001, step=10_100):
-        return genome_emp_dists(self.genome, step=step,
-                                mu=mu, s=s,
-                                B_subsample_frac=B_subsample_frac,
-                                subsample_frac=subsample_frac)
 
     def calc_B(self, step=10_000, recalc_segments=False,
                ncores=None, nchunks=None):
