@@ -51,10 +51,10 @@ otherwise. Thus as they specify in the paper,
 \end{align}
 
 The total size of the set of samples $\mathcal{S}$ is $n_\mathcal{S} =
-|\mathcal{S}|$. Assuming all sites are biallelic, we can simplify the
-calculation of the likelihood by noting that for a site $v$'s vector of allele
-counts $[c_1, c_2]$, the total number of pairwise combinations with the same
-alleles is
+|\mathcal{S}|$. Assuming all sites are biallelic, we can simplify the inner
+summation by counting the number of possible same and different pairwise
+combinations. If a site $v$'s vector of allele counts is $[c_1, c_2]$, the
+total number of pairwise combinations with the same alleles is
 
 \begin{align}
   n_s(v) = {c_1 \choose 2} + {c_2 \choose 2}
@@ -67,8 +67,39 @@ and the number of different pairwise combinations is
 \end{align}
 
 where $n_T = n_\mathcal{S} (n_\mathcal{S} - 1) / 2$  is the total number of
-pairwise combinations across the sample set $\mathcal{S}$. Furthermore, note
-that we can partition the set $\mathcal{V}$ of neutral sites into polymorphic
+pairwise combinations across the sample set $\mathcal{S}$. Note that these
+site-specific counts allow us to use allelic counts directly, and can vary
+across sites. Our likelihood is then,
+
+\begin{align}
+  \log\mathcal{L}(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right].
+\end{align}
+
+In practice, we calculate these values across bins. For each bin, we treat
+$\pi(v | \theta)$ as fixed, assuming that at this scale, the variation in
+expected diversity across sites is minimal. For a particular chromosome, we
+have two classes of sites: those included in the diversity calculation and
+those ignored. The former sites are all putatively neutral and have reliably
+called genotypes, and the other sites are possibly non-neutral or do have
+reliably called genotypes. The total log-likelihood is the sum of bin likelihoods,
+$\mathcal{L}(b)$
+
+\begin{align}
+   \mathcal{L}(\theta) =  \sum_b \mathcal{L}(b | \theta)
+\end{align}
+
+The likelihood within a bin is then,
+
+\begin{align}
+  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_D(v) + \log(1-\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_S(v)  \\
+                               &= \log(\bar{\pi}(b | \theta)) Y_D(b) + \log(1-\bar{\pi}(b | \theta)) Y_S(b)
+\end{align}
+%
+where the two sum terms as $Y_D(b)$ and $Y_S(b)$ are data reductions at the bin
+level.
+
+If the data are such that only polymorphic sites are considered, we can adapt
+this by partitioning the set $\mathcal{V}$ of neutral sites into polymorphic
 ($\mathcal{P}$) and fixed sites ($\mathcal{F}$), i.e. $\mathcal{V} =
 \mathcal{P} \cup \mathcal{F}$ and $\mathcal{P} \cap \mathcal{F} = \varnothing$.
 For all $v \in \mathcal{F}$, $n_d(v) = 0$ and $n_s(v) = n_T$.
@@ -80,46 +111,23 @@ Then,
                   &= \sum_{v \in \mathcal{P}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] + \sum_{v \in \mathcal{F}} \log(1-\pi(v | \theta)) n_T(v)  \\
 \end{align}
 
-In practice, we calculate these values across bins. For each bin, we treat
-$\pi(v | \theta)$ as fixed, assuming that at this scale, the variation in
-expected diversity across sites is minimal. For a particular chromosome, we
-have two classes of sites: those included in the diversity calculation and
-those ignored. The former sites are all putatively neutral and have reliably
-called genotypes, and the other sites are possibly non-neutral or do have
-reliably called genotypes. The log-likelihood is the sum of bin
-likelihoods, $\mathcal{L}(b)$
-
 \begin{align}
-  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{P}} n_\text{D}(v) + \log(1-\bar{\pi}(b | \theta)) \left(\sum_{v \in \mathcal{V}} n_\text{S}(v) +  \sum_{v \in \mathcal{F}} n_T(v)  \right).
+  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{P}_b} n_\text{D}(v) + \log(1-\bar{\pi}(b | \theta)) \left(\sum_{v \in \mathcal{P}_b} n_\text{S}(v) +  \sum_{v \in \mathcal{F}_b} n_T(v)  \right).
 \end{align}
 
-We can assume that the total number of combinations at each fixed site is
-constant, e.g. $n_T = n_T(v)$ for all $v$, simplifying this as 
-
-\begin{align}
-  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{P}} n_\text{D}(v) + \log(1-\bar{\pi}(b | \theta)) \left(\sum_{v \in \mathcal{V}} n_\text{S}(v) +  n_T(v) f(b)  \right)
-\end{align}
-
-where $f(b)$ is the number of fixed sites in bin $b$. Thus, we our data can be
-reduced within a bin by these terms summed over sites in the window, 
-
-\begin{align}
-  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) Y_D(b) + \log(1-\bar{\pi}(b | \theta)) Y_S(b)
-\end{align}
+Note that if we assume that the total number of combinations at each fixed site
+is constant, e.g. $n_T = n_T(v)$ for all $v$, then we can use $\sum_v n_T(v) =
+n_T |\mathcal{F}_b|$.
 
 
-\begin{align}
-  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}_0 B(b | \vec{w}, \vec{t})) Y_D(b) + \log(1-\bar{\pi}_0 B(b |  \vec{w}, \vec{t})) Y_S(b)
-\end{align}
+% There are two approaches: interpolated $\pi(m | \theta)$ at the midpoint of the
+% bin position $m$, and averaged bin-averaged $\bar{\pi}(m | \theta)$.
 
-where $\vec{w}$ and $\vec{t}$ are the vectors of mutation rates into 
+\section*{Windowed Diversity}
 
-
-
-There are two approaches: interpolated $\pi(m | \theta)$ at the midpoint of the
-bin position $m$, and averaged bin-averaged $\bar{\pi}(m | \theta)$.
-
-
+Although we use the components of diversity, $n_t$ and $n_s$, to calculate the
+likelihood, it is still of interest to calculate diversity from these in a
+window. The raw allele count data a $L \times \text{2}$ matrix, 
 
 \section{B Scores}
 
