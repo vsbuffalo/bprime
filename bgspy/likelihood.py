@@ -146,8 +146,5 @@ class WindowedMLE:
     def t_mle(self):
         return self.t[np.where(self.lls == np.nanmax(self.lls))[1]]
 
-    def __repr__(self):
-        return f"MLE Fit: w={self.w_mle}, t={self.t_mle}"
-
 
 

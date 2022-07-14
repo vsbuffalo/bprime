@@ -11,6 +11,7 @@ from functools import partial
 import itertools
 from math import floor, log10
 from scipy import interpolate
+from scipy.stats import binned_statistic
 import numpy as np
 from bgspy.theory import bgs_segment
 SEED_MAX = 2**32-1
@@ -89,11 +90,155 @@ class BScores:
                 X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
         return X
 
-    def bin_means(self, width):
+    def bin_means(self, bins):
         """
+        Average the bins into larger genomic windows.
+
+        We use the trapezoid rule, which works out to be the midpoint.
+
+        a     b     c     d     e     f
+        |     |     |     |     |     | Bs
+        x1      x2        x3       x4    wins
+        B0    B1    B2    B3    B4    B5
+           w1    w2    w3
+
+
+        Digitize the Bs in wins,
         """
-        assert width > self.step, "bin width is < step width; use interpolation"
-        pass # TODO
+        assert bins.width > self.step, "bin width is < step width; use interpolation"
+        means = dict()
+        for chrom in bins:
+            y = self.B[chrom]
+            x = self.pos[chrom]
+            # midpoints work out to be trapezoid mean
+            mp_y = 0.5 * (y[1:, ...] + y[:-1, ...])
+            mp = 0.5 * (x[1:] + x[:-1] # position at midpoint
+            means[chrom] = bin_aggregate(mp, mp_y, np.mean, axis=0)
+        return means
+
+def bin_chrom(end, width, dtype='uint32'):
+    """
+    Bin a chromsome of length 'end' into bins of 'width', with the last
+    bin
+    """
+    # assumes 0-indexed
+    cend = width * np.ceil(end / width) + 1
+    bins = np.arange(0, cend, width, dtype=dtype)
+
+    # if there's overrun, make the last bin position the chromosome length
+    # (remember, not right inclusive)
+    last_pos = end
+    if bins[-1] > last_pos:
+        bins[-1] = last_pos
+    assert np.all(bins < end+1)
+    return bins
+
+def aggregate_site_array(x, bins, func, **kwargs):
+    """
+    Given a site array (an np.ndarray of length equal to a chromosome)
+    calculate some summary of values with func on the specified bins.
+    """
+    vals = np.zeros((len(bins), x.shape[1]))
+    for i in range(1, len(bins)):
+        vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
+    return vals
+
+
+def bin_aggregate(x, values, func, **kwargs, bins):
+    """
+    Like scipy.stats.binned_statistic but allows higher dimensions.
+    """
+    nbins = bins.size
+    agg = np.empty(value=np.nan, shape=(nbins-1, *x.shape[1:]))
+    n = np.empty(value=0, shape=nbins-1)
+    idx = np.digitize(pos_dict[chrom], bins[chrom])
+    for i in np.unique(idx):
+        out[i-1, ...] = func(x[chrom][idx == i, ...], **kwargs)
+        n[i-1] = np.sum(idx == i)
+    return BinnedStat(out, bins, n)
+
+class GenomicBins:
+    def __init__(self, seqlens, width, dtype='uint32'):
+        width = int(width)
+        self.width = width
+        self.dtype = dtype
+        self.seqlens = seqlens
+        self._bin_chroms(seqlens, width, dtype)
+
+    def __repr__(self):
+        width = self.width
+        nseqs = len(self.seqlens)
+        msg = f"GenomicBins: {width:,}bp windows on {nseqs} chromosomes\n"
+        i = 0
+        for chrom in self.seqlens:
+            x = list(map(str, self.bins[chrom][:3].tolist()))
+            y = list(map(str, self.bins[chrom][-3:].tolist()))
+            msg += f"  {chrom}: [" + ', '.join(x + ["..."] + y) + "]"
+            if i > 4:
+                msg += f"[... {nseqs - i} more chromosomes ...]"
+        return msg
+
+    def _bin_chroms(self, seqlens, width, dtype='uint32'):
+        "Bin all chromosomes and put the results in a dictionary."
+        self.bins = {c: bin_chrom(seqlens[c], width, dtype) for c in seqlens}
+
+    def __getitem__(self, chrom):
+        return self.bins[chrom]
+
+    def midpoints(self):
+        """
+        Calculate midpoints of bins.
+        """
+        return {c: 0.5*(x[1:] + x[:-1]) for c, x in chrom_bins.items()}
+
+    def full_bins(self, value=0, shape=None, dtype=float):
+        """
+        Like np.full(), this creates a vector full of a value.
+        Shape is by dimensional nbins-1; if shape is specified, it
+        specifies the shape of other dimensions _after_ the first.
+
+        Note: the first bin is zero; hence the number of bins is nbins-1.
+        """
+        out = dict()
+        for chrom in self.seqlens:
+            if shape is None:
+                shape = self.bins[chrom].size - 1
+            else:
+                shape = (self.bins[chrom].size - 1, *shape)
+            out[chrom] = np.full(shape, value, dtype=dtype)
+        return out
+
+    def aggregate_positions(self, x, pos_dict, func, **kwargs):
+        """
+        Aggregate the data in chrom dict x with positions in pos_dict,
+        using function func with **kwargs.
+        """
+        assert isinstance(x, dict), "x must be a dict"
+        assert isinstance(pos_dict, dict), "pos_dict must be a dict"
+        # get the first set of other dimensions -- assumed to be all the same!
+        chrom = list(x.keys())[0]
+        agg = dict()
+        for chrom in pos_dict:
+            out[chrom] = bin_aggregate(x[chrom], pos_dict[chrom], func,
+                                       **kwargs, bins[chrom])
+            # binned_statistic would be good here, but doesn't work well with
+            # multidimensional arrays
+            #out[chrom] = binned_statistic(pos_dict[chrom], x[chrom],
+            #                              bins=self.bins[chrom],
+            #                              statistic=partial(func, **kwargs))
+        return out
+
+    def aggregate_site_array(self, x, func, **kwargs):
+        """
+        Given a site array,
+        """
+        out = dict()
+        for chrom, bins in self.bins:
+            out[chrom] = aggregate_site_array(x, bins, func, **kwargs)
+        return out
+
+    def __iter__(self):
+        return iter(self.bins)
 
 
 def read_npy_dir(dir):
@@ -130,48 +275,6 @@ def random_seed(rng=None):
     if rng is None:
         return np.random.randint(0, SEED_MAX)
     return rng.integers(0, SEED_MAX)
-
-def genome_emp_dists(genome, step, mu, s, B_subsample_frac, subsample_frac):
-    """
-    Calculate empirical distributions of genome features (L, rbp, rf)
-    using subsampling. Note that for rf, subsample_frac is subsample_frac^2
-    because rf is pairwise and a lot larger.
-    """
-    frac = 1 if subsample_frac is None else subsample_frac
-    segments = genome.segments
-    seqlens = genome.seqlens
-    recmap = genome.recmap
-    rfs = defaultdict(list)
-    Ls = defaultdict(list)
-    rbps = defaultdict(list)
-    chroms = seqlens.keys()
-
-    subsampler = subsampler_factory(subsample_frac)
-    Bsubsampler = subsampler_factory(B_subsample_frac)
-    Bs = defaultdict(list)
-
-    for chrom in chroms:
-        idx = segments.index[chrom]
-        chrom_seg_mpos = segments.map_pos[idx, :]
-        rbp = segments.rbp[chrom]
-        L = segments.L[chrom]
-        end = seqlens[chrom]
-        positions = bin_chrom(end, step)
-        map_pos = recmap.lookup(chrom, positions, cummulative=True)
-        total_sites = len(positions)
-
-        # subsample the focal site map positions
-        fs = Bsubsampler(map_pos)
-        for f in tqdm.tqdm(list(fs)):
-            rf = dist_to_segment(f, chrom_seg_mpos)
-            B = bgs_segment(mu, s, L, rbp, rf)
-            Bs[chrom].extend(B)
-            rfs[chrom].extend(rf)
-
-        Ls[chrom].extend(subsampler(L))
-        rbps[chrom].extend(subsampler(rbp))
-
-    return Ls, rbps, rfs, Bs
 
 def read_bkgd(file):
     """
@@ -326,31 +429,6 @@ def sum_logliks_over_chroms(ll_dict):
     """
     ll = np.stack(list(*ll_dict.values())).sum(axis=0)
     return ll
-
-def bin_midpoints(chrom_bins):
-    "Get the midpoint of all bins"
-    return {c: 0.5*(x[1:] + x[:-1]) for c, x in chrom_bins.items()}
-
-def bin_chroms(seqlens, width, dtype='uint32'):
-    "Bin all chromosomes and put the results in a dictionary."
-    return {c: bin_chrom(seqlens[c], width, dtype) for c in seqlens}
-
-def bin_chrom(end, width, dtype='uint32'):
-    """
-    Bin a chromsome of length 'end' into bins of 'width', with the last
-    bin
-    """
-    # assumes 0-indexed
-    cend = width * np.ceil(end / width) + 1
-    bins = np.arange(0, cend, width, dtype=dtype)
-
-    # if there's overrun, make the last bin position the chromosome length
-    # (remember, not right inclusive)
-    last_pos = end
-    if bins[-1] > last_pos:
-        bins[-1] = last_pos
-    assert np.all(bins < end+1)
-    return bins
 
 def get_unique_indices(x):
     "Get the indices of unique elements in a list/array"

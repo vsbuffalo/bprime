@@ -1,6 +1,7 @@
 import os
 import numpy as np
-from bgspy.utils import read_bed3, ranges_to_masks, bin_chroms
+from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
+from bgspy.utils import aggregate_site_array
 
 # error out on overflows
 np.seterr(all='raise')
@@ -67,17 +68,6 @@ def load_dacfile(dacfile, neut_masks=None):
     # ancestral and derived allele counts
     ac = np.stack((nchrom - dac, dac)).T
     return positions, indices, ac, position_map, parse_param_str(params)
-
-
-def aggregate_site_array(x, bins, func, **kwargs):
-    """
-    Given a site array (an np.ndarray of length equal to a chromosome)
-    calculate some summary of values with func on the specified bins.
-    """
-    vals = np.zeros((len(bins), x.shape[1]))
-    for i in range(1, len(bins)):
-        vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
-    return vals
 
 
 def pairwise_summary(ac):
@@ -173,7 +163,7 @@ class GenomeData:
         assert self.neutral_masks is not None, "GenomeData.neutral_masks not set!"
         assert self.counts is not None, "GenomeData.counts is not set!"
 
-        bins = bin_chroms(self.genome.seqlens, width)
+        bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
         for chrom in self.genome.chroms:
             site_ac = self.counts[chrom]

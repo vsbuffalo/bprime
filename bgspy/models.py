@@ -38,9 +38,8 @@ import allel
 from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
-from bgspy.utils import bin_chrom, bin_chroms
 from bgspy.utils import Bdtype, BScores, BinnedStat
-from bgspy.likelihood import calc_loglik_components, loglik
+#from bgspy.likelihood import loglik
 from bgspy.classic import calc_B, calc_B_parallel, calc_BSC16_parallel
 from bgspy.parallel import MapPosChunkIterator
 
