@@ -20,11 +20,22 @@ SEED_MAX = 2**32-1
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
 #BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
-BinnedStat = namedtuple('BinnedStat', ('statistic', 'wins', 'nitems'))
 
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))
+
+class BinnedStat:
+    __slots__ = ('stat', 'bins', 'n')
+    def __init__(self, stat, bins, n):
+        self.stat = stat
+        self.bins = bins
+        self.n = n
+
+    @property
+    def midpoints(self):
+        return 0.5 * (self.bins[1:] + self.bins[:-1])
+
 
 class BScores:
     def __init__(self, B, pos, w, t, step=None):
@@ -100,20 +111,34 @@ class BScores:
         |     |     |     |     |     | Bs
         x1      x2        x3       x4    wins
         B0    B1    B2    B3    B4    B5
-           w1    w2    w3
 
+        This shows that handling non-overlapping ranges is a pain; we
+        avoid this by requiring the width to be a multiple of the step size
+        (which is usually a much smaller scale, e.g. a few kbp).
 
-        Digitize the Bs in wins,
+        a     b     c     d     e     f
+        |     |     |     |     |     | Bs
+        x1         x2           x3     wins
+        B0    B1    B2    B3    B4    B5
+
+        trapezoid rule: int f(x) dx = w x 0.5 x (B_i + B_{i+1})
+        mean: 1/w int f(x) dx = 0.5 x (B_i + B_{i+1})
+
+        window mean for x1:x2: 0.5 * (B0 + B1) + 0.5 * (B1 + B2)
+
         """
         assert bins.width > self.step, "bin width is < step width; use interpolation"
+        assert bins.width % self.step == 0, "bin width must be multiple of step size"
         means = dict()
         for chrom in bins:
             y = self.B[chrom]
             x = self.pos[chrom]
-            # midpoints work out to be trapezoid mean
+            # midpoints work out to be linear interpolation mean, through
+            # trapezoid rule. The midpoints are those for the end B position
+            # (like bins).
             mp_y = 0.5 * (y[1:, ...] + y[:-1, ...])
-            mp = 0.5 * (x[1:] + x[:-1] # position at midpoint
-            means[chrom] = bin_aggregate(mp, mp_y, np.mean, axis=0)
+            mp_x = 0.5 * (x[1:] + x[:-1]) # position at midpoint
+            means[chrom] = bin_aggregate(mp_y, mp_x, np.mean, bins[chrom], axis=0)
         return means
 
 def bin_chrom(end, width, dtype='uint32'):
@@ -144,18 +169,18 @@ def aggregate_site_array(x, bins, func, **kwargs):
     return vals
 
 
-def bin_aggregate(x, values, func, **kwargs, bins):
+def bin_aggregate(x, values, func, bins, right=False, **kwargs):
     """
     Like scipy.stats.binned_statistic but allows higher dimensions.
     """
     nbins = bins.size
-    agg = np.empty(value=np.nan, shape=(nbins-1, *x.shape[1:]))
-    n = np.empty(value=0, shape=nbins-1)
-    idx = np.digitize(pos_dict[chrom], bins[chrom])
+    agg = np.full(fill_value=np.nan, shape=(nbins-1, *x.shape[1:]))
+    n = np.full(fill_value=0, shape=nbins-1)
+    idx = np.digitize(x, bins, right=right)
     for i in np.unique(idx):
-        out[i-1, ...] = func(x[chrom][idx == i, ...], **kwargs)
+        agg[i-1, ...] = func(x[idx == i, ...], **kwargs)
         n[i-1] = np.sum(idx == i)
-    return BinnedStat(out, bins, n)
+    return BinnedStat(agg, bins, n)
 
 class GenomicBins:
     def __init__(self, seqlens, width, dtype='uint32'):
@@ -220,7 +245,7 @@ class GenomicBins:
         agg = dict()
         for chrom in pos_dict:
             out[chrom] = bin_aggregate(x[chrom], pos_dict[chrom], func,
-                                       **kwargs, bins[chrom])
+                                       bins[chrom], **kwargs)
             # binned_statistic would be good here, but doesn't work well with
             # multidimensional arrays
             #out[chrom] = binned_statistic(pos_dict[chrom], x[chrom],
