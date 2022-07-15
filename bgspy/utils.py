@@ -41,6 +41,11 @@ class BinnedStat:
         stat_dim = '×'.join(map(str, self.stat.shape))
         return f"BinnedStat(shape: {stat_dim}, bin width: {width})"
 
+    @property
+    def pairs(self):
+        # ignores the first bin, which is data for points left of zero
+        return (self.midpoints, self.stat[1:])
+
 
 class BScores:
     # TODO uncomment before next B calc
@@ -200,6 +205,9 @@ def bin_aggregate(pos, values, func, bins, right=False, **kwargs):
     return BinnedStat(agg, bins, n)
 
 class GenomicBins:
+    """
+    A dictionary-like structure for chromosome genomic bins.
+    """
     def __init__(self, seqlens, width, dtype='uint32'):
         width = int(width)
         self.width = width
@@ -227,11 +235,12 @@ class GenomicBins:
     def __getitem__(self, chrom):
         return self.bins[chrom]
 
+    @property
     def midpoints(self):
         """
         Calculate midpoints of bins.
         """
-        return {c: 0.5*(x[1:] + x[:-1]) for c, x in chrom_bins.items()}
+        return {c: 0.5*(x[1:] + x[:-1]) for c, x in self.bins.items()}
 
     def full_bins(self, value=0, shape=None, dtype=float):
         """

@@ -100,9 +100,11 @@ def pi_from_pairwise_summaries(x):
     out = np.divide(pair_data[:, 1], denom,
                     out=np.full(denom.shape[0], np.nan),
                     where=denom > 0)
+    n = x.n
+    n[denom == 0] = 0
     if not is_binstat:
         return out
-    return BinnedStat(out, x.bins, x.n)
+    return BinnedStat(out, x.bins, n)
 
 class CountsDirectory:
     """
@@ -180,16 +182,18 @@ class GenomeData:
             if filter_neutral:
                 msg = "GenomeData.neutral_masks not set!"
                 assert self.neutral_masks is not None, msg
-                site_ac = site_ac * self.neutral_masks[:, None]
+                site_ac = site_ac * self.neutral_masks[chrom][:, None]
 
             if filter_accessible:
                 msg = "GenomeData.accesssible_masks not set!"
                 assert self.accesssible_masks is not None, msg
-                site_ac = site_ac * self.accesssible_masks[:, None]
+                site_ac = site_ac * self.accesssible_masks[chrom][:, None]
 
-            site_ac[site_ac == -1] = 0 # TODO remove
+
+            # the combinatoric step -- turn site allele counts into
+            # same/diff comparisons
             d = pairwise_summary(site_ac)
-            reduced[chrom] = aggregate_site_array(d, bins[chrom], np.nansum, axis=0)
+            reduced[chrom] = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
 
         return bins, reduced
 

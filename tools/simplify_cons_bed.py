@@ -6,7 +6,7 @@ order = {f: i for i, f in enumerate(priority)}
 
 for line in sys.stdin:
     chrom, start, end, feature = line.strip().split('\t')
-    if end - start < 1:
+    if int(end) - int(start) < 1:
         # skip zero-width elements
         continue
     features = feature.split(',')

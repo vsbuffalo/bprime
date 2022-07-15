@@ -16,7 +16,7 @@ rule seqlens:
   shell:
     """
     curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes | \
-      grep -w '^#\|chr[1-9]\|chr[1-2][0-9]' | \
+      grep -v '_' | grep -v 'chrM' | \
       sort --version-sort -k1,1 -k2,2n > {output}
     """
 
@@ -24,7 +24,15 @@ rule centro:
   output: "hg38_centro.bed"
   shell:
     """
-    curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" > {output}
+    curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" | sort --version-sort -k1,1 -k2,2n > {output}
+    """
+
+rule centro_slop:
+  output: "hg38_centro_slop.bed"
+  input: centro="hg38_centro.bed", seqlens="hg38_seqlens.tsv"
+  shell:
+    """
+    bedtools slop -g {input.seqlens} -b 10000000 -i {input.centro} > {output}
     """
 
 rule phastcons:
@@ -231,10 +239,32 @@ rule split_conserved:
       for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom_features/chr$i.bed; done
       """
 
-## === Rules for the chr10 SLiM Simulations
-chr10 = ["neutral_chr10.bed"]
+## === Accessible Regions
+
+accessible = ["no_centro.bed"]
+
+rule no_centro:
+  input: centro="hg38_centro_slop.bed", seqlens="hg38_seqlens.tsv"
+  output: "no_centro.bed"
+  shell:
+    """
+    bedtools complement -i {input.centro} -g {input.seqlens} > {output}
+    """
+
+## === Neutral Regions
+neutral = ["neutral_chr10.bed", "neutral_cds_phastcons.bed"]
 
 # putatively neutral regions -- not conserved tracks
+rule neutral:
+   output: "neutral_cds_phastcons.bed"
+   input: conserved="conserved_cds_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
+   shell:
+      """
+      bedtools slop -g {input.seqlens} -b 10000 -i {input.conserved} | \
+       bedtools complement -i - -g {input.seqlens} > {output}
+      """
+
+# putatively neutral regions for sims, only chr10, simply features -- not conserved tracks 
 rule neutral_chr10:
    output: "neutral_chr10.bed"
    input: conserved="conserved_by_chrom/chr10.bed", seqlens="hg38_seqlens.tsv"
@@ -243,11 +273,11 @@ rule neutral_chr10:
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
       """
 
-rec = decode + hapmap + chr10
+rec = decode + hapmap 
 print(rec)
 
 ## === Main target
 rule all:
-  input: annot + rec + cons
+  input: annot + rec + cons + neutral + accessible
 
 
