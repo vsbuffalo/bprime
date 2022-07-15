@@ -6,7 +6,7 @@ import warnings
 import gzip
 import os
 import tqdm
-from collections import namedtuple, defaultdict, deque
+from collections import namedtuple, defaultdict, deque, Counter
 from functools import partial
 import itertools
 from math import floor, log10
@@ -36,8 +36,15 @@ class BinnedStat:
     def midpoints(self):
         return 0.5 * (self.bins[1:] + self.bins[:-1])
 
+    def __repr__(self):
+        width = Counter(np.diff(self.bins)).most_common(1)[0][0]
+        stat_dim = '×'.join(map(str, self.stat.shape))
+        return f"BinnedStat(shape: {stat_dim}, bin width: {width})"
+
 
 class BScores:
+    # TODO uncomment before next B calc
+    #__slots__ = ('B', 'pos', 'w', 't', 'step', '_interpolators')
     def __init__(self, B, pos, w, t, step=None):
         self.B = B
         self.pos = pos
@@ -127,8 +134,8 @@ class BScores:
         window mean for x1:x2: 0.5 * (B0 + B1) + 0.5 * (B1 + B2)
 
         """
-        assert bins.width > self.step, "bin width is < step width; use interpolation"
-        assert bins.width % self.step == 0, "bin width must be multiple of step size"
+        msg = "bins must be a chrom dict of bins or a GenomicBins"
+        assert isinstance(bins, (GenomicBins, dict)), msg
         means = dict()
         for chrom in bins:
             y = self.B[chrom]
@@ -138,7 +145,8 @@ class BScores:
             # (like bins).
             mp_y = 0.5 * (y[1:, ...] + y[:-1, ...])
             mp_x = 0.5 * (x[1:] + x[:-1]) # position at midpoint
-            means[chrom] = bin_aggregate(mp_y, mp_x, np.mean, bins[chrom], axis=0)
+            means[chrom] = bin_aggregate(mp_x, mp_y, np.mean,
+                                         bins[chrom], axis=0)
         return means
 
 def bin_chrom(end, width, dtype='uint32'):
@@ -164,21 +172,30 @@ def aggregate_site_array(x, bins, func, **kwargs):
     calculate some summary of values with func on the specified bins.
     """
     vals = np.zeros((len(bins), x.shape[1]))
+    n = np.zeros(len(bins))
     for i in range(1, len(bins)):
         vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
-    return vals
+        n[i] = np.sum(~np.isnan(x[bins[i-1]:bins[i], ...]))
+    return BinnedStat(vals, bins, n)
 
 
-def bin_aggregate(x, values, func, bins, right=False, **kwargs):
+def bin_aggregate(pos, values, func, bins, right=False, **kwargs):
     """
     Like scipy.stats.binned_statistic but allows higher dimensions.
+
+    pos: positions
+    values: a np.ndarray where the first dimension corresponds to positions
+    func: the aggregating function
+    bins: the bins to bin positions into
+    right: whether to include right position
+    **kwargs: kwargs to pass to func
     """
     nbins = bins.size
-    agg = np.full(fill_value=np.nan, shape=(nbins-1, *x.shape[1:]))
+    agg = np.full(fill_value=np.nan, shape=(nbins-1, *values.shape[1:]))
     n = np.full(fill_value=0, shape=nbins-1)
-    idx = np.digitize(x, bins, right=right)
+    idx = np.digitize(pos, bins, right=right)
     for i in np.unique(idx):
-        agg[i-1, ...] = func(x[idx == i, ...], **kwargs)
+        agg[i-1, ...] = func(values[idx == i, ...], **kwargs)
         n[i-1] = np.sum(idx == i)
     return BinnedStat(agg, bins, n)
 
@@ -246,11 +263,6 @@ class GenomicBins:
         for chrom in pos_dict:
             out[chrom] = bin_aggregate(x[chrom], pos_dict[chrom], func,
                                        bins[chrom], **kwargs)
-            # binned_statistic would be good here, but doesn't work well with
-            # multidimensional arrays
-            #out[chrom] = binned_statistic(pos_dict[chrom], x[chrom],
-            #                              bins=self.bins[chrom],
-            #                              statistic=partial(func, **kwargs))
         return out
 
     def aggregate_site_array(self, x, func, **kwargs):
@@ -574,7 +586,11 @@ def load_bed_annotation(file, chroms=None):
                 feature = cols[3]
             if chrom not in ranges:
                 ranges[chrom] = ([], [])
-            ranges[chrom][0].append((int(start), int(end)))
+            start, end = int(start), int(end)
+            if end-start < 1:
+                warnings.warn(f"skipping 0-width element {chrom}:{start}-{end})")
+                continue
+            ranges[chrom][0].append((start, end))
             ranges[chrom][1].append(feature)
             # index_map[chrom].append(nloci)
             all_features.add(feature)

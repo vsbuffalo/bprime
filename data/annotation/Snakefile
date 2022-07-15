@@ -1,10 +1,14 @@
 
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
+PHASTCONS_THRESH = 526
 
 
 ## === Human Annotation Data
-annot = ["hg38_seqlens.tsv", "phastConsElements100way.bed.gz", "hg38.ncbiRefSeq_exons.bed.gz", "hg38_centro.bed"]
+annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "phastConsElements100way.bed.gz", 
+         "hg38.ncbiRefSeq_cds.bed.gz", 
+         "hg38_centro.bed", 
+         "ensembl_pseudogenes.bed.gz"]
 
 # only keep autosomes
 rule seqlens:
@@ -23,24 +27,65 @@ rule centro:
     curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" > {output}
     """
 
-
 rule phastcons:
+  output: "phastConsElements100way.txt.gz"
+  shell:
+    """
+    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz 
+    """
+
+rule phastcons_bed:
   output: "phastConsElements100way.bed.gz"
+  input: "phastConsElements100way.txt.gz"
+  params: thresh=PHASTCONS_THRESH
   shell:
     """
-    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz | \
-      zcat | bioawk -t '{{print $2,$3,$4}}' | gzip > {output}
+     # Filter the phastcons by a score constant
+     zcat {input} | bioawk -t ' $6 > {params.thresh} {{ print $2,$3,$4 }}' | gzip > {output}
     """
 
+rule ensembl_gff:
+   output: "Homo_sapiens.GRCh38.107.gff3.gz"
+   shell:
+     """ 
+     wget http://ftp.ensembl.org/pub/release-107/gff3/homo_sapiens/Homo_sapiens.GRCh38.107.gff3.gz
+     """
 
-rule exons:
-  output: "hg38.ncbiRefSeq_exons.bed.gz"
+rule ensembl_pseudogenes:
+   output: "ensembl_pseudogenes.bed.gz"
+   input: "Homo_sapiens.GRCh38.107.gff3.gz"
+   shell:
+     """
+     zgrep -v "#" {input} | bioawk -cgff ' $feature ~ /pseudogene/ {{ print "chr"$seqname,$start,$end,$feature }}' | \
+      sort --version-sort -k1,1 -k2,2n |  \
+      bedtools merge -c 4 -o distinct | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+     """
+
+rule refseq:
+  output: "hg38.ncbiRefSeq.gtf.gz"
   shell:
     """
-    curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz | \
-      bioawk -cgff '{{ if ($feature == "exon") {{ print $seqname,$start,$end,$feature }} }}' | \
+    wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz
+    """
+
+rule cds:
+  output: "hg38.ncbiRefSeq_cds.bed.gz"
+  input: "hg38.ncbiRefSeq.gtf.gz"
+  shell:
+    """
+      bioawk -cgff '{{ if ($feature == "CDS") {{ print $seqname,$start,$end,$feature }} }}' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
+
+rule cds_utr:
+  output: "hg38.ncbiRefSeq_cds_utrs.bed.gz"
+  input: "hg38.ncbiRefSeq.gtf.gz"
+  shell:
+    """
+      bioawk -cgff ' $feature ~ /CDS|5UTR|3UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
+      sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
 
 ## === Genomic Windows
 rule human_100kb:
@@ -83,27 +128,80 @@ rule download_hapmap:
     """
 
 ## === Simplified Annotation Tracks for Sims
-# we want simple, example conservation tracks, but semi-realistic, e.g. exons
+# we want simple, example conservation tracks, but semi-realistic, e.g. CDS
 conserved_tracks_slop = [f"conserved_by_chrom/chr{chrom}.bed" for chrom in AUTOS]
 
 # this one is to test the multiple features 
 conserved_tracks = [f"conserved_by_chrom_features/chr{chrom}.bed" for chrom in AUTOS]
 
-simtracks = ["conserved.bed.gz", "conserved_slop.bed.gz"] + conserved_tracks
+cons = ["conserved.bed.gz", "conserved_cds_phastcons_utrs.bed.gz", "conserved_slop.bed.gz"] + conserved_tracks
 
-# merged exons/phastcons "conservation" track -- mostly a place holder for simulations
+# this is used for sims with combined conserved regions (phastcons + CDS)
 rule conserved_track:
-  input: exons="hg38.ncbiRefSeq_exons.bed.gz", phastcons="phastConsElements100way.bed.gz"
+  input: cds="hg38.ncbiRefSeq_cds.bed.gz", phastcons="phastConsElements100way.bed.gz"
   output: "conserved.bed.gz"
   shell: 
       """
       # combine the files, sort and merge overlapping tracks
-      (zcat {input.exons}; (zcat {input.phastcons} | \
+      (zcat {input.cds}; (zcat {input.phastcons} | \
+        # the messy grep filters out alt chromosome
         bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
         sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge  -c 4 -o distinct | sed 's/phastcons,exon/exon/' | gzip > {output}
+        bedtools merge  -c 4 -o distinct | \
+        python ../../tools/simplify_cons_bed.py | \
+        gzip > {output}
+      """
+        
+# simple features (phastcons + cds )
+rule conserved_track_sipmle:
+  input: cds="hg38.ncbiRefSeq_cds.bed.gz", phastcons="phastConsElements100way.bed.gz"
+  output: "conserved_cds_phastcons.bed.gz"
+  shell: 
+      """
+      # combine the files, sort and merge overlapping tracks
+      # the messy grep filters out alt chromosome
+      (zcat {input.cds} ; (zcat {input.phastcons} | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+        sort  --version-sort -k 1,1 -k2,2n | \
+        bedtools merge  -c 4 -o distinct | \
+        python ../../tools/simplify_cons_bed.py | gzip > {output}
       """
 
+
+# most features (phastcons + CDS + UTRs)
+rule conserved_track_features:
+  input: cds="hg38.ncbiRefSeq_cds_utrs.bed.gz", phastcons="phastConsElements100way.bed.gz"
+  output: "conserved_cds_phastcons_utrs.bed.gz"
+  shell: 
+      """
+      # combine the files, sort and merge overlapping tracks
+      # the messy grep filters out alt chromosome
+      (zcat {input.cds} ; (zcat {input.phastcons} | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+        sort  --version-sort -k 1,1 -k2,2n | \
+        bedtools merge  -c 4 -o distinct | \
+        sed 's/5UTR/UTR/' | sed 's/3UTR/UTR/' | \
+        python ../../tools/simplify_cons_bed.py | \
+        gzip > {output}
+      """
+
+# full features (phastcons + CDS + UTRs + pseudogenes)
+rule conserved_track_full:
+  input: cds="hg38.ncbiRefSeq_cds_utrs.bed.gz", phastcons="phastConsElements100way.bed.gz", pseudogene="ensembl_pseudogenes.bed.gz"
+  output: "conserved_cds_phastcons_utrs_pseudo.bed.gz"
+  shell: 
+      """
+      # combine the files, sort and merge overlapping tracks
+      # the messy grep filters out alt chromosome
+      (zcat {input.cds} {input.pseudogene}; (zcat {input.phastcons} | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+        sort  --version-sort -k 1,1 -k2,2n | \
+        bedtools merge  -c 4 -o distinct | \
+        sed 's/5UTR/UTR/' | sed 's/3UTR/UTR/' | \
+        python ../../tools/simplify_cons_bed.py | \
+        gzip > {output}
+      """
+ 
 rule conserved_slop:
   output: "conserved_slop.bed.gz"
   input: conserved="conserved.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -126,7 +224,7 @@ rule split_conserved_slop:
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
   output: conserved_tracks
-  input: "conserved.bed.gz"
+  input: "conserved_cds_phastcons.bed.gz"
   shell:
       """
       mkdir -p conserved_by_chrom_features/
@@ -145,11 +243,11 @@ rule neutral_chr10:
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
       """
 
-rec = decode + hapmap + chr10 + simtracks
+rec = decode + hapmap + chr10
 print(rec)
 
 ## === Main target
 rule all:
-  input: annot + rec
+  input: annot + rec + cons
 
 

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
-from bgspy.utils import aggregate_site_array
+from bgspy.utils import aggregate_site_array, BinnedStat
 
 # error out on overflows
 np.seterr(all='raise')
@@ -84,15 +84,25 @@ def pairwise_summary(ac):
     n_diff = n_pairs - n_same
     return np.stack((n_same, n_diff)).T
 
-def pi_from_pairwise_summaries(pair_data):
+def pi_from_pairwise_summaries(x):
     """
     Given a summary of pairwise combinations (nsame, ndiff cols) return
     π. This assumes site arrays (e.g. the denominator is handled naturally).
+    If x is a BinnedStat, this does the right thing too.
     """
+    is_binstat = isinstance(x, BinnedStat)
+    if is_binstat:
+        # extract the data
+        pair_data = x.stat
+    else:
+        pair_data = x
     denom = pair_data.sum(axis=1)
-    return np.divide(pair_data[:, 1], denom,
-                     out=np.full(denom.shape[0], np.nan),
-                     where=denom > 0)
+    out = np.divide(pair_data[:, 1], denom,
+                    out=np.full(denom.shape[0], np.nan),
+                    where=denom > 0)
+    if not is_binstat:
+        return out
+    return BinnedStat(out, x.bins, x.n)
 
 class CountsDirectory:
     """
@@ -193,7 +203,20 @@ class GenomeData:
             pi[chrom] = pi_from_pairwise_summaries(reduced[chrom])
         return bins, pi
 
+    def pi(self):
+        pi = dict()
+        n = dict()
+        for chrom in self.genome.chroms:
+            ac = self.counts[chrom]
+            pi[chrom] = np.nanmean(pi_from_pairwise_summaries(pairwise_summary(ac)))
+            n[chrom] = np.sum(ac.sum(axis=1) > 0)
+        return pi, n
 
+    def gwpi(self):
+        pis, ns = self.pi()
+        pis = np.fromiter(pis.values(), dtype=float)
+        ns = np.fromiter(ns.values(), dtype=float)
+        return np.average(pis, weights=ns)
 
 
 

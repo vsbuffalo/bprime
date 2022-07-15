@@ -130,13 +130,22 @@ class WindowedMLE:
     """
     nchroms: number of chromosomes sequenced.
     """
-    def __init__(self, bins, Y, B, w, t):
-        self.bins = bins
+    def __init__(self, Y, B, w, t):
+        # Y and B are chrom dicts of genomically binned values
         self.Y = Y
         self.B = B
         self.w = w
         self.t = t
         self.ll = None
+
+    def _calc_ll_table(self):
+        Y, B = self.Y, self.B
+        chroms = list(Y.keys())
+        ll = dict()
+        for chrom in chroms:
+            ll[chrom] = Y[chrom][:, None, None, None] * B
+
+
 
     @property
     def w_mle(self):

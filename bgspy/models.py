@@ -87,12 +87,11 @@ class BGSModel(object):
 
     def loglikelihood(self, width, pi0=None, pi0_bounds=None, pi0_grid=None,
                       method='SC16'):
-        if method == 'SC16':
-            b = self.BpScores
-        elif method == 'classic':
-            b = self.BScores
-        else:
-            raise ValueError("method must be either 'SC16' or 'classic'")
+        try:
+            b = {'SC16': self.BpScores,
+                 'BGS': self.BScores}[method]
+        except KeyError:
+            raise ValueError("method must be either 'SC16' or 'BGS'")
         assert b is not None, "BScores are not calculated!"
 
         # create the windows that are the unit of analysis
