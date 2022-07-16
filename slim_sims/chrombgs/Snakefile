@@ -35,6 +35,9 @@ bgs_run.generate(SIM_OUTPUTS)
 
 bgs_results = bgs_run.targets
 
+#print(bgs_results)
+bgs_dac = [f.replace('treeseq.tree', 'dac.tsv.gz') for f in itertools.chain(*bgs_run.targets)]
+
 # look at first slim runs
 #print(list(itertools.islice(bgs_run.slim_commands(), 5)))
 
@@ -55,13 +58,13 @@ rule process:
     python ../../tools/process_sims.py {input.dir} {output.np}
     """
 
-rbgs_dac:
+rule bgs_dac:
   input:
     bgs_run.wildcard_output("treeseq.tree"), neutral=NEUTRAL, recmap=RECMAP, seqlens=SEQLENS
   output: 
     bgs_run.wildcard_output("dac.tsv.gz")
   shell:
-      f"""
+      """
       python ../../tools/treeseq2dac.py \
         --regions {input.neutral} \
         --recmap {input.recmap} \
@@ -72,4 +75,4 @@ rbgs_dac:
 rule all:
   input:
     #sim_results, lls_results, fig_results, bgstrees_results
-    bgs_results, SIM_NP
+    bgs_results, SIM_NP, bgs_dac
