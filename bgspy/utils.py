@@ -180,7 +180,7 @@ def aggregate_site_array(x, bins, func, **kwargs):
     n = np.zeros(len(bins))
     for i in range(1, len(bins)):
         vals[i, ...] = func(x[bins[i-1]:bins[i], ...], **kwargs)
-        n[i] = np.sum(~np.isnan(x[bins[i-1]:bins[i], ...]))
+        n[i] = np.sum(np.sum(x[bins[i-1]:bins[i], ...], axis=1) > 0)
     return BinnedStat(vals, bins, n)
 
 

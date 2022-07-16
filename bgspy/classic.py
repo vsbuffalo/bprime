@@ -1,4 +1,17 @@
 ## classic.py -- funcs for calculating B using McVicker approach and parallelizing stuff
+"""
+Testing for einsum:
+
+# a test example similar to what's used below
+x = np.arange(120).reshape(3, 4, 10)
+np.random.seed(10)
+ff = np.random.choice((0, 1), 10).astype(bool)
+
+F = np.stack((ff, ~ff)).T
+np.einsum('wts,sf->wtf', x, F)
+x[:, :, F[:, 0]].sum(axis=2)
+x[:, :, F[:, 1]].sum(axis=2)
+"""
 from collections import defaultdict
 import itertools
 import tqdm

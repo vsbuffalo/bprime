@@ -100,10 +100,10 @@ def pi_from_pairwise_summaries(x):
     out = np.divide(pair_data[:, 1], denom,
                     out=np.full(denom.shape[0], np.nan),
                     where=denom > 0)
-    n = x.n
-    n[denom == 0] = 0
     if not is_binstat:
         return out
+    n = x.n
+    n[denom == 0] = 0
     return BinnedStat(out, x.bins, n)
 
 class CountsDirectory:

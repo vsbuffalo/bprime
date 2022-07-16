@@ -32,7 +32,7 @@ rule centro_slop:
   input: centro="hg38_centro.bed", seqlens="hg38_seqlens.tsv"
   shell:
     """
-    bedtools slop -g {input.seqlens} -b 10000000 -i {input.centro} > {output}
+    bedtools slop -g {input.seqlens} -b 1000000 -i {input.centro} > {output}
     """
 
 rule phastcons:
