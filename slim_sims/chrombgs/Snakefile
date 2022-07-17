@@ -22,9 +22,8 @@ SIM_OUTPUTS = ["treeseq.tree"]
 SEQLENS = "../../data/annotation/hg38_seqlens.tsv" 
 
 RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
-CONSERVED = "../../data/annotation/conserved_phastcons_thresh5_slop1k_chr10.bed"
 NEUTRAL = "../../data/annotation/neutral_phastcons_chr10.bed"
-ANNOT_FILES = [SEQLENS, RECMAP, CONSERVED, NEUTRAL]
+ANNOT_FILES = [SEQLENS, RECMAP, NEUTRAL]
                
 
 # ------- Simple BGS for B Maps -------

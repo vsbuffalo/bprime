@@ -10,38 +10,6 @@ import pyslim
 from bgspy.recmap import RecMap
 from bgspy.utils import load_seqlens
 
-def load_neutregions(file, rate, seqlen):
-    chroms = set()
-    positions, rates = [], []
-    last_end = None
-    first = True
-    with open(file) as f:
-        for line in f:
-            chrom, start, end = line.strip().split('\t')
-            chroms.add(chrom)
-            start, end = int(start), int(end)
-            if first:
-                positions.extend((start, end))
-                rates.append(rate)
-                first = False
-                continue
-            positions.append(start)
-            rates.append(0)
-            positions.append(end)
-            rates.append(rate)
-            last_end = end
-
-    assert(len(chroms) == 1)
-    if end < seqlen:
-        positions.append(seqlen)
-        rates.append(0)
-    if positions[0] != 0:
-        positions.insert(0, 0)
-        rates.insert(0, 0)
-    ratemap =  msprime.RateMap(position=positions, rate=rates)
-    ratemap.chrom = list(chroms)[0]
-    return ratemap
-
 def write_rate_map(ratemap):
     """
     Pretty print the RateMap as ranges.
@@ -86,12 +54,10 @@ def serialize_metadata(md):
 @click.argument('treefile')
 @click.option('--chrom', required=True, help="output DAC file")
 @click.option('--outfile', default=None, help="output DAC file")
-@click.option('--regions', required=True,
-              help="BED track of regions to drop mutations onto")
 @click.option('--recmap', required=True, help="BED recombination map")
 @click.option('--mu', default=1.5e-8, help="mutation rate")
 @click.option('--seed', default=None, help="random seed")
-def treeseq2dac(treefile, chrom, outfile, regions, recmap, mu, seed=None):
+def treeseq2dac(treefile, chrom, outfile, recmap, mu, seed=None):
     """
     Take a tree seequence file, recapitate, and overlay mutations.
     """
@@ -106,11 +72,12 @@ def treeseq2dac(treefile, chrom, outfile, regions, recmap, mu, seed=None):
     rts = ts.recapitate(recombination_map=recmap, Ne=N, random_seed=seed)
 
     region_length = ts.sequence_length
-    ratemap = load_neutregions(regions, mu, region_length)
     # for debugging; TODO comment out
     #write_rate_map(ratemap)
+    # remove the selected sites -- we might at one point want to see
+    # whether including these messes up inference
     rts = rts.delete_sites([m.site for m in rts.mutations()])
-    ts = msprime.sim_mutations(rts, rate=ratemap, discrete_genome=True)
+    ts = msprime.sim_mutations(rts, discrete_genome=True)
     #__import__('pdb').set_trace()
     if outfile is None:
         outfile = treefile.replace('_treeseq.tree', '_dac.tsv.gz')

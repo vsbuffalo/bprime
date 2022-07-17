@@ -2,7 +2,7 @@
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
 PHASTCONS_THRESH_10 = 471
-PHASTCONS_THRESH_5 = 526
+PHASTCONS_THRESH_5 = 527
 
 
 ## === Human Annotation Data
@@ -145,8 +145,12 @@ rule download_hapmap:
     """
 
 ## === Conservation Tracks
-cons = ["conserved_phastcons_thresh5.bed.gz", "conserved_phastcons_thresh10.bed.gz", 
-        "conserved_phastcons_thresh5_slop1k.bed.gz"] 
+cons = ["conserved_phastcons_thresh471.bed.gz", 
+        "conserved_phastcons_thresh527.bed.gz", 
+        "conserved_phastcons_thresh0.bed.gz", 
+        "conserved_phastcons_thresh0_slop1k.bed.gz", 
+        "conserved_phastcons_thresh471_slop1k.bed.gz", 
+        "conserved_phastcons_thresh527_slop1k.bed.gz"] 
 
 # this is used for sims with combined conserved regions (phastcons)
 rule conserved_track:
@@ -173,12 +177,14 @@ rule conserved_slop:
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
-sim_cons = ["conserved_phastcons_thresh5_slop1k_chr10.bed"]
+sim_cons = ["conserved_phastcons_thresh471_slop1k_chr10.bed", 
+            "conserved_phastcons_thresh527_slop1k_chr10.bed", 
+            "conserved_phastcons_thresh0_slop1k_chr10.bed"]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
-  output: "conserved_phastcons_thresh5_slop1k_chr10.bed"
-  input: "conserved_phastcons_thresh5_slop1k.bed.gz"
+  output: "conserved_phastcons_thresh{thresh}_slop1k_chr10.bed"
+  input: "conserved_phastcons_thresh{thresh}_slop1k.bed.gz"
   shell:
       """
       zgrep "chr10" {input} > {output}
