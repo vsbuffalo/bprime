@@ -123,10 +123,11 @@ def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
     region_length = md['region_length'][0]
     N = md['N'][0]
     #recmap = load_recrates('../data/annotation/rec_100kb_chr10.bed', ts.sequence_length)
-    rts = pyslim.recapitate(ts, recombination_rate=recrate, sequence_length=ts.sequence_length,
+    rts = pyslim.recapitate(ts, recombination_rate=recrate, 
+                            sequence_length=ts.sequence_length,
                             ancestral_Ne=N, random_seed=seed)
     length = int(ts.sequence_length)
-    neut_positions = bin_chrom(length+1, width).astype(int)
+    neut_positions = bin_chrom(length, width).astype(int)
     # extract the specified simulation parameters from the ts metadata
     params = {k: md[k][0] for k in md.keys()}
     B = rts.diversity(mode='branch', windows=neut_positions) / (4*N)
