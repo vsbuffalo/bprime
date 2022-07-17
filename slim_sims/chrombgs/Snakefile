@@ -73,7 +73,7 @@ rule bgs_dac:
       python ../../tools/treeseq2dac.py \
         --regions {input.neutral} \
         --recmap {input.recmap} \
-        --chrom chr10 --mu 1.5e-7 {input}
+        --chrom chr10 --mu 1.5e-7 {input[0]}
       """
  
 

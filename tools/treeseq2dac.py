@@ -35,6 +35,9 @@ def load_neutregions(file, rate, seqlen):
     if end < seqlen:
         positions.append(seqlen)
         rates.append(0)
+    if positions[0] != 0:
+        positions.insert(0, 0)
+        rates.insert(0, 0)
     ratemap =  msprime.RateMap(position=positions, rate=rates)
     ratemap.chrom = list(chroms)[0]
     return ratemap
@@ -96,7 +99,7 @@ def treeseq2dac(treefile, chrom, outfile, regions, recmap, mu, seed=None):
     rm = RecMap(recmap, seqlens={chrom: ts.sequence_length})
     rp = rm.rates[chrom]
     ends, rates = rp.end, rp.rate
-    rates[0] = 0
+    rates[0] = 0 # change the nan
     recmap = msprime.RecombinationMap(ends, rates)
     md = ts.metadata['SLiM']['user_metadata']
     N = md['N'][0]
