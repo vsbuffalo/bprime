@@ -124,10 +124,24 @@ class CountsDirectory:
             return np.load(self.npy_files[key])
         return self.counts[key]
 
+def filter_sites(ac, filter_neutral, filter_accessible,
+                 neutral_masks=None, accesssible_masks=None):
+    if filter_neutral:
+        msg = "GenomeData.neutral_masks not set!"
+        assert neutral_masks is not None, msg
+        ac = ac * neutral_masks[:, None]
+
+    if filter_accessible:
+        msg = "GenomeData.accesssible_masks not set!"
+        assert accesssible_masks is not None, msg
+        ac = ac * accesssible_masks[:, None]
+    return ac
+
 class GenomeData:
-    def __init__(self, genome, neutral_masks=None):
+    def __init__(self, genome):
         self.genome = genome
-        self.neutral_masks = neutral_masks
+        self.neutral_masks = None
+        self.accesssible_masks = None
         self._npy_files = None
         self.counts = None
         self.dac = None
@@ -191,17 +205,7 @@ class GenomeData:
         bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
         for chrom in self.genome.chroms:
-            site_ac = self.counts[chrom]
-            if filter_neutral:
-                msg = "GenomeData.neutral_masks not set!"
-                assert self.neutral_masks is not None, msg
-                site_ac = site_ac * self.neutral_masks[chrom][:, None]
-
-            if filter_accessible:
-                msg = "GenomeData.accesssible_masks not set!"
-                assert self.accesssible_masks is not None, msg
-                site_ac = site_ac * self.accesssible_masks[chrom][:, None]
-
+            site_ac = filter_sites(self.counts[chrom], filter_neutral, filter_accessible)
 
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
@@ -209,6 +213,17 @@ class GenomeData:
             reduced[chrom] = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
 
         return bins, reduced
+
+    def npoly(self, filter_neutral=True, filter_accessible=True):
+        out = dict()
+        for chrom in self.genome.chroms:
+            amask = self.accesssible_masks[chrom] if self.accesssible_masks is not None else None
+            nmask = self.neutral_masks[chrom] if self.neutral_masks is not None else None
+            site_ac = filter_sites(self.counts[chrom],
+                                   filter_neutral, filter_accessible,
+                                   nmask, amask)
+            out[chrom] = (site_ac > 0).sum(axis=1).sum()
+        return out
 
     def bin_pi(self, width, filter_neutral=True, filter_accessible=True):
         """

@@ -6,8 +6,8 @@ PHASTCONS_THRESH_5 = 526
 
 
 ## === Human Annotation Data
-annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "phastConsElements100way_filtered.bed.gz", 
-         "hg38.ncbiRefSeq_cds.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz"]
+annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "hg38.ncbiRefSeq_cds.bed.gz", 
+        "hg38_centro.bed", "ensembl_pseudogenes.bed.gz"]
 
 # only keep autosomes
 rule seqlens:
