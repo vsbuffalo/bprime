@@ -20,9 +20,10 @@ SLIM = '~/src/SLiM_build/slim'
 #SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
 SIM_OUTPUTS = ["treeseq.tree"]
 SEQLENS = "../../data/annotation/hg38_seqlens.tsv" 
+
 RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
-CONSERVED = "../../data/annotation/conserved_by_chrom/chr10.bed"
-NEUTRAL = "../../data/annotation/neutral_chr10.bed"
+CONSERVED = "../../data/annotation/conserved_phastcons_thresh5_slop1k_chr10.bed"
+NEUTRAL = "../../data/annotation/neutral_phastcons_chr10.bed"
 ANNOT_FILES = [SEQLENS, RECMAP, CONSERVED, NEUTRAL]
                
 
@@ -42,6 +43,7 @@ bgs_dac = [f.replace('treeseq.tree', 'dac.tsv.gz') for f in itertools.chain(*bgs
 #print(list(itertools.islice(bgs_run.slim_commands(), 5)))
 
 rule bgs_map:
+  # note: ANNOT_FILES are just requirements, not passed to script  -- those are hardcoded
   input: bgs_run.script, *ANNOT_FILES
   output: 
     bgs_run.wildcard_output(suffix=SIM_OUTPUTS)
@@ -59,6 +61,9 @@ rule process:
     """
 
 rule bgs_dac:
+  """
+  Mutation rate is x10 larger since N = 1000.
+  """
   input:
     bgs_run.wildcard_output("treeseq.tree"), neutral=NEUTRAL, recmap=RECMAP, seqlens=SEQLENS
   output: 
@@ -68,7 +73,7 @@ rule bgs_dac:
       python ../../tools/treeseq2dac.py \
         --regions {input.neutral} \
         --recmap {input.recmap} \
-        --chrom chr10 --mu 1.5e-8 {input}
+        --chrom chr10 --mu 1.5e-7 {input}
       """
  
 

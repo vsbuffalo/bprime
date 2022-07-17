@@ -1,14 +1,13 @@
 
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
-PHASTCONS_THRESH = 526
+PHASTCONS_THRESH_10 = 471
+PHASTCONS_THRESH_5 = 526
 
 
 ## === Human Annotation Data
-annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "phastConsElements100way.bed.gz", 
-         "hg38.ncbiRefSeq_cds.bed.gz", 
-         "hg38_centro.bed", 
-         "ensembl_pseudogenes.bed.gz"]
+annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "phastConsElements100way_filtered.bed.gz", 
+         "hg38.ncbiRefSeq_cds.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz"]
 
 # only keep autosomes
 rule seqlens:
@@ -32,24 +31,34 @@ rule centro_slop:
   input: centro="hg38_centro.bed", seqlens="hg38_seqlens.tsv"
   shell:
     """
-    bedtools slop -g {input.seqlens} -b 1000000 -i {input.centro} > {output}
+    bedtools slop -g {input.seqlens} -b 1000000 -i {input.centro} | sort --version-sort -k1,1 -k2,2n > {output}
     """
 
 rule phastcons:
   output: "phastConsElements100way.txt.gz"
   shell:
     """
-    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz 
+    # also, remove alt chroms
+    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz  | \
+      zgrep -v _ | grep -v chrM | gzip > {output}
     """
 
 rule phastcons_bed:
   output: "phastConsElements100way.bed.gz"
   input: "phastConsElements100way.txt.gz"
-  params: thresh=PHASTCONS_THRESH
   shell:
     """
-     # Filter the phastcons by a score constant
-     zcat {input} | bioawk -t ' $6 > {params.thresh} {{ print $2,$3,$4 }}' | gzip > {output}
+     zcat {input} | bioawk -t '{{ print $2,$3,$4 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
+
+rule phastcons_bed_filtered:
+  output: "phastConsElements100way_thresh{thresh}.bed.gz"
+  input: "phastConsElements100way.txt.gz"
+  shell:
+    """
+     # Remove alt chroms and filter the phastcons by a score constant
+     zcat {input} | bioawk -t ' $6 > {wildcards.thresh} {{ print $2,$3,$4 }}' | sort --version-sort -k1,1 -k2,2n |  gzip > {output}
     """
 
 rule ensembl_gff:
@@ -135,112 +144,47 @@ rule download_hapmap:
     rm -f HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
     """
 
-## === Simplified Annotation Tracks for Sims
-# we want simple, example conservation tracks, but semi-realistic, e.g. CDS
-conserved_tracks_slop = [f"conserved_by_chrom/chr{chrom}.bed" for chrom in AUTOS]
+## === Conservation Tracks
+cons = ["conserved_phastcons_thresh5.bed.gz", "conserved_phastcons_thresh10.bed.gz", 
+        "conserved_phastcons_thresh5_slop1k.bed.gz"] 
 
-# this one is to test the multiple features 
-conserved_tracks = [f"conserved_by_chrom_features/chr{chrom}.bed" for chrom in AUTOS]
-
-cons = ["conserved.bed.gz", "conserved_cds_phastcons_utrs.bed.gz", "conserved_slop.bed.gz"] + conserved_tracks
-
-# this is used for sims with combined conserved regions (phastcons + CDS)
+# this is used for sims with combined conserved regions (phastcons)
 rule conserved_track:
-  input: cds="hg38.ncbiRefSeq_cds.bed.gz", phastcons="phastConsElements100way.bed.gz"
-  output: "conserved.bed.gz"
-  shell: 
-      """
-      # combine the files, sort and merge overlapping tracks
-      (zcat {input.cds}; (zcat {input.phastcons} | \
-        # the messy grep filters out alt chromosome
-        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
-        sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge  -c 4 -o distinct | \
-        python ../../tools/simplify_cons_bed.py | \
-        gzip > {output}
-      """
-        
-# simple features (phastcons + cds )
-rule conserved_track_sipmle:
-  input: cds="hg38.ncbiRefSeq_cds.bed.gz", phastcons="phastConsElements100way.bed.gz"
-  output: "conserved_cds_phastcons.bed.gz"
+  input: phastcons="phastConsElements100way_thresh{thresh}.bed.gz"
+  output: "conserved_phastcons_thresh{thresh}.bed.gz"
   shell: 
       """
       # combine the files, sort and merge overlapping tracks
       # the messy grep filters out alt chromosome
-      (zcat {input.cds} ; (zcat {input.phastcons} | \
-        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+      (zcat {input.phastcons} | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}') | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
         sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge  -c 4 -o distinct | \
-        python ../../tools/simplify_cons_bed.py | gzip > {output}
+        bedtools merge | gzip > {output}
       """
 
-
-# most features (phastcons + CDS + UTRs)
-rule conserved_track_features:
-  input: cds="hg38.ncbiRefSeq_cds_utrs.bed.gz", phastcons="phastConsElements100way.bed.gz"
-  output: "conserved_cds_phastcons_utrs.bed.gz"
-  shell: 
-      """
-      # combine the files, sort and merge overlapping tracks
-      # the messy grep filters out alt chromosome
-      (zcat {input.cds} ; (zcat {input.phastcons} | \
-        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
-        sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge  -c 4 -o distinct | \
-        sed 's/5UTR/UTR/' | sed 's/3UTR/UTR/' | \
-        python ../../tools/simplify_cons_bed.py | \
-        gzip > {output}
-      """
-
-# full features (phastcons + CDS + UTRs + pseudogenes)
-rule conserved_track_full:
-  input: cds="hg38.ncbiRefSeq_cds_utrs.bed.gz", phastcons="phastConsElements100way.bed.gz", pseudogene="ensembl_pseudogenes.bed.gz"
-  output: "conserved_cds_phastcons_utrs_pseudo.bed.gz"
-  shell: 
-      """
-      # combine the files, sort and merge overlapping tracks
-      # the messy grep filters out alt chromosome
-      (zcat {input.cds} {input.pseudogene}; (zcat {input.phastcons} | \
-        bioawk -t '{{ print $1,$2,$3,"phastcons" }}')) | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
-        sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge  -c 4 -o distinct | \
-        sed 's/5UTR/UTR/' | sed 's/3UTR/UTR/' | \
-        python ../../tools/simplify_cons_bed.py | \
-        gzip > {output}
-      """
- 
 rule conserved_slop:
-  output: "conserved_slop.bed.gz"
-  input: conserved="conserved.bed.gz", seqlens="hg38_seqlens.tsv"
+  input: conserved="conserved_phastcons_thresh{thresh}_slop1k.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_phastcons_thresh{thresh}_slop1k.bed.gz"
   shell:
      """
      zgrep -P "^chr[0-9]+\t" {input.conserved} | sort --version-sort -k 1,1 -k2,2n | \
        bedtools slop -g {input.seqlens} -b 1000 | bedtools merge -d 2  | gzip > {output}
      """
 
-# sepearate out conserved tracks into separate chromosome files
-rule split_conserved_slop:
-  output: conserved_tracks_slop
-  input: "conserved_slop.bed.gz"
-  shell:
-      """
-      mkdir -p conserved_by_chrom/
-      for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom/chr$i.bed; done
-      """
+## === Simplified Annotation Tracks for Sims
+# we want simple, example conservation tracks, but semi-realistic, e.g. CDS
+sim_cons = ["conserved_phastcons_thresh5_slop1k_chr10.bed"]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
-  output: conserved_tracks
-  input: "conserved_cds_phastcons.bed.gz"
+  output: "conserved_phastcons_thresh5_slop1k_chr10.bed"
+  input: "conserved_phastcons_thresh5_slop1k.bed.gz"
   shell:
       """
-      mkdir -p conserved_by_chrom_features/
-      for i in $(seq 1 22); do zgrep -P "chr$i\t" {input} > conserved_by_chrom_features/chr$i.bed; done
+      zgrep "chr10" {input} > {output}
       """
 
 ## === Accessible Regions
-
 accessible = ["no_centro.bed"]
 
 rule no_centro:
@@ -252,12 +196,13 @@ rule no_centro:
     """
 
 ## === Neutral Regions
-neutral = ["neutral_chr10.bed", "neutral_cds_phastcons.bed"]
+neutral = ["neutral_phastcons_chr10.bed", "neutral_phastcons.bed"]
 
 # putatively neutral regions -- not conserved tracks
+# this uses the unfiltered phastcons file -- maximum chance of being neutral
 rule neutral:
-   output: "neutral_cds_phastcons.bed"
-   input: conserved="conserved_cds_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
+   input: conserved="phastConsElements100way.bed.gz", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons.bed"
    shell:
       """
       bedtools slop -g {input.seqlens} -b 10000 -i {input.conserved} | \
@@ -266,18 +211,17 @@ rule neutral:
 
 # putatively neutral regions for sims, only chr10, simply features -- not conserved tracks 
 rule neutral_chr10:
-   output: "neutral_chr10.bed"
-   input: conserved="conserved_by_chrom/chr10.bed", seqlens="hg38_seqlens.tsv"
+   input: conserved="neutral_phastcons.bed", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_chr10.bed"
    shell:
       """
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
       """
 
 rec = decode + hapmap 
-print(rec)
 
 ## === Main target
 rule all:
-  input: annot + rec + cons + neutral + accessible
+  input: annot + rec + cons + sim_cons + neutral + accessible
 
 

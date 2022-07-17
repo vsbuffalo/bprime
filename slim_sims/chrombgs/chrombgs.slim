@@ -34,7 +34,7 @@ initialize() {
     defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
   defineConstant("recmap_file", "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr"+chr+".txt");
-  defineConstant("annot_file", "../../data/annotation/conserved_by_chrom/chr"+chr+".bed");
+  defineConstant("annot_file", "../../data/annotation/conserved_phastcons_thresh5_slop1k_chr"+chr+".bed");
 
   // We fix h = 0.5 and calculate the proper homozygous selection
   // coefficient.
