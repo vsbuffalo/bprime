@@ -2,6 +2,7 @@ import os
 import numpy as np
 from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
 from bgspy.utils import aggregate_site_array, BinnedStat
+from bgspy.utils import readfile, parse_param_str
 
 # error out on overflows
 np.seterr(all='raise')
@@ -67,7 +68,7 @@ def load_dacfile(dacfile, neut_masks=None):
     nchrom = np.array(nchroms, dtype=uint_dtype)
     # ancestral and derived allele counts
     ac = np.stack((nchrom - dac, dac)).T
-    return positions, indices, ac, position_map, parse_param_str(params)
+    return positions, indices, ac, position_map, parse_param_str(params[0])
 
 
 def pairwise_summary(ac):
@@ -163,7 +164,19 @@ class GenomeData:
         """
         Load a file of only polymorphic sites into site arrays.
         """
-        pass
+        ac = {c: np.zeros((sl, 2), dtype=np.int32) for c, sl in
+              self.genome.seqlens.items()}
+        with readfile(filename) as f:
+            for line in f:
+                if line.startswith('#'):
+                    params = parse_param_str(line)
+                    continue
+                chrom, pos, ntotal, nderiv = line.strip().split('\t')
+                pos, ntotal, nderiv = int(pos), int(ntotal), int(nderiv)
+                ac[chrom][pos, 0] = ntotal - nderiv
+                ac[chrom][pos, 1] = nderiv
+        self.counts = ac
+
 
     def bin_reduce(self, width, filter_neutral=True, filter_accessible=True):
         """
@@ -197,11 +210,11 @@ class GenomeData:
 
         return bins, reduced
 
-    def bin_pi(self, **kwargs):
+    def bin_pi(self, width, filter_neutral=True, filter_accessible=True):
         """
         Calculate π from the binned summaries.
         """
-        bins, reduced = self.bin_reduce(**kwargs)
+        bins, reduced = self.bin_reduce(width, filter_neutral, filter_accessible)
         pi = dict()
         for chrom in reduced.keys():
             pi[chrom] = pi_from_pairwise_summaries(reduced[chrom])

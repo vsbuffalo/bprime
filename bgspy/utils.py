@@ -810,8 +810,6 @@ def process_feature_recombs(features, recmap, split_length=None):
     return Segments(ranges, rates, map_pos, features, feature_map, index)
 
 def parse_param_str(x):
-    assert(len(x) == 1)
-    x = x[0]
     return dict([y.split('=')  for y in x.lstrip('#').rstrip().split(';')])
 
 
