@@ -69,10 +69,10 @@ and the number of different pairwise combinations is
 where $n_T = n_\mathcal{S} (n_\mathcal{S} - 1) / 2$  is the total number of
 pairwise combinations across the sample set $\mathcal{S}$. Note that these
 site-specific counts allow us to use allelic counts directly, and can vary
-across sites. Our likelihood is then,
+across sites. Our log-likelihood is then,
 
 \begin{align}
-  \log\mathcal{L}(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right].
+  \ell(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right].
 \end{align}
 
 In practice, we calculate these values across bins. For each bin, we treat
@@ -82,16 +82,16 @@ have two classes of sites: those included in the diversity calculation and
 those ignored. The former sites are all putatively neutral and have reliably
 called genotypes, and the other sites are possibly non-neutral or do have
 reliably called genotypes. The total log-likelihood is the sum of bin likelihoods,
-$\mathcal{L}(b)$
+$\ell(b)$
 
 \begin{align}
-   \mathcal{L}(\theta) =  \sum_b \mathcal{L}(b | \theta)
+   \ell(\theta) =  \sum_b \ell(b | \theta)
 \end{align}
 
 The likelihood within a bin is then,
 
 \begin{align}
-  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_D(v) + \log(1-\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_S(v)  \\
+  \ell(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_D(v) + \log(1-\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_S(v)  \\
                                &= \log(\bar{\pi}(b | \theta)) Y_D(b) + \log(1-\bar{\pi}(b | \theta)) Y_S(b)
 \end{align}
 %
@@ -107,17 +107,79 @@ For all $v \in \mathcal{F}$, $n_d(v) = 0$ and $n_s(v) = n_T$.
 Then, 
 
 \begin{align}
-  \log\mathcal{L}(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] \\
+  \ell(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] \\
                   &= \sum_{v \in \mathcal{P}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] + \sum_{v \in \mathcal{F}} \log(1-\pi(v | \theta)) n_T(v)  \\
 \end{align}
 
 \begin{align}
-  \log\mathcal{L}(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{P}_b} n_\text{D}(v) + \log(1-\bar{\pi}(b | \theta)) \left(\sum_{v \in \mathcal{P}_b} n_\text{S}(v) +  \sum_{v \in \mathcal{F}_b} n_T(v)  \right).
+  \ell(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{P}_b} n_\text{D}(v) + \log(1-\bar{\pi}(b | \theta)) \left(\sum_{v \in \mathcal{P}_b} n_\text{S}(v) +  \sum_{v \in \mathcal{F}_b} n_T(v)  \right).
 \end{align}
 
 Note that if we assume that the total number of combinations at each fixed site
 is constant, e.g. $n_T = n_T(v)$ for all $v$, then we can use $\sum_v n_T(v) =
 n_T |\mathcal{F}_b|$.
+
+\section*{The B Components}
+
+The core parts of our likelihood are,
+
+\begin{align}
+  \ell(\theta) &=  \sum_b [\log(\bar{\pi}(b | \theta)) Y_D(b) + \log(1-\bar{\pi}(b | \theta)) Y_S(b)]
+\end{align}
+
+where,
+
+\begin{align}
+  \bar{\pi}(b |\theta) = \pi_0(b) \bar{B}(b | \theta).
+\end{align}
+
+Here, $\bar{B}(b | \theta)$ is the predicted reduction in diversity due to BGS
+in window $b$, given background selection parameters $\theta$. In practice,
+this is site-specific. We can write the reduction at any neutral site $v$ in
+the genome as the product of $B$s across all segments, 
+
+\begin{align}
+  B(v | \theta) = \exp\left(- \sum_g \int f(\mu(\mathcal{A}(g)), s, S_g) w(s|\mathcal{A}(g)) ds \right)
+\end{align}
+
+where $S_g$ is exogenous genomic data about the segment, $S_g = \{L_g, r_g,
+\rho(|v-p_g|)\}$, where $L_g$ is the segment's length, $r_g$ is the
+recombination rate per basepair in the segment, and $\rho(|v-p_g|)$ is the
+recombination distance between the focal site $v$ and the segment position
+$p_g$ (we approximate, and use the nearest end position to the neutral site).
+Additionally, $w(s|\mathcal{A}(g))$ is the distribution of selection
+coefficients for segment $g$, if segment $g$ is a member of annotation class
+$\mathcal{A}(g)$.
+
+We can think about the DFE as the conditional distribution of a particular
+selection coefficient given a mutation occurs, for a particular annotation
+class. The BGS function $f(\cdot)$ only depends on $\mu$ through the
+introduction of deleterious alleles with selection coefficient $s$ at rate
+$\omega(s|\mathcal{A}(g)) = \mu(\mathcal{A}(g)) w(s | \mathcal{A}(g))$. Thus,
+we can write, 
+
+\begin{align}
+  B(v | \theta) = \exp\left(- \sum_g \int f(\omega(s|\mathcal{A}(g)), s, S_g) ds \right)
+\end{align}
+
+
+which we can discretize as,
+
+\begin{align}
+  B(v | \theta) = \exp\left(- \sum_g \sum_s f(\omega(s|\mathcal{A}(g)), s, S_g) \right).
+\end{align}
+
+Next, note that there are a finite number of annotation classes, $\mathcal{A}
+\to \{a_1, a_2, \ldots, a_k\}$, so we can further partition this as
+
+\begin{align}
+  B(v | \theta) = \exp\left(- \sum_{\{g \;:\; \mathcal{A}(g) = a_1\}} \sum_s f(\omega(s| a_1), s, S_g) + \sum_{\{g \;:\; \mathcal{A}(g) = a_2\}} \sum_s f(\omega(s| a_2), s, S_g) + \ldots  \right)
+\end{align}
+
+Let us define the $d_\omega \times d_s \times d_g$ multidimensional array
+$\mathbf{F}$, and the $d_g \times d_a$ feature classification matrix
+$\mathbf{A}$.
+
 
 
 % There are two approaches: interpolated $\pi(m | \theta)$ at the midpoint of the
