@@ -113,7 +113,7 @@ class BScores:
                 X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
         return X
 
-    def bin_means(self, bins):
+    def bin_means(self, bins, return_bins=False):
         """
         Average the bins into larger genomic windows.
 
@@ -150,9 +150,17 @@ class BScores:
             # (like bins).
             mp_y = 0.5 * (y[1:, ...] + y[:-1, ...])
             mp_x = 0.5 * (x[1:] + x[:-1]) # position at midpoint
-            means[chrom] = bin_aggregate(mp_x, mp_y, np.mean,
+            res = bin_aggregate(mp_x, mp_y, np.mean,
                                          bins[chrom], axis=0)
-        return means
+            means[chrom] = res
+
+        if return_bins:
+            return means
+        # otherwise, we turn into another BScores object for easier downstream
+        # use
+        B = {c: x.stat for c, x in means.items()}
+        pos = {c: x.midpoints for c, x in means.items()}
+        return BScores(B, pos, self.w, self.t)
 
 def bin_chrom(end, width, dtype='uint32'):
     """

@@ -205,7 +205,10 @@ class GenomeData:
         bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
         for chrom in self.genome.chroms:
-            site_ac = filter_sites(self.counts[chrom], filter_neutral, filter_accessible)
+            amask = self.accesssible_masks[chrom] if self.accesssible_masks is not None else None
+            nmask = self.neutral_masks[chrom] if self.neutral_masks is not None else None
+            site_ac = filter_sites(self.counts[chrom], filter_neutral,
+                                   filter_accessible, nmask, amask)
 
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
