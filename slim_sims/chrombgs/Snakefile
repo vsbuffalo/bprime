@@ -13,7 +13,7 @@ if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
 # ------- Shared Parameters -------
-DATADIR = "../../data/slim_sims/"
+DATADIR = "../../data/slim_sims/chrombgs_chr10/"
 SLIM = '~/src/SLiM_build/slim'
 
 # the output of one BGS slim sim (chrombgs.slim)
@@ -22,8 +22,7 @@ SIM_OUTPUTS = ["treeseq.tree"]
 SEQLENS = "../../data/annotation/hg38_seqlens.tsv" 
 
 RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
-NEUTRAL = "../../data/annotation/neutral_phastcons_chr10.bed"
-ANNOT_FILES = [SEQLENS, RECMAP, NEUTRAL]
+ANNOT_FILES = [SEQLENS, RECMAP]
                
 
 # ------- Simple BGS for B Maps -------
@@ -64,13 +63,12 @@ rule bgs_dac:
   Mutation rate is x10 larger since N = 1000.
   """
   input:
-    bgs_run.wildcard_output("treeseq.tree"), neutral=NEUTRAL, recmap=RECMAP, seqlens=SEQLENS
+    bgs_run.wildcard_output("treeseq.tree"), recmap=RECMAP, seqlens=SEQLENS
   output: 
     bgs_run.wildcard_output("dac.tsv.gz")
   shell:
       """
       python ../../tools/treeseq2dac.py \
-        --regions {input.neutral} \
         --recmap {input.recmap} \
         --chrom chr10 --mu 1.5e-7 {input[0]}
       """

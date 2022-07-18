@@ -1,0 +1,14 @@
+{
+  "name": "chrombgs_chr10_thresh471",
+  "runtype": "grid",
+  "slim": "chrombgs.slim",
+  "params":
+     {
+       "N": {"grid": [1000], "type": "int"},
+       "mu": {"grid":[1e-10, 3.16e-10, 1e-9, 3.16e-9, 1e-8, 3.16e-8], "type": "float"},
+       "sh": {"grid": [0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316, 0.1], "type": "float"},
+       "chr": {"grid": ["10"], "type": "str"},
+       "cons_track": {"grid": ["conserved_phastcons_thresh471_slop1k"], "type": "str"}
+     },
+   "nreps": 100
+}
