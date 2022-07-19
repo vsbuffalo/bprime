@@ -4,10 +4,20 @@ AUTOSEX = AUTOS + ['X', 'Y']
 PHASTCONS_THRESH_10 = 471
 PHASTCONS_THRESH_5 = 527
 
+## === Human genome data
+
+genome = ["hg38.fa.gz"]
+
+rule hg38:
+  output: "hg38.fa.gz"
+  shell:
+    """
+    wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+    """
 
 ## === Human Annotation Data
 annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "hg38.ncbiRefSeq_cds.bed.gz", 
-        "hg38_centro.bed", "ensembl_pseudogenes.bed.gz"]
+         "hg38.ncbiRefSeq_transcripts.gtf.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz"]
 
 # only keep autosomes
 rule seqlens:
@@ -15,7 +25,7 @@ rule seqlens:
   shell:
     """
     curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes | \
-      grep -v '_' | grep -v 'chrM' | \
+      grep -P '^chr[0-9XY]+\t' | 
       sort --version-sort -k1,1 -k2,2n > {output}
     """
 
@@ -40,7 +50,8 @@ rule phastcons:
     """
     # also, remove alt chroms
     curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz  | \
-      zgrep -v _ | grep -v chrM | gzip > {output}
+      zgrep -P '^chr[0-9XY]+\t' | \
+      gzip > {output}
     """
 
 rule phastcons_bed:
@@ -82,7 +93,17 @@ rule refseq:
   output: "hg38.ncbiRefSeq.gtf.gz"
   shell:
     """
-    wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz
+    curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz | \
+      zgrep -P '^chr[0-9XY]+\t' | gzip > {output}
+    """
+
+rule refseq_tx:
+  input: "hg38.ncbiRefSeq.gtf.gz"
+  output: "hg38.ncbiRefSeq_transcripts.gtf.gz"
+  shell:
+    """
+      bioawk -cgff '{{ if ($feature == "transcript") {{ print $seqname,$start,$end,$feature }} }}' {input} | \
+      sort --version-sort -k1,1 -k2,2n | bedtools merge | sort --version-sort -k1,1 -k2,2n  | gzip > {output}
     """
 
 rule cds:
@@ -202,23 +223,26 @@ rule no_centro:
     """
 
 ## === Neutral Regions
-neutral = ["neutral_phastcons_chr10.bed", "neutral_phastcons.bed"]
+neutral = ["neutral_phastcons_genic_chr10.bed", "neutral_phastcons_genic.bed"]
 
 # putatively neutral regions -- not conserved tracks
 # this uses the unfiltered phastcons file -- maximum chance of being neutral
 rule neutral:
-   input: conserved="phastConsElements100way.bed.gz", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons.bed"
+   input: conserved="phastConsElements100way.bed.gz", transcript="hg38.ncbiRefSeq_transcripts.gtf.gz", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_genic.bed"
    shell:
       """
-      bedtools slop -g {input.seqlens} -b 10000 -i {input.conserved} | \
+      zcat {input.conserved} {input.transcript} | \
+       sort --version-sort -k1,1 -k2,2n | \
+       bedtools slop -g {input.seqlens} -b 1000  | \
+       bedtools merge | \
        bedtools complement -i - -g {input.seqlens} > {output}
       """
 
 # putatively neutral regions for sims, only chr10, simply features -- not conserved tracks 
 rule neutral_chr10:
-   input: conserved="neutral_phastcons.bed", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_chr10.bed"
+   input: conserved="neutral_phastcons_genic.bed", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_genic_chr10.bed"
    shell:
       """
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
@@ -228,6 +252,6 @@ rec = decode + hapmap
 
 ## === Main target
 rule all:
-  input: annot + rec + cons + sim_cons + neutral + accessible
+  input: annot + rec + cons + sim_cons + neutral + accessible + genome
 
 

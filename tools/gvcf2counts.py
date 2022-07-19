@@ -1,5 +1,6 @@
 import os
 import re
+import warnings
 import sys
 import gzip
 from collections import deque, Counter, defaultdict, namedtuple
@@ -29,21 +30,30 @@ def get_seqlens(header_str):
 @click.command()
 @click.argument('vcf_file')
 @click.option('--outdir', type=click.Path(exists=True), required=True, help="output directory")
-@click.option('--samples', default=None,
-              help="comma separated list of samples to include")
+@click.option('--sample-file', type=click.File('r'), default=None,
+              help="plaintext file of samples in one column")
 @click.option('--pass-only', default=True, is_flag=True, help="only keep variants with the PASS in the filter column")
 @click.option('--min-qual', default=50, help="QUAL threshold (< min-qual are removed)")
 @click.option('--min-gq', default=30, help="genotype quality (GQ) threshold (< min-qual are removed)")
-def main(vcf_file, outdir, samples=None, pass_only=True, min_qual=50, min_gq=30):
+def main(vcf_file, outdir, sample_file=None, pass_only=True, min_qual=50, min_gq=30):
     """
     Convert a GVCF into a numpy file of ref/alt counts.
 
     Note: the default QUAL and GQ filtering values are based on this study:
     https://www.nature.com/articles/nature13673.
     """
+    samples = None
+    if sample_file is not None:
+        samples = [l.strip() for l in sample_file]
+        print(f"subsetting to only include {len(samples)} samples...")
     vcf = VCF(vcf_file, gts012=True, samples=samples)
     seqlens = get_seqlens(vcf.raw_header)
     vcf_samples = vcf.samples
+    if samples is not None:
+        if set(vcf_samples) != set(samples):
+            diff = set(samples) - set(vcf_samples)
+            warnings.warn(f"requested samples not in the VCF: {diff}! total: {len(vcf_samples)}")
+
 
     stats = np.zeros(2)
     FILTER, QUAL = 0, 1

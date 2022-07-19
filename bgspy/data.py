@@ -3,6 +3,7 @@ import numpy as np
 from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
+from bgspy.utils import readfq
 
 # error out on overflows
 np.seterr(all='raise')
@@ -69,6 +70,29 @@ def load_dacfile(dacfile, neut_masks=None):
     # ancestral and derived allele counts
     ac = np.stack((nchrom - dac, dac)).T
     return positions, indices, ac, position_map, parse_param_str(params[0])
+
+
+def load_fasta(fasta_file, chroms=None):
+    """
+    Create a accesssible mask file from the reference FASTA file.
+    """
+    f = readfile(fasta_file)
+    seqs = dict()
+    for chrom, seq, _ in readfq(f):
+        if chroms is not None:
+            if chrom not in chroms:
+                continue
+        seqs[chrom] = np.fromiter(map(ord, seq), dtype=np.ubyte)
+    return seqs
+
+def get_accessible_from_seqs(seqs, mask_chars='Nnatcg'):
+    """
+    """
+    mask_chars = [ord(x) for x in mask_chars]
+    masks = {c: np.full(x.size, 1, dtype='bool') for c, x in seqs.items()}
+    for chrom, seq in seqs.items():
+        masks[chrom][np.isin(seq, mask_chars)] = 0
+    return masks
 
 
 def pairwise_summary(ac):
@@ -158,6 +182,27 @@ class GenomeData:
         Load a 3-column BED file of accessible ranges into mask objects.
         """
         self.accesssible_masks = self._load_mask(file)
+
+    def load_fasta(self, fasta_file, soft_mask=True):
+        self.seqs = load_fasta(fasta_file, self.genome.chroms)
+        if soft_mask:
+            acc = get_accessible_from_seqs(self.seqs)
+            if self.accesssible_masks is None:
+                self.accesssible_masks = acc
+            else:
+                self.combine_accesssible(acc)
+
+    def combine_accesssible(self, masks):
+        for chrom in masks:
+            self.accesssible_masks[chrom] = masks[chrom] * self.accesssible_masks[chrom]
+
+    def stats(self):
+        out = dict()
+        for chrom in self.genome.chroms:
+            nneut = self.neutral_masks[chrom].mean()
+            nacc = self.accesssible_masks[chrom].mean()
+            out[chrom] = nneut, nacc
+        return out
 
     def load_neutral_masks(self, file):
         """
