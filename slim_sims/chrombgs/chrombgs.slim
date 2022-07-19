@@ -57,7 +57,7 @@ initialize() {
   metadata.setValue("annot_file", annot_file);
 
   // == File Output
-  filestr = filename_str(c('N', 'mu', 'sh', 'chr', 'cons_track', 'seed', 'rep'));
+  filestr = filename_str(c('N', 'mu', 'sh', 'chr', 'seed', 'rep'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");

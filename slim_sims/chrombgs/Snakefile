@@ -23,7 +23,7 @@ SEQLENS = "../../data/annotation/hg38_seqlens.tsv"
 
 RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
 ANNOT_FILES = [SEQLENS, RECMAP]
-               
+
 
 # ------- Simple BGS for B Maps -------
 bgs_run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, sims_subdir=True, split_dirs=3)
@@ -46,7 +46,7 @@ rule bgs_map:
   output: 
     bgs_run.wildcard_output(suffix=SIM_OUTPUTS)
   shell:
-    bgs_run.slim_call(slim_cmd=SLIM)
+    bgs_run.slim_call(slim_cmd=SLIM, manual={'cons_track': config['cons_track']})
 
 SIM_NP = os.path.join(DATADIR, bgs_run.name, "chr10_B_sims.npz")
 

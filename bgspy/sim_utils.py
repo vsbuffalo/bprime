@@ -12,7 +12,7 @@ import tqdm
 import multiprocessing
 from bgspy.utils import get_files, random_seed, bin_chrom
 
-SIM_REGEX = re.compile(r'chrombgs_chr10_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
+SIM_REGEX = re.compile(r'(?P<name>\w+)_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
 
 def fixed_params(params):
     """
