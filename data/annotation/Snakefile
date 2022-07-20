@@ -17,7 +17,10 @@ rule hg38:
 
 ## === Human Annotation Data
 annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "hg38.ncbiRefSeq_cds.bed.gz", 
-         "hg38.ncbiRefSeq_transcripts.gtf.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz"]
+         "hg38.ncbiRefSeq_transcripts.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
+         "hg38.ncbiRefSeq_exons.bed.gz", "hg38.ncbiRefSeq_utrs.bed.gz", 
+         "hg38.ncbiRefSeq_introns_conservative.bed.gz", "hg38.ncbiRefSeq_introns.bed.gz", 
+         "neutral_phastcons_transcript_with_introns.bed.gz"]
 
 # only keep autosomes
 rule seqlens:
@@ -99,29 +102,59 @@ rule refseq:
 
 rule transcripts:
   input: "hg38.ncbiRefSeq.gtf.gz"
-  output: "hg38.ncbiRefSeq_transcripts.gtf.gz"
+  output: "hg38.ncbiRefSeq_transcripts.bed.gz"
   shell:
     """
-      bioawk -cgff '{{ if ($feature == "transcript") {{ print $seqname,$start,$end,$feature }} }}' {input} | \
-      sort --version-sort -k1,1 -k2,2n | bedtools merge | sort --version-sort -k1,1 -k2,2n  | gzip > {output}
-    """
-
-rule cds:
-  output: "hg38.ncbiRefSeq_cds.bed.gz"
-  input: "hg38.ncbiRefSeq.gtf.gz"
-  shell:
-    """
-      bioawk -cgff '{{ $feature ~ /CDS/ {{ print $seqname,$start,$end,$feature }} }}' {input} | \
+      bioawk -cgff ' $feature ~ /transcript/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
-rule utr:
-  output: "hg38.ncbiRefSeq_cds_utrs.bed.gz"
+rule exons:
+  input: "hg38.ncbiRefSeq.gtf.gz"
+  output: "hg38.ncbiRefSeq_exons.bed.gz"
+  shell:
+    """
+      bioawk -cgff ' $feature ~ /exon/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
+      sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
+rule cds:
+  input: "hg38.ncbiRefSeq.gtf.gz"
+  output: "hg38.ncbiRefSeq_cds.bed.gz"
+  shell:
+    """
+      bioawk -cgff ' $feature ~ /CDS/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
+      sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
+rule utrs:
+  output: "hg38.ncbiRefSeq_utrs.bed.gz"
   input: "hg38.ncbiRefSeq.gtf.gz"
   shell:
     """
       bioawk -cgff ' $feature ~ /5UTR|3UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
+rule introns:
+  output: "hg38.ncbiRefSeq_introns.bed.gz"
+  input: tx="hg38.ncbiRefSeq_transcripts.bed.gz", utr="hg38.ncbiRefSeq_utrs.bed.gz", exon="hg38.ncbiRefSeq_exons.bed.gz"
+  shell:
+    """
+    zcat {input.tx} | cut -f1-3 | bedtools merge | \
+     bedtools subtract -a - -b {input.exon} | bedtools subtract -a -  -b {input.utr} | \
+     gzip > {output}
+    """
+
+rule introns_conservative:
+  # take the introns and shrink them by 20bp, since 
+  # splicing may conserve this -- a buffer
+  input: "hg38.ncbiRefSeq_introns.bed.gz"
+  output: "hg38.ncbiRefSeq_introns_conservative.bed.gz"
+  params: buffer=20
+  shell:
+    """
+    bioawk -cbed '{{ $start = $start - {params.buffer}; $end = $end - {params.buffer}; if ($end > $start) {{ print; }} }}' {input} |  gzip > {output}
     """
 
 
@@ -223,25 +256,37 @@ rule no_centro:
     """
 
 ## === Neutral Regions
-neutral = ["neutral_phastcons_transcript_chr10.bed", "neutral_phastcons_transcript.bed"]
+neutral = ["neutral_phastcons_transcript_chr10.bed", "neutral_phastcons_transcript.bed.gz"]
 
 # putatively neutral regions -- not conserved tracks
 # this uses the unfiltered phastcons file -- maximum chance of being neutral
+# also, transcripts (~genic regions) are added in
+# note, the last step is the complement
 rule neutral:
-   input: conserved="phastConsElements100way.bed.gz", transcript="hg38.ncbiRefSeq_transcripts.gtf.gz", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_transcript.bed"
+   input: conserved="phastConsElements100way.bed.gz", transcript="hg38.ncbiRefSeq_transcripts.bed.gz", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_transcript.bed.gz"
    shell:
       """
       zcat {input.conserved} {input.transcript} | \
+       cut -f1-3 | \
        sort --version-sort -k1,1 -k2,2n | \
        bedtools slop -g {input.seqlens} -b 1000  | \
        bedtools merge | \
-       bedtools complement -i - -g {input.seqlens} > {output}
+       bedtools complement -i - -g {input.seqlens} | gzip > {output}
       """
+
+rule neutral_introns:
+   input: neut="neutral_phastcons_transcript.bed.gz", intron="hg38.ncbiRefSeq_introns_conservative.bed.gz"
+   output: "neutral_phastcons_transcript_with_introns.bed.gz"
+   shell:
+     """
+     zcat {input.neut} {input.intron} | sort --version-sort -k1,1 -k2,2n | \
+      gzip > {output}
+     """
 
 # putatively neutral regions for sims, only chr10, simply features -- not conserved tracks 
 rule neutral_chr10:
-   input: conserved="neutral_phastcons_transcript.bed", seqlens="hg38_seqlens.tsv"
+   input: conserved="neutral_phastcons_transcript.bed.gz", seqlens="hg38_seqlens.tsv"
    output: "neutral_phastcons_transcript_chr10.bed"
    shell:
       """
