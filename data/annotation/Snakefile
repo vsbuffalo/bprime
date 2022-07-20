@@ -97,7 +97,7 @@ rule refseq:
       zgrep -P '^chr[0-9XY]+\t' | gzip > {output}
     """
 
-rule refseq_tx:
+rule transcripts:
   input: "hg38.ncbiRefSeq.gtf.gz"
   output: "hg38.ncbiRefSeq_transcripts.gtf.gz"
   shell:
@@ -111,16 +111,16 @@ rule cds:
   input: "hg38.ncbiRefSeq.gtf.gz"
   shell:
     """
-      bioawk -cgff '{{ if ($feature == "CDS") {{ print $seqname,$start,$end,$feature }} }}' {input} | \
+      bioawk -cgff '{{ $feature ~ /CDS/ {{ print $seqname,$start,$end,$feature }} }}' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
-rule cds_utr:
+rule utr:
   output: "hg38.ncbiRefSeq_cds_utrs.bed.gz"
   input: "hg38.ncbiRefSeq.gtf.gz"
   shell:
     """
-      bioawk -cgff ' $feature ~ /CDS|5UTR|3UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
+      bioawk -cgff ' $feature ~ /5UTR|3UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
@@ -223,13 +223,13 @@ rule no_centro:
     """
 
 ## === Neutral Regions
-neutral = ["neutral_phastcons_genic_chr10.bed", "neutral_phastcons_genic.bed"]
+neutral = ["neutral_phastcons_transcript_chr10.bed", "neutral_phastcons_transcript.bed"]
 
 # putatively neutral regions -- not conserved tracks
 # this uses the unfiltered phastcons file -- maximum chance of being neutral
 rule neutral:
    input: conserved="phastConsElements100way.bed.gz", transcript="hg38.ncbiRefSeq_transcripts.gtf.gz", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_genic.bed"
+   output: "neutral_phastcons_transcript.bed"
    shell:
       """
       zcat {input.conserved} {input.transcript} | \
@@ -241,8 +241,8 @@ rule neutral:
 
 # putatively neutral regions for sims, only chr10, simply features -- not conserved tracks 
 rule neutral_chr10:
-   input: conserved="neutral_phastcons_genic.bed", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_genic_chr10.bed"
+   input: conserved="neutral_phastcons_transcript.bed", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_transcript_chr10.bed"
    shell:
       """
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
