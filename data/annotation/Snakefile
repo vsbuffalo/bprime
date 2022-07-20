@@ -12,25 +12,29 @@ rule hg38:
   output: "hg38.fa.gz"
   shell:
     """
-    wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
+    wget -O {output} http://ftp.ensembl.org/pub/release-107/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
     """
-
-## === Human Annotation Data
-annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", "hg38.ncbiRefSeq_cds.bed.gz", 
-         "hg38.ncbiRefSeq_transcripts.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
-         "hg38.ncbiRefSeq_exons.bed.gz", "hg38.ncbiRefSeq_utrs.bed.gz", 
-         "hg38.ncbiRefSeq_introns_conservative.bed.gz", "hg38.ncbiRefSeq_introns.bed.gz", 
-         "neutral_phastcons_transcript_with_introns.bed.gz"]
 
 # only keep autosomes
 rule seqlens:
+  input: "hg38.fa.gz"
   output: "hg38_seqlens.tsv"
   shell:
     """
-    curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.chrom.sizes | \
-      grep -P '^chr[0-9XY]+\t' | 
-      sort --version-sort -k1,1 -k2,2n > {output}
+      bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
+      sed 's/^/chr/' | grep -P '^chr[0-9XY]+' |  \
+      sort  --version-sort -k 1,1 -k2,2n > {output}
     """
+
+
+## === Human Annotation Data
+annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", 
+         "hg38.ensembl.gff3.gz",
+         "hg38.ensembl_cds.bed.gz", 
+         "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
+         "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
+         "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
+         "neutral_phastcons_genes_with_introns.bed.gz"]
 
 rule centro:
   output: "hg38_centro.bed"
@@ -65,7 +69,6 @@ rule phastcons_bed:
      zcat {input} | bioawk -t '{{ print $2,$3,$4 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
-
 rule phastcons_bed_filtered:
   output: "phastConsElements100way_thresh{thresh}.bed.gz"
   input: "phastConsElements100way.txt.gz"
@@ -76,60 +79,63 @@ rule phastcons_bed_filtered:
     """
 
 rule ensembl_gff:
-   output: "Homo_sapiens.GRCh38.107.gff3.gz"
-   shell:
-     """ 
-     wget http://ftp.ensembl.org/pub/release-107/gff3/homo_sapiens/Homo_sapiens.GRCh38.107.gff3.gz
+  output: "hg38.ensembl.gff3.gz"
+  shell:
+     """
+     curl http://ftp.ensembl.org/pub/release-107/gff3/homo_sapiens/Homo_sapiens.GRCh38.107.chr.gff3.gz | \
+       zgrep -v '^#' | sed s/^/chr/ | \
+       grep -P '^chr[0-9XY]+' | \
+       gzip > {output}
      """
 
 rule ensembl_pseudogenes:
+   input: "hg38.ensembl.gff3.gz"
    output: "ensembl_pseudogenes.bed.gz"
-   input: "Homo_sapiens.GRCh38.107.gff3.gz"
    shell:
      """
-     zgrep -v "#" {input} | bioawk -cgff ' $feature ~ /pseudogene/ {{ print "chr"$seqname,$start,$end,$feature }}' | \
+     zgrep -v "#" {input} | bioawk -cgff ' $feature ~ /^pseudogene$/ {{ print "chr"$seqname,$start,$end,$feature }}' | \
       sort --version-sort -k1,1 -k2,2n |  \
       bedtools merge -c 4 -o distinct | sort --version-sort -k1,1 -k2,2n | gzip > {output}
      """
 
-rule refseq:
-  output: "hg38.ncbiRefSeq.gtf.gz"
+rule genes:
+  input: "hg38.ensembl.gff3.gz"
+  output: "hg38.ensembl_genes.bed.gz"
   shell:
     """
-    curl https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz | \
-      zgrep -P '^chr[0-9XY]+\t' | gzip > {output}
-    """
-
-rule transcripts:
-  input: "hg38.ncbiRefSeq.gtf.gz"
-  output: "hg38.ncbiRefSeq_transcripts.bed.gz"
-  shell:
-    """
-      bioawk -cgff ' $feature ~ /transcript/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
+      bioawk -cgff ' $feature ~ /^gene$/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
 rule exons:
-  input: "hg38.ncbiRefSeq.gtf.gz"
-  output: "hg38.ncbiRefSeq_exons.bed.gz"
+  input: "hg38.ensembl.gff3.gz"
+  output: "hg38.ensembl_exons.bed.gz"
   shell:
     """
-      bioawk -cgff ' $feature ~ /exon/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
+      bioawk -cgff ' $feature ~ /^exon$/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
-rule cds:
-  input: "hg38.ncbiRefSeq.gtf.gz"
-  output: "hg38.ncbiRefSeq_cds.bed.gz"
+rule exons_merged:
+  input: "hg38.ensembl_exons.bed.gz"
+  output: "hg38.ensembl_exons_merged.bed.gz"
   shell:
     """
-      bioawk -cgff ' $feature ~ /CDS/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
+      bedtools merge -i {input} > {output}
+    """
+
+rule cds:
+  input: "hg38.ensembl.gff3.gz"
+  output: "hg38.ensembl_cds.bed.gz"
+  shell:
+    """
+      bioawk -cgff ' $feature ~ /^CDS$/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
 rule utrs:
-  output: "hg38.ncbiRefSeq_utrs.bed.gz"
-  input: "hg38.ncbiRefSeq.gtf.gz"
+  input: "hg38.ensembl.gff3.gz"
+  output: "hg38.ensembl_utrs.bed.gz"
   shell:
     """
       bioawk -cgff ' $feature ~ /5UTR|3UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
@@ -137,11 +143,11 @@ rule utrs:
     """
 
 rule introns:
-  output: "hg38.ncbiRefSeq_introns.bed.gz"
-  input: tx="hg38.ncbiRefSeq_transcripts.bed.gz", utr="hg38.ncbiRefSeq_utrs.bed.gz", exon="hg38.ncbiRefSeq_exons.bed.gz"
+  input: genes="hg38.ensembl_genes.bed.gz", utr="hg38.ensembl_utrs.bed.gz", exon="hg38.ensembl_exons_merged.bed.gz"
+  output: "hg38.ensembl_introns.bed.gz"
   shell:
     """
-    zcat {input.tx} | cut -f1-3 | bedtools merge | \
+    zcat {input.genes} | cut -f1-3 | bedtools merge | \
      bedtools subtract -a - -b {input.exon} | bedtools subtract -a -  -b {input.utr} | \
      gzip > {output}
     """
@@ -149,8 +155,8 @@ rule introns:
 rule introns_conservative:
   # take the introns and shrink them by 20bp, since 
   # splicing may conserve this -- a buffer
-  input: "hg38.ncbiRefSeq_introns.bed.gz"
-  output: "hg38.ncbiRefSeq_introns_conservative.bed.gz"
+  input: "hg38.ensembl_introns.bed.gz"
+  output: "hg38.ensembl_introns_conservative.bed.gz"
   params: buffer=20
   shell:
     """
@@ -215,7 +221,7 @@ rule conserved_track:
       # combine the files, sort and merge overlapping tracks
       # the messy grep filters out alt chromosome
       (zcat {input.phastcons} | \
-        bioawk -t '{{ print $1,$2,$3,"phastcons" }}') | grep -w '^#\|chr[1-9]\|chr[1-2][0-9]\|chr[XY]' | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}') |  -P "^chr[0-9]+\t" | \
         sort  --version-sort -k 1,1 -k2,2n | \
         bedtools merge | gzip > {output}
       """
@@ -256,18 +262,18 @@ rule no_centro:
     """
 
 ## === Neutral Regions
-neutral = ["neutral_phastcons_transcript_chr10.bed", "neutral_phastcons_transcript.bed.gz"]
+neutral = ["neutral_phastcons_genes_chr10.bed", "neutral_phastcons_genes.bed.gz"]
 
 # putatively neutral regions -- not conserved tracks
 # this uses the unfiltered phastcons file -- maximum chance of being neutral
-# also, transcripts (~genic regions) are added in
+# also, all genes are added in
 # note, the last step is the complement
 rule neutral:
-   input: conserved="phastConsElements100way.bed.gz", transcript="hg38.ncbiRefSeq_transcripts.bed.gz", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_transcript.bed.gz"
+   input: conserved="phastConsElements100way.bed.gz", genes="hg38.ensembl_genes.bed.gz", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_genes.bed.gz"
    shell:
       """
-      zcat {input.conserved} {input.transcript} | \
+      zcat {input.conserved} {input.genes} | \
        cut -f1-3 | \
        sort --version-sort -k1,1 -k2,2n | \
        bedtools slop -g {input.seqlens} -b 1000  | \
@@ -276,8 +282,8 @@ rule neutral:
       """
 
 rule neutral_introns:
-   input: neut="neutral_phastcons_transcript.bed.gz", intron="hg38.ncbiRefSeq_introns_conservative.bed.gz"
-   output: "neutral_phastcons_transcript_with_introns.bed.gz"
+   input: neut="neutral_phastcons_genes.bed.gz", intron="hg38.ensembl_introns_conservative.bed.gz"
+   output: "neutral_phastcons_genes_with_introns.bed.gz"
    shell:
      """
      zcat {input.neut} {input.intron} | sort --version-sort -k1,1 -k2,2n | \
@@ -286,8 +292,8 @@ rule neutral_introns:
 
 # putatively neutral regions for sims, only chr10, simply features -- not conserved tracks 
 rule neutral_chr10:
-   input: conserved="neutral_phastcons_transcript.bed.gz", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_transcript_chr10.bed"
+   input: conserved="neutral_phastcons_genes.bed.gz", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_genes_chr10.bed"
    shell:
       """
       bedtools complement -i {input.conserved} -g {input.seqlens} | grep "^chr10" > {output}
