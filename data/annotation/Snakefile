@@ -221,7 +221,7 @@ rule conserved_track:
       # combine the files, sort and merge overlapping tracks
       # the messy grep filters out alt chromosome
       (zcat {input.phastcons} | \
-        bioawk -t '{{ print $1,$2,$3,"phastcons" }}') |  -P "^chr[0-9]+\t" | \
+        bioawk -t '{{ print $1,$2,$3,"phastcons" }}') | grep -P "^chr[0-9]+\t" | \
         sort  --version-sort -k 1,1 -k2,2n | \
         bedtools merge | gzip > {output}
       """
@@ -302,6 +302,7 @@ rule neutral_chr10:
 rec = decode + hapmap 
 
 ## === Main target
+print(annot + rec + cons + sim_cons + neutral + accessible + genome)
 rule all:
   input: annot + rec + cons + sim_cons + neutral + accessible + genome
 
