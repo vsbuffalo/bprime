@@ -88,7 +88,7 @@ initialize() {
     rates = c(rates, 1e-8 * asFloat(parts[2]));
     bins = c(bins, asInteger(parts[1]));
   }
-  bins = c(bins, region_length);
+  bins = c(bins, region_length-1);
   rates = c(rates, 0);
   //print(bins[(length(rates)-10):(length(rates)-1)]);
   defineConstant('rec_rates', rates);
