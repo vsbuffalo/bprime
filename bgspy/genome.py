@@ -220,10 +220,16 @@ class Genome(object):
     """
     A description of the Genome for B calculations and inference.
     """
-    def __init__(self, name, seqlens_file, chroms=None):
+    def __init__(self, name, seqlens_file=None, seqlens=None, chroms=None):
         self.name = name
         self.seqlens = None
-        self.load_seqlens(seqlens_file, chroms)
+        msg = "set seqlens_file or seqlens, not both!"
+        if seqlens is not None:
+            assert seqlens_file is None, msg
+            self.seqlens = seqlens
+        if seqlens_file is not None:
+            assert seqlens is None, msg
+            self.load_seqlens(seqlens_file, chroms)
         self._seqlens_file = seqlens_file
         self._recmap_file = None
         self._annot_file = None

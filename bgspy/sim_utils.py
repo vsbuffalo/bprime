@@ -5,8 +5,9 @@ import warnings
 from functools import partial
 import itertools
 import operator
-from collections import defaultdict
+from collections import defaultdict, Counter, namedtuple
 import numpy as np
+import tskit
 import pyslim
 import tqdm
 import multiprocessing
@@ -123,7 +124,7 @@ def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
     region_length = md['region_length'][0]
     N = md['N'][0]
     #recmap = load_recrates('../data/annotation/rec_100kb_chr10.bed', ts.sequence_length)
-    rts = pyslim.recapitate(ts, recombination_rate=recrate, 
+    rts = pyslim.recapitate(ts, recombination_rate=recrate,
                             sequence_length=ts.sequence_length,
                             ancestral_Ne=N, random_seed=seed)
     length = int(ts.sequence_length)
@@ -191,7 +192,7 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
                 rep = parse_sim_filename(file)['rep']
                 mu, sh = sim_params['mu'], sim_params['sh']
                 X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
-    
+
     mu = np.fromiter(mu_lookup.keys(), dtype=float)
     sh = np.fromiter(sh_lookup.keys(), dtype=float)
     return mu, sh, pos, X

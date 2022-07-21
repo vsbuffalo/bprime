@@ -1,9 +1,12 @@
 import os
+import gzip
 import numpy as np
+import tskit
 from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
 from bgspy.utils import readfq
+from bgspy.genome import Genome
 
 # error out on overflows
 np.seterr(all='raise')
@@ -71,6 +74,9 @@ def load_dacfile(dacfile, neut_masks=None):
     ac = np.stack((nchrom - dac, dac)).T
     return positions, indices, ac, position_map, parse_param_str(params[0])
 
+def serialize_metadata(md):
+    return ';'.join([f"{k}={v[0]}" for k, v in md.items()])
+
 
 def load_fasta(fasta_file, chroms=None):
     """
@@ -131,6 +137,7 @@ def pi_from_pairwise_summaries(x):
     n[denom == 0] = 0
     return BinnedStat(out, x.bins, n)
 
+
 class CountsDirectory:
     """
     Lazy load a directory of .npy files of chromosome count data.
@@ -150,25 +157,52 @@ class CountsDirectory:
 
 def filter_sites(ac, filter_neutral, filter_accessible,
                  neutral_masks=None, accesssible_masks=None):
-    if filter_neutral:
+    if filter_neutral or neutral_masks is not None:
         msg = "GenomeData.neutral_masks not set!"
         assert neutral_masks is not None, msg
         ac = ac * neutral_masks[:, None]
 
-    if filter_accessible:
+    if filter_accessible or accesssible_masks is not None:
         msg = "GenomeData.accesssible_masks not set!"
         assert accesssible_masks is not None, msg
         ac = ac * accesssible_masks[:, None]
     return ac
 
+
+class Counts:
+    def __init__(self, counts, pos_map):
+        # the underlying complete matrix
+        assert sum(len(v) for v in pos_map.values()) == counts.shape[0], "wrong dim"
+        self.m = counts
+        self.pos_map = pos_map
+
+    def __get_item__(self, chrom):
+        return self.m[self.pos_map[chrom], :]
+
+    def __repr__(self):
+        nchrom = len(self.pos_map)
+        return (f"Counts({nchrom} chromosomes, {self.m.shape[0]} sites)\n" +
+                repr(self.m))
+
+    def to_tsv(self, outfile):
+        ntot = self.counts.sum(axis=1)
+        md = self.metadata
+        with gzip.open(outfile, 'wt') as f:
+            if md is not None:
+                f.write("#"+serialize_metadata(md)+"\n")
+            for chrom in self.genome.chroms:
+                for i, pos in self.pos_map[chrom]:
+                    row = [chrom, pos, ntot[i], self.counts[chrom][i, 1]]
+                    f.write("\t".join(map(str, row)) + "\n")
+
 class GenomeData:
-    def __init__(self, genome):
+    def __init__(self, genome=None):
         self.genome = genome
+        self.positions = None
         self.neutral_masks = None
         self.accesssible_masks = None
         self._npy_files = None
         self.counts = None
-        self.dac = None
 
     def _load_mask(self, file):
         """
@@ -196,6 +230,37 @@ class GenomeData:
         for chrom in masks:
             self.accesssible_masks[chrom] = masks[chrom] * self.accesssible_masks[chrom]
 
+    def load_counts_from_ts(self, ts=None, file=None):
+        """
+        Count the number of derived alleles -- assumes BinaryMutationModel.
+        """
+        msg = "set either ts or file, not both"
+        if file is not None:
+            assert ts is None, msg
+            ts = tskit.load(file)
+        else:
+            assert tsfile is None, msg
+        num_deriv = np.full(ts.num_sites, np.nan)
+        pos = np.zeros(ts.num_sites, dtype=float)
+        for var in ts.variants():
+            nd = (var.genotypes > 0).sum()
+            num_deriv[var.site.id] = nd
+            pos[var.site.id] = var.site.position
+        assert np.sum(np.isnan(num_deriv)) == 0, "remauning nans -- num mut/num allele mismatch"
+        ntotal = np.repeat(ts.num_samples, pos.size)
+        g = Genome('tskit', seqlens={'tskit_chrom': ts.sequence_length})
+        self.genome = g
+        nanc = ntotal - num_deriv
+        pos_map = {'tskit_chrom': {pos: i for i, pos in enumerate(pos)}}
+        self.counts = Counts(np.stack((nanc, num_deriv)).T, pos_map)
+        # map positions to counts indices across chroms
+
+    def counts_to_tsv(self, outfile):
+        """
+        Write the counts to a TSV file,
+        """
+        self.counts.to_tsv(outfile)
+
     def stats(self):
         out = dict()
         for chrom in self.genome.chroms:
@@ -217,7 +282,6 @@ class GenomeData:
         """
         chrom_extract = lambda x: x.split('_')[0]
         self.counts = CountsDirectory(dir, chrom_extract, lazy)
-        self.dac = False
 
     def load_dac_file(self, filename):
         """
@@ -228,7 +292,7 @@ class GenomeData:
         with readfile(filename) as f:
             for line in f:
                 if line.startswith('#'):
-                    params = parse_param_str(line)
+                    self._metadata = parse_param_str(line)
                     continue
                 chrom, pos, ntotal, nderiv = line.strip().split('\t')
                 pos, ntotal, nderiv = int(pos), int(ntotal), int(nderiv)
@@ -244,8 +308,10 @@ class GenomeData:
 
         Returns: Y matrix (nsame, ndiff cols) and a chrom dict of bin ends.
         """
-        assert self.neutral_masks is not None, "GenomeData.neutral_masks not set!"
-        assert self.counts is not None, "GenomeData.counts is not set!"
+        if filter_neutral:
+            assert self.neutral_masks is not None, "GenomeData.neutral_masks not set!"
+        if filter_accessible:
+            assert self.counts is not None, "GenomeData.counts is not set!"
 
         bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
@@ -273,7 +339,7 @@ class GenomeData:
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
 
-    def bin_pi(self, width, filter_neutral=True, filter_accessible=True):
+    def bin_pi(self, width, filter_neutral=None, filter_accessible=None):
         """
         Calculate π from the binned summaries.
         """
