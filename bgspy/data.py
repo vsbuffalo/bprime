@@ -155,50 +155,23 @@ class CountsDirectory:
             return np.load(self.npy_files[key])
         return self.counts[key]
 
-def filter_sites(ac, filter_neutral, filter_accessible,
+def filter_sites(counts, chrom, filter_neutral, filter_accessible,
                  neutral_masks=None, accesssible_masks=None):
+    ac = counts[chrom]
     if filter_neutral or neutral_masks is not None:
         msg = "GenomeData.neutral_masks not set!"
         assert neutral_masks is not None, msg
-        ac = ac * neutral_masks[:, None]
+        ac = ac * neutral_masks[chrom][:, None]
 
     if filter_accessible or accesssible_masks is not None:
         msg = "GenomeData.accesssible_masks not set!"
         assert accesssible_masks is not None, msg
-        ac = ac * accesssible_masks[:, None]
+        ac = ac * accesssible_masks[chrom][:, None]
     return ac
-
-
-class Counts:
-    def __init__(self, counts, pos_map):
-        # the underlying complete matrix
-        assert sum(len(v) for v in pos_map.values()) == counts.shape[0], "wrong dim"
-        self.m = counts
-        self.pos_map = pos_map
-
-    def __get_item__(self, chrom):
-        return self.m[self.pos_map[chrom], :]
-
-    def __repr__(self):
-        nchrom = len(self.pos_map)
-        return (f"Counts({nchrom} chromosomes, {self.m.shape[0]} sites)\n" +
-                repr(self.m))
-
-    def to_tsv(self, outfile):
-        ntot = self.counts.sum(axis=1)
-        md = self.metadata
-        with gzip.open(outfile, 'wt') as f:
-            if md is not None:
-                f.write("#"+serialize_metadata(md)+"\n")
-            for chrom in self.genome.chroms:
-                for i, pos in self.pos_map[chrom]:
-                    row = [chrom, pos, ntot[i], self.counts[chrom][i, 1]]
-                    f.write("\t".join(map(str, row)) + "\n")
 
 class GenomeData:
     def __init__(self, genome=None):
         self.genome = genome
-        self.positions = None
         self.neutral_masks = None
         self.accesssible_masks = None
         self._npy_files = None
@@ -230,36 +203,50 @@ class GenomeData:
         for chrom in masks:
             self.accesssible_masks[chrom] = masks[chrom] * self.accesssible_masks[chrom]
 
-    def load_counts_from_ts(self, ts=None, file=None):
+    def load_counts_from_ts(self, ts=None, file=None, chrom=None):
         """
         Count the number of derived alleles -- assumes BinaryMutationModel.
+
+        If chrom is not set a new dummy Genome object is created.
         """
+        if chrom is not None:
+            assert chrom in self.genome.chroms, "chrom not in GenomeData.genome"
         msg = "set either ts or file, not both"
         if file is not None:
             assert ts is None, msg
             ts = tskit.load(file)
         else:
-            assert tsfile is None, msg
-        num_deriv = np.full(ts.num_sites, np.nan)
-        pos = np.zeros(ts.num_sites, dtype=float)
+            assert file is None, msg
+        sl = int(ts.sequence_length)
+        num_deriv = np.zeros(sl)
         for var in ts.variants():
             nd = (var.genotypes > 0).sum()
-            num_deriv[var.site.id] = nd
-            pos[var.site.id] = var.site.position
+            num_deriv[int(var.site.position)] = nd
         assert np.sum(np.isnan(num_deriv)) == 0, "remauning nans -- num mut/num allele mismatch"
-        ntotal = np.repeat(ts.num_samples, pos.size)
-        g = Genome('tskit', seqlens={'tskit_chrom': ts.sequence_length})
+        ntotal = np.repeat(ts.num_samples, sl)
+        if chrom is None:
+            chrom = 'chrom'
+            g = Genome('dummy genome', seqlens={chrom: sl})
+        else:
+            g = self.genome
         self.genome = g
         nanc = ntotal - num_deriv
-        pos_map = {'tskit_chrom': {pos: i for i, pos in enumerate(pos)}}
-        self.counts = Counts(np.stack((nanc, num_deriv)).T, pos_map)
-        # map positions to counts indices across chroms
+        self.counts = {chrom: np.stack((nanc, num_deriv)).T}
 
     def counts_to_tsv(self, outfile):
         """
         Write the counts to a TSV file,
         """
-        self.counts.to_tsv(outfile)
+        self._assert_is_consistent()
+        ntot = self.counts.sum(axis=1)
+        md = self.metadata
+        with gzip.open(outfile, 'wt') as f:
+            if md is not None:
+                f.write("#"+serialize_metadata(md)+"\n")
+            for chrom in self.genome.chroms:
+                for i, pos in enumerate(self.counts[chrom].shape[0]):
+                    row = [chrom, pos, ntot[i], self.counts[chrom][i, 1]]
+                    f.write("\t".join(map(str, row)) + "\n")
 
     def stats(self):
         out = dict()
@@ -301,25 +288,19 @@ class GenomeData:
         self.counts = ac
 
 
-    def bin_reduce(self, width, filter_neutral=True, filter_accessible=True):
+    def bin_reduce(self, width, filter_neutral=None, filter_accessible=None):
         """
         Given a genomic window width, bin the data and compute bin-level
         summaries for the likelihood.
 
         Returns: Y matrix (nsame, ndiff cols) and a chrom dict of bin ends.
         """
-        if filter_neutral:
-            assert self.neutral_masks is not None, "GenomeData.neutral_masks not set!"
-        if filter_accessible:
-            assert self.counts is not None, "GenomeData.counts is not set!"
-
         bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
         for chrom in self.genome.chroms:
-            amask = self.accesssible_masks[chrom] if self.accesssible_masks is not None else None
-            nmask = self.neutral_masks[chrom] if self.neutral_masks is not None else None
-            site_ac = filter_sites(self.counts[chrom], filter_neutral,
-                                   filter_accessible, nmask, amask)
+            site_ac = filter_sites(self.counts, chrom, filter_neutral,
+                                   filter_accessible,
+                                   self.neutral_masks, self.accesssible_masks)
 
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
@@ -328,14 +309,12 @@ class GenomeData:
 
         return bins, reduced
 
-    def npoly(self, filter_neutral=True, filter_accessible=True):
+    def npoly(self, filter_neutral=None, filter_accessible=None):
         out = dict()
         for chrom in self.genome.chroms:
-            amask = self.accesssible_masks[chrom] if self.accesssible_masks is not None else None
-            nmask = self.neutral_masks[chrom] if self.neutral_masks is not None else None
-            site_ac = filter_sites(self.counts[chrom],
+            site_ac = filter_sites(self.counts, chrom,
                                    filter_neutral, filter_accessible,
-                                   nmask, amask)
+                                   self.neut_masks, self.accesssible_masks)
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
 
