@@ -1,0 +1,42 @@
+import numpy as np
+from bgspy.models import BGSModel 
+from bgspy.genome import Genome
+from bgspy.utils import Grid
+
+NCORES = 70
+NCHUNKS = 200
+MIN_W = np.sqrt(1e-8 * 1e-7) # midpooint between 1e-7 and 1e-8 on a log10 scale
+
+grid_6x7 = Grid(w=np.array([1e-10, 3.16e-10, 1e-9, 3.16e-9, 1e-8, 3.16e-8]), 
+                t=np.array([0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316, 0.1]))
+
+def grid_maker(nw, nt, w_range=(-10, MIN_W), t_range=(-5, -1)):
+  return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
+
+def grid_maker_from_str(x):
+  nw, nt = tuple(map(int, x.split('x')))
+  return grid_maker(nw, nt)
+
+rule bmap_chr10:
+  input: annot="../../annotation/conserved_phastcons_thresh0_slop1k.bed.gz", 
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
+  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_chr10.pkl"
+  run:
+    w, t = grid_maker_from_str(wildcards.grid_str)
+    g = Genome('hg38', input.seqlens_file, chroms=['chr10'])
+    g.load_annot(input.annot)
+    g.load_recmap(input.recmap)
+    m = BGSModel(g, w_grid=w, t_grid=t, split_length=1_000)
+    m.calc_Bp(N=1000, step=wildcards.step, ncores=NCORES, nchunks=NCHUNKS)
+    m.calc_B(step=wildcards.step, ncores=NCORES, nchunks=NCHUNKS)
+    m.save(input.pkl_b_file)
+
+
+## Target B maps for various purposes
+
+maps = ["bmap_hg38_6x7grid_10000step_chr10.pkl",
+        "bmap_hg38_20x21grid_10000step_chr10.pkl"]
+
+rule all:
+  input: maps

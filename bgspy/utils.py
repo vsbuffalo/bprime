@@ -16,6 +16,9 @@ import numpy as np
 from bgspy.theory import bgs_segment
 SEED_MAX = 2**32-1
 
+# simple named tuple when we just want to store w/t grids
+Grid = namedtuple('Grid', ('w','t'))
+
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
