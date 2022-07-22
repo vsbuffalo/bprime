@@ -42,6 +42,12 @@ def TRatchet(N, s, U, ploidy=2):
 
 @np.vectorize
 def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
+    """
+    Using a non-linear solver to solve the pair of S&C '16 equations and
+    report the results. return_both (outdated name) returns all the components
+    for pre-calculating these for segments. full_output is for debugging the
+    solver.
+    """
     U = L*mu
     Vm = U*sh**2
     start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)

@@ -78,7 +78,7 @@ class Segments:
             t = t[:, None]
         self._segment_parts = B_segment_lazy(rbp, L, t)
         if N is not None:
-            print(f"calculating SC16 components...\t", end='')
+            print(f"calculating SC16 components...\t", end='', flush=True)
             self._segment_parts_sc16 = BSC16_segment_lazy(w, t, self, N)
             print("done.")
 
@@ -226,7 +226,8 @@ class Genome(object):
         msg = "set seqlens_file or seqlens, not both!"
         if seqlens is not None:
             assert seqlens_file is None, msg
-            self.seqlens = seqlens
+            chroms = [] if chroms is None else chroms
+            self.seqlens = {c: s for c, s in seqlens.items() if c in chroms}
         if seqlens_file is not None:
             assert seqlens is None, msg
             self.load_seqlens(seqlens_file, chroms)

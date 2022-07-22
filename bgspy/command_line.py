@@ -8,20 +8,38 @@ from matplotlib.backends.backend_pdf import PdfPages
 from bgspy.models import BGSModel
 from bgspy.recmap import RecMap
 from bgspy.utils import sum_logliks_over_chroms
-from bgspy.utils import load_dacfile, load_bed_annotation, load_seqlens, read_bed
 from bgspy.plots import chrom_plot, ll_grid
-from bgspy.predict import write_predinfo, swap_models_in_predinfo
 from bgspy.genome import Genome
+from bgspy.utils import Grid
 
 SPLIT_LENGTH_DEFAULT = 10_000
+STEP_DEFAULT = 10_000
 
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
-def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t,
+
+# human grid defaults
+# sorry non-human researchers, I like other organisms too, just for
+# my sims :)
+MIN_W = np.sqrt(1e-8 * 1e-7) # midpooint between 1e-7 and 1e-8 on a log10 scale
+def grid_maker(nw, nt, w_range=(-10, np.log10(MIN_W)), t_range=(-5, -1)):
+  return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
+
+def grid_maker_from_str(x):
+  nw, nt = tuple(map(int, x.split('x')))
+  return grid_maker(nw, nt)
+
+
+def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
                    chroms=None, name=None, split_length=SPLIT_LENGTH_DEFAULT):
     """
     Build the BGSModel and the Genome object it uses.
     """
+    if g is not None:
+        # g takes priority
+        w, t = grid_maker_from_str(g)
+    else:
+        w, t = parse_gridstr(w), parse_gridstr(t),
     if name is None:
         # infer the name
         bn = os.path.splitext(os.path.basename(seqlens))[0]
@@ -62,7 +80,8 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--recmap', type=str, required=True, help="HapMap or BED-like TSV of recombination rates")
+@click.option('--recmap', type=str, required=True,
+              help="HapMap or BED-like TSV of recombination rates")
 @click.option('--annot', required=True, type=click.Path(exists=True),
               help='BED file with conserved regions, fourth column is optional feature class')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
@@ -76,83 +95,42 @@ def cli():
                     default='-6:-1:50')
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 mutation rates", default='-10:-7:50' )
+@click.option('--g', help="a grid string for human defaults, e.g. 6x8 "
+              "(--t/--w ignored if this is set)", default=None)
+@click.option('--chrom', help="process a single chromosome", default=None)
+@click.option('--popsize', help="population size for B'", type=int, default=None)
 @click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
-              default=1_000)
+              default=STEP_DEFAULT)
+@click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
+@click.option('--only-B', default=False, is_flag=True, help="only calculate B")
 @click.option('--nchunks', default=100, help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
+@click.option('--fill-nan', default=True, is_flag=True,
+              help="fill NANs from B' with B values")
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
-def calcb(recmap, annot, seqlens, name, conv_factor, t, w, split_length, step, nchunks,
-          ncores, output):
+def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
+          chrom, popsize, split_length, step, only_bp, only_b, nchunks,
+          ncores, fill_nan, output):
+
+    N = popsize
+    chrom = [chrom] if chrom is not None else None
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
-                       parse_gridstr(w), parse_gridstr(t),
-                       chroms=None, name=name, split_length=split_length)
-    m.calc_B(ncores=ncores, nchunks=100, step=step)
-    m.save_B(output)
-
-@cli.command()
-@click.argument('learnfuncs', type=str, required=True, nargs=-1)
-@click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
-def swap_models(learnfuncs, dir):
-    """
-    Swap the models in an dnnb/info.json file.
-    """
-    swap_models_in_predinfo(dir, learnfuncs)
-
-
-@cli.command()
-@click.argument('learnfuncs', type=str, required=True, nargs=-1)
-@click.option('--seqlens', required=True, type=click.Path(exists=True),
-              help='tab-delimited file of chromosome names and their length')
-@click.option('--name', type=str, help="genome name (otherwise inferred from seqlens file)")
-@click.option('--annot', required=True, type=click.Path(exists=True),
-              help='BED file with conserved regions, fourth column is optional feature class')
-@click.option('--recmap', type=str, required=True, help="HapMap or BED-like TSV of recombination rates")
-@click.option('--conv-factor', default=1e-8,
-                help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
-@click.option('--t', help="string of lower:upper:grid_size or comma-separated "
-                   "list for log10 heterozygous selection coefficient",
-                    default='-6:-1.302:7')
-@click.option('--w', help="string of lower:upper:grid_size or comma-separated "
-                   "list for log10 mutation rates", default='-10:-7:8' )
-@click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
-@click.option('--step', help='step size for B in basepairs (default: 1kb)',
-              default=1_000)
-@click.option('--nchunks', default=800,
-              help='number of chunks to break the genome up into (for parallelization)')
-@click.option('--max-map-dist', help="maximum map distance (Morgans) to consider"
-              "segment contributions to B' at", default=0.1)
-@click.option('--dir', default='dnnb', help="output directory (default: 'dnnb')")
-@click.option('--progress/--no-progress', default=True, help="show progress")
-def dnnb_write(learnfuncs, seqlens, name, annot, recmap, conv_factor, w, t,
-               step, split_length, nchunks, max_map_dist, dir, progress):
-    """
-    DNN B Map calculations (prediction, step 1)
-    Output files necessary to run the DNN prediction across a cluster.
-    Will output scripts to run on a SLURM cluster using job arrays.
-
-    learnfuns are file path name (sans extensions) to the .pkl/h5 model.
-    """
-    for func in learnfuncs:
-        assert os.path.exists(func + '.pkl'), f"no model pickle file found for {func}"
-        assert os.path.exists(func + '.h5'), f"no keras HDF5 file found for {func}"
-    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
-                       parse_gridstr(w), parse_gridstr(t),
-                       chroms=None, name=name, split_length=split_length)
-    print(f"writing prediction chunks...  ")
-    m.write_prediction_chunks(dir, step=step, nchunks=nchunks, max_map_dist=max_map_dist)
-    print("done writing prediction chunks.")
-
-    if os.path.exists(dir):
-        assert os.path.isdir(dir)
-    else:
-        os.makedirs(dir)
-    print("writing info.json...  ", end="")
-    write_predinfo(dir, learnfuncs, m.w, m.t, step=step, 
-                   nchunks=nchunks, max_map_dist=max_map_dist)
-    print("done.")
-
+                       w, t, g, chroms=chrom, name=name,
+                       split_length=split_length)
+    print(only_b, only_bp)
+    if not only_bp:
+        m.calc_B(step=step, ncores=ncores, nchunks=nchunks)
+    if not only_b:
+        assert N is not None, "--popsize is not set and B' calculated!"
+        m.calc_Bp(N=N, step=step, ncores=ncores, nchunks=nchunks)
+    if fill_nan:
+        assert m.Bps is not None, "B' not set!"
+        print(f"filling in B' NaNs with B...\t", end='', flush=True)
+        m.fill_Bp_nan()
+        print(f"done.")
+    m.save(input.pkl_b_file)
 
 @cli.command()
 @click.option('--recmap', required=True, type=click.Path(exists=True),
@@ -205,6 +183,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('-progress/--no-progress', default=True, help="display the progress bar")
 def loglik(b, dac, regions, seqlens, pi0, rmin, pi0_ngrid,
            width, output, progress):
+    assert False, "all out of date -- eg DAC file"
     sl = load_seqlens(seqlens)
     nr = read_bed(regions)
     m = BGSModel(seqlens=sl)

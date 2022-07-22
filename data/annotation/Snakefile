@@ -247,7 +247,7 @@ rule split_conserved:
   input: "conserved_phastcons_thresh{thresh}_slop1k.bed.gz"
   shell:
       """
-      zgrep "chr10" {input} > {output}
+      zgrep "chr10" {input} | bioawk -cbed '{{ if ($end-$start >= 10) {{ print; }} }}' > {output}
       """
 
 ## === Accessible Regions

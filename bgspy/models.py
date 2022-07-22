@@ -199,7 +199,8 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def calc_Bp(self, N, step=10_000, recalc_segments=False, ncores=None, nchunks=None):
+    def calc_Bp(self, N, step=10_000, recalc_segments=False,
+                ncores=None, nchunks=None):
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
@@ -208,5 +209,25 @@ class BGSModel(object):
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
+        prop_nan = [np.isnan(s).mean() for s in stacked_Bs.items()]
+        if any(x > 0 for x in prop_nan):
+            msg = f"some NAN in B'! likely fsolve failed under strong sel"
+            warnings.warn(msg)
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
+
+    def fill_Bp_nan(self):
+        """
+        Sometimes the B' calculations fail, e.g. due to T = Inf; these
+        can be backfilled with B since they're the same in this domain.
+        This isn't done manually as we should check there isn't some
+        other pathology.
+        """
+        assert self.Bps is not None, "B' not calculated!"
+        assert self.Bs is not None, "B not calculated!"
+        for chrom, Bp in self.Bps:
+            B = self.Bs[chrom]
+            assert Bp.shape == B.shape, "incompatible dimensions!"
+            # back fill the values
+            Bp[np.isnan(Bp)] = B[np.isnan(B)]
+

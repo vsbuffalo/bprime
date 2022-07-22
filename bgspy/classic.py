@@ -192,10 +192,10 @@ def calc_B_chunk_worker(args):
 def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
-    not_parallel = ncores <= 1 or ncores is None
+    not_parallel = ncores is None or ncores <= 1
     if not_parallel:
         res = []
-        for chunk in tqdm.tqdm(chunks):
+        for chunk in tqdm.tqdm(chunks, total=chunks.total):
             res.append(calc_B_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
@@ -220,7 +220,8 @@ def calc_BSC16_chunk_worker(args):
         # rf = rf[idx]
         # L = seg_L[idx]
         x = bgs_segment_from_parts_sc16(segment_parts, rf, log=True)
-        assert(not np.any(np.isnan(x)))
+        # we allow Nans because the can be back filled later
+        #assert(not np.any(np.isnan(x)))
         #B = np.sum(x, axis=2)
         B = np.einsum('wts,sf->wtf', x, F)
         # the einsum below is for when a features dimension exists, e.g.
