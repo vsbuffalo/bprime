@@ -14,6 +14,7 @@ x[:, :, F[:, 1]].sum(axis=2)
 """
 from collections import defaultdict
 import itertools
+import warnings
 import tqdm
 import time
 import numpy as np
@@ -221,7 +222,10 @@ def calc_BSC16_chunk_worker(args):
         # L = seg_L[idx]
         x = bgs_segment_from_parts_sc16(segment_parts, rf, log=True)
         # we allow Nans because the can be back filled later
-        #assert(not np.any(np.isnan(x)))
+        try:
+            assert(not np.any(np.isnan(x)))
+        except AssertionError:
+            warnings.warn("NaNs encountered in calc_BSC16_chunk_worker!")
         #B = np.sum(x, axis=2)
         B = np.einsum('wts,sf->wtf', x, F)
         # the einsum below is for when a features dimension exists, e.g.

@@ -14,6 +14,7 @@ from bgspy.utils import Grid
 
 SPLIT_LENGTH_DEFAULT = 10_000
 STEP_DEFAULT = 10_000
+NCHUNKS_DEFAULT = 200
 
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
@@ -104,7 +105,7 @@ def cli():
               default=STEP_DEFAULT)
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
 @click.option('--only-B', default=False, is_flag=True, help="only calculate B")
-@click.option('--nchunks', default=100, help='number of chunks to break the genome up into (for parallelization)')
+@click.option('--nchunks', default=NCHUNKS_DEFAULT, help='number of chunks to break the genome up into (for parallelization)')
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--fill-nan', default=True, is_flag=True,
               help="fill NANs from B' with B values")
@@ -119,7 +120,6 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        w, t, g, chroms=chrom, name=name,
                        split_length=split_length)
-    print(only_b, only_bp)
     if not only_bp:
         m.calc_B(step=step, ncores=ncores, nchunks=nchunks)
     if not only_b:
@@ -130,7 +130,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         print(f"filling in B' NaNs with B...\t", end='', flush=True)
         m.fill_Bp_nan()
         print(f"done.")
-    m.save(input.pkl_b_file)
+    m.save(output)
 
 @cli.command()
 @click.option('--recmap', required=True, type=click.Path(exists=True),

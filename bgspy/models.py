@@ -209,7 +209,7 @@ class BGSModel(object):
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
-        prop_nan = [np.isnan(s).mean() for s in stacked_Bs.items()]
+        prop_nan = [np.isnan(s).mean() for s in stacked_Bs.values()]
         if any(x > 0 for x in prop_nan):
             msg = f"some NAN in B'! likely fsolve failed under strong sel"
             warnings.warn(msg)
@@ -225,7 +225,7 @@ class BGSModel(object):
         """
         assert self.Bps is not None, "B' not calculated!"
         assert self.Bs is not None, "B not calculated!"
-        for chrom, Bp in self.Bps:
+        for chrom, Bp in self.Bps.items():
             B = self.Bs[chrom]
             assert Bp.shape == B.shape, "incompatible dimensions!"
             # back fill the values
