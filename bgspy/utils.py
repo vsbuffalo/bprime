@@ -60,6 +60,22 @@ class BScores:
         self.t = t
         self.step = step
         self._interpolators = None
+        self._w_interpolators = None
+
+    @property
+    def nf(self):
+        "Get the number of features"
+        nf = [x.shape[3] for x in self.B.values()]
+        assert len(set(nf)) == 1, "inconsistent B matrices across classes!"
+        return nf[0]
+
+    @property
+    def nt(self):
+        return len(self.t)
+
+    @property
+    def nw(self):
+        return len(self.w)
 
     def __getitem__(self, tup):
         chrom, w, t = tup
@@ -84,7 +100,65 @@ class BScores:
             obj = pickle.load(f)
         return obj
 
+    def _build_w_interpolators(self, **kwargs):
+        """
+        Build interpolators at each position for each selection coefficient
+        across all mutation weights.
+
+        """
+        defaults = {'kind': 'quadratic',
+                    'assume_sorted': True,
+                    'bounds_error': True,
+                    'copy': False}
+        kwargs = {**defaults, **kwargs}
+        interpols = defaultdict(list)
+        x = self.pos
+        Bs = self.B
+        for chrom in Bs:
+            npos = len(Bs[chrom])
+            pos_level = [None] * npos
+            interpols[chrom] = pos_level
+            for i, B in enumerate(Bs[chrom]):
+                t_level = [None] * self.nt
+                interpols[chrom][i] = t_level
+                for j, t in enumerate(self.t):
+                    annot_level = [None] * self.nf
+                    interpols[chrom][i][j] = annot_level
+                    for k in range(nf):
+                        # annotation class level
+                        func = interpolate.interp1d(self.w,
+                                                    B[:, j, k],
+                                                    **kwargs)
+                        interpols[chrom][i][j][k] = func
+        self._w_interpolators = interpols
+
+    def B_w_interpolated(self, w, chrom=None):
+        """
+        Return a chrom dict, each element of npos x nt x nf array of Bs
+        evaluated at w. If len(w) == 1, w is recycled across features;
+        otherwise it must me len(w) == nf and it is a feature-specific weight.
+        """
+        assert self._w_interpolators is not None, "w interpolators not built!"
+        assert isinstance(w, float) or w.size == 1 or w.size == nf, f"w must be of length one or nf={nf}"
+
+        chroms = list(self.B.keys()) if chrom is None else [chrom]
+        out = dict()
+        for chrm in chroms:
+            npos = len(self.pos[chrm])
+            out[chrm] = np.empty((npos, self.nt, self.nf), dtype=float)
+            for i in range(npos):
+                for j in range(self.nt):
+                    for k in range(self.nf):
+                        y = self._w_interpolators[chrm][i][j][k](w)
+                        out[chrm][i, j, k] = y
+        if chrom is not None:
+            return out[chrom]
+        return out
+
     def _build_interpolators(self, **kwargs):
+        """
+        Build positional interpolators for each chromsome and w/t combination.
+        """
         defaults = {'kind': 'quadratic',
                     'assume_sorted': True,
                     'bounds_error': False,
@@ -92,7 +166,7 @@ class BScores:
         kwargs = {**defaults, **kwargs}
         interpols = defaultdict(dict)
         x = self.pos
-        Bs = {c: b for c, b in self.B.items()}
+        Bs = self.B
         for i, w in enumerate(self.w):
             for j, t in enumerate(self.t):
                 for chrom in Bs:

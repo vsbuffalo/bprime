@@ -3,20 +3,22 @@ from bgspy.models import BGSModel
 from bgspy.genome import Genome
 
 NCORES = 70
+NCORES_BP = 40
 
 rule bmap_chr10:
   input: annot="../../annotation/conserved_phastcons_thresh0_slop1k_chr10.bed", 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
   output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_chr10.pkl"
-  params: ncores=NCORES, popsize=1000
+  params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=1000
   shell:
     """
     python ../../../bgspy/command_line.py calcb \
       --recmap {input.recmap} --annot {input.annot} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {params.popsize} --chrom chr10 \
-      --ncores {params.ncores} --step {wildcards.step}
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step}
     """
 
 ## Target B maps for various purposes

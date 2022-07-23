@@ -282,6 +282,7 @@ rule neutral:
       """
 
 rule neutral_introns:
+   # we add back in the introns as these make up ~40% of the genome and are neutralish
    input: neut="neutral_phastcons_genes.bed.gz", intron="hg38.ensembl_introns_conservative.bed.gz"
    output: "neutral_phastcons_genes_with_introns.bed.gz"
    shell:
