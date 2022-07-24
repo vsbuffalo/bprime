@@ -13,6 +13,8 @@ from math import floor, log10
 from scipy import interpolate
 from scipy.stats import binned_statistic
 import numpy as np
+import jax.numpy as jnp
+
 from bgspy.theory import bgs_segment
 SEED_MAX = 2**32-1
 
@@ -48,6 +50,23 @@ class BinnedStat:
     def pairs(self):
         # ignores the first bin, which is data for points left of zero
         return (self.midpoints, self.stat[1:])
+
+
+def Bw_interpol(interpols, nx, nt, nf, jax=True):
+    numlib = np if not jax else jnp
+    X = numlib.empty((nx, nt, nf), dtype=float)
+    def func(w):
+        for i in range(nx):
+            for j in range(nt):
+                for k in range(nf):
+                    if not jax:
+                        X[i, j, k] = interpols[i][j][k](w[k])
+                    else:
+                        xp, fp = interpols[i][j][k]
+                        y = jnp.interp(w[k], xp, fp)
+                        X.at[i, j, k].set(y)
+        return X
+    return func
 
 
 class BScores:
@@ -100,7 +119,7 @@ class BScores:
             obj = pickle.load(f)
         return obj
 
-    def _build_w_interpolators(self, **kwargs):
+    def _build_w_interpolators(self, jax=True, **kwargs):
         """
         Build interpolators at each position for each selection coefficient
         across all mutation weights.
@@ -117,19 +136,27 @@ class BScores:
         for chrom in Bs:
             npos = len(Bs[chrom])
             pos_level = [None] * npos
-            interpols[chrom] = pos_level
+            chrom_interpols = pos_level
             for i, B in enumerate(Bs[chrom]):
                 t_level = [None] * self.nt
-                interpols[chrom][i] = t_level
+                chrom_interpols[i] = t_level
                 for j, t in enumerate(self.t):
                     annot_level = [None] * self.nf
-                    interpols[chrom][i][j] = annot_level
-                    for k in range(nf):
+                    chrom_interpols[i][j] = annot_level
+                    for k in range(self.nf):
                         # annotation class level
-                        func = interpolate.interp1d(self.w,
-                                                    B[:, j, k],
-                                                    **kwargs)
-                        interpols[chrom][i][j][k] = func
+                        if not jax:
+                            func = interpolate.interp1d(self.w,
+                                                        B[:, j, k],
+                                                        **kwargs)
+                        else:
+                            b = B[:, j, k]
+                            #def func(x, y):
+                            #    return jnp.interp(x, self.w, b)
+                            #func = partial(np.interp, xp=self.w, fp=b)
+                            func = self.w, b
+                        chrom_interpols[i][j][k] = func
+            interpols[chrom] = Bw_interpol(chrom_interpols, npos, self.nt, self.nf, jax)
         self._w_interpolators = interpols
 
     def B_w_interpolated(self, w, chrom=None):
