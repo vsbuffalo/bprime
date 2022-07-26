@@ -16,6 +16,6 @@ if __name__ == "__main__":
     sd = X.std(axis=3)
     np.savez(sys.argv[2], mu=mu, sh=sh, pos=pos, X=X, nreps=nreps, mean=mean, sd=sd)
 
-   
 
- 
+
+

@@ -12,11 +12,15 @@ import itertools
 from math import floor, log10
 from scipy import interpolate
 from scipy.stats import binned_statistic
+import statsmodels.api as sm
 import numpy as np
 import jax.numpy as jnp
 
 from bgspy.theory import bgs_segment
 SEED_MAX = 2**32-1
+
+# alias this
+lowess = sm.nonparametric.lowess
 
 # simple named tuple when we just want to store w/t grids
 Grid = namedtuple('Grid', ('w','t'))
@@ -30,6 +34,16 @@ RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
                                    'feature_map', 'index'))
 
+# this function is used a lot...
+def midpoints(x):
+    if isinstance(x, dict):
+        return {c: 0.5*(b[1:, ...] + b[:-1, ...]) for c, b in x.items()}
+    if isinstance(x, list):
+        x = np.array(x)
+    if isinstance(x, np.ndarray):
+        return 0.5*(x[1:, ...] + x[:-1, ...])
+
+
 class BinnedStat:
     __slots__ = ('stat', 'bins', 'n')
     def __init__(self, stat, bins, n):
@@ -39,7 +53,7 @@ class BinnedStat:
 
     @property
     def midpoints(self):
-        return 0.5 * (self.bins[1:] + self.bins[:-1])
+        return midpoints(self.bins)
 
     def __repr__(self):
         width = Counter(np.diff(self.bins)).most_common(1)[0][0]
@@ -68,6 +82,8 @@ def Bw_interpol(interpols, nx, nt, nf, jax=True):
         return X
     return func
 
+def is_sorted_array(x):
+    return np.all(x[:-1] <= x[1:])
 
 class BScores:
     # TODO uncomment before next B calc
@@ -75,8 +91,12 @@ class BScores:
     def __init__(self, B, pos, w, t, step=None):
         self.B = B
         self.pos = pos
+        assert is_sorted_array(w), "w is not sorted"
+        assert is_sorted_array(t), "t is not sorted"
         self.w = w
         self.t = t
+        self.X = None
+        self.sd = None
         self.step = step
         self._interpolators = None
         self._w_interpolators = None
@@ -104,6 +124,11 @@ class BScores:
         Bs = np.exp(self.B[chrom][:, w == self.w, t == self.t, ...].squeeze())
         return pos, Bs
 
+    def pairs(self, chrom, w, t):
+        tup = chrom, w, t
+        pos, Bs = self[tup]
+        return midpoints(pos), Bs
+
     def get_nearest(self, chrom, w, t):
         widx = arg_nearest(w, self.w)
         tidx = arg_nearest(t, self.t)
@@ -117,6 +142,28 @@ class BScores:
     def load(self, filepath):
         with open(filepath, 'rb') as f:
             obj = pickle.load(f)
+        return obj
+
+    @classmethod
+    def load_npz(self, filepath, chrom, is_log=False):
+        """
+        Load a single chromosome's values from a npz file, e.g. for simulation
+        data.
+
+        By default this assumes the B values (and X and sd) are not logged,
+        as this is what the sims return. To be consistent they are logged.
+        """
+        assert filepath.endswith('.npz'), "filepath must be a Numpy .npz"
+        d = np.load(filepath)
+        w, t = d['mu'], d['sh']
+        pos = d['pos']
+        X = d['X']
+        B = d['mean']
+        if not is_log:
+            B = np.log(B)
+        obj = BScores({chrom: B}, {chrom: pos}, w, t)
+        obj.sd = d['sd']
+        obj.X = X
         return obj
 
     def _build_w_interpolators(self, jax=True, **kwargs):
@@ -252,8 +299,8 @@ class BScores:
             # midpoints work out to be linear interpolation mean, through
             # trapezoid rule. The midpoints are those for the end B position
             # (like bins).
-            mp_y = 0.5 * (y[1:, ...] + y[:-1, ...])
-            mp_x = 0.5 * (x[1:] + x[:-1]) # position at midpoint
+            mp_y = midpoints(y) # B-value midpoints
+            mp_x = midpoints(x) # position midpoints
             res = bin_aggregate(mp_x, mp_y, np.mean,
                                          bins[chrom], axis=0)
             means[chrom] = res
@@ -354,7 +401,7 @@ class GenomicBins:
         """
         Calculate midpoints of bins.
         """
-        return {c: 0.5*(x[1:] + x[:-1]) for c, x in self.bins.items()}
+        return midpoints(self.bins)
 
     def full_bins(self, value=0, shape=None, dtype=float):
         """
@@ -435,7 +482,6 @@ def readfq(fp): # this is a generator function
             if last: # reach EOF before reading enough quality
                 yield name, seq, None # yield a fasta record instead
                 break
-
 
 
 def read_npy_dir(dir):
