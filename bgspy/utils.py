@@ -14,7 +14,6 @@ from scipy import interpolate
 from scipy.stats import binned_statistic
 import statsmodels.api as sm
 import numpy as np
-import jax.numpy as jnp
 
 from bgspy.theory import bgs_segment
 SEED_MAX = 2**32-1
@@ -65,25 +64,6 @@ class BinnedStat:
         # ignores the first bin, which is data for points left of zero
         return (self.midpoints, self.stat[1:])
 
-
-def Bw_interpol(interpols, nx, nt, nf, jax=True):
-    numlib = np if not jax else jnp
-    X = numlib.empty((nx, nt, nf), dtype=float)
-    def func(w):
-        for i in range(nx):
-            for j in range(nt):
-                for k in range(nf):
-                    if not jax:
-                        X[i, j, k] = interpols[i][j][k](w[k])
-                    else:
-                        xp, fp = interpols[i][j][k]
-                        y = jnp.interp(w[k], xp, fp)
-                        X.at[i, j, k].set(y)
-        return X
-    return func
-
-def is_sorted_array(x):
-    return np.all(x[:-1] <= x[1:])
 
 class BScores:
     # TODO uncomment before next B calc

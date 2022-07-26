@@ -205,12 +205,17 @@ rule download_hapmap:
     """
 
 ## === Conservation Tracks
-cons = ["conserved_phastcons_thresh471.bed.gz", 
+cons = [ # phastcons at different filtering thresholds:
+        "conserved_phastcons_thresh471.bed.gz", 
         "conserved_phastcons_thresh527.bed.gz", 
         "conserved_phastcons_thresh0.bed.gz", 
+        # thresholded phastcons with 1k slop
         "conserved_phastcons_thresh0_slop1k.bed.gz", 
         "conserved_phastcons_thresh471_slop1k.bed.gz", 
-        "conserved_phastcons_thresh527_slop1k.bed.gz"] 
+        "conserved_phastcons_thresh527_slop1k.bed.gz",
+        # phastcons and exons, merged no filtering
+        "conserved_phastcons_exons_thresh0.bed.gz"
+] 
 
 # this is used for sims with combined conserved regions (phastcons)
 rule conserved_track:
@@ -235,20 +240,45 @@ rule conserved_slop:
        bedtools slop -g {input.seqlens} -b 1000 | bedtools merge -d 2  | gzip > {output}
      """
 
+# merged exons/phastcons track
+rule conserved_phastcons_exons:
+  input: exons="hg38.ensembl_exons.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz"
+  output: "conserved_phastcons_exons_thresh0.bed.gz"
+  shell:
+      """
+      # combine the files, sort and merge overlapping tracks
+      zcat {input.exons} {input.phastcons} | cut -f1-3 | \
+        grep -P "^chr[0-9]+\t" | \
+        sort  --version-sort -k 1,1 -k2,2n | \
+        bedtools merge | gzip > {output}
+      """
+
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
 sim_cons = ["conserved_phastcons_thresh471_slop1k_chr10.bed", 
             "conserved_phastcons_thresh527_slop1k_chr10.bed", 
-            "conserved_phastcons_thresh0_slop1k_chr10.bed"]
+            "conserved_phastcons_thresh0_slop1k_chr10.bed", 
+            # this is exons + phastons, no thresholding or slop
+            "conserved_phastcons_exons_thresh0_chr10.bed"
+]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
-  output: "conserved_phastcons_thresh{thresh}_slop1k_chr10.bed"
   input: "conserved_phastcons_thresh{thresh}_slop1k.bed.gz"
+  output: "conserved_phastcons_thresh{thresh}_slop1k_chr10.bed"
   shell:
       """
       zgrep "chr10" {input} | bioawk -cbed '{{ if ($end-$start >= 10) {{ print; }} }}' > {output}
       """
+
+rule split_conserved_exons:
+  input: "conserved_phastcons_exons_thresh0.bed.gz"
+  output: "conserved_phastcons_exons_thresh{thresh}_chr10.bed"
+  shell:
+      """
+      zgrep "chr10" {input} | bioawk -cbed '{{ if ($end-$start >= 10) {{ print; }} }}' > {output}
+      """
+
 
 ## === Accessible Regions
 accessible = ["no_centro.bed"]

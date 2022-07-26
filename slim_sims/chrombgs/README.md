@@ -15,5 +15,8 @@ Run with:
 
     bash snakemake_runner.sh -c chrombgs_chr10.json all
 
-The directory structure needs to be made for results with `mkdir -p`.
+Notes/Warnings:
+
+ - The directory structure needs to be made for results with `mkdir -p`.
+ - The `conserved_track` field in the JSON must not have the full suffix (see above).
 
