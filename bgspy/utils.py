@@ -64,6 +64,8 @@ class BinnedStat:
         # ignores the first bin, which is data for points left of zero
         return (self.midpoints, self.stat[1:])
 
+def is_sorted_array(x):
+    return np.all(x[:-1] <= x[1:])
 
 class BScores:
     # TODO uncomment before next B calc
@@ -71,6 +73,10 @@ class BScores:
     def __init__(self, B, pos, w, t, step=None):
         self.B = B
         self.pos = pos
+        assert set(B.keys()) == set(pos.keys()), "different chromosomes between Bs and positions!"
+        for chrom in B:
+            msg =  f"Bs and positions have different lengths in {chrom}!"
+            assert B[chrom].shape[0] == pos[chrom].shape[0], msg
         assert is_sorted_array(w), "w is not sorted"
         assert is_sorted_array(t), "t is not sorted"
         self.w = w
@@ -96,18 +102,22 @@ class BScores:
     def nw(self):
         return len(self.w)
 
+    def indices(self, w, t):
+        return w == self.w, t == self.t
+
     def __getitem__(self, tup):
         chrom, w, t = tup
         pos = self.pos[chrom]
         assert w in self.w, f"'{w}' is not in w array '{self.w}'"
         assert t in self.t, f"'{t}' is not in w array '{self.t}'"
-        Bs = np.exp(self.B[chrom][:, w == self.w, t == self.t, ...].squeeze())
+        wi, ti = self.indices(w, t)
+        Bs = np.exp(self.B[chrom][:, wi, ti, ...].squeeze())
         return pos, Bs
 
     def pairs(self, chrom, w, t):
         tup = chrom, w, t
         pos, Bs = self[tup]
-        return midpoints(pos), Bs
+        return pos, Bs
 
     def get_nearest(self, chrom, w, t):
         widx = arg_nearest(w, self.w)
@@ -125,10 +135,14 @@ class BScores:
         return obj
 
     @classmethod
-    def load_npz(self, filepath, chrom, is_log=False):
+    def load_npz(self, filepath, chrom, bin_pos=True, is_log=False):
         """
         Load a single chromosome's values from a npz file, e.g. for simulation
         data.
+
+        If bin_pos is true, the positions are the bin edges (e.g. if the
+        diversity is calculated from simulated data and binned branch-mode
+        diversity is used from tskit).
 
         By default this assumes the B values (and X and sd) are not logged,
         as this is what the sims return. To be consistent they are logged.
@@ -137,6 +151,10 @@ class BScores:
         d = np.load(filepath)
         w, t = d['mu'], d['sh']
         pos = d['pos']
+        if bin_pos:
+            # these are tskit-like bin edges, so the B value (average in the
+            # bin) should have the position that's at the middle.
+            pos = midpoints(pos)
         X = d['X']
         B = d['mean']
         if not is_log:
@@ -145,6 +163,18 @@ class BScores:
         obj.sd = d['sd']
         obj.X = X
         return obj
+
+    def _Xpairs(self, w, t, i, bins=None):
+        """
+        Mostly for internal stuff -- looking at raw sim data.
+        """
+        wi, ti = self.indices(w, t)
+        out = self.X[:, wi, ti, i]
+        only_chrom = list(set(self.pos.keys()))[0]
+        pos = self.pos[only_chrom]
+        if bins is None:
+            return pos, out
+        return bin_aggregate(pos, out, np.mean, bins).pairs
 
     def _build_w_interpolators(self, jax=True, **kwargs):
         """
@@ -293,6 +323,10 @@ class BScores:
         pos = {c: x.midpoints for c, x in means.items()}
         return BScores(B, pos, self.w, self.t)
 
+
+def pretty_percent(x, ndigit=3):
+    return np.round(100*x, ndigit)
+
 def bin_chrom(end, width, dtype='uint32'):
     """
     Bin a chromsome of length 'end' into bins of 'width', with the last
@@ -336,6 +370,9 @@ def bin_aggregate(pos, values, func, bins, right=False, **kwargs):
     right: whether to include right position
     **kwargs: kwargs to pass to func
     """
+    assert isinstance(bins, np.ndarray), "bins must be an np.ndarray"
+    assert isinstance(pos, np.ndarray), "bins must be an np.ndarray"
+    assert pos.size == values.shape[0], "pos length and values.shape[0] must be the same"
     nbins = bins.size
     agg = np.full(fill_value=np.nan, shape=(nbins-1, *values.shape[1:]))
     n = np.full(fill_value=0, shape=nbins-1)

@@ -5,7 +5,7 @@ import tskit
 from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
-from bgspy.utils import readfq
+from bgspy.utils import readfq, pretty_percent
 from bgspy.genome import Genome
 
 # error out on overflows
@@ -158,14 +158,16 @@ class CountsDirectory:
 def filter_sites(counts, chrom, filter_neutral, filter_accessible,
                  neutral_masks=None, accesssible_masks=None):
     ac = counts[chrom]
-    if filter_neutral or neutral_masks is not None:
+    if filter_neutral and neutral_masks is not None:
         msg = "GenomeData.neutral_masks not set!"
         assert neutral_masks is not None, msg
+        print("using neutral masks...")
         ac = ac * neutral_masks[chrom][:, None]
 
-    if filter_accessible or accesssible_masks is not None:
+    if filter_accessible and accesssible_masks is not None:
         msg = "GenomeData.accesssible_masks not set!"
         assert accesssible_masks is not None, msg
+        print("using accessibility masks...")
         ac = ac * accesssible_masks[chrom][:, None]
     return ac
 
@@ -343,7 +345,26 @@ class GenomeData:
         ns = np.fromiter(ns.values(), dtype=float)
         return np.average(pis, weights=ns)
 
+    def mask_stats(self):
+        stats = {}
+        for chrom in self.genome.chroms:
+            seq_len = self.genome.seqlens[chrom]
+            acces = np.nan
+            neut = np.nan
+            if self.accesssible_masks is not None:
+                acces = self.accesssible_masks[chrom].sum() / seq_len
+            if self.neutral_masks is not None:
+                neut = self.neutral_masks[chrom].sum() / seq_len
+            stats[chrom] = (acces, neut)
+        return stats
 
+    def __repr__(self):
+        nchroms = len(self.genome.chroms)
+        msg = [f"GenomicData ({nchroms} chromosomes)\nMasks:",
+               f"         accessible    neutral"]
+        for chrom, (acces, neut) in self.mask_stats().items():
+            msg += [f"  {chrom}     {pretty_percent(acces)}%        {pretty_percent(neut)}%"]
+        return "\n".join(msg)
 
 
 

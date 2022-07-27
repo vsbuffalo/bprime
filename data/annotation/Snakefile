@@ -1,3 +1,4 @@
+# WARNING: bedtools complement returns all the chromosomes!
 
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
@@ -261,6 +262,7 @@ sim_cons = ["conserved_phastcons_thresh471_slop1k_chr10.bed",
             # this is exons + phastons, no thresholding or slop
             "conserved_phastcons_exons_thresh0_chr10.bed"
 ]
+sim_neut = ["neutral_phastcons_exons_thresh0_chr10.bed.gz"]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
@@ -279,6 +281,20 @@ rule split_conserved_exons:
       zgrep "chr10" {input} | bioawk -cbed '{{ if ($end-$start >= 10) {{ print; }} }}' > {output}
       """
 
+rule sim_neutral:
+   input: conserved="conserved_phastcons_exons_thresh{thresh}_chr10.bed", exons="conserved_phastcons_exons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_exons_thresh{thresh}_chr10.bed.gz"
+   shell:
+      """
+      (cat {input.conserved}; zcat {input.exons}) | \
+       cut -f1-3 | \
+       sort --version-sort -k1,1 -k2,2n | \
+       bedtools slop -g {input.seqlens} -b 1000  | \
+       bedtools merge | \
+       grep chr10 | \
+       bedtools complement -i - -g {input.seqlens} | \
+       grep chr10 | gzip > {output}
+      """
 
 ## === Accessible Regions
 accessible = ["no_centro.bed"]
@@ -335,6 +351,6 @@ rec = decode + hapmap
 ## === Main target
 print(annot + rec + cons + sim_cons + neutral + accessible + genome)
 rule all:
-  input: annot + rec + cons + sim_cons + neutral + accessible + genome
+  input: annot + rec + cons + sim_cons + neutral + accessible + genome + sim_neut
 
 
