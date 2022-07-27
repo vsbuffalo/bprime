@@ -282,18 +282,16 @@ rule split_conserved_exons:
       """
 
 rule sim_neutral:
-   input: conserved="conserved_phastcons_exons_thresh{thresh}_chr10.bed", exons="conserved_phastcons_exons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+   input: conserved="conserved_phastcons_exons_thresh{thresh}_chr10.bed", seqlens="hg38_seqlens.tsv"
    output: "neutral_phastcons_exons_thresh{thresh}_chr10.bed.gz"
    shell:
       """
-      (cat {input.conserved}; zcat {input.exons}) | \
-       cut -f1-3 | \
+       cut -f1-3 {input.conserved} | \
        sort --version-sort -k1,1 -k2,2n | \
-       bedtools slop -g {input.seqlens} -b 1000  | \
        bedtools merge | \
        grep chr10 | \
-       bedtools complement -i - -g {input.seqlens} | \
-       grep chr10 | gzip > {output}
+       bedtools complement -L -i - -g {input.seqlens} | \
+       gzip > {output}
       """
 
 ## === Accessible Regions
