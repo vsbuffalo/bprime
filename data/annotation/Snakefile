@@ -270,7 +270,7 @@ rule split_conserved:
   output: "conserved_phastcons_thresh{thresh}_slop1k_chr10.bed"
   shell:
       """
-      zgrep "chr10" {input} | bioawk -cbed '{{ if ($end-$start >= 10) {{ print; }} }}' > {output}
+      zgrep "chr10" {input} > {output}
       """
 
 rule split_conserved_exons:
