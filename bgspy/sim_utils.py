@@ -195,4 +195,4 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
 
     mu = np.fromiter(mu_lookup.keys(), dtype=float)
     sh = np.fromiter(sh_lookup.keys(), dtype=float)
-    return mu, sh, pos, X
+    return mu, sh, pos, X, tree_files

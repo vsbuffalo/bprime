@@ -70,10 +70,10 @@ initialize() {
   // == Mutations/
   initializeMutationRate(mu);
   
-  // neutral mutations
-  initializeMutationType("m2", h, "f", -s);
+  // deleterious mutations
+  initializeMutationType("m1", h, "f", -s);
   // gene
-  initializeGenomicElementType("g2", m2, 1);
+  initializeGenomicElementType("g2", m1, 1);
 
   // == Recombination
   // assumes cM/Mb rates 0.01 / 1e6
@@ -103,14 +103,16 @@ initialize() {
 
   // == Genome
   ngenes = 0;
+  totcons = 0; // total conservered
   for (line in readFile(annot_file)) {
     parts = strsplit(line, "\t");
     start = asInteger(parts[1]);
     end = asInteger(parts[2]);
-    initializeGenomicElement(g2, start, end-1);
+    initializeGenomicElement(g2, start, end);
+    totcons = totcons + (end - start);
     ngenes = ngenes + 1;
   }
-  print("number of genes: " + ngenes);
+  print("number of genes: " + ngenes + "  total conserved: " + totcons);
 }
 
 // create a population of 500 individuals
