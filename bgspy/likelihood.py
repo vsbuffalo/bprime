@@ -8,52 +8,44 @@ from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize
 
-
-def negloglik(Y, logB, w, log_params=False):
-    """
-    Returns negative log-likelihood function closure around
-    data, Bs (stored in log-space), and the mutation weights
-    w.
-
-    The enclosed function is a function of the parameters
-    θ = {π0, w_{0, 0}, ..., w_{nt, nf}} where nt is the
-    selection grid size and nf is the number of features.
-    """
+def negll_logparams(log_theta, Y, logB, w):
     nS = Y[:, 0]
     nD = Y[:, 1]
-
     nx, nw, nt, nf = logB.shape
-
-    def negll_logparams(log_theta):
-        log_pi0, log_w_theta = log_theta[0], log_theta[1:]
-        # interpolate B(w)'s
-        logBw = np.zeros(nx, dtype=float)
-        for i in range(nx):
-            for j in range(nt):
-                for k in range(nf):
-                    logBw[i] += np.interp(np.exp(log_w_theta[j, k]), w, logB[i, :, j, k])
-        log_pibar = np.exp(log_pi0 + logBw)
-        llm = nD * log_pibar + nS * np.log1p(-np.exp(log_pibar))
-        return -llm.sum()
-
-    def negll(theta):
-        pi0, w_theta = theta[0], theta[1:]
-        # interpolate B(w)'s
-        logBw = np.zeros(nx, dtype=float)
-        for i in range(nx):
-            for j in range(nt):
-                for k in range(nf):
-                    logBw[i] += np.interp(w_theta[j, k], w, logB[i, :, j, k])
-        pibar = pi0 * np.exp(logBw)
-        llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
-        return -llm.sum()
-
-    if log_params:
-        return negll_logparams
-    return negll
+    log_pi0, log_W = log_theta[0], log_theta[1:]
+    log_W = log_W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=float)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(np.exp(log_W[j, k]), w, logB[i, :, j, k])
+    log_pibar = np.exp(log_pi0 + logBw)
+    llm = nD * log_pibar + nS * np.log1p(-np.exp(log_pibar))
+    return -llm.sum()
 
 
-def minimize_worker(start, bounds, func):
+def negll(theta, Y, logB, w):
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=float)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+    pibar = pi0 * np.exp(logBw)
+    llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
+    return -llm.sum()
+
+
+def minimize_worker(args):
+    start, bounds, func, Y, logB, w = args
+    func = partial(func, Y=Y, logB=logB, w=w)
     res = minimize(func, start, bounds=bounds, options={'disp': False})
     return res
 
@@ -103,11 +95,12 @@ class InterpolatedMLE:
             pi0_bounds = np.log(pi0_bounds[0]), np.log(pi0_bounds[1])
         bounds = [pi0_bounds]
         w = self.w
-        for f in range(self.nf):
-            w1, w2 = np.min(w), np.max(w)
-            if log:
-                w1, w1 = np.log(w1), np.log(w2)
-            bounds.append((w1, w2))
+        for t in range(self.nt):
+            for f in range(self.nf):
+                w1, w2 = np.min(w), np.max(w)
+                if log:
+                    w1, w1 = np.log(w1), np.log(w2)
+                bounds.append((w1, w2))
         return bounds
 
     def random_start(self, log=False):
@@ -122,16 +115,21 @@ class InterpolatedMLE:
     def fit(self, Y, log_params=False, nruns=50, ncores=None,
             method='BFGS'):
         self.Y_ = Y
-        nll = negloglik(Y, self.logB, self.w, log_params)
         bounds = self.bounds(log_params)
-
-        starts = [self.random_start(log_params) for _ in range(nruns)]
-        worker = partial(minimize_worker, bounds=bounds, func=nll)
+        logB = self.logB
+        w = self.w
+        func = {True: negll_logparams, False: negll}[log_params]
+        args = []
+        starts = []
+        for _ in range(nruns):
+            start = self.random_start(log_params)
+            starts.append(start)
+            args.append((start, bounds, func, Y, logB, w))
         if ncores == 1 or ncores is None:
-            res = list(tqdm.tqdm(p.imap(worker, starts), total=nruns))
+            res = list(tqdm.tqdm(p.imap(minimize_worker, args), total=nruns))
         else:
             with multiprocessing.Pool(ncores) as p:
-                res = list(tqdm.tqdm(p.imap(worker, starts), total=nruns))
+                res = list(tqdm.tqdm(p.imap(minimize_worker, args), total=nruns))
 
         converged = [x.success for x in res]
         nconv = sum(converged)
@@ -145,6 +143,7 @@ class InterpolatedMLE:
         self.thetas_ = [x.x for x in res]
         self.bounds_ = bounds
         self.res_ = res
+        self.theta_ = np.stack(self.thetas_)[np.argmin(self.nlls_), :]
 
         return self
 
