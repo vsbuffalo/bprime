@@ -1,4 +1,7 @@
 ## likelihood.py -- functions for likelihood stuff
+import multiprocessing
+import tqdm
+from functools import partial
 from collections import Counter
 import numpy as np
 from scipy.stats import binned_statistic
@@ -50,7 +53,9 @@ def negloglik(Y, logB, w, log_params=False):
     return negll
 
 
-
+def minimize_worker(start, bounds, func):
+    res = minimize(func, start, bounds=bounds, options={'disp': False})
+    return res
 
 class InterpolatedMLE:
     """
@@ -61,11 +66,11 @@ class InterpolatedMLE:
     def __init__(self, w, t, logB, log10_pi0_bounds):
         self.w = w
         self.t = t
-        self.log10_pi0_bounds = log10_pi_bounds
+        self.log10_pi0_bounds = log10_pi0_bounds
         try:
             assert logB.ndim == 4
-            assert logB.shape[1] == w
-            assert logB.shape[2] == t
+            assert logB.shape[1] == w.size
+            assert logB.shape[2] == t.size
         except AssertionError:
             raise AssertionError("logB has incorrection shape, should be nx x nw x nt x nf")
 
@@ -73,41 +78,31 @@ class InterpolatedMLE:
         self.theta = None
         self.dim()
 
-    def dim(self, chrom=None):
+    def dim(self):
         """
-        Dimensions are nx x nw x nt x nf. nx is ignored is ignored as
-        that's chromosome specific
+        Dimensions are nx x nw x nt x nf.
         """
-        dims = set([x.shape[1:] for x in B.values()])
-        assert len(dims) == 1, "different chromosomes have different B dimensions!"
-        if chrom is None:
-            return list(dims)[0]
-        else:
-            return B[chrom].shape
-
-    @property
-    def w(self):
-        return self.B.w
-
-    @property
-    def nt(self):
-        return self.dim()[0]
-        return nt
+        return self.logB.shape[1:]
 
     @property
     def nw(self):
-        return self.dim()[1]
+        return self.dim()[0]
 
     @property
     def nt(self):
+        return self.dim()[1]
+
+    @property
+    def nf(self):
         return self.dim()[2]
 
     def bounds(self, log=False):
-        pi0_bounds = 10**self.log10_pi0bounds
+        pi0_bounds = 10**self.log10_pi0_bounds[0], 10**self.log10_pi0_bounds[1]
         if log:
             # must be base e
-            pi0_bounds = np.log(pi0_bounds)
-        bounds = [*pi0_bounds]
+            pi0_bounds = np.log(pi0_bounds[0]), np.log(pi0_bounds[1])
+        bounds = [pi0_bounds]
+        w = self.w
         for f in range(self.nf):
             w1, w2 = np.min(w), np.max(w)
             if log:
@@ -124,16 +119,14 @@ class InterpolatedMLE:
                 start.append(np.random.uniform(*bounds, size=1))
         return np.array(start)
 
-    def fit(self, Y, chrom=None, log_params=False, nruns=50, ncores=None, method='BFGS'):
+    def fit(self, Y, log_params=False, nruns=50, ncores=None,
+            method='BFGS'):
         self.Y_ = Y
-        nll = negloglik(Y, self.B, self.w, log_params)
+        nll = negloglik(Y, self.logB, self.w, log_params)
         bounds = self.bounds(log_params)
 
-        def minimize_worker(start):
-            opt = minimize(nll, start, bounds=bounds, options={'disp': False})
-            return opt.x, opt.fun
-
-        starts = [self.random_start(log) for _ in range(nruns)]
+        starts = [self.random_start(log_params) for _ in range(nruns)]
+        worker = partial(minimize_worker, bounds=bounds, func=nll)
         if ncores == 1 or ncores is None:
             res = list(tqdm.tqdm(p.imap(worker, starts), total=nruns))
         else:
@@ -152,4 +145,9 @@ class InterpolatedMLE:
         self.thetas_ = [x.x for x in res]
         self.bounds_ = bounds
         self.res_ = res
+
+        return self
+
+    def __repr__(self):
+        pass
 
