@@ -7,6 +7,7 @@ import numpy as np
 from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize
+from bgspy.utils import signif
 
 def negll_logparams(log_theta, Y, logB, w):
     nS = Y[:, 0]
@@ -67,7 +68,7 @@ class InterpolatedMLE:
             raise AssertionError("logB has incorrection shape, should be nx x nw x nt x nf")
 
         self.logB = logB
-        self.theta = None
+        self.theta_ = None
         self.dim()
 
     def dim(self):
@@ -139,14 +140,32 @@ class InterpolatedMLE:
             nfailed = nruns-nconv
             print(f"WARNING: {nfailed}/{nruns} ({100*np.round(nfailed/nruns, 2)}%)")
         self.starts_ = starts
-        self.nlls_ = [x.fun for x in res]
-        self.thetas_ = [x.x for x in res]
+        self.nlls_ = np.array([x.fun for x in res])
+        self.thetas_ = np.array([x.x for x in res])
         self.bounds_ = bounds
         self.res_ = res
-        self.theta_ = np.stack(self.thetas_)[np.argmin(self.nlls_), :]
+        self.theta_ = self.thetas_[np.argmin(self.nlls_), :]
+        self.nll_ = self.nlls_[np.argmin(self.nlls_), :]
 
         return self
 
+    @property
+    def mle_pi0(self):
+        return self.theta_[0]
+
+    @property
+    def mle_W(self):
+        return self.theta_[1:].reshape((self.nt, self.nf))
+
     def __repr__(self):
-        pass
+        rows = [f"MLE (interpolated w): {self.nw} x {self.nt} x {self.nf}"]
+        rows.append(f"  w grid: {signif(self.w)} (before interpolation)")
+        rows.append(f"  t grid: {signif(self.w)}")
+        if self.theta_ is not None:
+            rows.append(f"MLEs:\n  pi0 = {signif(self.mle_pi0)}\n  W = " +
+                        str(signif(self.mle_W)).replace('\n', '\n   '))
+            rows.append(f" negative log-likelihood: {signif(self.nll_)}")
+        return "\n".join(rows)
+
+
 

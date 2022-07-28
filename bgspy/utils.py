@@ -635,7 +635,7 @@ def get_files(dir, suffix):
             all_files.add(os.path.join(root, *dirs, file))
     return list(all_files)
 
-
+@np.vectorize
 def signif(x, digits=4):
     if x == 0:
         return 0.
