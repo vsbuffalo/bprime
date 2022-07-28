@@ -3,157 +3,153 @@ from collections import Counter
 import numpy as np
 from scipy.stats import binned_statistic
 from scipy import interpolate
-from bgspy.utils import bin_midpoints
+from scipy.optimize import minimize
 
-def loglik2(pi0, B, y):
-    # y is nsame, ndiff as cols
-    # TODO does pi0 matter?
-    assert(np.all(pi0 <= 0.5))
-    pi = np.exp(np.add.outer(np.log(pi0), B))
-    assert(np.all(pi <= 0.5))
-    pi[pi==0] = np.nextafter(0, 1)
-    #return y
-    a = np.log(pi)*y[None, :, 1, None, None, None]
-    b = np.log1p(-pi)*y[None, :, 0, None, None, None]
-    assert(np.all(np.isfinite(a) | np.isnan(a)))
-    assert(np.all(np.isfinite(b) | np.isnan(b)))
-    ll = a + b
-    #__import__('pdb').set_trace()
-    return ll
 
-def loglik(pi0, B, y):
-    # y is nsame, ndiff as cols
-    # TODO does pi0 matter?
-    pi = pi0*np.exp(B).squeeze()
-    assert(np.all(pi <= 0.5))
-    pi[pi==0] = np.nextafter(0, 1)
-    #return y
-    nD = y[:, 1, None, None]
-    nS = y[:, 0, None, None]
-    a = np.log(pi)*nD
-    b = np.log1p(-pi)*nS
-    assert(np.all(np.isfinite(a) | np.isnan(a)))
-    assert(np.all(np.isfinite(b) | np.isnan(b)))
-    ll = a + b
-    return ll
-
-def loglik_pi0(B, y):
-    # y is nsame, ndiff as cols
-    R = np.exp(B).squeeze()
-    R[R==0] = np.nextafter(0, 1)
-    #return y
-    nD = y[:, 1, None, None]
-    nS = y[:, 0, None, None]
-    def obj(pi0):
-        pi = pi0*R
-        pi[pi==0] = np.nextafter(0, 1)
-        a = np.log(pi)*nD
-        b = np.log1p(-pi)*nS
-        assert(np.all(np.isfinite(a) | np.isnan(a)))
-        assert(np.all(np.isfinite(b) | np.isnan(b)))
-        ll = a + b
-        return (-ll.sum(axis=0)).min()
-    return obj
-
-def num_nonpoly(neut_pos, bins, masks):
+def negloglik(Y, logB, w, log_params=False):
     """
-    Get the number of non-polymorphic sites that overlap the neutral regions
-    specified by the boolean masks. This is calculated as:
-        # neutral masked sites in bin - # polymorphic sites in bins
+    Returns negative log-likelihood function closure around
+    data, Bs (stored in log-space), and the mutation weights
+    w.
 
-    neut_pos: chrom dict of positions of the neutral polymorphic sites
-    bins: chrom dict of bin end positions
-    masks: chrom dict of neutral regions as boolean masks
+    The enclosed function is a function of the parameters
+    θ = {π0, w_{0, 0}, ..., w_{nt, nf}} where nt is the
+    selection grid size and nf is the number of features.
     """
-    chroms = bins.keys()
+    nS = Y[:, 0]
+    nD = Y[:, 1]
 
-    # validate the neutral sites
-    for chrom in chroms:
-        for pos in neut_pos[chrom]:
-            msg = f"Position {pos} is not in the '{chrom}' neutral mask!"
-            assert masks[chrom][pos] == 1, msg
+    nx, nw, nt, nf = logB.shape
 
-    # find window indices of all neutral SNPs
-    idx = {c: np.digitize(neut_pos[c], bins[c])-1 for c in chroms}
-    # count the indices (SNPs) per window
-    poly_counts = {c: Counter(idx[c].tolist()) for c in chroms}
-    npoly = {c: np.array([poly_counts[c][i] for i, _ in enumerate(e)]) for c, e in bins.items()}
-    # what's the width of the neutral regions overlapping the bins?
-    widths = {c: [masks[c][a:b].sum() for a, b in zip(e[:-1], e[1:])] for c, e in bins.items()}
-    #__import__('pdb').set_trace()
-    nfixed = {c: widths[c]-npoly[c][:-1] for c in bins.keys()}
-    return nfixed
+    def negll_logparams(log_theta):
+        log_pi0, log_w_theta = log_theta[0], log_theta[1:]
+        # interpolate B(w)'s
+        logBw = np.zeros(nx, dtype=float)
+        for i in range(nx):
+            for j in range(nt):
+                for k in range(nf):
+                    logBw[i] += np.interp(np.exp(log_w_theta[j, k]), w, logB[i, :, j, k])
+        log_pibar = np.exp(log_pi0 + logBw)
+        llm = nD * log_pibar + nS * np.log1p(-np.exp(log_pibar))
+        return -llm.sum()
 
-# def calc_loglik_components(b, Y, Y_pos, neut_masks, nchroms, chrom_bins):
-#     """
-#     The MLE for parameters is always calculated per-window (here the window bins
-#     defined in chrom_bins). This function aggregates the site-level data (the
-#     number of diff/same sites in Y), counts the number of neutral sites that
-#     could be polymorphic form the masks (neut_masks), and interpolates the Bs
-#     at the window midpoints. It also computes windowed π in these windows from
-#     the data, as a check.
+    def negll(theta):
+        pi0, w_theta = theta[0], theta[1:]
+        # interpolate B(w)'s
+        logBw = np.zeros(nx, dtype=float)
+        for i in range(nx):
+            for j in range(nt):
+                for k in range(nf):
+                    logBw[i] += np.interp(w_theta[j, k], w, logB[i, :, j, k])
+        pibar = pi0 * np.exp(logBw)
+        llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
+        return -llm.sum()
 
-#     b: BScores object
-#     Y: DAC matrix
-#     Y_pos: neutral region masks
-#     nchroms: how many chromosomes were sequenced
-#     bins: dictionary of window endpoints
-#     """
-#     chroms = b.pos.keys()
+    if log_params:
+        return negll_logparams
+    return negll
 
-#     win_midpoints = bin_midpoints(chrom_bins)
-#     win_Bs = {c: b.B_at_pos(c, x) for c, x in win_midpoints.items()}
 
-#     # get the number of positions that are not polymorphic in the window
-#     nonpoly = num_nonpoly(Y_pos, chrom_bins, neut_masks)
 
-#     # next, we need to calculate the components of diversity (n_same, n_diff)
-#     Y_binned = dict()
-#     pi_win = dict()
-#     n = nchroms
-#     with np.errstate(divide='ignore', invalid='ignore'): # for pi_win
-#         for chrom in chroms:
-#             nfixed = nonpoly[chrom]
-#             nsame = binned_statistic(Y_pos[chrom],
-#                                      Y[chrom][:, 0], np.sum,
-#                                      bins=chrom_bins[chrom]).statistic
-#             ndiff = binned_statistic(Y_pos[chrom],
-#                                      Y[chrom][:, 1], np.sum,
-#                                      bins=chrom_bins[chrom]).statistic
-#             # for each fixed site, it adds (n choose 2) same combinations
-#             nsame_fixed = nfixed * n*(n-1)/2
-#             Y_binned[chrom] = np.stack((nsame + nsame_fixed, ndiff)).T
-#             pi_win[chrom] = ndiff / (ndiff + nsame + nsame_fixed)
-#     return Y_binned, win_Bs, pi_win
 
-class WindowedMLE:
+class InterpolatedMLE:
     """
-    nchroms: number of chromosomes sequenced.
+    Y ~ π0 B(w)
+
+    (note Bs are stored in log-space.)
     """
-    def __init__(self, Y, B, w, t):
-        # Y and B are chrom dicts of genomically binned values
-        self.Y = Y
-        self.B = B
+    def __init__(self, w, t, logB, log10_pi0_bounds):
         self.w = w
         self.t = t
-        self.ll = None
+        self.log10_pi0_bounds = log10_pi_bounds
+        try:
+            assert logB.ndim == 4
+            assert logB.shape[1] == w
+            assert logB.shape[2] == t
+        except AssertionError:
+            raise AssertionError("logB has incorrection shape, should be nx x nw x nt x nf")
 
-    def _calc_ll_table(self):
-        Y, B = self.Y, self.B
-        chroms = list(Y.keys())
-        ll = dict()
-        for chrom in chroms:
-            ll[chrom] = Y[chrom][:, None, None, None] * B
+        self.logB = logB
+        self.theta = None
+        self.dim()
 
-
+    def dim(self, chrom=None):
+        """
+        Dimensions are nx x nw x nt x nf. nx is ignored is ignored as
+        that's chromosome specific
+        """
+        dims = set([x.shape[1:] for x in B.values()])
+        assert len(dims) == 1, "different chromosomes have different B dimensions!"
+        if chrom is None:
+            return list(dims)[0]
+        else:
+            return B[chrom].shape
 
     @property
-    def w_mle(self):
-        return self.w[np.where(self.lls == np.nanmax(self.lls))[0]]
+    def w(self):
+        return self.B.w
 
     @property
-    def t_mle(self):
-        return self.t[np.where(self.lls == np.nanmax(self.lls))[1]]
+    def nt(self):
+        return self.dim()[0]
+        return nt
 
+    @property
+    def nw(self):
+        return self.dim()[1]
 
+    @property
+    def nt(self):
+        return self.dim()[2]
+
+    def bounds(self, log=False):
+        pi0_bounds = 10**self.log10_pi0bounds
+        if log:
+            # must be base e
+            pi0_bounds = np.log(pi0_bounds)
+        bounds = [*pi0_bounds]
+        for f in range(self.nf):
+            w1, w2 = np.min(w), np.max(w)
+            if log:
+                w1, w1 = np.log(w1), np.log(w2)
+            bounds.append((w1, w2))
+        return bounds
+
+    def random_start(self, log=False):
+        start = []
+        for bounds in self.bounds(log):
+            if log:
+                start.append(np.exp(np.random.uniform(*bounds, size=1)))
+            else:
+                start.append(np.random.uniform(*bounds, size=1))
+        return np.array(start)
+
+    def fit(self, Y, chrom=None, log_params=False, nruns=50, ncores=None, method='BFGS'):
+        self.Y_ = Y
+        nll = negloglik(Y, self.B, self.w, log_params)
+        bounds = self.bounds(log_params)
+
+        def minimize_worker(start):
+            opt = minimize(nll, start, bounds=bounds, options={'disp': False})
+            return opt.x, opt.fun
+
+        starts = [self.random_start(log) for _ in range(nruns)]
+        if ncores == 1 or ncores is None:
+            res = list(tqdm.tqdm(p.imap(worker, starts), total=nruns))
+        else:
+            with multiprocessing.Pool(ncores) as p:
+                res = list(tqdm.tqdm(p.imap(worker, starts), total=nruns))
+
+        converged = [x.success for x in res]
+        nconv = sum(converged)
+        if all(converged):
+            print(f"all {nconv}/{nruns} converged")
+        else:
+            nfailed = nruns-nconv
+            print(f"WARNING: {nfailed}/{nruns} ({100*np.round(nfailed/nruns, 2)}%)")
+        self.starts_ = starts
+        self.nlls_ = [x.fun for x in res]
+        self.thetas_ = [x.x for x in res]
+        self.bounds_ = bounds
+        self.res_ = res
 

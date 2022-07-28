@@ -50,6 +50,9 @@ class BinnedStat:
         self.bins = bins
         self.n = n
 
+    def __len__(self):
+        return self.stat.shape[0]
+
     @property
     def midpoints(self):
         return midpoints(self.bins)
@@ -62,7 +65,7 @@ class BinnedStat:
     @property
     def pairs(self):
         # ignores the first bin, which is data for points left of zero
-        return (self.midpoints, self.stat[1:])
+        return (self.midpoints, self.stat)
 
 def is_sorted_array(x):
     return np.all(x[:-1] <= x[1:])
@@ -85,7 +88,6 @@ class BScores:
         self.sd = None
         self.step = step
         self._interpolators = None
-        self._w_interpolators = None
 
     @property
     def nf(self):
@@ -214,31 +216,6 @@ class BScores:
                             func = self.w, b
                         chrom_interpols[i][j][k] = func
             interpols[chrom] = Bw_interpol(chrom_interpols, npos, self.nt, self.nf, jax)
-        self._w_interpolators = interpols
-
-    def B_w_interpolated(self, w, chrom=None):
-        """
-        Return a chrom dict, each element of npos x nt x nf array of Bs
-        evaluated at w. If len(w) == 1, w is recycled across features;
-        otherwise it must me len(w) == nf and it is a feature-specific weight.
-        """
-        assert self._w_interpolators is not None, "w interpolators not built!"
-        assert isinstance(w, float) or w.size == 1 or w.size == nf, f"w must be of length one or nf={nf}"
-
-        chroms = list(self.B.keys()) if chrom is None else [chrom]
-        out = dict()
-        for chrm in chroms:
-            npos = len(self.pos[chrm])
-            out[chrm] = np.empty((npos, self.nt, self.nf), dtype=float)
-            for i in range(npos):
-                for j in range(self.nt):
-                    for k in range(self.nf):
-                        y = self._w_interpolators[chrm][i][j][k](w)
-                        out[chrm][i, j, k] = y
-        if chrom is not None:
-            return out[chrom]
-        return out
-
     def _build_interpolators(self, **kwargs):
         """
         Build positional interpolators for each chromsome and w/t combination.
@@ -344,18 +321,26 @@ def bin_chrom(end, width, dtype='uint32'):
     assert np.all(bins < end+1)
     return bins
 
+
 def aggregate_site_array(x, bins, func, **kwargs):
     """
     Given a site array (an np.ndarray of length equal to a chromosome)
     calculate some summary of values with func on the specified bins.
+
     """
-    vals = np.zeros((len(bins), x.shape[1]))
-    n = np.zeros(len(bins))
+    assert x.shape[0] == bins[-1], "bins must range 0, ..., L"
+    # we skip the first bin since it's zero (no data to the left)
+    vals = np.zeros((len(bins)-1, x.shape[1]))
+    n = np.zeros(len(bins)-1)
+    assert bins[0] == 0, "first bin should be 0!"
+    # first binned skipped is skipped since it's zero
     for i in range(1, len(bins)):
         data_in_bin = x[bins[i-1]:bins[i], ...]
-        vals[i, ...] = func(data_in_bin, **kwargs)
+        # the data in between i-1 and i does into i, but
+        # the results length is len(bins)-1
+        vals[i-1, ...] = func(data_in_bin, **kwargs)
         assert not np.any(np.isnan(data_in_bin)) # otherwise this changes n
-        n[i] = np.sum(np.sum(data_in_bin, axis=1) > 0)
+        n[i-1] = np.sum(np.sum(data_in_bin, axis=1) > 0)
     return BinnedStat(vals, bins, n)
 
 

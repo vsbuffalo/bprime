@@ -1,4 +1,5 @@
 import os
+import itertools
 import gzip
 import numpy as np
 import tskit
@@ -290,7 +291,8 @@ class GenomeData:
         self.counts = ac
 
 
-    def bin_reduce(self, width, filter_neutral=None, filter_accessible=None):
+    def bin_reduce(self, width, merge=False,
+                   filter_neutral=None, filter_accessible=None):
         """
         Given a genomic window width, bin the data and compute bin-level
         summaries for the likelihood.
@@ -299,6 +301,7 @@ class GenomeData:
         """
         bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
+        nwins = 0
         for chrom in self.genome.chroms:
             site_ac = filter_sites(self.counts, chrom, filter_neutral,
                                    filter_accessible,
@@ -307,9 +310,21 @@ class GenomeData:
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
             d = pairwise_summary(site_ac)
-            reduced[chrom] = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
+            d_binstat = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
+            reduced[chrom] = d_binstat
+            nwins += len(d_binstat)
 
-        return bins, reduced
+        if not merge:
+            return bins, reduced
+
+        X = np.empty((nwins, 2))
+        i = 0
+        for chrom, binstats in reduced.items():
+            for j in range(binstats.stat.shape[0]):
+                X[i, :] = binstats.stat[j, :]
+                i += 1
+        return bins, X
+
 
     def npoly(self, filter_neutral=None, filter_accessible=None):
         out = dict()
@@ -324,7 +339,9 @@ class GenomeData:
         """
         Calculate π from the binned summaries.
         """
-        bins, reduced = self.bin_reduce(width, filter_neutral, filter_accessible)
+        bins, reduced = self.bin_reduce(width, merge=False,
+                                        filter_neutral=filter_neutral,
+                                        filter_accessible=filter_accessible)
         pi = dict()
         for chrom in reduced.keys():
             pi[chrom] = pi_from_pairwise_summaries(reduced[chrom])
