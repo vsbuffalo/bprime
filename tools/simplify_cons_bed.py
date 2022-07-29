@@ -1,7 +1,7 @@
 import sys
 
 # in order of most to least conserved
-priority = ('phastcons', 'CDS', 'exon', '5UTR', '3UTR', 'UTR', 'pseudogene')
+priority = ('phastcons', 'CDS', 'exon', 'UTR', 'intron', 'pseudogene')
 order = {f: i for i, f in enumerate(priority)}
 
 for line in sys.stdin:

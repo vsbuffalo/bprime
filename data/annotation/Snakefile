@@ -23,7 +23,7 @@ rule seqlens:
   shell:
     """
       bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
-      sed 's/^/chr/' | grep -P '^chr[0-9XY]+' |  \
+      sed 's/^/chr/' | grep -P '^chr[0-9X]+' |  \
       sort  --version-sort -k 1,1 -k2,2n > {output}
     """
 
@@ -41,7 +41,7 @@ rule centro:
   output: "hg38_centro.bed"
   shell:
     """
-    curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" | sort --version-sort -k1,1 -k2,2n > {output}
+    curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" | grep -v "chrY" | sort --version-sort -k1,1 -k2,2n > {output}
     """
 
 rule centro_slop:
@@ -56,18 +56,16 @@ rule phastcons:
   output: "phastConsElements100way.txt.gz"
   shell:
     """
-    # also, remove alt chroms
-    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz  | \
-      zgrep -P '^chr[0-9XY]+\t' | \
-      gzip > {output}
+    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz | \
+     zcat | cut -f2- | grep -P '^chr[0-9X]+\t' | gzip > {output}
     """
 
 rule phastcons_bed:
-  output: "phastConsElements100way.bed.gz"
   input: "phastConsElements100way.txt.gz"
+  output: "phastConsElements100way.bed.gz"
   shell:
     """
-     zcat {input} | bioawk -t '{{ print $2,$3,$4 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+     zcat {input} | bioawk -t '{{ print $1,$2,$3 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
 rule phastcons_bed_filtered:
@@ -76,7 +74,7 @@ rule phastcons_bed_filtered:
   shell:
     """
      # Remove alt chroms and filter the phastcons by a score constant
-     zcat {input} | bioawk -t ' $6 > {wildcards.thresh} {{ print $2,$3,$4 }}' | sort --version-sort -k1,1 -k2,2n |  gzip > {output}
+     zcat {input} | bioawk -t ' $5 > {wildcards.thresh} {{ print $1,$2,$3 }}' | sort --version-sort -k1,1 -k2,2n |  gzip > {output}
     """
 
 rule ensembl_gff:
@@ -85,7 +83,8 @@ rule ensembl_gff:
      """
      curl http://ftp.ensembl.org/pub/release-107/gff3/homo_sapiens/Homo_sapiens.GRCh38.107.chr.gff3.gz | \
        zgrep -v '^#' | sed s/^/chr/ | \
-       grep -P '^chr[0-9XY]+' | \
+       grep -P '^chr[0-9X]+' | \
+       grep -v "chrY" | \
        gzip > {output}
      """
 
@@ -139,7 +138,7 @@ rule utrs:
   output: "hg38.ensembl_utrs.bed.gz"
   shell:
     """
-      bioawk -cgff ' $feature ~ /5UTR|3UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
+      bioawk -cgff ' $feature ~ /five_prime_UTR|three_prime_UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
@@ -150,6 +149,7 @@ rule introns:
     """
     zcat {input.genes} | cut -f1-3 | bedtools merge | \
      bedtools subtract -a - -b {input.exon} | bedtools subtract -a -  -b {input.utr} | \
+     bioawk -cbed '{{ print $1,$2,$3,"intron" }}' | \
      gzip > {output}
     """
 
@@ -215,7 +215,9 @@ cons = [ # phastcons at different filtering thresholds:
         "conserved_phastcons_thresh471_slop1k.bed.gz", 
         "conserved_phastcons_thresh527_slop1k.bed.gz",
         # phastcons and exons, merged no filtering
-        "conserved_phastcons_exons_thresh0.bed.gz"
+        "conserved_phastcons_exons_thresh0.bed.gz",
+        # merged feature track
+        "merged_utrs_exons_introns_phastcons.bed.gz"
 ] 
 
 # this is used for sims with combined conserved regions (phastcons)
@@ -253,6 +255,18 @@ rule conserved_phastcons_exons:
         sort  --version-sort -k 1,1 -k2,2n | \
         bedtools merge | gzip > {output}
       """
+
+rule merged_utrs_exons_introns_phastcons:
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", exons="hg38.ensembl_exons.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz"
+  output: "merged_utrs_exons_introns_phastcons.bed.gz"
+  shell:
+    """
+    (zcat {input.utrs} {input.introns} {input.exons}; bioawk -cbed '{{ print $1,$2,$3,"phastcons"}}' {input.phastcons}) | \
+      sed -e 's/five_prime_UTR/UTR/' -e 's/three_prime_UTR/UTR/' | \
+      sort  --version-sort -k 1,1 -k2,2n | bedtools merge -c 4 -o distinct | \
+      grep -v "chrY" | \
+      python ../../tools/simplify_cons_bed.py | gzip > {output}
+    """
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS

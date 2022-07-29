@@ -2,12 +2,33 @@
 import multiprocessing
 import tqdm
 from functools import partial
-from collections import Counter
+from collections import Counter, defaultdict
 import numpy as np
+from scipy.special import xlogy, xlog1py
 from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize, dual_annealing
 from bgspy.utils import signif
+
+def penalized_negll(theta, Y, logB, w, penalty=2):
+    """
+    Experimental
+    """
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=float)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+    pibar = pi0 * np.exp(logBw)
+    llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
+    return -(llm.sum() - penalty*np.log(W.sum()**2))
 
 def negll(theta, Y, logB, w):
     nS = Y[:, 0]
@@ -23,7 +44,7 @@ def negll(theta, Y, logB, w):
             for k in range(nf):
                 logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
     pibar = pi0 * np.exp(logBw)
-    llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
+    llm = xlogy(nD, pibar) + xlog1py(nS, -pibar)
     return -llm.sum()
 
 def predict(theta, logB, w):
@@ -44,7 +65,8 @@ def minimize_worker(args):
     start, bounds, func, Y, logB, w = args
     func = partial(func, Y=Y, logB=logB, w=w)
     res = minimize(func, start, bounds=bounds,
-                   method='L-BFGS-B',
+                   #method='L-BFGS-B',
+                   method='BFGS',
                    options={'disp': False})
     return res
 
@@ -134,7 +156,7 @@ class InterpolatedMLE:
             print(f"all {nconv}/{nruns} converged")
         else:
             nfailed = nruns-nconv
-            print(f"WARNING: {nfailed}/{nruns} ({100*np.round(nfailed/nruns, 2)}%)")
+            print(f"WARNING: {nfailed}/{nruns} ({100*np.round(nfailed/nruns, 2)}%) optimizations failed!")
         self.starts_ = starts
         self.nlls_ = np.array([x.fun for x in res])
         self.thetas_ = np.array([x.x for x in res])
@@ -155,11 +177,15 @@ class InterpolatedMLE:
         grid = []
         free_idx = []
         fixed_idx = []
+        if isinstance(nmesh, int):
+            nmesh = [nmesh if free else None for free in is_free]
         for i, bounds in enumerate(bounds):
+            n = nmesh[i]
             if is_free[i]:
-                grid.append(10**np.linspace(*np.log10(bounds), nmesh))
+                grid.append(10**np.linspace(*np.log10(bounds), n))
                 free_idx.append(i)
             else:
+                assert n is None
                 grid.append([theta_fixed[i]])
                 fixed_idx.append(i)
         mgrid = np.meshgrid(*grid)
@@ -179,10 +205,26 @@ class InterpolatedMLE:
     def mle_W(self):
         return self.theta_[1:].reshape((self.nt, self.nf))
 
-    def predict(self, logB=None):
+    def summary(self):
+        wgrid = defaultdict(dict)
+        for i in range(self.nf):
+            for j in range(self.nt):
+                wgrid[i][j] = float(signif(self.mle_W[j, i]))
+        print(f"π0 = {self.mle_pi0}")
+        for i in wgrid:
+            print(f"feature {i}:")
+            for j in wgrid[i]:
+                sel = signif(self.t[j])
+                print(f"  w({sel}) = {wgrid[i][j]}")
+
+    def predict(self, logB=None, all=False):
         assert self.theta_ is not None, "InterpolatedMLE.theta_ is not set, call fit() first"
         logB = self.logB if logB is None else logB
-        return predict(self.theta_, logB, self.w)
+        if not all:
+            return predict(self.theta_, logB, self.w)
+        n = self.thetas_.shape[0]
+        pis = [predict(self.thetas_[i, :], logB, self.w) for i in range(n)]
+        return np.stack(pis)
 
     def __repr__(self):
         rows = [f"MLE (interpolated w): {self.nw} x {self.nt} x {self.nf}"]

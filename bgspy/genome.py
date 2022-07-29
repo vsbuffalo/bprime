@@ -104,7 +104,9 @@ def process_annotation(features, recmap, split_length=None):
     try:
         assert(all(chrom in recmap.rates.keys() for chrom in features.keys()))
     except:
-        raise ValueError(f"features contains sequences not in recmap.")
+
+        bad = set(features.keys()).difference(set(recmap.rates.keys()))
+        raise ValueError(f"features contains sequences not in recmap, {bad}")
 
     if split_length is not None:
         split_features = dict()
