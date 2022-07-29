@@ -77,4 +77,4 @@ rule bgs_dac:
 rule all:
   input:
     #sim_results, lls_results, fig_results, bgstrees_results
-    bgs_results, SIM_NP, bgs_dac
+    bgs_results, SIM_NP#, bgs_dac
