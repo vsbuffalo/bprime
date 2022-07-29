@@ -25,7 +25,7 @@ rule bmap_chr10:
 
 maps = [
         "bmap_hg38_7x5grid_10000step_chr10.pkl",
-        #"bmap_hg38_6x7grid_10000step_chr10.pkl",
+        "bmap_hg38_6x7grid_10000step_chr10.pkl",
         #"bmap_hg38_20x21grid_10000step_chr10.pkl"
         ]
 

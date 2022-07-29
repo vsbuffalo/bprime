@@ -23,7 +23,10 @@ LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 # sorry non-human researchers, I like other organisms too, just for
 # my sims :)
 MIN_W = np.sqrt(1e-8 * 1e-7) # midpooint between 1e-7 and 1e-8 on a log10 scale
-def grid_maker(nw, nt, w_range=(-10, np.log10(MIN_W)), t_range=(-5, -1)):
+#HUMAN_W = (-10, np.log10(MIN_W))
+HUMAN_W = (-10, -7)
+HUMAN_T = (-5, -1)
+def grid_maker(nw, nt, w_range=HUMAN_W, t_range=HUMAN_T):
   return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
 
 def grid_maker_from_str(x):

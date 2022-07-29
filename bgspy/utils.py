@@ -405,36 +405,15 @@ class GenomicBins:
         """
         return midpoints(self.bins)
 
-    def full_bins(self, value=0, shape=None, dtype=float):
+    @property
+    def flat(self):
         """
-        Like np.full(), this creates a vector full of a value.
-        Shape is by dimensional nbins-1; if shape is specified, it
-        specifies the shape of other dimensions _after_ the first.
-
-        Note: the first bin is zero; hence the number of bins is nbins-1.
+        Return a list of (chr, midpoint) positions for the bins.
         """
-        out = dict()
-        for chrom in self.seqlens:
-            if shape is None:
-                shape = self.bins[chrom].size - 1
-            else:
-                shape = (self.bins[chrom].size - 1, *shape)
-            out[chrom] = np.full(shape, value, dtype=dtype)
-        return out
-
-    def aggregate_positions(self, x, pos_dict, func, **kwargs):
-        """
-        Aggregate the data in chrom dict x with positions in pos_dict,
-        using function func with **kwargs.
-        """
-        assert isinstance(x, dict), "x must be a dict"
-        assert isinstance(pos_dict, dict), "pos_dict must be a dict"
-        # get the first set of other dimensions -- assumed to be all the same!
-        chrom = list(x.keys())[0]
-        agg = dict()
-        for chrom in pos_dict:
-            out[chrom] = bin_aggregate(x[chrom], pos_dict[chrom], func,
-                                       bins[chrom], **kwargs)
+        out = []
+        for chrom, bins in self.bins.items():
+            for mp in midpoints(bins):
+                out.append((chrom, mp))
         return out
 
     def aggregate_site_array(self, x, func, **kwargs):

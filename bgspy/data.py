@@ -290,6 +290,9 @@ class GenomeData:
                 ac[chrom][pos, 1] = nderiv
         self.counts = ac
 
+    @property
+    def chroms(self):
+        return self.genome.chroms
 
     def bin_reduce(self, width, merge=False,
                    filter_neutral=None, filter_accessible=None):
@@ -302,7 +305,7 @@ class GenomeData:
         bins = GenomicBins(self.genome.seqlens, width)
         reduced = dict()
         nwins = 0
-        for chrom in self.genome.chroms:
+        for chrom in self.chroms:
             site_ac = filter_sites(self.counts, chrom, filter_neutral,
                                    filter_accessible,
                                    self.neutral_masks, self.accesssible_masks)
