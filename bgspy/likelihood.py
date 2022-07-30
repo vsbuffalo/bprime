@@ -10,6 +10,17 @@ from scipy import interpolate
 from scipy.optimize import minimize, dual_annealing
 from bgspy.utils import signif
 
+def R2(x, y):
+    """
+    Based on scipy.stats.linregress
+    https://github.com/scipy/scipy/blob/v1.9.0/scipy/stats/_stats_mstats_common.py#L22-L209
+    """
+    complete_idx = ~(np.isnan(x) | np.isnan(y))
+    x = x[complete_idx]
+    y = y[complete_idx]
+    ssxm, ssxym, _, ssym = np.cov(x, y, bias=True).flat
+    return ssxym / np.sqrt(ssxm * ssym)
+
 def penalized_negll(theta, Y, logB, w, penalty=2):
     """
     Experimental
@@ -65,8 +76,7 @@ def minimize_worker(args):
     start, bounds, func, Y, logB, w = args
     func = partial(func, Y=Y, logB=logB, w=w)
     res = minimize(func, start, bounds=bounds,
-                   #method='L-BFGS-B',
-                   method='BFGS',
+                   method='L-BFGS-B',
                    options={'disp': False})
     return res
 

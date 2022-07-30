@@ -229,5 +229,5 @@ class BGSModel(object):
             B = self.Bs[chrom]
             assert Bp.shape == B.shape, "incompatible dimensions!"
             # back fill the values
-            Bp[np.isnan(Bp)] = B[np.isnan(B)]
+            Bp[np.isnan(Bp)] = B[np.isnan(Bp)]
 
