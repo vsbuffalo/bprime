@@ -20,7 +20,7 @@ done
 
 shift $((OPTIND-1))
 
-NAME=$(basename $CONFIG .json)
+NAME="gvcf"
 
 snakemake -j $MAXJOBS --rerun-incomplete --use-conda \
   --snakefile $SNAKEFILE \

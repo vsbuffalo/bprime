@@ -5,7 +5,7 @@ rule counts_from_gvcf:
   output: "hg1k_counts/{chrom}_counts.npy"
   shell:
     """
-    python ../tools/gvcf2counts.py --sample-file yri_samples.tsv --outdir hg1k_counts {input}
+    python ../../tools/gvcf2counts.py --sample-file yri_samples.tsv --outdir hg1k_counts {input}
     """
 
 chroms = list(range(1, 23)) + ['X']
