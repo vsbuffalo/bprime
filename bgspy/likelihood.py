@@ -190,6 +190,7 @@ class BGSEstimator:
         self.logB = logB
         self.theta_ = None
         self.dim()
+        self.rng = None
 
     def dim(self):
         """
@@ -222,13 +223,20 @@ class BGSEstimator:
         return tuple(zip(*bounds))
 
     def random_start(self, seed=None):
-        rng = np.random.default_rng(seed)
+        if seed is not None:
+            self.rng = np.random.default_rng(seed)
+        else:
+            assert self.rng is not None, "rng not set!"
+            rng = self.rng
         start = []
         for bounds in self.bounds():
             start.append(rng.uniform(*bounds, size=1))
         return np.array(start)
 
-    def fit(self, Y, nruns=50, use_numba=True, ncores=None, annealing=False):
+    def fit(self, Y, nruns=50, use_numba=True, ncores=None, annealing=False, seed=None):
+        if seed is not None:
+            self.rng = np.random.default_rng(seed)
+            print(self.rng)
         self.Y_ = Y
         bounds = self.bounds()
         logB = self.logB

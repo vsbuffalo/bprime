@@ -1,10 +1,11 @@
 import numpy as np
 np.random.seed(0)
 
+SEED_MAX = 2**32 - 1 
+
 from bgspy.likelihood import BGSEstimator
 
-NRUNS = 10_000
-NRUNS = 1
+NRUNS = 10
 
 res = [f"runs/hg38_test_results_{seed}.npz" for seed in np.random.randint(0, SEED_MAX, NRUNS)]
 
@@ -12,10 +13,10 @@ rule optim_run:
   input: "hg38_test_data.npz"
   output: "runs/hg38_test_results_{seed}.npz"
   run: 
-    seed = wildcards.seed
+    seed = int(wildcards.seed)
     mle = BGSEstimator.from_npz(input[0])
-    Y = np.loadz(input[0]['Y'])
-    mle.fit(Y, nruns=10_000)
+    Y = np.load(input[0])['Y']
+    mle.fit(Y, nruns=100, ncores=10, seed=seed)
     mle.save_runs(output[0])
 
 rule merge:
@@ -26,13 +27,13 @@ rule merge:
     starts = []
     thetas = []
     success = []
-    for file in output:
-      d = np.loadz(file)
+    for file in input:
+      d = np.load(file)
       nlls.extend(d['nlls'])
       starts.extend(d['starts'])
       thetas.extend(d['thetas'])
       success.extend(d['success'])
-    np.savez(filename, nlls = np.array(nlls), starts=np.arary(starts),
+    np.savez(output[0], nlls = np.array(nlls), starts=np.array(starts),
              thetas = np.array(thetas), success = np.array(thetas))
 
 
