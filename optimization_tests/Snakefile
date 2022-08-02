@@ -1,9 +1,10 @@
 import numpy as np
-random.seed(0)
+np.random.seed(0)
 
 from bgspy.likelihood import BGSEstimator
 
 NRUNS = 10_000
+NRUNS = 1
 
 res = [f"runs/hg38_test_results_{seed}.npz" for seed in np.random.randint(0, SEED_MAX, NRUNS)]
 
@@ -34,5 +35,8 @@ rule merge:
     np.savez(filename, nlls = np.array(nlls), starts=np.arary(starts),
              thetas = np.array(thetas), success = np.array(thetas))
 
+
+rule all:
+  input: "run_results.npz"
 
     
