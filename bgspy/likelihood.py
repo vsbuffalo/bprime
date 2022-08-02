@@ -4,7 +4,12 @@ import tqdm
 from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
-import jax.numpy as jnp
+HAS_JAX = False
+try:
+    import jax.numpy as jnp
+    HAS_JAX = True
+except ImportError:
+    pass
 from scipy.special import xlogy, xlog1py
 from scipy.stats import binned_statistic
 from scipy import interpolate
@@ -80,22 +85,23 @@ def negll(theta, Y, logB, w):
     llm = nD*log_pibar + nS*log1mexp(log_pibar)
     return -np.sum(llm)
 
-def negll_jax(theta, Y, logB, w):
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, W = theta[0], theta[1:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    logBw = jnp.zeros(nx, dtype=jnp.float32)
-    for i in range(nx):
-        for j in range(nt):
-            for k in range(nf):
-                logBw = logBw.at[i].add(jnp.interp(W[j, k], w, logB[i, :, j, k]))
-    log_pibar = jnp.log(pi0) + logBw
-    llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
-    return -jnp.sum(llm)
+if HAS_JAX:
+    def negll_jax(theta, Y, logB, w):
+        nS = Y[:, 0]
+        nD = Y[:, 1]
+        nx, nw, nt, nf = logB.shape
+        # mut weight params
+        pi0, W = theta[0], theta[1:]
+        W = W.reshape((nt, nf))
+        # interpolate B(w)'s
+        logBw = jnp.zeros(nx, dtype=jnp.float32)
+        for i in range(nx):
+            for j in range(nt):
+                for k in range(nf):
+                    logBw = logBw.at[i].add(jnp.interp(W[j, k], w, logB[i, :, j, k]))
+        log_pibar = jnp.log(pi0) + logBw
+        llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
+        return -jnp.sum(llm)
 
 @jit(nopython=True)
 def inverse_logit(x):
