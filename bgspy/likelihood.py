@@ -4,10 +4,12 @@ import tqdm
 from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
+import jax.numpy as jnp
 from scipy.special import xlogy, xlog1py
 from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize, dual_annealing
+from numba import jit
 from bgspy.utils import signif
 
 def R2(x, y):
@@ -41,6 +43,24 @@ def penalized_negll(theta, Y, logB, w, penalty=2):
     llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
     return -(llm.sum() - penalty*np.log(W.sum()**2))
 
+def log1mexp(x):
+    """
+    log(1-exp(-|x|)) computed using the methods described in
+    this paper: https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+
+    I've also added another condition to prevent underflow.
+    """
+    assert isinstance(x, np.ndarray), "x must be a float-like np.ndarray"
+    assert np.all(x < 0), "x must be < 0"
+    min_negexp = np.finfo(x.dtype).minexp / np.log2(np.exp(1))
+    a0 = np.log(2)
+    out = np.zeros_like(x)
+    #out = np.full_file(x, np.e)
+    not_underflow = x > min_negexp
+    abs_x = np.abs(x[not_underflow])
+    out[not_underflow] = np.where(abs_x < a0, np.log(-np.expm1(-abs_x)), np.log1p(-np.exp(-abs_x)))
+    return out
+
 def negll(theta, Y, logB, w):
     nS = Y[:, 0]
     nD = Y[:, 1]
@@ -54,9 +74,73 @@ def negll(theta, Y, logB, w):
         for j in range(nt):
             for k in range(nf):
                 logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    pibar = pi0 * np.exp(logBw)
-    llm = xlogy(nD, pibar) + xlog1py(nS, -pibar)
-    return -llm.sum()
+    #pibar = pi0 * np.exp(logBw)
+    log_pibar = np.log(pi0) + logBw
+    #llm = nD*log_pibar + xlog1py(nS, -np.exp(log_pibar))
+    llm = nD*log_pibar + nS*log1mexp(log_pibar)
+    return -np.sum(llm)
+
+def negll_jax(theta, Y, logB, w):
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = jnp.zeros(nx, dtype=jnp.float32)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw = logBw.at[i].add(jnp.interp(W[j, k], w, logB[i, :, j, k]))
+    log_pibar = jnp.log(pi0) + logBw
+    llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
+    return -jnp.sum(llm)
+
+@jit(nopython=True)
+def inverse_logit(x):
+    return np.exp(x) / (1+np.exp(1))
+
+def logit(x):
+    return np.log(x / (1-x))
+
+@jit(nopython=True)
+def negll_numba_reparam(theta_reparam, Y, logB, w):
+    theta = np.exp(theta_reparam) / (1 + np.exp(theta_reparam))
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=np.float64)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+    log_pibar = np.log(pi0) + logBw
+    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
+    return -np.sum(llm)
+
+
+@jit(nopython=True)
+def negll_numba(theta, Y, logB, w):
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=np.float64)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+    log_pibar = np.log(pi0) + logBw
+    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
+    return -np.sum(llm)
 
 def predict(theta, logB, w):
     nx, nw, nt, nf = logB.shape
@@ -80,7 +164,7 @@ def minimize_worker(args):
                    options={'disp': False})
     return res
 
-class InterpolatedMLE:
+class BGSEstimator:
     """
     Y ~ π0 B(w)
 
@@ -119,7 +203,7 @@ class InterpolatedMLE:
     def nf(self):
         return self.dim()[2]
 
-    def bounds(self):
+    def bounds(self, paired=True):
         pi0_bounds = 10**self.log10_pi0_bounds[0], 10**self.log10_pi0_bounds[1]
         bounds = [pi0_bounds]
         w = self.w
@@ -127,15 +211,18 @@ class InterpolatedMLE:
             for f in range(self.nf):
                 w1, w2 = np.min(w), np.max(w)
                 bounds.append((w1, w2))
-        return bounds
+        if paired:
+            return bounds
+        return tuple(zip(*bounds))
 
-    def random_start(self):
+    def random_start(self, seed=None):
+        rng = np.random.default_rng(seed)
         start = []
         for bounds in self.bounds():
-            start.append(np.random.uniform(*bounds, size=1))
+            start.append(rng.uniform(*bounds, size=1))
         return np.array(start)
 
-    def fit(self, Y, nruns=50, ncores=None, annealing=False):
+    def fit(self, Y, nruns=50, use_numba=True, ncores=None, annealing=False):
         self.Y_ = Y
         bounds = self.bounds()
         logB = self.logB
@@ -152,7 +239,8 @@ class InterpolatedMLE:
             for _ in range(nruns):
                 start = self.random_start()
                 starts.append(start)
-                args.append((start, bounds, negll, Y, logB, w))
+                func = negll if not use_numba else negll_numba
+                args.append((start, bounds, func, Y, logB, w))
 
             if ncores == 1 or ncores is None:
                 res = [minimize_worker(a) for a in tqdm.tqdm(args, total=nruns)]
@@ -176,6 +264,11 @@ class InterpolatedMLE:
         self.nll_ = self.nlls_[np.argmin(self.nlls_)]
 
         return self
+
+    def save_runs(self, filename):
+        success = np.array([x.success for x in self.res_], dtype=bool)
+        np.savez(filename, starts=self.starts_, nlls=self.nlls_,
+                 thetas=self.thetas_, success=success)
 
     def profile_likelihood(self, Y, theta_fixed, nmesh, bounds=None):
         """
@@ -235,6 +328,18 @@ class InterpolatedMLE:
         n = self.thetas_.shape[0]
         pis = [predict(self.thetas_[i, :], logB, self.w) for i in range(n)]
         return np.stack(pis)
+
+    def to_npz(self, filename):
+        np.savez(filename, logB=self.logB, w=self.w, t=self.t, Y=self.Y_,
+                 bounds=self.bounds())
+
+    @classmethod
+    def from_npz(self, filename):
+        d = np.load(filename)
+        bounds = d['bounds']
+        obj = BGSEstimator(d['w'], d['t'], d['logB'],
+                           (np.log10(bounds[0, 0]), np.log10(bounds[0, 1])))
+        return obj
 
     def __repr__(self):
         rows = [f"MLE (interpolated w): {self.nw} x {self.nt} x {self.nf}"]

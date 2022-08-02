@@ -24,7 +24,7 @@ LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 # my sims :)
 MIN_W = np.sqrt(1e-8 * 1e-7) # midpooint between 1e-7 and 1e-8 on a log10 scale
 #HUMAN_W = (-10, np.log10(MIN_W))
-HUMAN_W = (-10, -7)
+HUMAN_W = (-11, -7)
 HUMAN_T = (-5, -1)
 def grid_maker(nw, nt, w_range=HUMAN_W, t_range=HUMAN_T):
   return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
@@ -132,7 +132,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     if not only_b:
         assert N is not None, "--popsize is not set and B' calculated!"
         m.calc_Bp(N=N, step=step, ncores=ncores_bp, nchunks=nchunks)
-    if fill_nan:
+    if not only_b and fill_nan:
         assert m.Bps is not None, "B' not set!"
         print(f"filling in B' NaNs with B...\t", end='', flush=True)
         m.fill_Bp_nan()

@@ -217,7 +217,9 @@ cons = [ # phastcons at different filtering thresholds:
         # phastcons and exons, merged no filtering
         "conserved_phastcons_exons_thresh0.bed.gz",
         # merged feature track
-        "merged_utrs_exons_introns_phastcons.bed.gz"
+        "merged_utrs_cds_introns_phastcons.bed.gz",
+        # merged but no phastcons
+        "merged_utrs_cds_introns.bed.gz"
 ] 
 
 # this is used for sims with combined conserved regions (phastcons)
@@ -256,15 +258,26 @@ rule conserved_phastcons_exons:
         bedtools merge | gzip > {output}
       """
 
-rule merged_utrs_exons_introns_phastcons:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", exons="hg38.ensembl_exons.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz"
-  output: "merged_utrs_exons_introns_phastcons.bed.gz"
+rule merged_utrs_cds_introns:
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz"
+  output: "merged_utrs_cds_introns.bed.gz"
   shell:
     """
-    (zcat {input.utrs} {input.introns} {input.exons}; bioawk -cbed '{{ print $1,$2,$3,"phastcons"}}' {input.phastcons}) | \
+    zcat {input.utrs} {input.introns} {input.cds} | \
       sed -e 's/five_prime_UTR/UTR/' -e 's/three_prime_UTR/UTR/' | \
       sort  --version-sort -k 1,1 -k2,2n | bedtools merge -c 4 -o distinct | \
-      grep -v "chrY" | \
+      python ../../tools/simplify_cons_bed.py | gzip > {output}
+    """
+
+
+rule merged_utrs_cds_introns_phastcons:
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz"
+  output: "merged_utrs_cds_introns_phastcons.bed.gz"
+  shell:
+    """
+    (zcat {input.utrs} {input.introns} {input.cds}; bioawk -cbed '{{ print $1,$2,$3,"phastcons"}}' {input.phastcons}) | \
+      sed -e 's/five_prime_UTR/UTR/' -e 's/three_prime_UTR/UTR/' | \
+      sort  --version-sort -k 1,1 -k2,2n | bedtools merge -c 4 -o distinct | \
       python ../../tools/simplify_cons_bed.py | gzip > {output}
     """
 

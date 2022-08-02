@@ -313,6 +313,7 @@ class GenomeData:
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
             d = pairwise_summary(site_ac)
+            # number of combinations summed into bins per chrom
             d_binstat = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
             reduced[chrom] = d_binstat
             nwins += len(d_binstat)
