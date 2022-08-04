@@ -1,4 +1,5 @@
 ## likelihood.py -- functions for likelihood stuff
+import json
 import multiprocessing
 import tqdm
 from functools import partial
@@ -148,6 +149,31 @@ def negll_numba(theta, Y, logB, w):
     llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
     return -np.sum(llm)
 
+
+@jit(nopython=True)
+def negll_numba_fixmu(theta, Y, logB, w, mu):
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt-1, nf)) # simplex; one fewer parameter per column
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=np.float64)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                # mimix the simplex
+                if j == 0:
+                    # fixed class
+                    Wjk = 1 - W[:, k].sum()
+                else:
+                    Wjk = W[j-1, k]
+                logBw[i] += np.interp(mu*Wjk, w, logB[i, :, j, k])
+    log_pibar = np.log(pi0) + logBw
+    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
+    return -np.sum(llm)
+
 def predict(theta, logB, w):
     nx, nw, nt, nf = logB.shape
     # mut weight params
@@ -163,8 +189,12 @@ def predict(theta, logB, w):
 
 
 def minimize_worker(args):
-    start, bounds, func, Y, logB, w = args
-    func = partial(func, Y=Y, logB=logB, w=w)
+    if len(args) == 6:
+        start, bounds, func, Y, logB, w = args
+        func = partial(func, Y=Y, logB=logB, w=w)
+    else:
+        start, bounds, func, Y, logB, w, mu = args
+        func = partial(func, Y=Y, logB=logB, w=w, mu=mu)
     res = minimize(func, start, bounds=bounds,
                    method='L-BFGS-B',
                    options={'disp': False})
@@ -176,7 +206,7 @@ class BGSEstimator:
 
     (note Bs are stored in log-space.)
     """
-    def __init__(self, w, t, logB, log10_pi0_bounds=(-5, -1)):
+    def __init__(self, w, t, logB, log10_pi0_bounds=(-5, -1), seed=None):
         self.w = w
         self.t = t
         self.log10_pi0_bounds = log10_pi0_bounds
@@ -190,7 +220,7 @@ class BGSEstimator:
         self.logB = logB
         self.theta_ = None
         self.dim()
-        self.rng = None
+        self.rng = np.random.default_rng(seed)
 
     def dim(self):
         """
@@ -210,35 +240,42 @@ class BGSEstimator:
     def nf(self):
         return self.dim()[2]
 
-    def bounds(self, paired=True):
+    def bounds(self, paired=True, fix_mu=False):
         pi0_bounds = 10**self.log10_pi0_bounds[0], 10**self.log10_pi0_bounds[1]
         bounds = [pi0_bounds]
         w = self.w
-        for t in range(self.nt):
+        nt = self.nt
+        if fix_mu:
+            nt -= 1
+        for t in range(nt):
             for f in range(self.nf):
-                w1, w2 = np.min(w), np.max(w)
+                if fix_mu:
+                    w1, w2 = (0, 1)
+                else:
+                    w1, w2 = np.min(w), np.max(w)
                 bounds.append((w1, w2))
         if paired:
             return bounds
         return tuple(zip(*bounds))
 
-    def random_start(self, seed=None):
+    def random_start(self, fix_mu=False, seed=None):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         else:
             assert self.rng is not None, "rng not set!"
             rng = self.rng
         start = []
-        for bounds in self.bounds():
+        for bounds in self.bounds(fix_mu=fix_mu):
             start.append(rng.uniform(*bounds, size=1))
         return np.array(start)
 
-    def fit(self, Y, nruns=50, use_numba=True, ncores=None, annealing=False, seed=None):
+    def fit(self, Y, nruns=50, seed=None, mu=None, use_numba=True,
+            ncores=None, annealing=False):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
-            print(self.rng)
         self.Y_ = Y
-        bounds = self.bounds()
+        fix_mu = mu is not None
+        bounds = self.bounds(fix_mu=fix_mu)
         logB = self.logB
         w = self.w
 
@@ -251,10 +288,15 @@ class BGSEstimator:
             args = []
             starts = []
             for _ in range(nruns):
-                start = self.random_start()
+                start = self.random_start(fix_mu=fix_mu, seed=seed)
                 starts.append(start)
-                func = negll if not use_numba else negll_numba
-                args.append((start, bounds, func, Y, logB, w))
+                if mu is not None:
+                    assert use_numba
+                    func = negll_numba_fixmu
+                    args.append((start, bounds, func, Y, logB, w, mu))
+                else:
+                    func = negll if not use_numba else negll_numba
+                    args.append((start, bounds, func, Y, logB, w))
 
             if ncores == 1 or ncores is None:
                 res = [minimize_worker(a) for a in tqdm.tqdm(args, total=nruns)]
@@ -276,6 +318,7 @@ class BGSEstimator:
         self.res_ = res
         self.theta_ = self.thetas_[np.argmin(self.nlls_), :]
         self.nll_ = self.nlls_[np.argmin(self.nlls_)]
+        self.fix_mu_ = fix_mu
 
         return self
 
@@ -320,7 +363,10 @@ class BGSEstimator:
 
     @property
     def mle_W(self):
-        return self.theta_[1:].reshape((self.nt, self.nf))
+        if not self.fix_mu_:
+            return self.theta_[1:].reshape((self.nt, self.nf))
+        W = self.theta_[1:].reshape((self.nt-1, self.nf))
+        return np.concatenate((1-W.sum(axis=0)[None, :], W), axis=0)
 
     def summary(self):
         wgrid = defaultdict(dict)
@@ -346,6 +392,26 @@ class BGSEstimator:
     def to_npz(self, filename):
         np.savez(filename, logB=self.logB, w=self.w, t=self.t, Y=self.Y_,
                  bounds=self.bounds())
+
+    def to_json(self, filename):
+        Y = self.Y_.astype(int)
+        N = Y.sum(axis=1)
+        Nd = Y[:, 1].squeeze()
+        # get rid of 0s
+        idx = N > 0
+        N = N[idx]
+        Nd = Nd[idx]
+        # simpler model:
+        #logB = self.logB[idx, ...][..., 0][..., None]
+        logB = self.logB[idx, ...]
+        nx, nw, nt, nf = logB.shape
+        with open(filename, 'w') as f:
+            json.dump(dict(logBs=logB.tolist(),
+                           w=self.w.tolist(),
+                           nx=nx, nw=nw, nt=nt, nf=nf,
+                           #Nd=Nd.tolist(), N=N.tolist(),
+                           Y = Y[idx, ...].tolist()
+                           ), f, indent=2)
 
     @classmethod
     def from_npz(self, filename):
