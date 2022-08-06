@@ -200,6 +200,11 @@ def minimize_worker(args):
                    options={'disp': False})
     return res
 
+
+def expand_W_simplex(w, nt, nf):
+    W = w.reshape((nt-1, nf))
+    return np.concatenate((1-W.sum(axis=0)[None, :], W), axis=0)
+
 class BGSEstimator:
     """
     Y ~ π0 B(w)
@@ -365,8 +370,7 @@ class BGSEstimator:
     def mle_W(self):
         if not self.fix_mu_:
             return self.theta_[1:].reshape((self.nt, self.nf))
-        W = self.theta_[1:].reshape((self.nt-1, self.nf))
-        return np.concatenate((1-W.sum(axis=0)[None, :], W), axis=0)
+        return expand_W_simplex(self.theta_[1:], self.nt, self.nf)
 
     def summary(self):
         wgrid = defaultdict(dict)
@@ -412,6 +416,7 @@ class BGSEstimator:
                            #Nd=Nd.tolist(), N=N.tolist(),
                            Y = Y[idx, ...].tolist()
                            ), f, indent=2)
+
 
     @classmethod
     def from_npz(self, filename):
