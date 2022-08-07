@@ -1,22 +1,34 @@
 ## likelihood.py -- functions for likelihood stuff
+import os
+import warnings
 import json
 import multiprocessing
 import tqdm
 from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
-HAS_JAX = False
-try:
-    import jax.numpy as jnp
-    HAS_JAX = True
-except ImportError:
-    pass
+from ctypes import POINTER, c_double
+
+# no longer needed
+# HAS_JAX = False
+# try:
+#     import jax.numpy as jnp
+#     HAS_JAX = True
+# except ImportError:
+#     pass
+
 from scipy.special import xlogy, xlog1py
 from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize, dual_annealing
 from numba import jit
 from bgspy.utils import signif
+
+# load the library (relative to this file in src/)
+LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
+likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
+
+#likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
 
 def R2(x, y):
     """
@@ -86,23 +98,24 @@ def negll(theta, Y, logB, w):
     llm = nD*log_pibar + nS*log1mexp(log_pibar)
     return -np.sum(llm)
 
-if HAS_JAX:
-    def negll_jax(theta, Y, logB, w):
-        nS = Y[:, 0]
-        nD = Y[:, 1]
-        nx, nw, nt, nf = logB.shape
-        # mut weight params
-        pi0, W = theta[0], theta[1:]
-        W = W.reshape((nt, nf))
-        # interpolate B(w)'s
-        logBw = jnp.zeros(nx, dtype=jnp.float32)
-        for i in range(nx):
-            for j in range(nt):
-                for k in range(nf):
-                    logBw = logBw.at[i].add(jnp.interp(W[j, k], w, logB[i, :, j, k]))
-        log_pibar = jnp.log(pi0) + logBw
-        llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
-        return -jnp.sum(llm)
+## there's an imp DeprecationWarning this trigger
+# if HAS_JAX:
+#     def negll_jax(theta, Y, logB, w):
+#         nS = Y[:, 0]
+#         nD = Y[:, 1]
+#         nx, nw, nt, nf = logB.shape
+#         # mut weight params
+#         pi0, W = theta[0], theta[1:]
+#         W = W.reshape((nt, nf))
+#         # interpolate B(w)'s
+#         logBw = jnp.zeros(nx, dtype=jnp.float32)
+#         for i in range(nx):
+#             for j in range(nt):
+#                 for k in range(nf):
+#                     logBw = logBw.at[i].add(jnp.interp(W[j, k], w, logB[i, :, j, k]))
+#         log_pibar = jnp.log(pi0) + logBw
+#         llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
+#         return -jnp.sum(llm)
 
 @jit(nopython=True)
 def inverse_logit(x):
@@ -173,6 +186,26 @@ def negll_numba_fixmu(theta, Y, logB, w, mu):
     log_pibar = np.log(pi0) + logBw
     llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
     return -np.sum(llm)
+
+def negll_c(theta, Y, logB, w):
+    nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
+    nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
+    theta = np.require(theta, np.float64, ['ALIGNED'])
+    nS_ptr = nS.ctypes.data_as(POINTER(c_double))
+    nD_ptr = nD.ctypes.data_as(POINTER(c_double))
+    theta_ptr = theta.ctypes.data_as(POINTER(c_double))
+    logB_ptr = logB.ctypes.data_as(POINTER(c_double))
+    w_ptr = w.ctypes.data_as(POINTER(c_double))
+    likclib.negloglik.argtypes = (POINTER(c_double), POINTER(c_double),
+                              POINTER(c_double), POINTER(c_double),
+                              POINTER(c_double),
+                              # weird type for dims/strides
+                              POINTER(np.ctypeslib.c_intp),
+                              POINTER(np.ctypeslib.c_intp))
+    likclib.negloglik.restype = c_double
+    return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
+                            logB.ctypes.shape, logB.ctypes.strides)
+
 
 def predict(theta, logB, w):
     nx, nw, nt, nf = logB.shape

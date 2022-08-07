@@ -5,7 +5,7 @@ from ctypes import POINTER, c_double
 from bgspy.likelihood import negll_numba
 
 lib = np.ctypeslib.load_library('lik', '../src/')
-dat = pickle.load(open('../data/test_data.pkl', 'rb'))
+dat = pickle.load(open('../tests/likelihood_test_data.pkl', 'rb'))
 
 B, Y, w = dat['B'], dat['Y'], dat['w']
 

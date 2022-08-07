@@ -32,7 +32,7 @@ double interp_logBw(double x, double *w, double *logB, ssize_t nw,
     }
     printf("ERROR: interpolation failed: x=%g (bounds: [%g, %g])\n", x, min_w, max_w);
     assert(0);
-    //return 1.0;
+    return NAN;
 }
 
 double test(double *test) {
@@ -79,7 +79,6 @@ double negloglik(double *theta,
     //for (int i=0; i < 4; i++) printf(" stide %d=%d \n", i, logB_strides[i]);
     //printf("mu: %g\n", mu);
 
-    ssize_t n_theta = 2 + (nt-1)*nf;
     /* for (int i=0; i < n_theta; i++) { */
     /*     printf("theta(i=%d) -> %g\n", i, theta[i]); */
     /* } */
@@ -123,7 +122,4 @@ double negloglik(double *theta,
     free(logBw);
     return -ll;
 }
-
-
-
 
