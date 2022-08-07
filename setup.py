@@ -1,7 +1,7 @@
 import numpy as np
 from setuptools import setup, Extension
 
-extra_compile_args = ['-O3 -Wall']
+extra_compile_args = ['-O3', '-Wall']
 
 likclib_ext = Extension('likclib',
                         extra_compile_args=extra_compile_args,

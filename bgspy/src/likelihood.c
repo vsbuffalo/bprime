@@ -4,6 +4,9 @@
 #include <string.h>
 #include <math.h>
 
+// if you're a bit over the max boundary, we just truncate
+#define MUTMAX_THRESH 1e-11
+
 #define LOGBW_GET(lB, ii, ll, jj, kk, s) lB[(ii)*s[0] + (ll)*s[1] + (jj)*s[2] + (kk)*s[3]]
 #define W_GET(WW, jj, kk, col) WW[col*(jj) + kk]
 
@@ -11,13 +14,22 @@ double interp_logBw(double x, double *w, double *logB, ssize_t nw,
               ssize_t i, ssize_t j, ssize_t k, ssize_t *strides) {
     double min_w = w[0];
     double max_w = w[nw-1];
+    double y1, y2;
+    double y;
+ 
     //printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
     // if mutation is weak below threshold, B = 1 so we return log(1) = 0
     if (x < min_w) return 0;
-    if (x > max_w) {
-        printf("ERROR: x=%g out past max (bounds: [%g, %g])\n", x, min_w, max_w);
+    if (x > max_w && fabs(x - max_w) > MUTMAX_THRESH) {
+        printf("ERROR: x=%g out past max (bounds: [%g, %g], max diff: %g)\n", 
+                x, min_w, max_w, fabs(max_w - x));
     }
-    double y1, y2;
+    if (x > max_w && fabs(x - max_w) < MUTMAX_THRESH) {
+        // within the max thresh; truncate to last point
+        y = LOGBW_GET(logB, i, nw-1, j, k, strides);
+        return y;
+    }
+
     for (int l=0; l < nw-1; l++) {
         if (w[l] <= x && x < w[l+1]) {
             //assert(l-1 >= 0);
@@ -25,7 +37,7 @@ double interp_logBw(double x, double *w, double *logB, ssize_t nw,
             y1 = LOGBW_GET(logB, i, l, j, k, strides);
             y2 = LOGBW_GET(logB, i, l+1,   j, k, strides);
             //printf("y1 = %g, y2 = %g\n", y1, y2);
-            double y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
+            y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
             //printf("y = %g", y);
             return y;
         }

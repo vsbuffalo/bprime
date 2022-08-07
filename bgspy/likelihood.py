@@ -162,6 +162,32 @@ def negll_numba(theta, Y, logB, w):
     llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
     return -np.sum(llm)
 
+@jit(nopython=True)
+def negll_numba_simplex(theta, Y, logB, w):
+    """
+    Simplex version, mu is 2nd term.
+    """
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, mu, W = theta[0], theta[1], theta[2:]
+    W = W.reshape((nt-1, nf)) # simplex; one fewer parameter per column
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=np.float64)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                # mimix the simplex
+                if j == 0:
+                    # fixed class
+                    Wjk = 1 - W[:, k].sum()
+                else:
+                    Wjk = W[j-1, k]
+                logBw[i] += np.interp(mu*Wjk, w, logB[i, :, j, k])
+    log_pibar = np.log(pi0) + logBw
+    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
+    return -np.sum(llm)
 
 @jit(nopython=True)
 def negll_numba_fixmu(theta, Y, logB, w, mu):
@@ -278,16 +304,19 @@ class BGSEstimator:
     def nf(self):
         return self.dim()[2]
 
-    def bounds(self, paired=True, fix_mu=False):
+    def bounds(self, simplex=True, paired=True, fix_mu=False):
         pi0_bounds = 10**self.log10_pi0_bounds[0], 10**self.log10_pi0_bounds[1]
         bounds = [pi0_bounds]
+        if simplex and not fix_mu:
+            # add in mutation bounds since this is free
+            bounds.append((self.w[0], self.w[-1]))
         w = self.w
         nt = self.nt
-        if fix_mu:
+        if fix_mu or simplex:
             nt -= 1
         for t in range(nt):
             for f in range(self.nf):
-                if fix_mu:
+                if fix_mu or simplex:
                     w1, w2 = (0, 1)
                 else:
                     w1, w2 = np.min(w), np.max(w)
@@ -296,19 +325,19 @@ class BGSEstimator:
             return bounds
         return tuple(zip(*bounds))
 
-    def random_start(self, fix_mu=False, seed=None):
+    def random_start(self, simplex=True, fix_mu=False, seed=None):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         else:
             assert self.rng is not None, "rng not set!"
             rng = self.rng
         start = []
-        for bounds in self.bounds(fix_mu=fix_mu):
+        for bounds in self.bounds(simplex=simplex, fix_mu=fix_mu):
             start.append(rng.uniform(*bounds, size=1))
         return np.array(start)
 
-    def fit(self, Y, nruns=50, seed=None, mu=None, use_numba=True,
-            ncores=None, annealing=False):
+    def fit(self, Y, nruns=50, seed=None, mu=None,
+            implemenation='C', ncores=None, annealing=False):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         self.Y_ = Y
@@ -316,6 +345,19 @@ class BGSEstimator:
         bounds = self.bounds(fix_mu=fix_mu)
         logB = self.logB
         w = self.w
+
+        fix_mu = mu is not None
+
+        if fix_mu:
+            assert implemenation == 'numba'
+            func = negll_numba_fixmu
+        else:
+            try:
+                # NOTE: the python one is not here because it's not using the
+                # simplex parameterization
+                func = {'C': negll_c, 'numba': negll_numba_simplex}[implemenation]
+            except KeyError:
+                raise ValueError("implemenation must be either 'C' or 'numba'")
 
         if annealing:
             if nruns > 1:
@@ -330,10 +372,8 @@ class BGSEstimator:
                 starts.append(start)
                 if mu is not None:
                     assert use_numba
-                    func = negll_numba_fixmu
                     args.append((start, bounds, func, Y, logB, w, mu))
                 else:
-                    func = negll if not use_numba else negll_numba
                     args.append((start, bounds, func, Y, logB, w))
 
             if ncores == 1 or ncores is None:
@@ -401,9 +441,9 @@ class BGSEstimator:
 
     @property
     def mle_W(self):
-        if not self.fix_mu_:
-            return self.theta_[1:].reshape((self.nt, self.nf))
-        return expand_W_simplex(self.theta_[1:], self.nt, self.nf)
+        if self.fix_mu_:
+            return expand_W_simplex(self.theta_[1:], self.nt, self.nf)
+        return expand_W_simplex(self.theta_[2:], self.nt, self.nf)
 
     def summary(self):
         wgrid = defaultdict(dict)

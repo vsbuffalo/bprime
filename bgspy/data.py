@@ -162,13 +162,13 @@ def filter_sites(counts, chrom, filter_neutral, filter_accessible,
     if filter_neutral and neutral_masks is not None:
         msg = "GenomeData.neutral_masks not set!"
         assert neutral_masks is not None, msg
-        print("using neutral masks...")
+        #print("using neutral masks...")
         ac = ac * neutral_masks[chrom][:, None]
 
     if filter_accessible and accesssible_masks is not None:
         msg = "GenomeData.accesssible_masks not set!"
         assert accesssible_masks is not None, msg
-        print("using accessibility masks...")
+        # print("using accessibility masks...")
         ac = ac * accesssible_masks[chrom][:, None]
     return ac
 
