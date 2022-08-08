@@ -38,15 +38,12 @@ def access(B, i, l, j, k):
                                      c_ssize_t,
                                      c_ssize_t,
                                      c_ssize_t,
-                                     POINTER(np.ctypeslib.c_intp),
                                      POINTER(np.ctypeslib.c_intp))
 
     likclib.access.restype = c_double
 
-    return likclib.access(B.ctypes.data_as(POINTER(c_double)),
-                          i, l, j, k, B.ctypes.shape, B.ctypes.strides)
-
-
+    logB_ptr = B.ctypes.data_as(POINTER(c_double))
+    return likclib.access(logB_ptr, i, l, j, k, B.ctypes.strides)
 
 
 def bounds(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False, paired=False):
@@ -82,13 +79,14 @@ def random_start(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), f
 def interp_logBw_c(x, w, B, i, j, k):
     nx, nw, nt, nf = B.shape
     B = np.require(B, np.float64, ['ALIGNED'])
-    likclib.interp_logBw.argtypes = (c_double, POINTER(c_double),
-                                     POINTER(c_double),
-                                     c_ssize_t,
-                                     c_ssize_t,
-                                     c_ssize_t,
-                                     c_ssize_t,
-                                     POINTER(np.ctypeslib.c_intp))
+    likclib.interp_logBw.argtypes = (c_double,           # x
+                                     POINTER(c_double),  # *w
+                                     POINTER(c_double),  # *logB
+                                     c_ssize_t,          # nw
+                                     c_ssize_t,          # i
+                                     c_ssize_t,          # j
+                                     c_ssize_t,          # k
+                                     POINTER(np.ctypeslib.c_intp)) # *strides
 
     likclib.interp_logBw.restype = c_double
 

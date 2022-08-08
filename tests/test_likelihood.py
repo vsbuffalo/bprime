@@ -45,19 +45,19 @@ def test_compare_C_to_numba():
 
 
 
-def test_compare_C_to_numba_random():
-    with open('likelihood_test_data.pkl', 'rb') as f:
-        dat = pickle.load(f)
-        B, Y, w = dat['B'], dat['Y'], dat['w']
+# def test_compare_C_to_numba_random():
+#     with open('likelihood_test_data.pkl', 'rb') as f:
+#         dat = pickle.load(f)
+#         B, Y, w = dat['B'], dat['Y'], dat['w']
 
-    nx, nw, nt, nf = B.shape
-    np.random.seed(1)
+#     nx, nw, nt, nf = B.shape
+#     np.random.seed(1)
 
-    for _ in range(20):
-        theta = random_start(nt, nf)
-        numba_results = negll_numba(theta, Y, B, w)
-        c_results = negll_c(theta, Y, B, w)
-        np.testing.assert_almost_equal(c_results, numba_results)
+#     for _ in range(20):
+#         theta = random_start(nt, nf)
+#         numba_results = negll_numba(theta, Y, B, w)
+#         c_results = negll_c(theta, Y, B, w)
+#         np.testing.assert_almost_equal(c_results, numba_results)
 
 
 
