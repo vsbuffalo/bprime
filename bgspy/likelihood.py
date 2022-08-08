@@ -46,6 +46,21 @@ def access(B, i, l, j, k):
     return likclib.access(logB_ptr, i, l, j, k, B.ctypes.strides)
 
 
+def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), paired=False):
+    l = [10**log10_pi0_bounds[0]]
+    u = [10**log10_pi0_bounds[1]]
+    for i in range(nt):
+        for j in range(nf):
+            l += [10**log10_mu_bounds[0]]
+            u += [10**log10_mu_bounds[1]]
+    lb = np.array(l)
+    ub = np.array(u)
+    assert np.all(lb < ub)
+    if paired:
+        return list(zip(lb, ub))
+    return lb, ub
+
+
 def bounds(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False, paired=False):
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
@@ -61,7 +76,18 @@ def bounds(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=F
         return list(zip(lb, ub))
     return lb, ub
 
-def random_start(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False):
+def random_start_mutation(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False):
+    pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
+    mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
+    W = np.empty((nt, nf))
+    for i in range(nf):
+        W[:, i] = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1])
+    theta = np.empty(nt*nf + 1)
+    theta[0] = pi0
+    theta[1:] = W.flat
+    return theta
+
+def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False):
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
     mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
     offset = 1 + int(not fixmu)
@@ -189,9 +215,7 @@ def inverse_logit(x):
 def logit(x):
     return np.log(x / (1-x))
 
-@jit(nopython=True)
-def negll_numba_reparam(theta_reparam, Y, logB, w):
-    theta = np.exp(theta_reparam) / (1 + np.exp(theta_reparam))
+def negll_mutation(theta, Y, logB, w):
     nS = Y[:, 0]
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
@@ -310,6 +334,22 @@ def negll_fixmu_numba(theta, mu, Y, logB, w):
     return negll_numba_simplex(new_theta, Y, logB, w)
 
 
+def negll_free_numba(theta, Y, logB, w):
+    new_theta = np.empty(theta.size + 1)
+    new_theta[0] = theta[0]
+    new_theta[1] = 1.
+    new_theta[2:] = theta[1:]
+    return negll_numba(new_theta, Y, logB, w)
+
+
+def negll_free_c(theta, Y, logB, w):
+    new_theta = np.empty(theta.size + 1)
+    new_theta[0] = theta[0]
+    new_theta[1] = 1.
+    new_theta[2:] = theta[1:]
+    return negll_c(new_theta, Y, logB, w)
+
+
 def negll_fixmu_c(theta, mu, Y, logB, w):
     new_theta = np.empty(theta.size + 1)
     new_theta[0] = theta[0]
@@ -389,40 +429,32 @@ class BGSEstimator:
     def nf(self):
         return self.dim()[2]
 
-    def bounds(self, simplex=True, paired=True, fix_mu=False):
+    def bounds(self, paired=True, fix_mu=False):
         pi0_bounds = 10**self.log10_pi0_bounds[0], 10**self.log10_pi0_bounds[1]
         bounds = [pi0_bounds]
-        if simplex and not fix_mu:
-            # add in mutation bounds since this is free
-            bounds.append((self.w[0], self.w[-1]))
         w = self.w
         nt = self.nt
-        if fix_mu or simplex:
-            nt -= 1
         for t in range(nt):
             for f in range(self.nf):
-                if fix_mu or simplex:
-                    w1, w2 = (0, 1)
-                else:
-                    w1, w2 = np.min(w), np.max(w)
+                w1, w2 = np.min(w), np.max(w)
                 bounds.append((w1, w2))
         if paired:
             return bounds
         return tuple(zip(*bounds))
 
-    def random_start(self, simplex=True, fix_mu=False, seed=None):
+    def random_start(self, fix_mu=False, seed=None):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         else:
             assert self.rng is not None, "rng not set!"
             rng = self.rng
         start = []
-        for bounds in self.bounds(simplex=simplex, fix_mu=fix_mu):
+        for bounds in self.bounds(fix_mu=fix_mu):
             start.append(rng.uniform(*bounds, size=1))
         return np.array(start)
 
     def fit(self, Y, nruns=50, seed=None, mu=None,
-            implemenation='C', ncores=None, annealing=False):
+            implemenation='numba', ncores=None, annealing=False):
         if seed is not None:
             self.rng = np.random.default_rng(seed)
         self.Y_ = Y
@@ -435,12 +467,13 @@ class BGSEstimator:
 
         if fix_mu:
             assert implemenation == 'numba'
-            func = negll_numba_fixmu
+            #func = negll_numba_fixmu
+            func = partial(negll_fixmu_c, mu=mu)
         else:
             try:
                 # NOTE: the python one is not here because it's not using the
                 # simplex parameterization
-                func = {'C': negll_c, 'numba': negll_numba_simplex}[implemenation]
+                func = {'C': negll_c, 'numba': negll_numba}[implemenation]
             except KeyError:
                 raise ValueError("implemenation must be either 'C' or 'numba'")
 
@@ -456,7 +489,6 @@ class BGSEstimator:
                 start = self.random_start(fix_mu=fix_mu, seed=seed)
                 starts.append(start)
                 if mu is not None:
-                    assert use_numba
                     args.append((start, bounds, func, Y, logB, w, mu))
                 else:
                     args.append((start, bounds, func, Y, logB, w))

@@ -20,11 +20,12 @@ void print_Bw(const double *logB, ssize_t i,
     for (ssize_t l=0; l<nw; l++) {
         double y = LOGBW_GET(logB, i, l, j, k, strides);
         if (l < nw-1) 
-            printf("%g (%d), ", y, l);
+            printf("%g (%ld), ", y, l);
         else
-            printf("%g (%d)", y, l);
+            printf("%g (%ld)", y, l);
     }
     printf("]");
+    free(strides);
 }
 
 double access(double *logB, ssize_t i, ssize_t l, ssize_t j, ssize_t k,
@@ -46,16 +47,19 @@ double access2(double *logB, ssize_t i, ssize_t l, ssize_t j, ssize_t k,
 double interp_logBw(const double x, const double *w, const double *logB, 
                     ssize_t nw, ssize_t i, ssize_t j,
                     ssize_t k, 
-                    ssize_t *strides) {
+                    const ssize_t *logB_strides) {
     double min_w = w[0];
     double max_w = w[nw-1];
     double y1, y2;
     double y;
+    ssize_t *strides = malloc(4 * sizeof(ssize_t));
+    for (int i=0; i<4; i++) strides[i] = logB_strides[i] / sizeof(double);
+ 
     //print_Bw(logB, i, j, k, nw, strides); printf("\n");
-    printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
+    //printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
     // if mutation is weak below threshold, B = 1 so we return log(1) = 0
-    //if (x < min_w) return 0;
-    if (x < min_w) assert(0); // for debugging
+    if (x < min_w) return LOGBW_GET(logB, i, 0, j, k, strides);
+    //if (x < min_w) assert(0); // for debugging
 
     if (x > max_w && fabs(x - max_w) < MUTMAX_THRESH) {
         // within the max thresh; truncate to last point
@@ -78,14 +82,14 @@ double interp_logBw(const double x, const double *w, const double *logB,
             //assert(l-1 >= 0);
             //printf("l = %d\n", l);
             //printf("***nw = %d, w[%d] = %g, w[%d] = %g l = %d | i = %d, j = %d, k = %d\n", nw, l, w[l], l+1, w[l+1], l, i, j, k);
-            printf("***nw = %ld, w[%ld] = %g, w[%ld] = %g l = %ld | i = %ld, j = %ld, k = %ld\n", nw, l, w[l], l+1, w[l+1], l, i, j, k);
+            //printf("***nw = %ld, w[%ld] = %g, w[%ld] = %g l = %ld | i = %ld, j = %ld, k = %ld\n", nw, l, w[l], l+1, w[l+1], l, i, j, k);
             //y1 = access2(logB, i, l,   j, k, strides);
             //y2 = access2(logB, i, l+1, j, k, strides);
             y1 = LOGBW_GET(logB, i, l,   j, k, strides);
             y2 = LOGBW_GET(logB, i, l+1, j, k, strides);
             /* if (y1 == 0 | y2 == 0) { */ 
                 /* printf("***nw = %d, w[%d] = %g, w[%d] = %g l = %d | i = %d, j = %d, k = %d\n", nw, l, w[l], l+1, w[l+1], l, i, j, k); */
-            printf("x = %g, y1 = %g, y2 = %g\n", x, y1, y2);
+            //printf("x = %g, y1 = %g, y2 = %g\n", x, y1, y2);
             //printf("x = %g, y1 = %g, y2 = %g\n", x, y1, y2);
             y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
             //printf("x = %g, y = %g\n", x, y);
@@ -94,6 +98,7 @@ double interp_logBw(const double x, const double *w, const double *logB,
         }
     }
     printf("ERROR: interpolation failed: x=%g (bounds: [%g, %g])\n", x, min_w, max_w);
+    free(strides);
     assert(0);
     return NAN;
 }
@@ -118,17 +123,16 @@ double negloglik(const double *theta,
     ssize_t nw = logB_dim[1];
     ssize_t nt = logB_dim[2];
     ssize_t nf = logB_dim[3];
-    printf("dims: nx=%d, nw=%d, nt=%d, nf=%d\n", nx, nw, nt, nf);
+    //printf("dims: nx=%d, nw=%d, nt=%d, nf=%d\n", nx, nw, nt, nf);
     double pi0 = theta[0];
     double mu = theta[1];
     ssize_t nW = nt*nf;
     double *W = calloc(nW, sizeof(double));
     memcpy(W, theta + 2, nW * sizeof(double));
-    double *logBw = calloc(nx, sizeof(double));
+    //double *logBw = calloc(nx, sizeof(double));
+    double logBw_i;
     double Wjk;
     double ll = 0;
-    ssize_t *strides = malloc(4 * sizeof(ssize_t));
-    for (int i=0; i<4; i++) strides[i] = logB_strides[i] / sizeof(double);
     //for (int i=0; i<4; i++) printf("-> i=%d, %d", i, strides[i]);
 
     //for (int i=0; i < 50; i++) printf("   %g\n", logB[i]);
@@ -144,32 +148,33 @@ double negloglik(const double *theta,
     /*     printf("W(i=%d) -> %g\n", i, W[i]); */
     /* } */
 
-    print_theta(theta, 2+nW);
+    //print_theta(theta, 2+nW);
     for (ssize_t i=0; i < nx; i++) {
+        logBw_i = 0.; // initialize start of sum
         for (ssize_t j=0; j < nt; j++) {
             for (ssize_t k=0; k < nf; k++) {
                 Wjk = W_GET(W, j, k, nf);
                 //if (j == 4) printf("j=%d, k=%d,offset: %d, nW=%d, W=%g W_GET=%g\n", j, k, nf*(j-1) + k, nW, W[(j-1)*nf + k], Wjk);
                 //printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k, 
                 //       mu, Wjk, mu * Wjk);
-                double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, strides);
+                double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, logB_strides);
                 if (isnan(Binc)) {
                     printf("NaN Binc! theta=[");
                     print_theta(theta, 2+nW);
                     printf("]");
+                    printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k,mu, Wjk, mu * Wjk);
                 }
-                logBw[i] += Binc;
+                logBw_i += Binc;
             }
         }
         //printf("%g, ", logBw[i]);
-        double log_pi = log(pi0) + logBw[i];
+        double log_pi = log(pi0) + logBw_i;
         //printf("c log(pi0): %g\n", log(pi0));
         //printf("c nD[%d]=%g, nS[%d]=%g\n", i, nD[i], i, nS[i]);
         //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
         ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
     }
-    free(strides);
-    free(logBw);
+    free(W);
     return -ll;
 }
 

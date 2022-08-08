@@ -1,6 +1,6 @@
 import pickle
 import numpy as np
-from bgspy.likelihood import negll_numba, negll_c, random_start
+from bgspy.likelihood import negll_numba, negll_c
 
 def reparam_theta(theta, nt, nf):
     # the theta for the negll_numba func excludes

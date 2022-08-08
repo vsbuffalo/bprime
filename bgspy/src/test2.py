@@ -6,7 +6,7 @@ import ctypes
 import matplotlib.pyplot as plt
 import nlopt
 from bgspy.likelihood import negll_c, negll, negll_numba, negll_fixmu_c, negll_fixmu_numba
-from bgspy.likelihood import bounds, random_start, interp_logBw_c, access
+from bgspy.likelihood import bounds, random_start_mutation, interp_logBw_c, access, random_start_simplex
 
 dat = pickle.load(open('../../tests/likelihood_test_data.pkl', 'rb'))
 B, Y, w = dat['B'], dat['Y'], dat['w']
@@ -29,9 +29,9 @@ test_theta = np.array([1.33128476e-04, 1.99781458e-09,
 
 
 
-# numba_results = negll_numba(test_theta, Y, B, w)
-# c_results = negll_c(test_theta, Y, B, w)
-# np.testing.assert_almost_equal(c_results, numba_results)
+numba_results = negll_numba(test_theta, Y, B, w)
+c_results = negll_c(test_theta, Y, B, w)
+np.testing.assert_almost_equal(c_results, numba_results)
 
 
 x = 1.3e-8
@@ -40,7 +40,7 @@ x = 1.3e-8
 
 np.random.seed(21)
 # compare array accesss
-for _ in range(1000):
+for _ in range(10000):
     i = np.random.randint(0, nx)
     l = np.random.randint(0, nw)
     j = np.random.randint(0, nt)
@@ -50,7 +50,7 @@ for _ in range(1000):
 
 print("PASSED ACCESSS")
 
-print(f"test: ", access(B, 1061, 3, 4, 0))
+# print(f"test: ", access(B, 1061, 3, 4, 0))
 for _ in range(100):
     i = int(np.random.randint(0, nx))
     l = int(np.random.randint(0, nw))
@@ -59,11 +59,11 @@ for _ in range(100):
     #print(B[i, l, j, k], access(B, i, l, j, k))
     assert B[i, l, j, k] == access(B, i, l, j, k)
 
-    print(f"{i,l,j,k} | c_interp: ", interp_logBw_c(x, w, B, i, j, k), " np: ",
-          np.interp(x, w, B[i, :, j, k]))
-    print(B[i, :, j, k])
-    for ll in range(nw):
-        print(access(B, i, ll, j, k))
+    # print(f"{i,l,j,k} | c_interp: ", interp_logBw_c(x, w, B, i, j, k), " np: ",
+          # np.interp(x, w, B[i, :, j, k]))
+    # print(B[i, :, j, k])
+    # for ll in range(nw):
+        # print(access(B, i, ll, j, k))
 
     assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
     # print("successs!")
