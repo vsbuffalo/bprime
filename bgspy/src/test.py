@@ -1,11 +1,16 @@
+import os
 import numpy as np
 import pickle
 import ctypes
 from ctypes import POINTER, c_double
 from bgspy.likelihood import negll_numba
 
-lib = np.ctypeslib.load_library('lik', '../src/')
+# load the library (relative to this file in src/)
+LIBRARY_PATH = os.path.join(os.path.dirname(__file__))
+likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
+
 dat = pickle.load(open('../tests/likelihood_test_data.pkl', 'rb'))
+
 
 B, Y, w = dat['B'], dat['Y'], dat['w']
 

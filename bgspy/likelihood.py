@@ -7,7 +7,7 @@ import tqdm
 from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
-from ctypes import POINTER, c_double
+from ctypes import POINTER, c_double, c_ssize_t
 
 # no longer needed
 # HAS_JAX = False
@@ -29,6 +29,73 @@ LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
 likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
+
+def access(B, i, l, j, k):
+    nx, nw, nt, nf = B.shape
+    B = np.require(B, np.float64, ['ALIGNED'])
+    likclib.access.argtypes = (POINTER(c_double),
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     POINTER(np.ctypeslib.c_intp),
+                                     POINTER(np.ctypeslib.c_intp))
+
+    likclib.access.restype = c_double
+
+    return likclib.access(B.ctypes.data_as(POINTER(c_double)),
+                          i, l, j, k, B.ctypes.shape, B.ctypes.strides)
+
+
+
+
+def bounds(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False, paired=False):
+    l = [10**log10_pi0_bounds[0]]
+    u = [10**log10_pi0_bounds[1]]
+    if not fixmu:
+        l += [10**log10_mu_bounds[0]]
+        u += [10**log10_mu_bounds[1]]
+    l += [0.]*nf*nt
+    u += [1.]*nf*nt
+    lb = np.array(l)
+    ub = np.array(u)
+    assert np.all(lb < ub)
+    if paired:
+        return list(zip(lb, ub))
+    return lb, ub
+
+def random_start(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False):
+    pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
+    mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
+    offset = 1 + int(not fixmu)
+    W = np.empty((nt, nf))
+    for i in range(nf):
+        W[:, i] = np.random.dirichlet([1.] * nt)
+    theta = np.empty(nt*nf + offset)
+    theta[0] = pi0
+    if not fixmu:
+        theta[1] = mu
+    theta[offset:] = W.flat
+    check_bounds(theta, *bounds(nt, nf, log10_pi0_bounds, log10_mu_bounds, fixmu=fixmu))
+    return theta
+
+def interp_logBw_c(x, w, B, i, j, k):
+    nx, nw, nt, nf = B.shape
+    B = np.require(B, np.float64, ['ALIGNED'])
+    likclib.interp_logBw.argtypes = (c_double, POINTER(c_double),
+                                     POINTER(c_double),
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     POINTER(np.ctypeslib.c_intp))
+
+    likclib.interp_logBw.restype = c_double
+
+    return likclib.interp_logBw(x,
+                                w.ctypes.data_as(POINTER(c_double)),
+                                B.ctypes.data_as(POINTER(c_double)),
+                                nw, i, j, k, B.ctypes.strides)
 
 def R2(x, y):
     """
@@ -84,14 +151,14 @@ def negll(theta, Y, logB, w):
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
     # mut weight params
-    pi0, W = theta[0], theta[1:]
+    pi0, mu, W = theta[0], theta[1], theta[2:]
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     logBw = np.zeros(nx, dtype=float)
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
     #pibar = pi0 * np.exp(logBw)
     log_pibar = np.log(pi0) + logBw
     #llm = nD*log_pibar + xlog1py(nS, -np.exp(log_pibar))
@@ -150,14 +217,14 @@ def negll_numba(theta, Y, logB, w):
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
     # mut weight params
-    pi0, W = theta[0], theta[1:]
+    pi0, mu, W = theta[0], theta[1], theta[2:]
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     logBw = np.zeros(nx, dtype=np.float64)
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
     log_pibar = np.log(pi0) + logBw
     llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
     return -np.sum(llm)
@@ -213,10 +280,14 @@ def negll_numba_fixmu(theta, Y, logB, w, mu):
     llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
     return -np.sum(llm)
 
+def check_bounds(x, lb, ub):
+    assert np.all((x >= lb) & (x <= ub))
+
 def negll_c(theta, Y, logB, w):
     nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
     nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
     theta = np.require(theta, np.float64, ['ALIGNED'])
+    logB = np.require(logB, np.float64, ['ALIGNED'])
     nS_ptr = nS.ctypes.data_as(POINTER(c_double))
     nD_ptr = nD.ctypes.data_as(POINTER(c_double))
     theta_ptr = theta.ctypes.data_as(POINTER(c_double))
@@ -231,6 +302,22 @@ def negll_c(theta, Y, logB, w):
     likclib.negloglik.restype = c_double
     return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                             logB.ctypes.shape, logB.ctypes.strides)
+
+
+def negll_fixmu_numba(theta, mu, Y, logB, w):
+    new_theta = np.empty(theta.size + 1)
+    new_theta[0] = theta[0]
+    new_theta[1] = mu
+    new_theta[2:] = theta[1:]
+    return negll_numba_simplex(new_theta, Y, logB, w)
+
+
+def negll_fixmu_c(theta, mu, Y, logB, w):
+    new_theta = np.empty(theta.size + 1)
+    new_theta[0] = theta[0]
+    new_theta[1] = mu
+    new_theta[2:] = theta[1:]
+    return negll_c(new_theta, Y, logB, w)
 
 
 def predict(theta, logB, w):

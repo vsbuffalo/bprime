@@ -5,52 +5,26 @@
 #include <math.h>
 
 // if you're a bit over the max boundary, we just truncate
-#define MUTMAX_THRESH 1e-11
+#define MUTMAX_THRESH 1e-10
 
-#define LOGBW_GET(lB, ii, ll, jj, kk, s) lB[(ii)*s[0] + (ll)*s[1] + (jj)*s[2] + (kk)*s[3]]
+#define LOGBW_GET(lB, x, y, z, q, s) lB[(x)*s[0] + (y)*s[1] + (z)*s[2] + (q)*s[3]]
 #define W_GET(WW, jj, kk, col) WW[col*(jj) + kk]
 
-double interp_logBw(double x, double *w, double *logB, ssize_t nw,
-              ssize_t i, ssize_t j, ssize_t k, ssize_t *strides) {
-    double min_w = w[0];
-    double max_w = w[nw-1];
-    double y1, y2;
-    double y;
+void print_Bw(const double *logB, ssize_t i, 
+              ssize_t j, ssize_t k, ssize_t nw,
+              ssize_t *logB_strides) {
+    ssize_t *strides = malloc(4 * sizeof(ssize_t));
+    for (int i=0; i<4; i++) strides[i] = logB_strides[i] / sizeof(double);
  
-    //printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
-    // if mutation is weak below threshold, B = 1 so we return log(1) = 0
-    if (x < min_w) return 0;
-    if (x > max_w && fabs(x - max_w) > MUTMAX_THRESH) {
-        printf("ERROR: x=%g out past max (bounds: [%g, %g], max diff: %g)\n", 
-                x, min_w, max_w, fabs(max_w - x));
+    printf("%g w = [", logB[0]);
+    for (int l=0; l<nw; l++) {
+        double y = LOGBW_GET(logB, i, l, j, k, strides);
+        if (l < nw-1) 
+            printf("%g (%d), ", y, l);
+        else
+            printf("%g (%d)", y, l);
     }
-    if (x > max_w && fabs(x - max_w) < MUTMAX_THRESH) {
-        // within the max thresh; truncate to last point
-        y = LOGBW_GET(logB, i, nw-1, j, k, strides);
-        return y;
-    }
-
-    for (int l=0; l < nw-1; l++) {
-        if (w[l] <= x && x < w[l+1]) {
-            //assert(l-1 >= 0);
-            //printf("l = %d\n", l);
-            y1 = LOGBW_GET(logB, i, l, j, k, strides);
-            y2 = LOGBW_GET(logB, i, l+1,   j, k, strides);
-            //printf("y1 = %g, y2 = %g\n", y1, y2);
-            y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
-            //printf("y = %g", y);
-            return y;
-        }
-    }
-    printf("ERROR: interpolation failed: x=%g (bounds: [%g, %g])\n", x, min_w, max_w);
-    assert(0);
-    return NAN;
-}
-
-double test(double *test) {
-    return test[0];
-    printf("%f", test[0]);
-    return 1123.8377;
+    printf("]");
 }
 
 double access(double *logB, ssize_t i, ssize_t l, ssize_t j, ssize_t k,
@@ -62,12 +36,71 @@ double access(double *logB, ssize_t i, ssize_t l, ssize_t j, ssize_t k,
     return out;
 }
 
-double negloglik(double *theta,
-                 double *nS, double *nD, 
-                 double *logB, 
-                 double *w,
-                 ssize_t *logB_dim, 
-                 ssize_t *logB_strides) {
+double interp_logBw(const double x, const double *w, const double *logB, 
+                    ssize_t nw, ssize_t i, ssize_t j,
+                    ssize_t k, ssize_t *strides) {
+    double min_w = w[0];
+    double max_w = w[nw-1];
+    double y1, y2;
+    double y;
+    print_Bw(logB, i, j, k, nw, strides); printf("\n");
+    //printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
+    // if mutation is weak below threshold, B = 1 so we return log(1) = 0
+    if (x < min_w) return 0;
+
+    if (x > max_w && fabs(x - max_w) < MUTMAX_THRESH) {
+        // within the max thresh; truncate to last point
+        y = LOGBW_GET(logB, i, nw-1, j, k, strides);
+        return y;
+    }
+    if (x > max_w && fabs(x - max_w) > MUTMAX_THRESH) {
+        printf("ERROR: x=%g out past max (bounds: [%g, %g], max diff: %g)\n", 
+                x, min_w, max_w, fabs(max_w - x));
+    }
+    for (int l=0; l < nw-1; l++) {
+        //printf("nw = %d, w[%d] = %g, w[%d] = %g l = %d\n", nw, l, w[l], l+1, w[l+1], l, i, j, k);
+            //y1 = LOGBW_GET(logB, i, l,   j, k, strides);
+            //y2 = LOGBW_GET(logB, i, l+1, j, k, strides);
+            //printf("x = %g, y1 = %g, y2 = %g\n", x, y1, y2);
+            //y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
+            //printf("x = %g, y = %g\n", x, y);
+ 
+        if (w[l] <= x && x < w[l+1]) {
+            //assert(l-1 >= 0);
+            //printf("l = %d\n", l);
+            //printf("***nw = %d, w[%d] = %g, w[%d] = %g l = %d | i = %d, j = %d, k = %d\n", nw, l, w[l], l+1, w[l+1], l, i, j, k);
+            y1 = LOGBW_GET(logB, i, l,   j, k, strides);
+            y2 = LOGBW_GET(logB, i, l+1, j, k, strides);
+            /* if (y1 == 0 | y2 == 0) { */ 
+                /* printf("***nw = %d, w[%d] = %g, w[%d] = %g l = %d | i = %d, j = %d, k = %d\n", nw, l, w[l], l+1, w[l+1], l, i, j, k); */
+            /* printf("x = %g, y1 = %g, y2 = %g\n", x, y1, y2); */
+            //printf("x = %g, y1 = %g, y2 = %g\n", x, y1, y2);
+            y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
+            //printf("x = %g, y = %g\n", x, y);
+            //printf("y = %g", y);
+            return y;
+        }
+    }
+    printf("ERROR: interpolation failed: x=%g (bounds: [%g, %g])\n", x, min_w, max_w);
+    assert(0);
+    return NAN;
+}
+
+void print_theta(const double *theta, ssize_t n) {
+    for (int i=0; i < n; i++) {
+        if (i < n-1) 
+            printf("%g, ", theta[i]);
+        else
+            printf("%g", theta[i]);
+    }
+}
+
+double negloglik(const double *theta,
+                 const double *nS, const double *nD, 
+                 const double *logB, 
+                 const double *w,
+                 const ssize_t *logB_dim, 
+                 const ssize_t *logB_strides) {
 
     ssize_t nx = logB_dim[0]; 
     ssize_t nw = logB_dim[1];
@@ -76,7 +109,7 @@ double negloglik(double *theta,
     //printf("dims: nx=%d, nw=%d, nt=%d, nf=%d\n", nx, nw, nt, nf);
     double pi0 = theta[0];
     double mu = theta[1];
-    ssize_t nW = (nt-1)*nf;
+    ssize_t nW = nt*nf;
     double *W = calloc(nW, sizeof(double));
     memcpy(W, theta + 2, nW * sizeof(double));
     double *logBw = calloc(nx, sizeof(double));
@@ -99,27 +132,21 @@ double negloglik(double *theta,
     /*     printf("W(i=%d) -> %g\n", i, W[i]); */
     /* } */
 
-
-    double *wsum = calloc(nf, sizeof(double));
-    for (int k=0; k < nf; k++) {
-        for (int j=0; j < nt-1; j++)
-            wsum[k] += W_GET(W, j, k, nf);
-        //printf("W[%d]=%g\n", k, wsum[k]);
-    }
-
+    print_theta(theta, 2+nW);
     for (int i=0; i < nx; i++) {
         for (int j=0; j < nt; j++) {
             for (int k=0; k < nf; k++) {
-                if (j == 0) {
-                    // this is the fixed class of the simplex
-                    Wjk = 1. - wsum[k];
-                } else {
-                    Wjk = W_GET(W, j-1, k, nf);
-                    //if (j == 4) printf("j=%d, k=%d,offset: %d, nW=%d, W=%g W_GET=%g\n", j, k, nf*(j-1) + k, nW, W[(j-1)*nf + k], Wjk);
-                }
+                Wjk = W_GET(W, j, k, nf);
+                //if (j == 4) printf("j=%d, k=%d,offset: %d, nW=%d, W=%g W_GET=%g\n", j, k, nf*(j-1) + k, nW, W[(j-1)*nf + k], Wjk);
                 //printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k, 
                 //       mu, Wjk, mu * Wjk);
-                logBw[i] += interp_logBw(mu*Wjk, w, logB, nw, i, j, k, strides);
+                double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, strides);
+                if (isnan(Binc)) {
+                    printf("NaN Binc! theta=[");
+                    print_theta(theta, 2+nW);
+                    printf("]");
+                }
+                logBw[i] += Binc;
             }
         }
         //printf("%g, ", logBw[i]);
@@ -130,7 +157,6 @@ double negloglik(double *theta,
         ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
     }
     free(strides);
-    free(wsum);
     free(logBw);
     return -ll;
 }
