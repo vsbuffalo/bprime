@@ -239,14 +239,14 @@ def negll_numba(theta, Y, logB, w):
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
     # mut weight params
-    pi0, mu, W = theta[0], theta[1], theta[2:]
+    pi0, W = theta[0], theta[1:]
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     logBw = np.zeros(nx, dtype=np.float64)
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
-                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
     log_pibar = np.log(pi0) + logBw
     llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
     return -np.sum(llm)
