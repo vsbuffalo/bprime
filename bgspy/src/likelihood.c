@@ -57,18 +57,24 @@ double interp_logBw(const double x, const double *w, const double *logB,
  
     //print_Bw(logB, i, j, k, nw, strides); printf("\n");
     //printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
-    // if mutation is weak below threshold, B = 1 so we return log(1) = 0
-    if (x < min_w) return LOGBW_GET(logB, i, 0, j, k, strides);
-    //if (x < min_w) assert(0); // for debugging
-
-    if (x > max_w && fabs(x - max_w) < MUTMAX_THRESH) {
+    if (x <= min_w && fabs(x - min_w)) {
+        // if mutation is below or equal to the lower threshold return 
+        // first point
+        y = LOGBW_GET(logB, i, 0, j, k, strides);
+        free(strides);
+        return y;
+    }
+    if (x >= max_w && fabs(x - max_w) < MUTMAX_THRESH) {
         // within the max thresh; truncate to last point
         y = LOGBW_GET(logB, i, nw-1, j, k, strides);
+        free(strides);
         return y;
     }
     if (x > max_w && fabs(x - max_w) > MUTMAX_THRESH) {
-        printf("ERROR: x=%g out past max (bounds: [%g, %g], max diff: %g)\n", 
-                x, min_w, max_w, fabs(max_w - x));
+        printf("ERROR: x=%g out past max (with tolerance %g) (bounds: [%g, %g], max diff: %g)\n", 
+                x, MUTMAX_THRESH, min_w, max_w, fabs(max_w - x));
+        free(strides);
+        return NAN;
     }
     for (ssize_t l=0; l < nw-1; l++) {
         //printf("nw = %d, w[%d] = %g, w[%d] = %g l = %d\n", nw, l, w[l], l+1, w[l+1], l, i, j, k);
@@ -94,10 +100,11 @@ double interp_logBw(const double x, const double *w, const double *logB,
             y = (y2 - y1) / (w[l+1] - w[l]) * (x - w[l]) + y1;
             //printf("x = %g, y = %g\n", x, y);
             //printf("y = %g", y);
+            free(strides);
             return y;
         }
     }
-    printf("ERROR: interpolation failed: x=%g (bounds: [%g, %g])\n", x, min_w, max_w);
+    printf("ERROR: interpolation reached end: x=%g (bounds: [%g, %g], max diff: %g)\n", x, min_w, max_w, fabs(max_w - x));
     free(strides);
     assert(0);
     return NAN;
@@ -128,7 +135,6 @@ double negloglik(const double *theta,
     ssize_t nW = nt*nf;
     double *W = calloc(nW, sizeof(double));
     memcpy(W, theta + 1, nW * sizeof(double));
-    //double *logBw = calloc(nx, sizeof(double));
     double logBw_i;
     double Wjk;
     double ll = 0;
@@ -159,9 +165,11 @@ double negloglik(const double *theta,
                 double Binc = interp_logBw(Wjk, w, logB, nw, i, j, k, logB_strides);
                 if (isnan(Binc)) {
                     printf("NaN Binc! theta=[");
-                    print_theta(theta, 2+nW);
+                    print_theta(theta, 1+nW);
                     printf("]");
                     printf("i=%d, j=%d, k=%d | Wjk=%g,", i, j, k, Wjk);
+                    free(W);
+                    return NAN;
                 }
                 logBw_i += Binc;
             }

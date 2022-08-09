@@ -8,6 +8,7 @@ from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
 from ctypes import POINTER, c_double, c_ssize_t
+import ctypes
 
 # no longer needed
 # HAS_JAX = False
@@ -46,7 +47,8 @@ def access(B, i, l, j, k):
     return likclib.access(logB_ptr, i, l, j, k, B.ctypes.strides)
 
 
-def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), paired=False):
+def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
+                    log10_mu_bounds=(-11, -7), paired=False):
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
     for i in range(nt):
@@ -61,7 +63,8 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7)
     return lb, ub
 
 
-def bounds(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False, paired=False):
+def bounds(nt, nf, log10_pi0_bounds=(-4, -2),
+           log10_mu_bounds=(-11, -7), fixmu=False, paired=False):
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
     if not fixmu:
@@ -76,7 +79,9 @@ def bounds(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=F
         return list(zip(lb, ub))
     return lb, ub
 
-def random_start_mutation(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False):
+def random_start_mutation(nt, nf,
+                          log10_pi0_bounds=(-4, -3),
+                          log10_mu_bounds=(-11, -7)):
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
     mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
     W = np.empty((nt, nf))
@@ -242,14 +247,15 @@ def negll_numba(theta, Y, logB, w):
     pi0, W = theta[0], theta[1:]
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=np.float64)
+    ll = 0.
     for i in range(nx):
+        logBw_i = 0.
         for j in range(nt):
             for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    log_pibar = np.log(pi0) + logBw
-    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
-    return -np.sum(llm)
+                logBw_i += np.interp(W[j, k], w, logB[i, :, j, k])
+        log_pibar = np.log(pi0) + logBw_i
+        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
+    return -ll
 
 @jit(nopython=True)
 def negll_numba_simplex(theta, Y, logB, w):
@@ -322,8 +328,11 @@ def negll_c(theta, Y, logB, w):
                               POINTER(np.ctypeslib.c_intp),
                               POINTER(np.ctypeslib.c_intp))
     likclib.negloglik.restype = c_double
-    return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
+    nll = likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                             logB.ctypes.shape, logB.ctypes.strides)
+    ctypes._reset_cache()
+    return nll
+
 
 
 def negll_fixmu_numba(theta, mu, Y, logB, w):

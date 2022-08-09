@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 from bgspy.likelihood import negll_numba, negll_c, access, interp_logBw_c
+from bgspy.likelihood import negll_mutation
 
 def reparam_theta(theta, nt, nf):
     # the theta for the negll_numba func excludes
@@ -43,6 +44,19 @@ def test_interpol_C():
         x = 10**np.random.uniform(-11, -7)
         assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
 
+def test_interpol_C_bounds():
+    with open('likelihood_test_data.pkl', 'rb') as f:
+        dat = pickle.load(f)
+        B, Y, w = dat['B'], dat['Y'], dat['w']
+    nx, nw, nt, nf = B.shape
+    i, j, k = 100, 2, 0
+    x = 1e-7
+    assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+    x = 1e-11
+    assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+
+
+
 def test_compare_C_to_numba():
     with open('likelihood_test_data.pkl', 'rb') as f:
         dat = pickle.load(f)
@@ -56,8 +70,11 @@ def test_compare_C_to_numba():
     assert(theta.size == 1 + nf*nt)
 
     numba_results = negll_numba(theta, Y, B, w)
+    py_results = negll_mutation(theta, Y, B, w)
     c_results = negll_c(theta, Y, B, w)
-    np.testing.assert_almost_equal(c_results, numba_results)
+    np.testing.assert_almost_equal(py_results, numba_results, decimal=1)
+    # the sum in numba is a little unstable, but fine for quantities this large
+    np.testing.assert_almost_equal(c_results, numba_results, decimal=0)
 
     # now let's crank through a few more noisy ones for additional checks
     for _ in range(20):
