@@ -8,7 +8,6 @@ from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
 from ctypes import POINTER, c_double, c_ssize_t
-import ctypes
 
 # no longer needed
 # HAS_JAX = False
@@ -63,13 +62,13 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
     return lb, ub
 
 
-def bounds(nt, nf, log10_pi0_bounds=(-4, -2),
-           log10_mu_bounds=(-11, -7), fixmu=False, paired=False):
+def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
+           log10_mu_bounds=(-11, -7),
+           paired=False):
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
-    if not fixmu:
-        l += [10**log10_mu_bounds[0]]
-        u += [10**log10_mu_bounds[1]]
+    l += [10**log10_mu_bounds[0]]
+    u += [10**log10_mu_bounds[1]]
     l += [0.]*nf*nt
     u += [1.]*nf*nt
     lb = np.array(l)
@@ -92,19 +91,19 @@ def random_start_mutation(nt, nf,
     theta[1:] = W.flat
     return theta
 
-def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3), log10_mu_bounds=(-11, -7), fixmu=False):
+def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
+                         log10_mu_bounds=(-11, -7)):
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
     mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
-    offset = 1 + int(not fixmu)
     W = np.empty((nt, nf))
     for i in range(nf):
         W[:, i] = np.random.dirichlet([1.] * nt)
-    theta = np.empty(nt*nf + offset)
+        assert np.abs(W[:, i].sum() - 1.) < 1e-5
+    theta = np.empty(nt*nf + 2)
     theta[0] = pi0
-    if not fixmu:
-        theta[1] = mu
-    theta[offset:] = W.flat
-    check_bounds(theta, *bounds(nt, nf, log10_pi0_bounds, log10_mu_bounds, fixmu=fixmu))
+    theta[1] = mu
+    theta[2:] = W.flat
+    check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
     return theta
 
 def interp_logBw_c(x, w, B, i, j, k):
@@ -328,10 +327,8 @@ def negll_c(theta, Y, logB, w):
                               POINTER(np.ctypeslib.c_intp),
                               POINTER(np.ctypeslib.c_intp))
     likclib.negloglik.restype = c_double
-    nll = likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
-                            logB.ctypes.shape, logB.ctypes.strides)
-    ctypes._reset_cache()
-    return nll
+    return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
+                             logB.ctypes.shape, logB.ctypes.strides)
 
 
 
