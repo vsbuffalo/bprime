@@ -132,9 +132,10 @@ double negloglik(const double *theta,
     ssize_t nf = logB_dim[3];
     //printf("dims: nx=%d, nw=%d, nt=%d, nf=%d\n", nx, nw, nt, nf);
     double pi0 = theta[0];
+    double mu = theta[1];
     ssize_t nW = nt*nf;
     double *W = calloc(nW, sizeof(double));
-    memcpy(W, theta + 1, nW * sizeof(double));
+    memcpy(W, theta + 2, nW * sizeof(double));
     double logBw_i;
     double Wjk;
     double ll = 0;
@@ -162,10 +163,10 @@ double negloglik(const double *theta,
                 //if (j == 4) printf("j=%d, k=%d,offset: %d, nW=%d, W=%g W_GET=%g\n", j, k, nf*(j-1) + k, nW, W[(j-1)*nf + k], Wjk);
                 //printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k, 
                 //       mu, Wjk, mu * Wjk);
-                double Binc = interp_logBw(Wjk, w, logB, nw, i, j, k, logB_strides);
+                double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, logB_strides);
                 if (isnan(Binc)) {
                     printf("NaN Binc! theta=[");
-                    print_theta(theta, 1+nW);
+                    print_theta(theta, 2+nW);
                     printf("]");
                     printf("i=%d, j=%d, k=%d | Wjk=%g,", i, j, k, Wjk);
                     free(W);

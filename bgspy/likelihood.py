@@ -82,10 +82,9 @@ def random_start_mutation(nt, nf,
                           log10_pi0_bounds=(-4, -3),
                           log10_mu_bounds=(-11, -7)):
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
-    mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
     W = np.empty((nt, nf))
     for i in range(nf):
-        W[:, i] = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1])
+        W[:, i] = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1])
     theta = np.empty(nt*nf + 1)
     theta[0] = pi0
     theta[1:] = W.flat
@@ -94,7 +93,7 @@ def random_start_mutation(nt, nf,
 def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
                          log10_mu_bounds=(-11, -7)):
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
-    mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
+    mu = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1], 1)
     W = np.empty((nt, nf))
     for i in range(nf):
         W[:, i] = np.random.dirichlet([1.] * nt)
@@ -136,25 +135,12 @@ def R2(x, y):
     ssxm, ssxym, _, ssym = np.cov(x, y, bias=True).flat
     return ssxym / np.sqrt(ssxm * ssym)
 
-def penalized_negll(theta, Y, logB, w, penalty=2):
+def penalized_negll_c(theta, Y, logB, w, mu0, r):
     """
-    Experimental
     """
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, W = theta[0], theta[1:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=float)
-    for i in range(nx):
-        for j in range(nt):
-            for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    pibar = pi0 * np.exp(logBw)
-    llm = nD * np.log(pibar) + nS * np.log1p(-pibar)
-    return -(llm.sum() - penalty*np.log(W.sum()**2))
+    nll = negll_c(theta, Y, logB, w)
+    mu = theta[1]
+    return nll + r/2 * (mu - mu0)**2
 
 def log1mexp(x):
     """
@@ -212,38 +198,13 @@ def negll(theta, Y, logB, w):
 #         llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
 #         return -jnp.sum(llm)
 
-@jit(nopython=True)
-def inverse_logit(x):
-    return np.exp(x) / (1+np.exp(1))
-
-def logit(x):
-    return np.log(x / (1-x))
-
 def negll_mutation(theta, Y, logB, w):
     nS = Y[:, 0]
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
     # mut weight params
     pi0, W = theta[0], theta[1:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=np.float64)
-    for i in range(nx):
-        for j in range(nt):
-            for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    log_pibar = np.log(pi0) + logBw
-    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
-    return -np.sum(llm)
-
-
-@jit(nopython=True)
-def negll_numba(theta, Y, logB, w):
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, W = theta[0], theta[1:]
+    mu = 1.0
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     ll = 0.
@@ -251,61 +212,49 @@ def negll_numba(theta, Y, logB, w):
         logBw_i = 0.
         for j in range(nt):
             for k in range(nf):
-                logBw_i += np.interp(W[j, k], w, logB[i, :, j, k])
+                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
         log_pibar = np.log(pi0) + logBw_i
         ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
     return -ll
 
 @jit(nopython=True)
-def negll_numba_simplex(theta, Y, logB, w):
-    """
-    Simplex version, mu is 2nd term.
-    """
+def negll_numba(theta, Y, logB, w):
     nS = Y[:, 0]
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
     # mut weight params
     pi0, mu, W = theta[0], theta[1], theta[2:]
-    W = W.reshape((nt-1, nf)) # simplex; one fewer parameter per column
+    W = W.reshape((nt, nf))
     # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=np.float64)
+    ll = 0.
     for i in range(nx):
+        logBw_i = 0.
         for j in range(nt):
             for k in range(nf):
-                # mimix the simplex
-                if j == 0:
-                    # fixed class
-                    Wjk = 1 - W[:, k].sum()
-                else:
-                    Wjk = W[j-1, k]
-                logBw[i] += np.interp(mu*Wjk, w, logB[i, :, j, k])
-    log_pibar = np.log(pi0) + logBw
-    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
-    return -np.sum(llm)
+                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+        log_pibar = np.log(pi0) + logBw_i
+        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
+    return -ll
 
 @jit(nopython=True)
-def negll_numba_fixmu(theta, Y, logB, w, mu):
+def negll_mutation_numba(theta, Y, logB, w):
     nS = Y[:, 0]
     nD = Y[:, 1]
     nx, nw, nt, nf = logB.shape
     # mut weight params
     pi0, W = theta[0], theta[1:]
-    W = W.reshape((nt-1, nf)) # simplex; one fewer parameter per column
+    mu = 1.
+    W = W.reshape((nt, nf))
     # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=np.float64)
+    ll = 0.
     for i in range(nx):
+        logBw_i = 0.
         for j in range(nt):
             for k in range(nf):
-                # mimix the simplex
-                if j == 0:
-                    # fixed class
-                    Wjk = 1 - W[:, k].sum()
-                else:
-                    Wjk = W[j-1, k]
-                logBw[i] += np.interp(mu*Wjk, w, logB[i, :, j, k])
-    log_pibar = np.log(pi0) + logBw
-    llm = nD*log_pibar + nS*np.log1p(-np.exp(log_pibar))
-    return -np.sum(llm)
+                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+        log_pibar = np.log(pi0) + logBw_i
+        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
+    return -ll
 
 def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
@@ -329,40 +278,6 @@ def negll_c(theta, Y, logB, w):
     likclib.negloglik.restype = c_double
     return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                              logB.ctypes.shape, logB.ctypes.strides)
-
-
-
-def negll_fixmu_numba(theta, mu, Y, logB, w):
-    new_theta = np.empty(theta.size + 1)
-    new_theta[0] = theta[0]
-    new_theta[1] = mu
-    new_theta[2:] = theta[1:]
-    return negll_numba_simplex(new_theta, Y, logB, w)
-
-
-def negll_free_numba(theta, Y, logB, w):
-    new_theta = np.empty(theta.size + 1)
-    new_theta[0] = theta[0]
-    new_theta[1] = 1.
-    new_theta[2:] = theta[1:]
-    return negll_numba(new_theta, Y, logB, w)
-
-
-def negll_free_c(theta, Y, logB, w):
-    new_theta = np.empty(theta.size + 1)
-    new_theta[0] = theta[0]
-    new_theta[1] = 1.
-    new_theta[2:] = theta[1:]
-    return negll_c(new_theta, Y, logB, w)
-
-
-def negll_fixmu_c(theta, mu, Y, logB, w):
-    new_theta = np.empty(theta.size + 1)
-    new_theta[0] = theta[0]
-    new_theta[1] = mu
-    new_theta[2:] = theta[1:]
-    return negll_c(new_theta, Y, logB, w)
-
 
 def predict(theta, logB, w):
     nx, nw, nt, nf = logB.shape

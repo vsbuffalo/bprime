@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 from bgspy.likelihood import negll_numba, negll_c, access, interp_logBw_c
-from bgspy.likelihood import negll_mutation
+from bgspy.likelihood import negll
 
 def reparam_theta(theta, nt, nf):
     # the theta for the negll_numba func excludes
@@ -63,14 +63,14 @@ def test_compare_C_to_numba():
         B, Y, w = dat['B'], dat['Y'], dat['w']
 
     nx, nw, nt, nf = B.shape
-    theta = np.array([4.5010e-02, 3.7059e-09, 1.0956e-09, 1.5994e-09, 5.3757e-09,
-                      5.3020e-10, 1.9426e-09, 1.8480e-10, 7.6890e-09, 2.5817e-09,
-                      1.2694e-09, 2.8600e-10, 2.7720e-09, 4.6530e-10, 1.4003e-09,
-                      2.1054e-09])
-    assert(theta.size == 1 + nf*nt)
+    theta = np.array([4.5010e-02, 1.0000e-08, 3.7059e-01, 1.0956e-01, 1.5994e-01,
+       5.3757e-01, 5.3020e-02, 1.9426e-01, 1.8480e-02, 7.6890e-01,
+       2.5817e-01, 1.2694e-01, 2.8600e-02, 2.7720e-01, 4.6530e-02,
+       1.4003e-01, 2.1054e-01])
+    assert(theta.size == 2 + nf*nt)
 
     numba_results = negll_numba(theta, Y, B, w)
-    py_results = negll_mutation(theta, Y, B, w)
+    py_results = negll(theta, Y, B, w)
     c_results = negll_c(theta, Y, B, w)
     np.testing.assert_almost_equal(py_results, numba_results, decimal=1)
     # the sum in numba is a little unstable, but fine for quantities this large
