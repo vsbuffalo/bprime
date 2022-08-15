@@ -208,8 +208,8 @@ rule download_hapmap:
 ## === Conservation Tracks
 cons = [ # phastcons at different filtering thresholds:
         "conserved_phastcons_thresh471.bed.gz", 
-        "conserved_phastcons_thresh527.bed.gz", 
-        "conserved_phastcons_thresh0.bed.gz", 
+        "conserved_phastcons_thresh527.bed.gz",
+        "conserved_phastcons_thresh0.bed.gz",
         # thresholded phastcons with 1k slop
         "conserved_phastcons_thresh0_slop1k.bed.gz", 
         "conserved_phastcons_thresh471_slop1k.bed.gz", 
@@ -283,11 +283,9 @@ rule merged_utrs_cds_introns_phastcons:
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
-sim_cons = ["conserved_phastcons_thresh471_slop1k_chr10.bed", 
-            "conserved_phastcons_thresh527_slop1k_chr10.bed", 
-            "conserved_phastcons_thresh0_slop1k_chr10.bed", 
+sim_cons = ["conserved_phastcons_thresh0_slop1k_chr10.bed",  # this is currently the primary conserved track for simulations
             # this is exons + phastons, no thresholding or slop
-            "conserved_phastcons_exons_thresh0_chr10.bed"
+            "conserved_phastcons_exons_thresh0_chr10.bed" # OLD 
 ]
 sim_neut = ["neutral_phastcons_exons_thresh0_chr10.bed.gz"]
 
@@ -320,6 +318,27 @@ rule sim_neutral:
        bedtools complement -L -i - -g {input.seqlens} | \
        gzip > {output}
       """
+
+## === Calcbkgd files
+calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons_thresh0_slop1k/chr10.bed"]
+# only chr10
+rule seqlens_chr10:
+  input: "hg38_seqlens.tsv"
+  output: "hg38_chr10_seqlens.tsv"
+  shell:
+    """
+      grep "chr10" {input} > {output}
+    """
+
+rule chr10_conserved:
+  input: "conserved_phastcons_thresh0_slop1k_chr10.bed"
+  output: "conserved_phastcons_thresh0_slop1k/chr10.bed"
+  shell:
+    """
+    mkdir -p conserved_phastcons_thresh0_slop1k
+    cp {input} conserved_phastcons_thresh0_slop1k/chr10.bed
+    """
+
 
 ## === Accessible Regions
 accessible = ["no_centro.bed"]
@@ -376,6 +395,6 @@ rec = decode + hapmap
 ## === Main target
 print(annot + rec + cons + sim_cons + neutral + accessible + genome)
 rule all:
-  input: annot + rec + cons + sim_cons + neutral + accessible + genome + sim_neut
+  input: annot + rec + cons + sim_cons + neutral + accessible + genome + sim_neut + calc_bkgd
 
 

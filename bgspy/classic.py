@@ -22,7 +22,7 @@ import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
 from bgspy.utils import haldanes_mapfun
 from bgspy.parallel import BChunkIterator, MapPosChunkIterator
-from bgspy.theory import bgs_segment_sc16, bgs_rec, bgs_segment_sc16_manual_vec
+from bgspy.theory import bgs_segment_sc16, bgs_rec
 
 # pre-computed optimal einsum_path
 BCALC_EINSUM_PATH = ['einsum_path', (0, 2), (0, 1)]
@@ -44,6 +44,9 @@ def BSC16_segment_lazy(mu, sh, segments, N):
     """
     Compute the fixation time, Ne, etc for each segment, using the
     equation that integrates over the entire segment.
+
+    Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
+    the factor of two.
     """
     L = segments.lengths
     rbp = segments.rates
@@ -51,7 +54,7 @@ def BSC16_segment_lazy(mu, sh, segments, N):
     sh = sh.squeeze()[None, :, None]
     rbp = rbp.squeeze()[None, None, :]
     L = L.squeeze()[None, None, :]
-    T, Ne, Q2, V, Vm, U = bgs_segment_sc16(mu, sh, L, rbp, N, return_both=True)
+    T, Ne, Q2, V, Vm, U = bgs_segment_sc16(mu, sh, L, rbp, 2*N, return_both=True)
     return T, Ne, Q2, V, Vm, U
 
 

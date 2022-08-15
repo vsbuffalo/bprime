@@ -31,6 +31,11 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
 
 def access(B, i, l, j, k):
+    """
+    This is a function that tests uses the C function access()
+    to grab elements of the multidimensional array B using a macro.
+    This is primarily used in unit tests to ensure this is working properly.
+    """
     nx, nw, nt, nf = B.shape
     B = np.require(B, np.float64, ['ALIGNED'])
     likclib.access.argtypes = (POINTER(c_double),
@@ -48,6 +53,8 @@ def access(B, i, l, j, k):
 
 def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
                     log10_mu_bounds=(-11, -7), paired=False):
+    """
+    """
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
     for i in range(nt):
@@ -137,6 +144,12 @@ def R2(x, y):
 
 def penalized_negll_c(theta, Y, logB, w, mu0, r):
     """
+    A thin wrapper over negll_c() that imposes a penalty of the form:
+
+     l*(θ) = l(θ | x) - r (μ - μ0)^2 / 2
+
+    where r can be thought of as the precision (1/variance) -- this is
+    essentially a Gaussian prior.
     """
     nll = negll_c(theta, Y, logB, w)
     mu = theta[1]
@@ -279,36 +292,19 @@ def negll_c(theta, Y, logB, w):
     return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                              logB.ctypes.shape, logB.ctypes.strides)
 
-def predict(theta, logB, w):
+def predict_simplex(theta, logB, w):
     nx, nw, nt, nf = logB.shape
     # mut weight params
-    pi0, W = theta[0], theta[1:]
+    pi0, mu, W = theta[0], theta[1], theta[2:]
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     logBw = np.zeros(nx, dtype=float)
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
     return pi0*np.exp(logBw)
 
-
-def minimize_worker(args):
-    if len(args) == 6:
-        start, bounds, func, Y, logB, w = args
-        func = partial(func, Y=Y, logB=logB, w=w)
-    else:
-        start, bounds, func, Y, logB, w, mu = args
-        func = partial(func, Y=Y, logB=logB, w=w, mu=mu)
-    res = minimize(func, start, bounds=bounds,
-                   method='L-BFGS-B',
-                   options={'disp': False})
-    return res
-
-
-def expand_W_simplex(w, nt, nf):
-    W = w.reshape((nt-1, nf))
-    return np.concatenate((1-W.sum(axis=0)[None, :], W), axis=0)
 
 class BGSEstimator:
     """
@@ -507,6 +503,56 @@ class BGSEstimator:
     def to_npz(self, filename):
         np.savez(filename, logB=self.logB, w=self.w, t=self.t, Y=self.Y_,
                  bounds=self.bounds())
+
+    def to_json2(self, filename, chrom, pos, ns):
+        Y = self.Y_.astype(int)
+        N = Y.sum(axis=1)
+        Nd = Y[:, 1].squeeze()
+        # get rid of 0s
+        idx = N > 0
+        N = N[idx]
+        Nd = Nd[idx]
+        # simpler model:
+        #logB = self.logB[idx, ...][..., 0][..., None]
+        logB = self.logB[idx, ...]
+        nx, nw, nt, nf = logB.shape
+        with open(filename, 'w') as f:
+            json.dump(dict(logBs=logB.tolist(),
+                           w=self.w.tolist(),
+                           nx=nx, nw=nw, nt=nt, nf=nf,
+                           #Nd=Nd.tolist(), N=N.tolist(),
+                           Y = Y[idx, ...].tolist(),
+                           chrom=chrom[idx].tolist(),
+                           pos=pos[idx].tolist(), ns=ns.tolist(),
+                           nchrom=len(set(chrom[idx]))),
+                           f, indent=2)
+
+
+    def to_json3(self, filename, C):
+        Y = self.Y_.astype(int)
+        N = Y.sum(axis=1)
+        Nd = Y[:, 1].squeeze()
+        # get rid of 0s
+        idx = N > 0
+        N = N[idx]
+        Nd = Nd[idx]
+        # simpler model:
+        #logB = self.logB[idx, ...][..., 0][..., None]
+        logB = self.logB[idx, ...]
+        nx, nw, nt, nf = logB.shape
+        n = idx.sum()
+        CC = C[idx, :][:, idx];
+        with open(filename, 'w') as f:
+            json.dump(dict(logBs=logB.tolist(),
+                           w=self.w.tolist(),
+                           nx=nx, nw=nw, nt=nt, nf=nf,
+                           #Nd=Nd.tolist(), N=N.tolist(),
+                           Y = Y[idx, ...].tolist(),
+                           C = CC.tolist()),
+                           f, indent=2)
+
+
+
 
     def to_json(self, filename):
         Y = self.Y_.astype(int)

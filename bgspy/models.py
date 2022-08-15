@@ -73,6 +73,7 @@ class BGSModel(object):
         self.pi0_grid = None
         self.pi0i_mle = None
 
+
     @property
     def seqlens(self):
         return self.genome.seqlens

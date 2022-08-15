@@ -3,35 +3,28 @@
 mamba create -n bprime tensorflow-gpu keras numpy scipy statsmodels matplotlib click scikit-learn pandas msprime slim pyslim jupyterlab tqdm scikit-allel bedtools
 
 
+## The B Map Human Simulations
 
-## Architecture
+### Single conservation track
 
-Simulations can be either msprime (with known classic BGS theory functions,
-used as a validation step), or SLiM forward simulations. Simulations are run
-using different tools.
+```
+Conservation track: data/annotation/conserved_phastcons_thresh0_slop1k_chr10.bed 
+Recombination map: annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt
+Mutation rates: 1e-10, 3.16e-10, 1e-9, 3.16e-9, 1e-8, 3.16e-8
+Selection coefficient: 0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316, 0.1
+```
 
- - msprime: `tools/msprime_bgs.py`, which outputs a `.npz` of the features
-   matrix targets matrix, and the column names of both.
- - slim: simulations are run using Snakemake, and are then processed with
-   `tools/trees2data.py`, which takes a directory of treeseq files, recapitates
-   them, extracts features from the simulation metadata, and outputs the
-   features and targets matrices with column names of both. 
-   
-Then we use `tools/fit_sims.py` to further process the `.npz` data. This is
-agnostic to what ran the simulation. `fit_sims.py` has two subcommands: `data`
-and `fit`. `fit_sims.py data` reads the `.npz` file, takes the product of the
-selection and dominance coefficient columns (currently, we treat `h` as fixed),
-and extracts all variable columns in the data. The output of this is a
-`LearnedFunction` object, which contains the data for model training.
+Assumes fixed selection/mutation rates for one single feature type (phastcons).
+Phastcons regions are unfiltered (threshold = 0), where I've merged features
+that are within 1kbp of each other.  This perhaps increases selection over what
+we'd expect in reality, but this is to reduce the time it takes for each
+simulation. 
 
-## Thoughts
+Overall, this is a very approximate model, used primarily for comparing the
+theoretic and simulation B scores.
 
- - if the ratchet is clicking, can we trust mutational density maps?
- 
 
 ## TODO
 
- - feature annotations
- - double check nfixed calc in likelihood.py line 132
- - we're merging all Bs in loglikelihood() is this right?
+ - in sim validation notebook -- we need to watch haploid N
 

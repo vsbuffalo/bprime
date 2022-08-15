@@ -41,13 +41,18 @@ def TRatchet(N, s, U, ploidy=2):
     return np.expm1(2*ploidy*N*s)*(np.cosh(s)/np.sinh(s) - 1)/(2*ploidy*N*U)
 
 @np.vectorize
-def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
+def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=False):
     """
     Using a non-linear solver to solve the pair of S&C '16 equations and
     report the results. return_both (outdated name) returns all the components
     for pre-calculating these for segments. full_output is for debugging the
     solver.
+
+    WARNING: to minimize errors, these equations are taken directly from
+    S&C '16, which is a *haploid* model. Hence, the population size
+    argument is called haploid_N -- to modify this for diploids, haploid_N = 2N.
     """
+    N = haploid_N
     U = L*mu
     Vm = U*sh**2
     start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
@@ -77,14 +82,23 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, full_output=False, return_both=False):
 
 @np.vectorize
 def bgs_rec_sc16(mu, sh, L, r, N, Q_segment=False, full_output=False, return_both=False):
-    U = L*mu
+    """
+    N is haploid.
+
+    Page 3 of S&C '16 supplementary material: the Vm under their
+    maintext equations is for the haploid model. Both Vm and C^2
+    refer to diploids in their 1998 work, since the ratio is all that
+    is of concern in the 2016 paper, they do not change this. But here,
+    we need to.
+    """
+    U = 2*L*mu # adjustment factor for diploids -- see Appendix 2 of Buffalo 2021
     #G = L*r
     Vm = U*sh**2
     #print(U, G, np.exp((-2*U / (2*sh + G))))
     start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
     def func(x):
         T, Ne = x
-        V = U*sh - sh/T
+        V = 2*(U*sh - sh/T) # factor of two for diploids see p. 3 SM S&C '16
         #Q2 = 1/((Vm/V) * (Vm/V + G/2))
         if Q_segment:
             VmV = Vm/V
@@ -111,105 +125,89 @@ def bgs_rec_sc16(mu, sh, L, r, N, Q_segment=False, full_output=False, return_bot
         return float(T), float(Ne), float(Q2), float(V)
     return Ne
 
-@np.vectorize
-def bgs_rec_sc16_alt(U, sh, r, N, return_both=False):
-    Vm = U*sh**2
-    start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
-    def func(x):
-        T, Ne = x
-        V = U*sh - sh/T
-        Q2 = (1/((Vm/V) + r))**2
-        return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
-                 np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
-    out = fsolve(func, [start_T, N], full_output=True)
-    Ne = out[0][1]
-    T =  out[0][0]
-    V = U*sh - sh/T
-    Q2 = (1/((Vm/V) + r))**2
-    if out[2] != 1:
-        warnings.warn("no solution found!")
-        return np.nan
-    if return_both:
-        return float(T), float(Ne), float(Q2), float(V)
-    return Ne
+## DEPRECATED
+#@np.vectorize
+#def bgs_rec_sc16_alt(U, sh, r, N, return_both=False):
+#    Vm = U*sh**2
+#    start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
+#    def func(x):
+#        T, Ne = x
+#        V = U*sh - sh/T
+#        Q2 = (1/((Vm/V) + r))**2
+#        return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
+#                 np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
+#    out = fsolve(func, [start_T, N], full_output=True)
+#    Ne = out[0][1]
+#    T =  out[0][0]
+#    V = U*sh - sh/T
+#    Q2 = (1/((Vm/V) + r))**2
+#    if out[2] != 1:
+#        warnings.warn("no solution found!")
+#        return np.nan
+#    if return_both:
+#        return float(T), float(Ne), float(Q2), float(V)
+#    return Ne
 
 
-def bgs_segment_sc16_grid_alt(U, sh, N, fixed_rbp, value='B'):
-    """
-    This is a manually vectorized version of
-    bgs_segment_sc16 for comparison/testing.
-    """
-    x = np.empty((U.size, sh.size))
-    U = U.squeeze()
-    sh = sh.squeeze()
-    rbp = fixed_rbp
-    for i, u in enumerate(np.nditer(U)):
-        for j, s in enumerate(np.nditer(sh)):
-            if value == 'B':
-                res = float(bgs_rec_sc16_alt(u, s, rbp, N))/N
-            elif value == 'T':
-                res = float(bgs_rec_sc16_alt(u, s, rbp, N, return_both=True)[0])/N
-            else:
-                res = float(bgs_rec_sc16_alt(u, s, rbp, N, return_both=True))
-            x[i, j] = res
-    return x
+#def bgs_segment_sc16_grid_alt(U, sh, N, fixed_rbp, value='B'):
+#    """
+#    This is a manually vectorized version of
+#    bgs_segment_sc16 for comparison/testing.
+#    """
+#    x = np.empty((U.size, sh.size))
+#    U = U.squeeze()
+#    sh = sh.squeeze()
+#    rbp = fixed_rbp
+#    for i, u in enumerate(np.nditer(U)):
+#        for j, s in enumerate(np.nditer(sh)):
+#            if value == 'B':
+#                res = float(bgs_rec_sc16_alt(u, s, rbp, N))/N
+#            elif value == 'T':
+#                res = float(bgs_rec_sc16_alt(u, s, rbp, N, return_both=True)[0])/N
+#            else:
+#                res = float(bgs_rec_sc16_alt(u, s, rbp, N, return_both=True))
+#            x[i, j] = res
+#    return x
 
 
-def bgs_segment_sc16_grid(mu, sh, L, N, fixed_rbp, value='B'):
-    """
-    This is a manually vectorized version of
-    bgs_segment_sc16 for comparison/testing.
-    """
-    x = np.empty((mu.size, sh.size, L.size))
-    mu = mu.squeeze()
-    sh = sh.squeeze()
-    L = L.squeeze()
-    rbp = fixed_rbp
-    for i, m in enumerate(np.nditer(mu)):
-        for j, s in enumerate(np.nditer(sh)):
-            for k, l in enumerate(np.nditer(L)):
-                if value == 'B':
-                    res = float(bgs_rec_sc16(m, s, l, rbp, N, Q_segment=True))/N
-                elif value == 'T':
-                    res = float(bgs_rec_sc16(m, s, l, rbp, N, Q_segment=True, return_both=True)[0])/N
-                else:
-                    res = float(bgs_rec_sc16(m, s, l, rbp, N, Q_segment=True, return_both=True))
-                x[i, j, k] = res
-    return x
+#def bgs_segment_sc16_grid(mu, sh, L, N, fixed_rbp, value='B'):
+#    """
+#    This is a manually vectorized version of
+#    bgs_segment_sc16 for comparison/testing.
+#    """
+#    x = np.empty((mu.size, sh.size, L.size))
+#    mu = mu.squeeze()
+#    sh = sh.squeeze()
+#    L = L.squeeze()
+#    rbp = fixed_rbp
+#    for i, m in enumerate(np.nditer(mu)):
+#        for j, s in enumerate(np.nditer(sh)):
+#            for k, l in enumerate(np.nditer(L)):
+#                if value == 'B':
+#                    res = float(bgs_rec_sc16(m, s, l, rbp, N, Q_segment=True))/N
+#                elif value == 'T':
+#                    res = float(bgs_rec_sc16(m, s, l, rbp, N, Q_segment=True, return_both=True)[0])/N
+#                else:
+#                    res = float(bgs_rec_sc16(m, s, l, rbp, N, Q_segment=True, return_both=True))
+#                x[i, j, k] = res
+#    return x
 
+#def bgs_segment_sc16_manual_vec(mu, sh, L, r, N):
+#    """
+#    This is a manually vectorized version of
+#    bgs_segment_sc16 for comparison/testing.
+#    """
+#    x = np.empty((mu.size, sh.size, L.size))
+#    mu = mu.squeeze()
+#    sh = sh.squeeze()
+#    for i, m in enumerate(np.nditer(mu)):
+#        for j, s in enumerate(np.nditer(sh)):
+#            # if np.allclose(m, 1e-8) and np.allclose(s, 1e-3):
+#                # __import__('pdb').set_trace()
+#            x[i, j, :] = bgs_rec_sc16(m, s, L, r, N)
+#            #for l in range(len(L)):
+#    return x
 
-def bgs_segment_sc16_manual_vec(mu, sh, L, r, N):
-    """
-    This is a manually vectorized version of
-    bgs_segment_sc16 for comparison/testing.
-    """
-    x = np.empty((mu.size, sh.size, L.size))
-    mu = mu.squeeze()
-    sh = sh.squeeze()
-    for i, m in enumerate(np.nditer(mu)):
-        for j, s in enumerate(np.nditer(sh)):
-            # if np.allclose(m, 1e-8) and np.allclose(s, 1e-3):
-                # __import__('pdb').set_trace()
-            x[i, j, :] = bgs_rec_sc16(m, s, L, r, N)
-            #for l in range(len(L)):
-    return x
-
-
-def interpolate_bgs_sc16(mu, sh, L, rf, N, verbose=True):
-    interpols = dict()
-    nmu, nsh = len(mu), len(sh)
-    LL, rr = np.meshgrid(L, rf)
-    print("building theory interpolators...\t", end='')
-    for i, s in enumerate(np.nditer(sh)):
-        for j, m in enumerate(np.nditer(mu)):
-            z = bgs_segment_sc16(m, s, LL, rr, N)
-            key = (float(m), float(s))
-            interpols[key] = interp2d(LL, rr, z, kind='cubic')
-    print("done.")
-    def func(L, rf):
-        assert len(L) == len(rf)
-        return np.array([interpol(L, rf) for key, interpol in interpols.items()]).reshape(nsh, nmu, len(L)).T
-    return func
 
 
 @np.vectorize
@@ -219,7 +217,6 @@ def B_var_limit(B, R=1, N=None, n=None):
         return 2/9 * B**2 / R
     VarBhat = (n+1)*B / (12*N*(n-1)) + 2*(n**2 + n + 3)*B**2 / (9*n*(n-1))
     return VarBhat/R
-
 
 
 BGS_MODEL_FUNCS = {'bgs_rec': bgs_rec,
