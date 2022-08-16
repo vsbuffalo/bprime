@@ -5,7 +5,7 @@ SEED_MAX = 2**32 - 1
 
 from bgspy.likelihood import BGSEstimator
 
-NRUNS = 10
+NRUNS = 20_000
 
 res = [f"runs/hg38_test_results_{seed}.npz" for seed in np.random.randint(0, SEED_MAX, NRUNS)]
 
@@ -34,7 +34,7 @@ rule merge:
       thetas.extend(d['thetas'])
       success.extend(d['success'])
     np.savez(output[0], nlls = np.array(nlls), starts=np.array(starts),
-             thetas = np.array(thetas), success = np.array(thetas))
+             thetas = np.array(thetas), success = np.array(success))
 
 
 rule all:

@@ -14,7 +14,7 @@ if __name__ == "__main__":
     nreps = X.shape[3]
     mean = X.mean(axis=3)
     sd = X.std(axis=3)
-    np.savez(sys.argv[2], mu=mu, sh=sh, pos=pos, X=X, nreps=nreps, mean=mean, sd=sd, files)
+    np.savez(sys.argv[2], mu=mu, sh=sh, pos=pos, X=X, nreps=nreps, mean=mean, sd=sd, files=files)
 
 
 

@@ -48,7 +48,7 @@ rule bgs_map:
   shell:
     bgs_run.slim_call(slim_cmd=SLIM, manual={'cons_track': config['cons_track']})
 
-SIM_NP = os.path.join(DATADIR, bgs_run.name, "chr10_B_sims.npz")
+SIM_NP = os.path.join(DATADIR, bgs_run.name, f"{bgs_run.name}.npz")
 
 rule process:
   input: sims=bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name, 'sims')
