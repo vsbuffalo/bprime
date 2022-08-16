@@ -580,8 +580,8 @@ def interpolate_calc_bkgd(results, width, seqlens, **kwargs):
                     B_pos[chrom] = step_pos
                 pos, bs = results[(mu, s)][chrom].T
                 func = interpolate.interp1d(pos, bs, fill_value=(bs[0], bs[-1]), **kwargs)
-                Bs[chrom][:, i, j] = func(step_pos)
-    return BScores(Bs, B_pos, mus, sels, None)
+                Bs[chrom][:, i, j] = np.log(func(step_pos))
+    return BScores(Bs, B_pos, np.array(mus), np.array(sels), None)
 
 
 def read_centro(file):

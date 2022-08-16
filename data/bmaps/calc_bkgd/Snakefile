@@ -22,8 +22,8 @@ rule calc_bkgd:
   output: [f"calc_bkgd_mu{{mu}}_s{{selcoef}}/chr{chr}.bkgd" for chr in AUTOS]
   shell:
      f"""
-     mkdir -p calc_bkgd_{{wildcards.mu}}mu_s{{wildcards.selcoef}}
-     {BKGD} {{input.conf}} PARAM_U={{wildcards.mu}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_{{wildcards.mu}}mu_s{{wildcards.selcoef}}
+     mkdir -p calc_bkgd_mu{{wildcards.mu}}_s{{wildcards.selcoef}}
+     {BKGD} {{input.conf}} PARAM_U={{wildcards.mu}} PARAM_T={{wildcards.selcoef}} OUTPUT_DIR=calc_bkgd_mu{{wildcards.mu}}_s{{wildcards.selcoef}}
      """
 
 rule calc_bgkd:
@@ -45,4 +45,4 @@ rule interpol:
     Bs.save(output.pkl)
 
 rule all:
-  input: "calc_bkgd_1000.pkl", "calc_bkgd.pkl"
+  input: "calc_bkgd_1000.pkl", "calc_bkgd.pkl", "calc_bkgd_100000.pkl"
