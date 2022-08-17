@@ -292,6 +292,26 @@ def negll_c(theta, Y, logB, w):
     return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                              logB.ctypes.shape, logB.ctypes.strides)
 
+def normal_ll_c(theta, Y, logB, w):
+    nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
+    nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
+    theta = np.require(theta, np.float64, ['ALIGNED'])
+    logB = np.require(logB, np.float64, ['ALIGNED'])
+    nS_ptr = nS.ctypes.data_as(POINTER(c_double))
+    nD_ptr = nD.ctypes.data_as(POINTER(c_double))
+    theta_ptr = theta.ctypes.data_as(POINTER(c_double))
+    logB_ptr = logB.ctypes.data_as(POINTER(c_double))
+    w_ptr = w.ctypes.data_as(POINTER(c_double))
+    likclib.negloglik.argtypes = (POINTER(c_double), POINTER(c_double),
+                              POINTER(c_double), POINTER(c_double),
+                              POINTER(c_double),
+                              # weird type for dims/strides
+                              POINTER(np.ctypeslib.c_intp),
+                              POINTER(np.ctypeslib.c_intp))
+    likclib.normal_loglik.restype = c_double
+    return likclib.normal_loglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
+                                 logB.ctypes.shape, logB.ctypes.strides)
+
 def predict_simplex(theta, logB, w):
     nx, nw, nt, nf = logB.shape
     # mut weight params

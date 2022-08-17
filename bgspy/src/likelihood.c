@@ -186,3 +186,76 @@ double negloglik(const double *theta,
     return -ll;
 }
 
+
+double normal_loglik(const double *theta,
+                     const double *nS, const double *nD, 
+                     const double *logB, 
+                     const double *w,
+                     const ssize_t *logB_dim, 
+                     const ssize_t *logB_strides) {
+
+    ssize_t nx = logB_dim[0]; 
+    ssize_t nw = logB_dim[1];
+    ssize_t nt = logB_dim[2];
+    ssize_t nf = logB_dim[3];
+    //printf("dims: nx=%d, nw=%d, nt=%d, nf=%d\n", nx, nw, nt, nf);
+    double pi0 = theta[0];
+    double mu = theta[1];
+    ssize_t nW = nt*nf;
+    double *W = calloc(nW, sizeof(double));
+    memcpy(W, theta + 2, nW * sizeof(double));
+    double logBw_i;
+    double Wjk;
+    double ll = 0;
+    //for (int i=0; i<4; i++) printf("-> i=%d, %d", i, strides[i]);
+
+    //for (int i=0; i < 50; i++) printf("   %g\n", logB[i]);
+
+    //for (int i=0; i < 4; i++) printf(" stide %d=%d \n", i, logB_strides[i]);
+    //printf("mu: %g\n", mu);
+
+    /* for (int i=0; i < n_theta; i++) { */
+    /*     printf("theta(i=%d) -> %g\n", i, theta[i]); */
+    /* } */
+
+    /* for (int i=0; i < nW; i++) { */
+    /*     printf("W(i=%d) -> %g\n", i, W[i]); */
+    /* } */
+
+    //print_theta(theta, 2+nW);
+    double N, sigma2, loc;
+    for (ssize_t i=0; i < nx; i++) {
+        logBw_i = 0.; // initialize start of sum
+        for (ssize_t j=0; j < nt; j++) {
+            for (ssize_t k=0; k < nf; k++) {
+                Wjk = W_GET(W, j, k, nf);
+                //if (j == 4) printf("j=%d, k=%d,offset: %d, nW=%d, W=%g W_GET=%g\n", j, k, nf*(j-1) + k, nW, W[(j-1)*nf + k], Wjk);
+                //printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k, 
+                //       mu, Wjk, mu * Wjk);
+                double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, logB_strides);
+                if (isnan(Binc)) {
+                    printf("NaN Binc! theta=[");
+                    print_theta(theta, 2+nW);
+                    printf("]");
+                    printf("i=%d, j=%d, k=%d | Wjk=%g,", i, j, k, Wjk);
+                    free(W);
+                    return NAN;
+                }
+                logBw_i += Binc;
+            }
+        }
+        //printf("%g, ", logBw[i]);
+        double log_pi = log(pi0) + logBw_i;
+        //printf("c log(pi0): %g\n", log(pi0));
+        //printf("c nD[%d]=%g, nS[%d]=%g\n", i, nD[i], i, nS[i]);
+        //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
+        //ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+        N = nD[i] + nS[i];
+        sigma2 = N * exp(log_pi) * (1-exp(log_pi));
+        loc = N * exp(log_pi);
+        ll +=  -log(sqrt(2*sigma2*3.14159265359)) - (0.5/sigma2)*pow(nD[i] - loc, 2.);
+    }
+    free(W);
+    return ll;
+}
+
