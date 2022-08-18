@@ -216,6 +216,7 @@ class BScores:
                             func = self.w, b
                         chrom_interpols[i][j][k] = func
             interpols[chrom] = Bw_interpol(chrom_interpols, npos, self.nt, self.nf, jax)
+
     def _build_interpolators(self, **kwargs):
         """
         Build positional interpolators for each chromsome and w/t combination.
@@ -233,7 +234,7 @@ class BScores:
                 for chrom in Bs:
                     # The last dimension is features matrix -- for now, only
                     # one feature is supported
-                    y = Bs[chrom][:, i, j]
+                    y = Bs[chrom][:, i, j].squeeze()
                     func = interpolate.interp1d(x[chrom], y,
                                                 fill_value=(y[0], y[-1]),
                                                 **kwargs)

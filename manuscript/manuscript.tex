@@ -1,0 +1,75 @@
+\documentclass[11pt]{article}
+\RequirePackage{fullpage}
+\RequirePackage[font=small,labelfont=bf]{caption}
+\RequirePackage{amsmath,amssymb,amsthm}
+\RequirePackage{graphicx}
+\RequirePackage[hidelinks]{hyperref}
+\RequirePackage{subcaption}
+\RequirePackage{wasysym}
+\RequirePackage{authblk}
+\RequirePackage{bm}
+\RequirePackage{bbm}
+% \RequirePackage[osf]{mathpazo}
+\RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,maxbibnames=9,maxcitenames=1,backend=biber,natbib=true,uniquelist=false,hyperref=true]{biblatex}
+\usepackage{color}
+\usepackage{nicefrac}
+
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\text{V}}
+% \DeclareMathOperator{\var}{var}
+% \DeclareMathOperator{\cov}{cov}
+
+\addbibresource{biblio.bib}
+
+\title{}
+
+\author{Vince Buffalo and Andrew Kern}
+
+\begin{document}
+\maketitle
+
+A central goal of evolutionary genetics is to quantify the relative roles
+different evolutionary processes have on genetic variation. Certain
+evolutionary processes, such as demographic bottlenecks or expansions, act
+uniformly across the genome as a whole. Other processes, such as selection, are
+hypothesized to act differently across the genome depending on the density of
+genomic features, and local heterogeneity in recombination and mutation rate.
+With the emergence of population genomic data, a variety of statistical models
+have teased apart the contribution of these various processes. These
+statistical models differ in how they reduce large genomic data to summary
+statistics, as well as in their statistical methodology. Some models reduce
+genomic data to the histograms of the frequency spectrum (XXX), while others
+model scalar summaries of the frequency spectrum along the genome. 
+
+One class of models, parametric statistical models, leverage population genetic
+theory to inform expectations of the mean pairwise diversity along the
+chromosome. Estimation under these models often uses a composite likelihood
+approach, where the joint distribution is assumed independent across positions.
+While composite likelihoods are simpler to formulate and lead to consistent
+parameter estimation, ignoring dependencies between neighboring sites has two
+primary disadvantages. First, unlike proper likelihoods, the composite
+likelihood's curvature is uninformative about parameter estimate uncertainty.
+Previous work has circumvented this shortcoming through (1) resampling-based
+uncertainty estimates, or (2) adjusting the composite likelihood's curvature to
+account for these dependencies. Second, similar to inference under phylogenetic
+comparative models, the dependency structure tells us how to properly weight
+information across sites. For example, imagine a conserved segment 10 kilobases
+long right on the border of two genomic bins, which due to linked selection,
+bot experience a reduction in diversity. When estimating parameters, the
+independence assumption of composite likelihoods would weight these observed
+reductions equal to the amount of a reduction observed on an entirely different
+independent chromosome. 
+
+patterns of genetic variability along the genome are treated as
+coming from an indeprocess $m(z)$.
+
+
+Here, we focus on solving an issue processes: background
+
+
+
+
+\printbibliography
+
+\end{document}
