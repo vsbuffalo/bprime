@@ -407,7 +407,7 @@ class GenomicBins:
         return midpoints(self.bins)
 
     @property
-    def flat(self):
+    def flat_midpoints(self):
         """
         Return a list of (chr, midpoint) positions for the bins.
         """
@@ -416,6 +416,22 @@ class GenomicBins:
             for mp in midpoints(bins):
                 out.append((chrom, mp))
         return out
+
+    @property
+    def flat(self):
+        """
+        Return a list of (chr, start, end) positions for the bins.
+        """
+        out = []
+        for chrom, bins in self.bins.items():
+            for i, end in enumerate(bins):
+                if i == 0:
+                    continue
+                start = bins[i-1]
+                out.append((chrom, start, end))
+        return out
+
+
 
     def aggregate_site_array(self, x, func, **kwargs):
         """

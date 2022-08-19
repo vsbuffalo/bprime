@@ -139,6 +139,24 @@ def pi_from_pairwise_summaries(x):
     return BinnedStat(out, x.bins, n)
 
 
+def trimmed_bins(Y, bins, alpha):
+    """
+    Trim the Y matrix by π to α/2, 1-α/2. This also returns the corresponding
+    bins. We return the bins too; note that we return bins not as a GenomicBins
+    object since some bins will be excluded, and this assumes bins span the
+    entire chromosome. So we return bins as a list of (chrom, start, end) pairs.
+
+    """
+    pi = pi_from_pairwise_summaries(Y)
+    lower, upper = alpha/2, 1-alpha/2
+    idx = (np.nanquantile(pi, lower) < pi) & (np.nanquantile(pi, upper) > pi)
+    Y_trimmed = Y[idx, :]
+    bins_flat = bins.flat
+    chroms = [c for keep, (c, _) in zip(idx, bins_flat) if keep]
+    end = [pos for keep, (c, pos) in zip(idx, bins_flat) if keep]
+    return
+
+
 class CountsDirectory:
     """
     Lazy load a directory of .npy files of chromosome count data.
@@ -294,8 +312,8 @@ class GenomeData:
     def chroms(self):
         return self.genome.chroms
 
-    def bin_reduce(self, width, merge=False,
-                   filter_neutral=None, filter_accessible=None):
+    def bin_reduce(self, width, merge=False, filter_neutral=None,
+                   filter_accessible=None, trimmed=None):
         """
         Given a genomic window width, bin the data and compute bin-level
         summaries for the likelihood.
@@ -317,6 +335,10 @@ class GenomeData:
             d_binstat = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
             reduced[chrom] = d_binstat
             nwins += len(d_binstat)
+
+        if trimmed is not None:
+            pi = pi_from_pairwise_summaries(d)
+
 
         if not merge:
             return bins, reduced
@@ -381,7 +403,7 @@ class GenomeData:
 
     def __repr__(self):
         nchroms = len(self.genome.chroms)
-        msg = [f"GenomicData ({nchroms} chromosomes)\nMasks:",
+        msg = [f"GenomeData ({nchroms} chromosomes)\nMasks:",
                f"         accessible    neutral"]
         for chrom, (acces, neut) in self.mask_stats().items():
             msg += [f"  {chrom}     {pretty_percent(acces)}%        {pretty_percent(neut)}%"]
