@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 from bgspy.likelihood import negll_numba, negll_c, access, interp_logBw_c
-from bgspy.likelihood import negll
+from bgspy.likelihood import negll, random_start_mutation
 
 def reparam_theta(theta, nt, nf):
     # the theta for the negll_numba func excludes
@@ -23,6 +23,7 @@ def test_access_C():
         dat = pickle.load(f)
         B, Y, w = dat['B'], dat['Y'], dat['w']
     nx, nw, nt, nf = B.shape
+    np.random.seed(0)
     for _ in range(10000):
         i = np.random.randint(0, nx)
         l = np.random.randint(0, nw)
@@ -36,13 +37,20 @@ def test_interpol_C():
         dat = pickle.load(f)
         B, Y, w = dat['B'], dat['Y'], dat['w']
     nx, nw, nt, nf = B.shape
-    for _ in range(100):
+    np.random.seed(0)
+    for _ in range(10000):
         i = int(np.random.randint(0, nx))
-        l = int(np.random.randint(0, nw))
         j = int(np.random.randint(0, nt))
         k = int(np.random.randint(0, nf))
-        x = 10**np.random.uniform(-11, -7)
+        x = 10**np.random.uniform(-11, -7, 1)
         assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+        # now test bounds -- first lower
+        i, j, k = 0, 0, 0
+        assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+        # now upper
+        i, j, k = nx-1, nt-1, nf-1
+        assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+    assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
 
 def test_interpol_C_bounds():
     with open('likelihood_test_data.pkl', 'rb') as f:
@@ -57,7 +65,10 @@ def test_interpol_C_bounds():
 
 
 
-def test_compare_C_to_numba():
+def test_compare_C():
+    """
+    Compare the python/numba loglikelihood implementations to the C.
+    """
     with open('likelihood_test_data.pkl', 'rb') as f:
         dat = pickle.load(f)
         B, Y, w = dat['B'], dat['Y'], dat['w']
@@ -83,4 +94,25 @@ def test_compare_C_to_numba():
         numba_results = negll_numba(theta_jitter, Y, B, w)
         c_results = negll_c(theta_jitter, Y, B, w)
         np.testing.assert_almost_equal(c_results, numba_results)
+
+
+def test_compare_C_random():
+    """
+    Compare the python/numba loglikelihood implementations to the C.
+    """
+    with open('likelihood_test_data.pkl', 'rb') as f:
+        dat = pickle.load(f)
+        B, Y, w = dat['B'], dat['Y'], dat['w']
+
+    nx, nw, nt, nf = B.shape
+
+    for _ in range(100):
+        theta = random_start_mutation(nt, nf)
+        new_theta = np.zeros(nt*nf + 2)
+        new_theta[0] = theta[0]
+        new_theta[1] = 1.
+        new_theta[2:] = theta[1:]
+        py_results = negll(new_theta, Y, B, w)
+        c_results = negll_c(new_theta, Y, B, w)
+        np.testing.assert_almost_equal(c_results, py_results, decimal=1)
 

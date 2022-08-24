@@ -54,6 +54,9 @@ def access(B, i, l, j, k):
 def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
                     log10_mu_bounds=(-11, -7), paired=False):
     """
+    Return the bounds on for optimization under the free mutation
+    model. If paired=True, the bounds are zipped together for each
+    parameter.
     """
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
@@ -72,6 +75,11 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
 def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
            log10_mu_bounds=(-11, -7),
            paired=False):
+    """
+    Return the bounds on for optimization under the simplex model
+    model. If paired=True, the bounds are zipped together for each
+    parameter.
+    """
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
     l += [10**log10_mu_bounds[0]]
@@ -88,10 +96,15 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
 def random_start_mutation(nt, nf,
                           log10_pi0_bounds=(-4, -3),
                           log10_mu_bounds=(-11, -7)):
+    """
+    Create a random start position log10 uniform over the bounds for π0
+    and all the mutation parameters under the free mutation model.
+    """
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
     W = np.empty((nt, nf))
-    for i in range(nf):
-        W[:, i] = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1])
+    for i in range(nt):
+        for j in range(nf):
+            W[i, j] = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1])
     theta = np.empty(nt*nf + 1)
     theta[0] = pi0
     theta[1:] = W.flat
@@ -99,6 +112,10 @@ def random_start_mutation(nt, nf,
 
 def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
                          log10_mu_bounds=(-11, -7)):
+    """
+    Create a random start position log10 uniform over the bounds for π0
+    and μ, and uniform under the DFE weights for W, under the simplex model.
+    """
     pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
     mu = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1], 1)
     W = np.empty((nt, nf))
@@ -113,6 +130,10 @@ def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
     return theta
 
 def interp_logBw_c(x, w, B, i, j, k):
+    """
+    Linearly interpolate log(B) over the mutation parameter w using the C
+    function. This is to test against the Python implementation.
+    """
     nx, nw, nt, nf = B.shape
     B = np.require(B, np.float64, ['ALIGNED'])
     likclib.interp_logBw.argtypes = (c_double,           # x
@@ -141,6 +162,11 @@ def R2(x, y):
     y = y[complete_idx]
     ssxm, ssxym, _, ssym = np.cov(x, y, bias=True).flat
     return ssxym / np.sqrt(ssxm * ssym)
+
+
+class OptimizationRun:
+    def __init__(self):
+        pass
 
 def penalized_negll_c(theta, Y, logB, w, mu0, r):
     """
@@ -273,8 +299,15 @@ def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
 def negll_c(theta, Y, logB, w):
+    """
+    θ is [π0, μ, w11, w12, ...] and should
+    have dimension (nt x nf) + 2
+    """
+    nx, nw, nt, nf = logB.shape
     nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
     nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
+    assert nS.shape[0] == nx
+    assert theta.size == (nt * nf) + 2
     theta = np.require(theta, np.float64, ['ALIGNED'])
     logB = np.require(logB, np.float64, ['ALIGNED'])
     nS_ptr = nS.ctypes.data_as(POINTER(c_double))
