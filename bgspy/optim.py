@@ -21,32 +21,61 @@ def extract_opt_info(x):
         assert success in NL_OPT_CODES.keys()
     return nll, res, success
 
-
-def run_nloptims(workerfunc, startfunc, nstarts, ncores = 70):
-    starts = [startfunc() for _ in range(nstarts)]
-    with multiprocessing.Pool(ncores) as p:
-        res = list(tqdm.tqdm(p.imap(workerfunc, starts), total=nstarts))
-    nlls = np.array([x[0] for x in res])
-    thetas = np.array([x[1] for x in res])
-    success = np.array([x[2] for x in res])
-    return nlls, thetas, success
-
 def array_all(x):
     return tuple([np.array(a) for a in x])
 
-
-def run_optims(workerfunc, startfunc, nstarts, ncores=50):
+def run_optims(workerfunc, starts, ncores=50):
     """
     """
-    starts = [startfunc() for _ in range(nstarts)]
-    with multiprocessing.Pool(ncores) as p:
-        res = list(tqdm.tqdm(p.imap(workerfunc, starts), total=nstarts))
+    nstarts = len(starts)
+    ncores = ncores if ncores is not None else 1
+    if ncores > 1:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(workerfunc, starts), total=nstarts))
+    else:
+        res = list(tqdm.tqdm(map(workerfunc, starts), total=nstarts))
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
-    return nlls, thetas, success
+    return OptimResult(nlls, thetas, success)
 
 
-class Likelihood:
-    def __init__(self, engine, algo):
-        pass
+class OptimResult:
+    def __init__(self, nlls, thetas, success):
+        self.nlls = nlls
+        self.thetas = thetas
+        self.success = success
 
-    def run_optims(self, workerfunc, startfunc
+    @property
+    def stats(self):
+        succ = Counter(self.success)
+        return {NL_OPT_CODES[k]: n for k, n in succ}
+
+    @property
+    def rank(self):
+        assert self.nlls is not None
+        assert self.thetas is not None
+        assert self.success is not None
+        # also checks the top hit is best
+        idx = np.argsort(self.nlls)
+        return idx
+
+    @property
+    def theta(self):
+        return self.thetas[self.rank[0]]
+
+    @property
+    def nll(self):
+        assert self.nlls is not None
+        return self.nlls[self.rank[0]]
+
+    @property
+    def valid(self):
+        return self.success[self.rank[0]] >= 1
+
+    def __repr__(self):
+        code = NL_OPT_CODES[self.success[self.rank[0]]]
+        return ("OptimResult\n"
+               f"  success: {self.valid} (termination code: {code})\n"
+               f"  stats: {self.stats}\n"
+               f"  negative log-likelihood = {self.nll}\n"
+               f"  theta = {self.theta}")
+

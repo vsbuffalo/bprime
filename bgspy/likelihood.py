@@ -20,9 +20,10 @@ from ctypes import POINTER, c_double, c_ssize_t
 from scipy.special import xlogy, xlog1py
 from scipy.stats import binned_statistic
 from scipy import interpolate
-from scipy.optimize import minimize, dual_annealing
+from scipy.optimize import minimize
 from numba import jit
 from bgspy.utils import signif
+from bgspy.optim import run_optims
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -361,11 +362,14 @@ class BGSEstimator:
 
     (note Bs are stored in log-space.)
     """
-    def __init__(self, w, t, logB, log10_pi0_bounds=(-5, -1), seed=None):
+    def __init__(self, w, t, logB, Y=None,
+                 log10_pi0_bounds=(-5, -1),
+                 seed=None):
         self.w = w
         self.t = t
         self.log10_pi0_bounds = log10_pi0_bounds
         self.log10_mu_bounds = np.log10(w[0]), np.log10(w[-1])
+        self.Y = Y
         try:
             assert logB.ndim == 4
             assert logB.shape[1] == w.size
@@ -395,6 +399,9 @@ class BGSEstimator:
     @property
     def nf(self):
         return self.dim()[2]
+
+    def _load_optim(self, optim_res):
+        self.optim = optim_res
 
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
@@ -429,7 +436,6 @@ class BGSEstimator:
         for i in range(n):
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
-
 
     @property
     def mle_pi0(self):
@@ -472,10 +478,77 @@ class BGSEstimator:
             rows.append(f" negative log-likelihood: {self.nll_}")
         return "\n".join(rows)
 
+def negll_freemut(Y, B, w):
+    """
+    This is a closure around data; returns a negative log- likelihood
+    function around the data and a few fixed parameters (B and w).
+
+    The core part is negll_c().
+    """
+    def func(theta):
+        new_theta = np.full(theta.size + 1, np.nan)
+        theta = np.copy(theta)
+        new_theta[0] = theta[0]
+        # fix mutation rate to one and let W represent mutation rates to various classes
+        new_theta[1] = 1.
+        new_theta[2:] = theta[1:] # times mutation rates
+        #print("-->", theta, new_theta)
+        return negll_c(new_theta, Y, B, w)
+    return func
+
+def negll_freemut_full(theta, Y, B, w):
+    """
+    Like negll_freemut() but not a closure.
+    """
+    new_theta = np.full(theta.size + 1, np.nan)
+    theta = np.copy(theta)
+    new_theta[0] = theta[0]
+    # fix mutation rate to one and let W represent mutation rates to various classes
+    new_theta[1] = 1.
+    new_theta[2:] = theta[1:] # times mutation rates
+    #print("-->", theta, new_theta)
+    return negll_c(new_theta, Y, B, w)
+
+class LikelihoodMutation(BGSEstimator):
+    def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
+        super().__init__(w=w, t=t, logB=logB, Y=Y,
+                         log10_pi0_bounds=log10_pi0_bounds,
+                         seed=seed)
+
+    def random_start(self):
+        """
+        Random starts
+        """
+        return random_start_mutation(self.nt, self.nf,
+                                     self.log10_pi0_bounds,
+                                     self.log10_mu_bounds)
+
+    def bounds(self):
+        return bounds_mutation(self.nt, self.nf,
+                               self.log10_pi0_bounds,
+                               self.log10_mu_bounds, paired=True)
+
+    def fit(self, n=100, ncores=None, engine='scipy'):
+        """
+        Fit models on a single process.
+        """
+        starts = [self.random_start() for _ in range(n)]
+        nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
+        if engine == 'scipy':
+            worker = partial(minimize, nll, bounds=self.bounds(),
+                             method='L-BFGS-B')
+        elif engine == 'nlopt':
+            pass
+        else:
+            raise ValueError("engine must be 'scipy' or 'nlopt'")
+        res = run_optims(worker, starts, ncores=ncores)
+        self._load_optim(res)
 
 class LikelihoodSimplex(BGSEstimator):
     def __init__(self, *args, **kwargs):
         super(LikelihoodSimplex).__init__(*args, **kwargs)
 
     def fit(self):
+        pass
+
 
