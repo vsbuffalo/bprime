@@ -24,7 +24,7 @@ from scipy import interpolate
 from scipy.optimize import minimize
 from numba import jit
 from bgspy.utils import signif
-from bgspy.optim import run_optims
+from bgspy.optim import run_optims, nlopt_mutation_isres_worker
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -401,7 +401,7 @@ def predict_simplex(theta, logB, w):
     return pi0*np.exp(logBw)
 
 
-class BGSEstimator:
+class BGSLikelihood:
     """
     Y ~ π0 B(w)
 
@@ -499,7 +499,7 @@ class BGSEstimator:
     def from_npz(self, filename):
         d = np.load(filename)
         bounds = d['bounds']
-        obj = BGSEstimator(d['w'], d['t'], d['logB'],
+        obj = BGSLikelihood(d['w'], d['t'], d['logB'],
                            (np.log10(bounds[0, 0]), np.log10(bounds[0, 1])))
         return obj
 
@@ -551,7 +551,7 @@ def negll_freemut_full_nlopt(x, grad, Y, B, w):
     new_theta[2:] = x[1:] # times mutation rates
     return negll_c(new_theta, Y, B, w)
 
-class LikelihoodMutation(BGSEstimator):
+class FreeMutationModel(BGSLikelihood):
     def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
         super().__init__(w=w, t=t, logB=logB, Y=Y,
                          log10_pi0_bounds=log10_pi0_bounds,
@@ -565,23 +565,31 @@ class LikelihoodMutation(BGSEstimator):
                                      self.log10_pi0_bounds,
                                      self.log10_mu_bounds)
 
-    def bounds(self):
+    def bounds(self, paired=False):
         return bounds_mutation(self.nt, self.nf,
                                self.log10_pi0_bounds,
-                               self.log10_mu_bounds, paired=True)
+                               self.log10_mu_bounds, paired=paired)
 
     def fit(self, n=100, ncores=None, engine='scipy'):
         """
-        Fit models on a single process.
+        Fit likelihood models with mumeric optimization (either scipy or nlopt).
+
+        n: the number of random multistarts to use.
+        ncores: number of cores to use for multiprocessing.
+        engine: either 'scipy' or 'nlopt'.
         """
+        ncores = min(n, ncores) # don't request more cores than we need
         starts = [self.random_start() for _ in range(n)]
-        nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
         if engine == 'scipy':
-            worker = partial(minimize, nll, bounds=self.bounds(),
+            nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
+            worker = partial(minimize, nll, bounds=self.bounds(paired=True),
                              method='L-BFGS-B')
         elif engine == 'nlopt':
-            worker = partial(minimize, nll, bounds=self.bounds(),
-                             method='L-BFGS-B')
+            nll = partial(negll_freemut_full_nlopt, Y=self.Y,
+                          B=self.logB, w=self.w)
+            worker = partial(nlopt_mutation_isres_worker,
+                             func=nll, nt=self.nt, nf=self.nf,
+                             bounds=self.bounds())
         else:
             raise ValueError("engine must be 'scipy' or 'nlopt'")
         res = run_optims(worker, starts, ncores=ncores)
@@ -592,17 +600,22 @@ class LikelihoodMutation(BGSEstimator):
         """
         Extract out the W matrix.
         """
-        return self.theta_[1:]
+        return self.theta_[1:].reshape((self.nt, self.nf))
+
+    @property
+    def nll(self):
+        return self.nll_
 
     def __repr__(self):
         base_rows = super().__repr__()
         if self.theta_ is not None:
             base_rows += "\n\nFree-mutation model ML estimates:\n"
+            base_rows += f"\nnegative log-likelihood: {self.nll}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
-            base_rows += "W = \n" + tabulate(self.mle_W.reshape((self.nt, self.nf)))
+            base_rows += "W = \n" + tabulate(self.mle_W)
         return base_rows
 
-class LikelihoodSimplex(BGSEstimator):
+class SimplexModel(BGSLikelihood):
     def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
         super().__init__(w=w, t=t, logB=logB, Y=Y,
                          log10_pi0_bounds=log10_pi0_bounds,
@@ -619,7 +632,7 @@ class LikelihoodSimplex(BGSEstimator):
     def bounds(self):
         return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
-                              self.log10_mu_bounds, paired=True)
+                              self.log10_mu_bounds, paired=False)
 
     def fit(self, n=100, ncores=None):
         """

@@ -1,8 +1,11 @@
 import multiprocessing
 from collections import Counter
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import tqdm
 from tabulate import tabulate
+import nlopt
 from scipy.optimize import minimize
 
 # nlopt has different error messages; we use this for scipy to
@@ -38,8 +41,32 @@ def run_optims(workerfunc, starts, ncores=50):
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
     return OptimResult(nlls, thetas, success)
 
-def nlopt_isres_worker(start, func, nt, nf):
-    "TODO LEFT HERE"
+
+def nlopt_mutation_isres_worker(start, func, nt, nf, bounds,
+                                xtol_rel=1e-3, maxeval=1000000):
+    """
+    Use nlopt
+    """
+    nparams = nt * nf + 1
+    opt = nlopt.opt(nlopt.GN_ISRES, nparams)
+    #opt.set_local_optimizer(nlopt.LN_COBYLA)
+    opt.set_min_objective(func)
+    lb, ub = bounds
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
+    opt.set_xtol_rel(xtol_rel)
+    opt.set_maxeval(maxeval)
+    assert start.size == nparams
+    mle = opt.optimize(start)
+    nll = opt.last_optimum_value()
+    success = opt.last_optimize_result()
+    return nll, mle, success
+
+
+def nlopt_simplex_isres_worker(start, func, nt, nf):
+    """
+    Use nlopt
+    """
     opt = nlopt.opt(nlopt.GN_ISRES, nparams)
     #opt = nlopt.opt(nlopt.AUGLAG, nparams)
     #opt.set_local_optimizer(nlopt.LN_COBYLA)
@@ -67,6 +94,28 @@ def nlopt_isres_worker(start, func, nt, nf):
 def nlopt_worker():
     pass
 
+def optim_plot(only_success=True, tail=0.5, **runs):
+    """
+    Make a plot of the rank-ordered optimization minima for the
+    labeled runs keywords. Only the top 'tail' entries are kept.
+    """
+    fig, ax = plt.subplots()
+    for i, (key, run) in enumerate(runs.items()):
+        nll = run.nlls
+        succ = run.success
+        if only_success:
+            keep = succ >= 1
+            nll = nll[keep]
+            succ = succ[keep]
+        q = np.quantile(nll, tail)
+        nlls = nll[nll < q]
+        sort_idx = np.argsort(nlls)
+        y = nlls[sort_idx]
+        x = 2*i + succ[nll < q].astype('int')
+        cols = mpl.cm.get_cmap('Paired')(x)
+        ax.scatter(list(reversed(range(len(y)))), y, s=1, label=key, c=cols)
+    ax.legend()
+    ax.semilogy()
 
 class OptimResult:
     def __init__(self, nlls, thetas, success, starts=None):
