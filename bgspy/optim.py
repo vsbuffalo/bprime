@@ -1,4 +1,5 @@
 import multiprocessing
+from collections import Counter
 import numpy as np
 import tqdm
 from tabulate import tabulate
@@ -37,25 +38,56 @@ def run_optims(workerfunc, starts, ncores=50):
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
     return OptimResult(nlls, thetas, success)
 
+def nlopt_isres_worker(start, func, nt, nf):
+    "TODO LEFT HERE"
+    opt = nlopt.opt(nlopt.GN_ISRES, nparams)
+    #opt = nlopt.opt(nlopt.AUGLAG, nparams)
+    #opt.set_local_optimizer(nlopt.LN_COBYLA)
+    nll = negll_nlopt(Y, Bp, w)
+    opt.set_min_objective(nll)
+    hl, hu = inequality_constraint_functions(nt, nf)
+    tols = np.repeat(1e-11, nf)
+    opt.add_inequality_mconstraint(hl, tols)
+    opt.add_inequality_mconstraint(hu, tols)
+    ce = equality_constraint_function(nt, nf)
+    opt.add_equality_mconstraint(ce, tols)
+    lb, ub = bounds_simplex(nt, nf)
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
+    opt.set_xtol_rel(1e-3)
+    #opt.set_xtol_abs(1e-6)
+    #opt.set_stopval(923543002497)
+    opt.set_maxeval(1000000)
+    assert x.size == nparams
+    mle = opt.optimize(x)
+    nll = opt.last_optimum_value()
+    success = opt.last_optimize_result()
+    return nll, mle, success
+
+def nlopt_worker():
+    pass
+
 
 class OptimResult:
-    def __init__(self, nlls, thetas, success):
+    def __init__(self, nlls, thetas, success, starts=None):
         self.nlls = nlls
         self.thetas = thetas
         self.success = success
+        self.starts = starts
 
     @property
     def stats(self):
         succ = Counter(self.success)
-        return {NL_OPT_CODES[k]: n for k, n in succ}
+        return {NL_OPT_CODES[k]: n for k, n in succ.items()}
 
     @property
     def rank(self):
         assert self.nlls is not None
         assert self.thetas is not None
         assert self.success is not None
-        # also checks the top hit is best
         idx = np.argsort(self.nlls)
+        # remove non-successful terminations
+        idx = idx[self.success[idx] >= 1]
         return idx
 
     @property
@@ -71,11 +103,16 @@ class OptimResult:
     def valid(self):
         return self.success[self.rank[0]] >= 1
 
+    @property
+    def frac_success(self):
+        x = np.mean([v >= 1 for v in self.success])
+        return x
+
     def __repr__(self):
         code = NL_OPT_CODES[self.success[self.rank[0]]]
         return ("OptimResult\n"
                f"  success: {self.valid} (termination code: {code})\n"
-               f"  stats: {self.stats}\n"
+               f"  stats: {self.stats} (prop success: {np.round(self.frac_success, 2)*100}%)\n"
                f"  negative log-likelihood = {self.nll}\n"
                f"  theta = {self.theta}")
 

@@ -4,6 +4,7 @@ import warnings
 import json
 import multiprocessing
 import tqdm
+from tabulate import tabulate
 from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
@@ -184,6 +185,8 @@ def log1mexp(x):
     this paper: https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
 
     I've also added another condition to prevent underflow.
+
+    NOTE: note in use currently outside negll() -- critical code in C.
     """
     assert isinstance(x, np.ndarray), "x must be a float-like np.ndarray"
     assert np.all(x < 0), "x must be < 0"
@@ -342,7 +345,49 @@ def normal_ll_c(theta, Y, logB, w):
     return likclib.normal_loglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                                  logB.ctypes.shape, logB.ctypes.strides)
 
+def constraint_matrix(nt, nf):
+    nparams = nt*nf + 2
+    A = np.zeros((nf, nparams))
+    for i in range(nf):
+        W = A[i, 2:].reshape((nt, nf))
+        W[:, i] = 1.
+    return A
+
+def inequality_constraint_functions(nt, nf, log10_mu_bounds=(-11, -7)):
+    """
+    Inequality constraints for nlopt.
+     l < μW < u
+     l - μW < 0
+     μW - u < 0
+    """
+    A = constraint_matrix(nt, nf)
+    lower, upper = 10**log10_mu_bounds[0], 10**log10_mu_bounds[1]
+    def func_l(result, x, grad):
+        mu = x[1]
+        M = lower - (mu *  A.dot(x))
+        for i in range(nf):
+            result[i] = M[i]
+    def func_u(result, x, grad):
+        mu = x[1]
+        M = (mu *  A.dot(x)) - upper
+        for i in range(nf):
+            result[i] = M[i]
+    return func_l, func_u
+
+def equality_constraint_function(nt, nf):
+    """
+    Equality constraints for nlopt.
+    """
+    A = constraint_matrix(nt, nf)
+    def func(result, x, grad):
+        M = A.dot(x)
+        for i in range(nf):
+            result[i] = M[i] - 1.
+    return func
+
 def predict_simplex(theta, logB, w):
+    """
+    """
     nx, nw, nt, nf = logB.shape
     # mut weight params
     pi0, mu, W = theta[0], theta[1], theta[2:]
@@ -382,6 +427,7 @@ class BGSEstimator:
         self.dim()
         self.rng = np.random.default_rng(seed)
 
+
     def dim(self):
         """
         Dimensions are nx x nw x nt x nf.
@@ -402,6 +448,10 @@ class BGSEstimator:
 
     def _load_optim(self, optim_res):
         self.optim = optim_res
+        # load in the best values
+        self.theta_ = optim_res.theta
+        self.nll_ = optim_res.nll
+        assert optim_res.valid, "Optimization is not valid!"
 
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
@@ -441,21 +491,6 @@ class BGSEstimator:
     def mle_pi0(self):
         return self.theta_[0]
 
-    @property
-    def mle_W(self):
-        if self.fix_mu_:
-            return expand_W_simplex(self.theta_[1:], self.nt, self.nf)
-        return expand_W_simplex(self.theta_[2:], self.nt, self.nf)
-
-    def predict(self, logB=None, all=False):
-        assert self.theta_ is not None, "InterpolatedMLE.theta_ is not set, call fit() first"
-        logB = self.logB if logB is None else logB
-        if not all:
-            return predict(self.theta_, logB, self.w)
-        n = self.thetas_.shape[0]
-        pis = [predict(self.thetas_[i, :], logB, self.w) for i in range(n)]
-        return np.stack(pis)
-
     def to_npz(self, filename):
         np.savez(filename, logB=self.logB, w=self.w, t=self.t, Y=self.Y_,
                  bounds=self.bounds())
@@ -472,10 +507,6 @@ class BGSEstimator:
         rows = [f"MLE (interpolated w): {self.nw} x {self.nt} x {self.nf}"]
         rows.append(f"  w grid: {signif(self.w)} (before interpolation)")
         rows.append(f"  t grid: {signif(self.t)}")
-        if self.theta_ is not None:
-            rows.append(f"MLEs:\n  pi0 = {signif(self.mle_pi0)}\n  W = " +
-                        str(signif(self.mle_W)).replace('\n', '\n   '))
-            rows.append(f" negative log-likelihood: {self.nll_}")
         return "\n".join(rows)
 
 def negll_freemut(Y, B, w):
@@ -509,6 +540,17 @@ def negll_freemut_full(theta, Y, B, w):
     #print("-->", theta, new_theta)
     return negll_c(new_theta, Y, B, w)
 
+def negll_freemut_full_nlopt(x, grad, Y, B, w):
+    """
+    A nlopt version of negll_freemut_full().
+    """
+    new_theta = np.zeros(x.size + 1)
+    new_theta[0] = x[0]
+    # fix mutation rate to one and let W represent mutation rates to various classes
+    new_theta[1] = 1.
+    new_theta[2:] = x[1:] # times mutation rates
+    return negll_c(new_theta, Y, B, w)
+
 class LikelihoodMutation(BGSEstimator):
     def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
         super().__init__(w=w, t=t, logB=logB, Y=Y,
@@ -538,13 +580,82 @@ class LikelihoodMutation(BGSEstimator):
             worker = partial(minimize, nll, bounds=self.bounds(),
                              method='L-BFGS-B')
         elif engine == 'nlopt':
+            worker = partial(minimize, nll, bounds=self.bounds(),
+                             method='L-BFGS-B')
+        else:
+            raise ValueError("engine must be 'scipy' or 'nlopt'")
+        res = run_optims(worker, starts, ncores=ncores)
+        self._load_optim(res)
+
+    @property
+    def mle_W(self):
+        """
+        Extract out the W matrix.
+        """
+        return self.theta_[1:]
+
+    def __repr__(self):
+        base_rows = super().__repr__()
+        if self.theta_ is not None:
+            base_rows += "\n\nFree-mutation model ML estimates:\n"
+            base_rows += f"π0 = {self.mle_pi0}\n"
+            base_rows += "W = \n" + tabulate(self.mle_W.reshape((self.nt, self.nf)))
+        return base_rows
+
+class LikelihoodSimplex(BGSEstimator):
+    def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
+        super().__init__(w=w, t=t, logB=logB, Y=Y,
+                         log10_pi0_bounds=log10_pi0_bounds,
+                         seed=seed)
+
+    def random_start(self):
+        """
+        Random starts
+        """
+        return random_start_simplex(self.nt, self.nf,
+                                    self.log10_pi0_bounds,
+                                    self.log10_mu_bounds)
+
+    def bounds(self):
+        return bounds_simplex(self.nt, self.nf,
+                              self.log10_pi0_bounds,
+                              self.log10_mu_bounds, paired=True)
+
+    def fit(self, n=100, ncores=None):
+        """
+        Fit models on a single process.
+
+        Because of the more complex constraint program, this alway uses
+        nlopt.
+        """
+        starts = [self.random_start() for _ in range(n)]
+        nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
+        if engine == 'scipy':
+            worker = partial(minimize, nll, bounds=self.bounds(),
+                             method='L-BFGS-B')
+        elif engine == 'nlopt':
             pass
         else:
             raise ValueError("engine must be 'scipy' or 'nlopt'")
         res = run_optims(worker, starts, ncores=ncores)
         self._load_optim(res)
 
-class LikelihoodSimplex(BGSEstimator):
+    @property
+    def mle_W(self):
+        """
+        Extract out the W matrix.
+        """
+        return self.theta_[1:]
+
+    def __repr__(self):
+        base_rows = super().__repr__()
+        if self.theta_ is not None:
+            base_rows += "\n\nFree-mutation model ML estimates:\n"
+            base_rows += f"π0 = {self.mle_pi0}\n"
+            base_rows += "W = \n" + tabulate(self.mle_W.reshape((self.nt, self.nf)))
+        return base_rows
+
+
     def __init__(self, *args, **kwargs):
         super(LikelihoodSimplex).__init__(*args, **kwargs)
 
