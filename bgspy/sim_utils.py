@@ -7,13 +7,27 @@ import itertools
 import operator
 from collections import defaultdict, Counter, namedtuple
 import numpy as np
-import tskit
+import tskit as tsk
+import msprime
 import pyslim
 import tqdm
 import multiprocessing
 from bgspy.utils import get_files, random_seed, bin_chrom
 
 SIM_REGEX = re.compile(r'(?P<name>\w+)_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
+
+def delete_mutations(ts):
+    return ts.delete_sites([s.id for s in ts.sites()])
+
+def mutate_simulated_tree(ts, rate, seed=None,
+                          remove_existing_mutations=True):
+    """
+    Given a TreeSequence of a simulated tree, remove all selected
+    sites (if remove_existing_mutations=True)
+    """
+    if remove_existing_mutations:
+        ts = delete_mutations(ts)
+    return msprime.sim_mutations(ts, rate=rate, random_seed=seed)
 
 def fixed_params(params):
     """

@@ -431,8 +431,6 @@ class GenomicBins:
                 out.append((chrom, start, end))
         return out
 
-
-
     def aggregate_site_array(self, x, func, **kwargs):
         """
         Given a site array,

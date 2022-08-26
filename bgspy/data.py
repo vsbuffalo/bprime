@@ -138,24 +138,28 @@ def pi_from_pairwise_summaries(x):
     n[denom == 0] = 0
     return BinnedStat(out, x.bins, n)
 
-
-def trimmed_bins(Y, bins, alpha):
+def trimmed_bins(Y, bins, alpha=0.01):
     """
-    Trim the Y matrix by π to α/2, 1-α/2. This also returns the corresponding
-    bins. We return the bins too; note that we return bins not as a GenomicBins
+    From histograms of binned π along the genome some windows have outlier
+    diversity (usually in the upper tail). Likelihood-based methods may be
+    biased by these outlier windows, so a robust approach is to trim these
+    tails to the α specified here. If alpha is a tuple, it's for (lower, upper)
+    thresholds, e.g. trim the Y matrix by π to α/2, 1-α/2
+
+    We return the bins too; note that we return bins not as a GenomicBins
     object since some bins will be excluded, and this assumes bins span the
     entire chromosome. So we return bins as a list of (chrom, start, end) pairs.
-
     """
+    if isinstance(alpha, float):
+        lower, upper = alpha/2, 1-alpha/2
+    else:
+        lower, upper = alpha
     pi = pi_from_pairwise_summaries(Y)
-    lower, upper = alpha/2, 1-alpha/2
-    idx = (np.nanquantile(pi, lower) < pi) & (np.nanquantile(pi, upper) > pi)
-    Y_trimmed = Y[idx, :]
-    bins_flat = bins.flat
-    chroms = [c for keep, (c, _) in zip(idx, bins_flat) if keep]
-    end = [pos for keep, (c, pos) in zip(idx, bins_flat) if keep]
-    return
 
+    keep_idx = (np.nanquantile(pi, lower) < pi) & (np.nanquantile(pi, upper) > pi)
+    bins_flat = bins.flat
+    new_bins = [bin for keep, bin in zip(keep_idx, bins_flat) if keep]
+    return new_bins, Y[keep_idx, :], keep_idx
 
 class CountsDirectory:
     """
@@ -189,6 +193,7 @@ def filter_sites(counts, chrom, filter_neutral, filter_accessible,
         # print("using accessibility masks...")
         ac = ac * accesssible_masks[chrom][:, None]
     return ac
+
 
 class GenomeData:
     def __init__(self, genome=None):
@@ -226,7 +231,9 @@ class GenomeData:
 
     def load_counts_from_ts(self, ts=None, file=None, chrom=None):
         """
-        Count the number of derived alleles -- assumes BinaryMutationModel.
+        Count the number of derived alleles in a TreeSequence -- assumes
+        BinaryMutationModel. This is primarily for loading simulation data
+        into for testing.
 
         If chrom is not set a new dummy Genome object is created.
         """
@@ -243,7 +250,7 @@ class GenomeData:
         for var in ts.variants():
             nd = (var.genotypes > 0).sum()
             num_deriv[int(var.site.position)] = nd
-        assert np.sum(np.isnan(num_deriv)) == 0, "remauning nans -- num mut/num allele mismatch"
+        assert np.sum(np.isnan(num_deriv)) == 0, "remaining nans -- num mut/num allele mismatch"
         ntotal = np.repeat(ts.num_samples, sl)
         if chrom is None:
             chrom = 'chrom'
@@ -313,7 +320,7 @@ class GenomeData:
         return self.genome.chroms
 
     def bin_reduce(self, width, merge=False, filter_neutral=None,
-                   filter_accessible=None, trimmed=None):
+                   filter_accessible=None):
         """
         Given a genomic window width, bin the data and compute bin-level
         summaries for the likelihood.
@@ -330,15 +337,11 @@ class GenomeData:
 
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
-            d = pairwise_summary(site_ac)
+            Y = pairwise_summary(site_ac)
             # number of combinations summed into bins per chrom
-            d_binstat = aggregate_site_array(d, bins[chrom], np.sum, axis=0)
-            reduced[chrom] = d_binstat
-            nwins += len(d_binstat)
-
-        if trimmed is not None:
-            pi = pi_from_pairwise_summaries(d)
-
+            Y_binstat = aggregate_site_array(Y, bins[chrom], np.sum, axis=0)
+            reduced[chrom] = Y_binstat
+            nwins += len(Y_binstat)
 
         if not merge:
             return bins, reduced
@@ -361,7 +364,8 @@ class GenomeData:
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
 
-    def bin_pi(self, width, filter_neutral=None, filter_accessible=None):
+    def bin_pi(self, width, filter_neutral=None,
+               filter_accessible=None):
         """
         Calculate π from the binned summaries.
         """

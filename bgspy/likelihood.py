@@ -164,10 +164,6 @@ def R2(x, y):
     return ssxym / np.sqrt(ssxm * ssym)
 
 
-class OptimizationRun:
-    def __init__(self):
-        pass
-
 def penalized_negll_c(theta, Y, logB, w, mu0, r):
     """
     A thin wrapper over negll_c() that imposes a penalty of the form:
@@ -369,6 +365,7 @@ class BGSEstimator:
         self.w = w
         self.t = t
         self.log10_pi0_bounds = log10_pi0_bounds
+        self.log10_mu_bounds = np.log10(w[0]), np.log10(w[-1])
         try:
             assert logB.ndim == 4
             assert logB.shape[1] == w.size
@@ -398,94 +395,6 @@ class BGSEstimator:
     @property
     def nf(self):
         return self.dim()[2]
-
-    def bounds(self, paired=True, fix_mu=False):
-        pi0_bounds = 10**self.log10_pi0_bounds[0], 10**self.log10_pi0_bounds[1]
-        bounds = [pi0_bounds]
-        w = self.w
-        nt = self.nt
-        for t in range(nt):
-            for f in range(self.nf):
-                w1, w2 = np.min(w), np.max(w)
-                bounds.append((w1, w2))
-        if paired:
-            return bounds
-        return tuple(zip(*bounds))
-
-    def random_start(self, fix_mu=False, seed=None):
-        if seed is not None:
-            self.rng = np.random.default_rng(seed)
-        else:
-            assert self.rng is not None, "rng not set!"
-            rng = self.rng
-        start = []
-        for bounds in self.bounds(fix_mu=fix_mu):
-            start.append(rng.uniform(*bounds, size=1))
-        return np.array(start)
-
-    def fit(self, Y, nruns=50, seed=None, mu=None,
-            implemenation='numba', ncores=None, annealing=False):
-        if seed is not None:
-            self.rng = np.random.default_rng(seed)
-        self.Y_ = Y
-        fix_mu = mu is not None
-        bounds = self.bounds(fix_mu=fix_mu)
-        logB = self.logB
-        w = self.w
-
-        fix_mu = mu is not None
-
-        if fix_mu:
-            assert implemenation == 'numba'
-            #func = negll_numba_fixmu
-            func = partial(negll_fixmu_c, mu=mu)
-        else:
-            try:
-                # NOTE: the python one is not here because it's not using the
-                # simplex parameterization
-                func = {'C': negll_c, 'numba': negll_numba}[implemenation]
-            except KeyError:
-                raise ValueError("implemenation must be either 'C' or 'numba'")
-
-        if annealing:
-            if nruns > 1:
-                warnings.warn("only one run supported for annealing!")
-            func = partial(negll, Y=Y, logB=logB, w=w)
-            res = dual_annealing(func, bounds)
-        else:
-            args = []
-            starts = []
-            for _ in range(nruns):
-                start = self.random_start(fix_mu=fix_mu, seed=seed)
-                starts.append(start)
-                if mu is not None:
-                    args.append((start, bounds, func, Y, logB, w, mu))
-                else:
-                    args.append((start, bounds, func, Y, logB, w))
-
-            if ncores == 1 or ncores is None:
-                res = [minimize_worker(a) for a in tqdm.tqdm(args, total=nruns)]
-            else:
-                with multiprocessing.Pool(ncores) as p:
-                    res = list(tqdm.tqdm(p.imap(minimize_worker, args), total=nruns))
-
-        converged = [x.success for x in res]
-        nconv = sum(converged)
-        if all(converged):
-            print(f"all {nconv}/{nruns} converged")
-        else:
-            nfailed = nruns-nconv
-            print(f"WARNING: {nfailed}/{nruns} ({100*np.round(nfailed/nruns, 2)}%) optimizations failed!")
-        self.starts_ = starts
-        self.nlls_ = np.array([x.fun for x in res])
-        self.thetas_ = np.array([x.x for x in res])
-        self.bounds_ = bounds
-        self.res_ = res
-        self.theta_ = self.thetas_[np.argmin(self.nlls_), :]
-        self.nll_ = self.nlls_[np.argmin(self.nlls_)]
-        self.fix_mu_ = fix_mu
-
-        return self
 
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
@@ -532,18 +441,6 @@ class BGSEstimator:
             return expand_W_simplex(self.theta_[1:], self.nt, self.nf)
         return expand_W_simplex(self.theta_[2:], self.nt, self.nf)
 
-    def summary(self):
-        wgrid = defaultdict(dict)
-        for i in range(self.nf):
-            for j in range(self.nt):
-                wgrid[i][j] = float(signif(self.mle_W[j, i]))
-        print(f"π0 = {self.mle_pi0}")
-        for i in wgrid:
-            print(f"feature {i}:")
-            for j in wgrid[i]:
-                sel = signif(self.t[j])
-                print(f"  w({sel}) = {wgrid[i][j]}")
-
     def predict(self, logB=None, all=False):
         assert self.theta_ is not None, "InterpolatedMLE.theta_ is not set, call fit() first"
         logB = self.logB if logB is None else logB
@@ -556,77 +453,6 @@ class BGSEstimator:
     def to_npz(self, filename):
         np.savez(filename, logB=self.logB, w=self.w, t=self.t, Y=self.Y_,
                  bounds=self.bounds())
-
-    def to_json2(self, filename, chrom, pos, ns):
-        Y = self.Y_.astype(int)
-        N = Y.sum(axis=1)
-        Nd = Y[:, 1].squeeze()
-        # get rid of 0s
-        idx = N > 0
-        N = N[idx]
-        Nd = Nd[idx]
-        # simpler model:
-        #logB = self.logB[idx, ...][..., 0][..., None]
-        logB = self.logB[idx, ...]
-        nx, nw, nt, nf = logB.shape
-        with open(filename, 'w') as f:
-            json.dump(dict(logBs=logB.tolist(),
-                           w=self.w.tolist(),
-                           nx=nx, nw=nw, nt=nt, nf=nf,
-                           #Nd=Nd.tolist(), N=N.tolist(),
-                           Y = Y[idx, ...].tolist(),
-                           chrom=chrom[idx].tolist(),
-                           pos=pos[idx].tolist(), ns=ns.tolist(),
-                           nchrom=len(set(chrom[idx]))),
-                           f, indent=2)
-
-
-    def to_json3(self, filename, C):
-        Y = self.Y_.astype(int)
-        N = Y.sum(axis=1)
-        Nd = Y[:, 1].squeeze()
-        # get rid of 0s
-        idx = N > 0
-        N = N[idx]
-        Nd = Nd[idx]
-        # simpler model:
-        #logB = self.logB[idx, ...][..., 0][..., None]
-        logB = self.logB[idx, ...]
-        nx, nw, nt, nf = logB.shape
-        n = idx.sum()
-        CC = C[idx, :][:, idx];
-        with open(filename, 'w') as f:
-            json.dump(dict(logBs=logB.tolist(),
-                           w=self.w.tolist(),
-                           nx=nx, nw=nw, nt=nt, nf=nf,
-                           #Nd=Nd.tolist(), N=N.tolist(),
-                           Y = Y[idx, ...].tolist(),
-                           C = CC.tolist()),
-                           f, indent=2)
-
-
-
-
-    def to_json(self, filename):
-        Y = self.Y_.astype(int)
-        N = Y.sum(axis=1)
-        Nd = Y[:, 1].squeeze()
-        # get rid of 0s
-        idx = N > 0
-        N = N[idx]
-        Nd = Nd[idx]
-        # simpler model:
-        #logB = self.logB[idx, ...][..., 0][..., None]
-        logB = self.logB[idx, ...]
-        nx, nw, nt, nf = logB.shape
-        with open(filename, 'w') as f:
-            json.dump(dict(logBs=logB.tolist(),
-                           w=self.w.tolist(),
-                           nx=nx, nw=nw, nt=nt, nf=nf,
-                           #Nd=Nd.tolist(), N=N.tolist(),
-                           Y = Y[idx, ...].tolist()
-                           ), f, indent=2)
-
 
     @classmethod
     def from_npz(self, filename):
@@ -647,4 +473,9 @@ class BGSEstimator:
         return "\n".join(rows)
 
 
+class LikelihoodSimplex(BGSEstimator):
+    def __init__(self, *args, **kwargs):
+        super(LikelihoodSimplex).__init__(*args, **kwargs)
+
+    def fit(self):
 
