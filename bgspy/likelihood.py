@@ -451,7 +451,6 @@ class BGSLikelihood:
         # load in the best values
         self.theta_ = optim_res.theta
         self.nll_ = optim_res.nll
-        assert optim_res.valid, "Optimization is not valid!"
 
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
@@ -532,7 +531,6 @@ def negll_freemut_full(theta, Y, B, w):
     Like negll_freemut() but not a closure.
     """
     new_theta = np.full(theta.size + 1, np.nan)
-    theta = np.copy(theta)
     new_theta[0] = theta[0]
     # fix mutation rate to one and let W represent mutation rates to various classes
     new_theta[1] = 1.
@@ -544,7 +542,7 @@ def negll_freemut_full_nlopt(x, grad, Y, B, w):
     """
     A nlopt version of negll_freemut_full().
     """
-    new_theta = np.zeros(x.size + 1)
+    new_theta = np.full(x.size + 1, np.nan)
     new_theta[0] = x[0]
     # fix mutation rate to one and let W represent mutation rates to various classes
     new_theta[1] = 1.
@@ -570,26 +568,33 @@ class FreeMutationModel(BGSLikelihood):
                                self.log10_pi0_bounds,
                                self.log10_mu_bounds, paired=paired)
 
-    def fit(self, n=100, ncores=None, engine='scipy'):
+    def fit(self, starts=1, ncores=None, algo='ISRES'):
         """
         Fit likelihood models with mumeric optimization (either scipy or nlopt).
 
-        n: the number of random multistarts to use.
+        starts: either an integer number of random starts or a list of starts.
         ncores: number of cores to use for multiprocessing.
         engine: either 'scipy' or 'nlopt'.
         """
-        ncores = min(n, ncores) # don't request more cores than we need
-        starts = [self.random_start() for _ in range(n)]
+        algo = algo.upper()
+        algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
+        assert algo in algos, f"algo must be in {algos}"
+        engine = algos[algo]
+
+        if isinstance(starts, int):
+            starts = [self.random_start() for _ in range(starts)]
+        ncores = min(len(starts), ncores) # don't request more cores than we need
+
         if engine == 'scipy':
             nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
             worker = partial(minimize, nll, bounds=self.bounds(paired=True),
-                             method='L-BFGS-B')
+                             method=algo)
         elif engine == 'nlopt':
             nll = partial(negll_freemut_full_nlopt, Y=self.Y,
                           B=self.logB, w=self.w)
             worker = partial(nlopt_mutation_isres_worker,
                              func=nll, nt=self.nt, nf=self.nf,
-                             bounds=self.bounds())
+                             bounds=self.bounds(), algo=algo)
         else:
             raise ValueError("engine must be 'scipy' or 'nlopt'")
         res = run_optims(worker, starts, ncores=ncores)
@@ -610,9 +615,11 @@ class FreeMutationModel(BGSLikelihood):
         base_rows = super().__repr__()
         if self.theta_ is not None:
             base_rows += "\n\nFree-mutation model ML estimates:\n"
-            base_rows += f"\nnegative log-likelihood: {self.nll}\n"
+            base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
-            base_rows += "W = \n" + tabulate(self.mle_W)
+            W = self.mle_W.reshape((self.nt, self.nf))
+            base_rows += "W = \n" + tabulate(W / W.sum(axis=0)) + "\n"
+            base_rows += "μ = \n" + tabulate(W.sum(axis=0)[None, :])
         return base_rows
 
 class SimplexModel(BGSLikelihood):
@@ -634,15 +641,15 @@ class SimplexModel(BGSLikelihood):
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds, paired=False)
 
-    def fit(self, n=100, ncores=None):
+    def fit(self, starts=1, ncores=None):
         """
         Fit models on a single process.
 
         Because of the more complex constraint program, this alway uses
         nlopt.
         """
-        starts = [self.random_start() for _ in range(n)]
-        nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
+        if isinstance(starts, int):
+            starts = [self.random_start() for _ in range(starts)]
         if engine == 'scipy':
             worker = partial(minimize, nll, bounds=self.bounds(),
                              method='L-BFGS-B')

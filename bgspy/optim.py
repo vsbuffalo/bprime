@@ -33,23 +33,29 @@ def run_optims(workerfunc, starts, ncores=50):
     """
     nstarts = len(starts)
     ncores = ncores if ncores is not None else 1
+    ncores = min(nstarts, ncores)
     if ncores > 1:
         with multiprocessing.Pool(ncores) as p:
             res = list(tqdm.tqdm(p.imap(workerfunc, starts), total=nstarts))
     else:
         res = list(tqdm.tqdm(map(workerfunc, starts), total=nstarts))
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
-    return OptimResult(nlls, thetas, success)
+    return OptimResult(nlls, thetas, success, np.array(starts))
 
 
 def nlopt_mutation_isres_worker(start, func, nt, nf, bounds,
-                                xtol_rel=1e-3, maxeval=1000000):
+                                xtol_rel=1e-3, maxeval=1000000, algo='ISRES'):
     """
-    Use nlopt
+    Use nlopt to do bounded optimization for the free-mutation
+    model.
     """
     nparams = nt * nf + 1
-    opt = nlopt.opt(nlopt.GN_ISRES, nparams)
-    #opt.set_local_optimizer(nlopt.LN_COBYLA)
+    if algo == 'ISRES':
+        opt = nlopt.opt(nlopt.GN_ISRES, nparams)
+    elif algo == 'NELDERMEAD':
+        opt = nlopt.opt(nlopt.LN_NELDERMEAD, nparams)
+    else:
+        raise ValueError("algo must be 'isres' or 'cobyla'")
     opt.set_min_objective(func)
     lb, ub = bounds
     opt.set_lower_bounds(lb)
@@ -63,17 +69,19 @@ def nlopt_mutation_isres_worker(start, func, nt, nf, bounds,
     return nll, mle, success
 
 
-def nlopt_simplex_isres_worker(start, func, nt, nf):
+def nlopt_simplex_isres_worker(start, func, nt, nf, bounds,
+                               constraint_tol=1e-11, xtol_rel=1e-3,
+                               maxeval=1000000):
     """
-    Use nlopt
+    Use nlopt to do constrained (inequality to bound DFE weights
+    and equality to enforce the simplex) and bounded optimization
+    for the simplex model.
     """
     opt = nlopt.opt(nlopt.GN_ISRES, nparams)
-    #opt = nlopt.opt(nlopt.AUGLAG, nparams)
-    #opt.set_local_optimizer(nlopt.LN_COBYLA)
-    nll = negll_nlopt(Y, Bp, w)
-    opt.set_min_objective(nll)
+    #opt = nlopt.opt(nlopt.LN_COBYLA, nparams)
+    opt.set_min_objective(func)
     hl, hu = inequality_constraint_functions(nt, nf)
-    tols = np.repeat(1e-11, nf)
+    tols = np.repeat(constraint_tol, nf)
     opt.add_inequality_mconstraint(hl, tols)
     opt.add_inequality_mconstraint(hu, tols)
     ce = equality_constraint_function(nt, nf)
@@ -81,18 +89,13 @@ def nlopt_simplex_isres_worker(start, func, nt, nf):
     lb, ub = bounds_simplex(nt, nf)
     opt.set_lower_bounds(lb)
     opt.set_upper_bounds(ub)
-    opt.set_xtol_rel(1e-3)
-    #opt.set_xtol_abs(1e-6)
-    #opt.set_stopval(923543002497)
-    opt.set_maxeval(1000000)
-    assert x.size == nparams
-    mle = opt.optimize(x)
+    opt.set_xtol_rel(xtol_rel)
+    opt.set_maxeval(maxeval)
+    assert start.size == nparams
+    mle = opt.optimize(start)
     nll = opt.last_optimum_value()
     success = opt.last_optimize_result()
     return nll, mle, success
-
-def nlopt_worker():
-    pass
 
 def optim_plot(only_success=True, tail=0.5, **runs):
     """
@@ -101,8 +104,8 @@ def optim_plot(only_success=True, tail=0.5, **runs):
     """
     fig, ax = plt.subplots()
     for i, (key, run) in enumerate(runs.items()):
-        nll = run.nlls
-        succ = run.success
+        nll = run.nlls_
+        succ = run.success_
         if only_success:
             keep = succ >= 1
             nll = nll[keep]
@@ -119,48 +122,50 @@ def optim_plot(only_success=True, tail=0.5, **runs):
 
 class OptimResult:
     def __init__(self, nlls, thetas, success, starts=None):
-        self.nlls = nlls
-        self.thetas = thetas
-        self.success = success
-        self.starts = starts
+        # order from best to worst
+        idx = np.argsort(nlls)
+        self.rank_ = idx
+        self.nlls_ = nlls[idx]
+        self.thetas_ = thetas[idx]
+        self.success_ = success[idx]
+        self.starts_ = starts[idx]
 
     @property
     def stats(self):
-        succ = Counter(self.success)
+        succ = Counter(self.success_)
         return {NL_OPT_CODES[k]: n for k, n in succ.items()}
 
     @property
-    def rank(self):
-        assert self.nlls is not None
-        assert self.thetas is not None
-        assert self.success is not None
-        idx = np.argsort(self.nlls)
-        # remove non-successful terminations
-        idx = idx[self.success[idx] >= 1]
-        return idx
+    def pass_idx(self):
+        return self.success_ >= 1
+
+    @property
+    def thetas(self):
+        # get only the successful thetas
+        return self.thetas_[self.pass_idx]
 
     @property
     def theta(self):
-        return self.thetas[self.rank[0]]
+        return self.thetas[0]
+
+    @property
+    def nlls(self):
+        # get only the successful nlls
+        return self.nlls_[self.pass_idx]
 
     @property
     def nll(self):
-        assert self.nlls is not None
-        return self.nlls[self.rank[0]]
-
-    @property
-    def valid(self):
-        return self.success[self.rank[0]] >= 1
+        return self.nlls[0]
 
     @property
     def frac_success(self):
-        x = np.mean([v >= 1 for v in self.success])
+        x = np.mean([v >= 1 for v in self.success_])
         return x
 
     def __repr__(self):
-        code = NL_OPT_CODES[self.success[self.rank[0]]]
+        code = NL_OPT_CODES[self.success_[self.pass_idx][0]]
         return ("OptimResult\n"
-               f"  success: {self.valid} (termination code: {code})\n"
+               f"  termination code: {code}\n"
                f"  stats: {self.stats} (prop success: {np.round(self.frac_success, 2)*100}%)\n"
                f"  negative log-likelihood = {self.nll}\n"
                f"  theta = {self.theta}")
