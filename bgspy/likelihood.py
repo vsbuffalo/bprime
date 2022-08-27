@@ -24,7 +24,7 @@ from scipy import interpolate
 from scipy.optimize import minimize
 from numba import jit
 from bgspy.utils import signif
-from bgspy.optim import run_optims, nlopt_mutation_isres_worker
+from bgspy.optim import run_optims, nlopt_mutation_worker
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -414,13 +414,20 @@ class BGSLikelihood:
         self.t = t
         self.log10_pi0_bounds = log10_pi0_bounds
         self.log10_mu_bounds = np.log10(w[0]), np.log10(w[-1])
-        self.Y = Y
         try:
             assert logB.ndim == 4
             assert logB.shape[1] == w.size
             assert logB.shape[2] == t.size
         except AssertionError:
             raise AssertionError("logB has incorrection shape, should be nx x nw x nt x nf")
+
+        if Y is not None:
+            try:
+                logB.shape[0] == Y.shape[0]
+                Y.shape[1] == 2
+            except AssertionError:
+                raise AssertionError("Y shape is incorrect")
+        self.Y = Y
 
         self.logB = logB
         self.theta_ = None
@@ -526,9 +533,11 @@ def negll_freemut(Y, B, w):
         return negll_c(new_theta, Y, B, w)
     return func
 
-def negll_freemut_full(theta, Y, B, w):
+def negll_freemut_full(theta, grad, Y, B, w):
     """
     Like negll_freemut() but not a closure.
+
+    grad is for nlopt and should be set to None if SciPy is being used.
     """
     new_theta = np.full(theta.size + 1, np.nan)
     new_theta[0] = theta[0]
@@ -536,17 +545,6 @@ def negll_freemut_full(theta, Y, B, w):
     new_theta[1] = 1.
     new_theta[2:] = theta[1:] # times mutation rates
     #print("-->", theta, new_theta)
-    return negll_c(new_theta, Y, B, w)
-
-def negll_freemut_full_nlopt(x, grad, Y, B, w):
-    """
-    A nlopt version of negll_freemut_full().
-    """
-    new_theta = np.full(x.size + 1, np.nan)
-    new_theta[0] = x[0]
-    # fix mutation rate to one and let W represent mutation rates to various classes
-    new_theta[1] = 1.
-    new_theta[2:] = x[1:] # times mutation rates
     return negll_c(new_theta, Y, B, w)
 
 class FreeMutationModel(BGSLikelihood):
@@ -577,7 +575,8 @@ class FreeMutationModel(BGSLikelihood):
         engine: either 'scipy' or 'nlopt'.
         """
         algo = algo.upper()
-        algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
+        algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt',
+                 'NELDERMEAD':'nlopt', 'NEWUOA':'nlopt'}
         assert algo in algos, f"algo must be in {algos}"
         engine = algos[algo]
 
@@ -586,13 +585,14 @@ class FreeMutationModel(BGSLikelihood):
         ncores = min(len(starts), ncores) # don't request more cores than we need
 
         if engine == 'scipy':
-            nll = partial(negll_freemut_full, Y=self.Y, B=self.logB, w=self.w)
-            worker = partial(minimize, nll, bounds=self.bounds(paired=True),
-                             method=algo)
-        elif engine == 'nlopt':
-            nll = partial(negll_freemut_full_nlopt, Y=self.Y,
+            nll = partial(negll_freemut_full, grad=None, Y=self.Y,
                           B=self.logB, w=self.w)
-            worker = partial(nlopt_mutation_isres_worker,
+            worker = partial(minimize, nll, bounds=self.bounds(paired=True),
+                             method=algo, options={'eps':1e-9})
+        elif engine == 'nlopt':
+            nll = partial(negll_freemut_full, Y=self.Y,
+                          B=self.logB, w=self.w)
+            worker = partial(nlopt_mutation_worker,
                              func=nll, nt=self.nt, nf=self.nf,
                              bounds=self.bounds(), algo=algo)
         else:

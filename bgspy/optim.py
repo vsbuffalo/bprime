@@ -43,19 +43,23 @@ def run_optims(workerfunc, starts, ncores=50):
     return OptimResult(nlls, thetas, success, np.array(starts))
 
 
-def nlopt_mutation_isres_worker(start, func, nt, nf, bounds,
-                                xtol_rel=1e-3, maxeval=1000000, algo='ISRES'):
+def nlopt_mutation_worker(start, func, nt, nf, bounds,
+                          xtol_rel=1e-3, maxeval=1000000, algo='ISRES'):
     """
     Use nlopt to do bounded optimization for the free-mutation
     model.
     """
     nparams = nt * nf + 1
     if algo == 'ISRES':
-        opt = nlopt.opt(nlopt.GN_ISRES, nparams)
+        nlopt_algo = nlopt.GN_ISRES
+    elif algo == 'NEWUOA':
+        nlopt_algo = nlopt.LN_NEWUOA_BOUND
     elif algo == 'NELDERMEAD':
-        opt = nlopt.opt(nlopt.LN_NELDERMEAD, nparams)
+        nlopt_algo = nlopt.LN_NELDERMEAD
     else:
         raise ValueError("algo must be 'isres' or 'cobyla'")
+
+    opt = nlopt.opt(nlopt_algo, nparams)
     opt.set_min_objective(func)
     lb, ub = bounds
     opt.set_lower_bounds(lb)
