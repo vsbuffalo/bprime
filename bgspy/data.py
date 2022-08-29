@@ -238,7 +238,7 @@ class GenomeData:
         If chrom is not set a new dummy Genome object is created.
         """
         if chrom is not None:
-            assert chrom in self.genome.chroms, "chrom not in GenomeData.genome"
+            assert chrom in self.genome.chroms, f"{chrom} not in GenomeData.genome"
         msg = "set either ts or file, not both"
         if file is not None:
             assert ts is None, msg
@@ -252,11 +252,10 @@ class GenomeData:
             num_deriv[int(var.site.position)] = nd
         assert np.sum(np.isnan(num_deriv)) == 0, "remaining nans -- num mut/num allele mismatch"
         ntotal = np.repeat(ts.num_samples, sl)
-        if chrom is None:
+        if self.genome is None:
             chrom = 'chrom'
             g = Genome('dummy genome', seqlens={chrom: sl})
-        else:
-            g = self.genome
+        g = self.genome
         self.genome = g
         nanc = ntotal - num_deriv
         self.counts = {chrom: np.stack((nanc, num_deriv)).T}

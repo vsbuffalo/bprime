@@ -400,6 +400,20 @@ def predict_simplex(theta, logB, w):
                 logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
     return pi0*np.exp(logBw)
 
+def predict_freemutation(theta, logB, w):
+    """
+    """
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, W = theta[0], theta[1:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=float)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
+    return pi0*np.exp(logBw)
 
 class BGSLikelihood:
     """
@@ -492,6 +506,18 @@ class BGSLikelihood:
         for i in range(n):
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
+
+
+    def predict(self, optim=None):
+        if optim is None:
+            theta = self.theta_
+        else:
+            thetas = self.optim.thetas_
+            if optim == 'random':
+                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
+            else:
+                theta = thetas[optim]
+        return predict_freemutation(theta, self.logB, self.w)
 
     @property
     def mle_pi0(self):

@@ -101,7 +101,7 @@ def nlopt_simplex_isres_worker(start, func, nt, nf, bounds,
     success = opt.last_optimize_result()
     return nll, mle, success
 
-def optim_plot(only_success=True, tail=0.5, **runs):
+def optim_plot(only_success=True, tail=0.5, x_percent=False, downsample=None, **runs):
     """
     Make a plot of the rank-ordered optimization minima for the
     labeled runs keywords. Only the top 'tail' entries are kept.
@@ -110,6 +110,10 @@ def optim_plot(only_success=True, tail=0.5, **runs):
     for i, (key, run) in enumerate(runs.items()):
         nll = run.nlls_
         succ = run.success_
+        if downsample is not None:
+            idx = np.random.choice(np.arange(len(nll)), downsample)
+            nll = nll[idx]
+            succ = succ[idx]
         if only_success:
             keep = succ >= 1
             nll = nll[keep]
@@ -120,7 +124,15 @@ def optim_plot(only_success=True, tail=0.5, **runs):
         y = nlls[sort_idx]
         x = 2*i + succ[nll < q].astype('int')
         cols = mpl.cm.get_cmap('Paired')(x)
-        ax.scatter(list(reversed(range(len(y)))), y, s=1, label=key, c=cols)
+        x = np.array(list(reversed(range(len(y)))))
+        if x_percent:
+            x = x / len(x)
+        ax.scatter(x, y, s=1, label=key, c=cols)
+    ax.set_ylabel("negative log-likelihood")
+    if x_percent:
+        ax.set_xlabel("rank (proportion of total)")
+    else:
+        ax.set_xlabel("rank")
     ax.legend()
     ax.semilogy()
 
