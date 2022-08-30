@@ -284,10 +284,8 @@ rule merged_utrs_cds_introns_phastcons:
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
 sim_cons = ["conserved_phastcons_thresh0_slop1k_chr10.bed",  # this is currently the primary conserved track for simulations
-            # this is exons + phastons, no thresholding or slop
-            "conserved_phastcons_exons_thresh0_chr10.bed" # OLD 
-]
-sim_neut = ["neutral_phastcons_exons_thresh0_chr10.bed.gz"]
+            ]
+sim_neut = ["neutral_phastcons_thresh0_slop1k_chr10.bed.gz"]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
@@ -307,8 +305,8 @@ rule split_conserved_exons:
       """
 
 rule sim_neutral:
-   input: conserved="conserved_phastcons_exons_thresh{thresh}_chr10.bed", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_exons_thresh{thresh}_chr10.bed.gz"
+   input: conserved="conserved_phastcons_thresh{thresh}_slop1k_chr10.bed", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_thresh{thresh}_slop1k_chr10.bed.gz"
    shell:
       """
        cut -f1-3 {input.conserved} | \

@@ -24,6 +24,7 @@ from scipy import interpolate
 from scipy.optimize import minimize
 from numba import jit
 from bgspy.utils import signif
+from bgspy.data import pi_from_pairwise_summaries
 from bgspy.optim import run_optims, nlopt_mutation_worker
 
 # load the library (relative to this file in src/)
@@ -518,6 +519,12 @@ class BGSLikelihood:
             else:
                 theta = thetas[optim]
         return predict_freemutation(theta, self.logB, self.w)
+
+    def R2(self):
+        pred_pi = self.predict()
+        pi = pi_from_pairwise_summaries(self.Y)
+        return R2(pred_pi, pi)
+
 
     @property
     def mle_pi0(self):
