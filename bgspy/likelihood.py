@@ -525,6 +525,10 @@ class BGSLikelihood:
         pi = pi_from_pairwise_summaries(self.Y)
         return R2(pred_pi, pi)
 
+    def resid(self):
+        pred_pi = self.predict()
+        pi = pi_from_pairwise_summaries(self.Y)
+        return (pred_pi - pi)**2
 
     @property
     def mle_pi0(self):
