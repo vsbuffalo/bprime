@@ -210,12 +210,12 @@ cons = [ # phastcons at different filtering thresholds:
         "conserved_phastcons_thresh471.bed.gz", 
         "conserved_phastcons_thresh527.bed.gz",
         "conserved_phastcons_thresh0.bed.gz",
-        # thresholded phastcons with 1k slop
+        # thresholded phastcons with 1k slop -- note that
+        # care should be taken with these, as they reduce the number of 
+        # features considerably
         "conserved_phastcons_thresh0_slop1k.bed.gz", 
         "conserved_phastcons_thresh471_slop1k.bed.gz", 
         "conserved_phastcons_thresh527_slop1k.bed.gz",
-        # phastcons and exons, merged no filtering
-        "conserved_phastcons_exons_thresh0.bed.gz",
         # merged feature track
         "merged_utrs_cds_introns_phastcons.bed.gz",
         # merged but no phastcons
@@ -225,7 +225,7 @@ cons = [ # phastcons at different filtering thresholds:
 # this is used for sims with combined conserved regions (phastcons)
 rule conserved_track:
   input: phastcons="phastConsElements100way_thresh{thresh}.bed.gz"
-  output: "conserved_phastcons_thresh{thresh}.bed.gz"
+  output: "conserved_phastcons_thresh{thresh,[0-9]+}.bed.gz"
   shell: 
       """
       # combine the files, sort and merge overlapping tracks
@@ -237,26 +237,13 @@ rule conserved_track:
       """
 
 rule conserved_slop:
-  input: conserved="conserved_phastcons_thresh{thresh}_slop1k.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_phastcons_thresh{thresh}_slop1k.bed.gz"
+  input: conserved="conserved_phastcons_thresh{thresh}.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_phastcons_thresh{thresh,[0-9]+}_slop1k.bed.gz"
   shell:
      """
      zgrep -P "^chr[0-9]+\t" {input.conserved} | sort --version-sort -k 1,1 -k2,2n | \
        bedtools slop -g {input.seqlens} -b 1000 | bedtools merge -d 2  | gzip > {output}
      """
-
-# merged exons/phastcons track
-rule conserved_phastcons_exons:
-  input: exons="hg38.ensembl_exons.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz"
-  output: "conserved_phastcons_exons_thresh0.bed.gz"
-  shell:
-      """
-      # combine the files, sort and merge overlapping tracks
-      zcat {input.exons} {input.phastcons} | cut -f1-3 | \
-        grep -P "^chr[0-9]+\t" | \
-        sort  --version-sort -k 1,1 -k2,2n | \
-        bedtools merge | gzip > {output}
-      """
 
 rule merged_utrs_cds_introns:
   input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz"
@@ -283,30 +270,31 @@ rule merged_utrs_cds_introns_phastcons:
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
-sim_cons = ["conserved_phastcons_thresh0_slop1k_chr10.bed",  # this is currently the primary conserved track for simulations
+sim_cons = ["conserved_phastcons_thresh0_chr10.bed",  # this is currently the primary conserved track for simulations
+            "merged_utrs_cds_introns_phastcons_chr10.bed",
             ]
-sim_neut = ["neutral_phastcons_thresh0_slop1k_chr10.bed.gz"]
+sim_neut = ["neutral_phastcons_thresh0_chr10.bed.gz"]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_conserved:
-  input: "conserved_phastcons_thresh{thresh}_slop1k.bed.gz"
-  output: "conserved_phastcons_thresh{thresh}_slop1k_chr10.bed"
+  input: "conserved_phastcons_thresh{thresh}.bed.gz"
+  output: "conserved_phastcons_thresh{thresh}_chr10.bed"
   shell:
       """
       zgrep "chr10" {input} > {output}
       """
 
-rule split_conserved_exons:
-  input: "conserved_phastcons_exons_thresh0.bed.gz"
-  output: "conserved_phastcons_exons_thresh{thresh}_chr10.bed"
+rule split_merged:
+  input: "merged_utrs_cds_introns_phastcons.bed.gz"
+  output: "merged_utrs_cds_introns_phastcons_chr10.bed"
   shell:
       """
-      zgrep "chr10" {input} > {output}
+      zgrep "chr10" {input} | cut -f1-3 > {output}
       """
 
 rule sim_neutral:
-   input: conserved="conserved_phastcons_thresh{thresh}_slop1k_chr10.bed", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_thresh{thresh}_slop1k_chr10.bed.gz"
+   input: conserved="conserved_phastcons_thresh{thresh}_chr10.bed", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_thresh{thresh}_chr10.bed.gz"
    shell:
       """
        cut -f1-3 {input.conserved} | \
