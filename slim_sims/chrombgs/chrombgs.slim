@@ -71,9 +71,9 @@ initialize() {
   initializeMutationRate(mu);
   
   // deleterious mutations
-  initializeMutationType("m1", h, "f", -s);
+  initializeMutationType("m0", h, "f", -s);
   // gene
-  initializeGenomicElementType("g2", m1, 1);
+  initializeGenomicElementType("g0", m0, 1);
 
   // == Recombination
   // assumes cM/Mb rates 0.01 / 1e6
@@ -108,8 +108,9 @@ initialize() {
     parts = strsplit(line, "\t");
     start = asInteger(parts[1]);
     end = asInteger(parts[2]);
-    initializeGenomicElement(g2, start, end);
-    totcons = totcons + (end - start);
+    // SLiM is right-inclusive, BED is not
+    initializeGenomicElement(g0, start, end-1);
+    totcons = totcons + (end - start - 1);
     ngenes = ngenes + 1;
   }
   print("number of genes: " + ngenes + "  total conserved: " + totcons);
@@ -117,7 +118,7 @@ initialize() {
 
 // create a population of 500 individuals
 1 {
-  sim.addSubpop("p1", N);
+  sim.addSubpop("p0", N);
   sim.rescheduleScriptBlock(s1, start=2, end=burnin);
   sim.rescheduleScriptBlock(s2, start=endsim, end=endsim);
 }
@@ -128,8 +129,8 @@ s1 {
 }
 
 s2 late() {
-  output_mutations(chr, dac_file, p1);
+  output_mutations(chr, dac_file, p0);
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
-  output_substitutions(chr, sub_file, p1);
+  output_substitutions(chr, sub_file, p0);
 }
 
