@@ -246,26 +246,22 @@ rule conserved_slop:
      """
 
 rule merged_utrs_cds_introns:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz"
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "merged_utrs_cds_introns.bed.gz"
   shell:
     """
-    zcat {input.utrs} {input.introns} {input.cds} | \
-      sed -e 's/five_prime_UTR/UTR/' -e 's/three_prime_UTR/UTR/' | \
-      sort  --version-sort -k 1,1 -k2,2n | bedtools merge -c 4 -o distinct | \
-      python ../../tools/simplify_cons_bed.py | gzip > {output}
+    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} | \
+      gzip > {output}
     """
 
 
 rule merged_utrs_cds_introns_phastcons:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz"
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "merged_utrs_cds_introns_phastcons.bed.gz"
   shell:
     """
-    (zcat {input.utrs} {input.introns} {input.cds}; bioawk -cbed '{{ print $1,$2,$3,"phastcons"}}' {input.phastcons}) | \
-      sed -e 's/five_prime_UTR/UTR/' -e 's/three_prime_UTR/UTR/' | \
-      sort  --version-sort -k 1,1 -k2,2n | bedtools merge -c 4 -o distinct | \
-      python ../../tools/simplify_cons_bed.py | gzip > {output}
+    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
+      gzip > {output}
     """
 
 ## === Simplified Annotation Tracks for Sims
