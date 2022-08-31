@@ -756,6 +756,58 @@ def ranges_to_masks(range_dict, seqlens):
             masks[chrom][slice(*rng)] = 1
     return masks
 
+def combine_features(feature_ranges, priority, seqlens):
+    """
+    Given a dictionary of different features e.g. {'introns': {'chr1: (12, 15)},
+    ...} merge these into a mask-like array where the value is given by the
+    priority.
+    """
+    features = {feat: ranges_to_masks(r, seqlens) for feat, r in feature_ranges.items()}
+    assert len(set(features.keys()).difference(set(priority))) == 0, "some features keys are not in priority"
+    masks = dict()
+    for chrom in seqlens:
+        merged = np.zeros(seqlens[chrom], dtype='int')
+        for i, feature in enumerate(priority, start=1):
+            if feature not in features:
+                continue
+            idx = features[feature][chrom] & (merged == 0)
+            merged[idx] = i
+        masks[chrom] = merged
+    return masks
+
+
+def rle(inarray):
+        """
+        Run length encoding. Partial credit to R rle function.
+        Multi datatype arrays catered for including non Numpy
+        returns: tuple (runlengths, startpositions, values)
+
+        Source: https://stackoverflow.com/a/32681075/147427 (thx SO)
+        """
+        ia = np.asarray(inarray)                # force numpy
+        n = len(ia)
+        if n == 0:
+            return (None, None, None)
+        else:
+            y = ia[1:] != ia[:-1]               # pairwise unequal (string safe)
+            i = np.append(np.where(y), n - 1)   # must include last element posi
+            z = np.diff(np.append(-1, i))       # run lengths
+            p = np.cumsum(np.append(0, z))[:-1] # positions
+            return(z, p, ia[i])
+
+def masks_to_ranges(mask_dict, priority):
+    """
+    Given the masks from combine_features(), turn these into a chromosome
+    range dictionary.
+    """
+    ranges = defaultdict(list)
+    for chrom in mask_dict:
+        rls, starts, vals = rle(mask_dict[chrom])
+        for rl, s, val in zip(rls, starts, vals):
+            if val == 0:
+                continue
+            ranges[chrom].append((s, s + rl, priority[val-1]))
+    return ranges
 
 def load_bed_annotation(file, chroms=None):
     """
