@@ -1,5 +1,6 @@
 import pickle
 from dataclasses import dataclass
+from collections import defaultdict, Counter
 import numpy as np
 from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
@@ -26,6 +27,7 @@ class Segments:
         self.map_pos = map_pos
         self.features = features
         self.feature_map = feature_map
+        self.inverse_feature_map = {i: k for k, i in self.feature_map.items()}
         self.index = index
         self._segment_parts = None
         self._segment_parts_sc16 = None
@@ -278,6 +280,44 @@ class Genome(object):
     def save(self, filename):
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
+
+    def feature_stats(self, by_chrom=False, exclude_chroms=None):
+        """
+        Calculate feature statistics for all segments. Returns a tuple
+        of chromosome dictionaries of number features, total bp of feature,
+        and the fractions of each feature type by total chromsome length.
+        """
+        exclude_chroms = set() if exclude_chroms is None else set(exclude_chroms)
+        nfeats = defaultdict(Counter)
+        nbp = defaultdict(Counter)
+        frac = defaultdict(dict)
+
+        tot_nfeats = Counter()
+        tot_nbp = Counter()
+        tot_frac = dict()
+
+        for chrom, idx in self.segments.index.items():
+            for l, f in zip(self.segments.lengths[idx], self.segments.features[idx]):
+                feat = self.segments.inverse_feature_map[f]
+                # chrom-specific
+                nfeats[chrom][feat] += 1
+                nbp[chrom][feat] += l
+
+                # total features
+                tot_nfeats[feat] += 1
+                tot_nbp[feat] += l
+
+                for feat, val in nbp[chrom].items():
+                    frac[chrom][feat] = val / self.seqlens[chrom]
+
+        totlen = sum(self.seqlens.values())
+        for feat in self.segments.feature_map.keys():
+            tot_frac[feat] = sum([nbp[c][feat] for c in nbp if c not in exclude_chroms]) / totlen
+
+        if by_chrom:
+            return nfeats, nbp, frac
+        return tot_nfeats, tot_nbp, tot_frac
+
 
     @classmethod
     def load(self, filename):

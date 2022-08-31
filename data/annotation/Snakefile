@@ -302,7 +302,7 @@ rule sim_neutral:
       """
 
 ## === Calcbkgd files
-calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons_thresh0_slop1k/chr10.bed"]
+calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons_thresh0/chr10.bed"]
 # only chr10
 rule seqlens_chr10:
   input: "hg38_seqlens.tsv"
@@ -313,12 +313,12 @@ rule seqlens_chr10:
     """
 
 rule chr10_conserved:
-  input: "conserved_phastcons_thresh0_slop1k_chr10.bed"
-  output: "conserved_phastcons_thresh0_slop1k/chr10.bed"
+  input: "conserved_phastcons_thresh0_chr10.bed"
+  output: "conserved_phastcons_thresh0/chr10.bed"
   shell:
     """
-    mkdir -p conserved_phastcons_thresh0_slop1k
-    cp {input} conserved_phastcons_thresh0_slop1k/chr10.bed
+    mkdir -p conserved_phastcons_thresh0
+    cp {input} conserved_phastcons_thresh0/chr10.bed
     """
 
 

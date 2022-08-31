@@ -14,7 +14,7 @@ bkgd_files = [f"calc_bkgd_mu{mu}_s{selcoef}/chr{chr}.bkgd" for chr in AUTOS for 
 
 SEQLENS = "../../annotation/hg38_seqlens.tsv"
 ANNOT = ([f"../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr{chr}.txt" for chr in AUTOS] + 
-         [f"../../annotation/conserved_phastcons_thresh0_slop1k_chr{chr}.bed" for chr in AUTOS] + 
+         [f"../../annotation/conserved_phastcons_thresh0_chr{chr}.bed" for chr in AUTOS] + 
          [SEQLENS])
 
 rule calc_bkgd:
