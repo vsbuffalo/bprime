@@ -35,7 +35,7 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
-         "neutral_phastcons_genes_with_introns.bed.gz"]
+         ]
 
 rule centro:
   output: "hg38_centro.bed"
@@ -198,11 +198,12 @@ rule download_hapmap:
   output: "hapmap_genetic_map.txt"
   shell:
     """
-    wget https://stdpopsim.s3.us-west-2.amazonaws.com/genetic_maps/HomSap/HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
-    tar -xvzf HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
+    wget https://stdpopsim.s3.us-west-2.amazonaws.com/genetic_maps/HomSap/HapMapII_GRCh38.tar.gz
+    mkdir -p HapMapII_GRCh38
+    tar -xvzf HapMapII_GRCh38.tar.gz --directory HapMapII_GRCh38
 
-    find HapMapII_GRCh37_liftedOverTo_Hg38 -name "*.txt" | sort --version-sort | xargs -n1 cat  | sed '2,${{/^Chr/d}}' > {output}
-    rm -f HapMapII_GRCh37_liftedOverTo_Hg38.tar.gz
+    find HapMapII_GRCh38 -name "*.txt" | sort --version-sort | xargs -n1 cat  | sed '2,${{/^Chr/d}}' > {output}
+    rm -f HapMapII_GRCh38.tar.gz
     """
 
 ## === Conservation Tracks
@@ -210,16 +211,13 @@ cons = [ # phastcons at different filtering thresholds:
         "conserved_phastcons_thresh471.bed.gz", 
         "conserved_phastcons_thresh527.bed.gz",
         "conserved_phastcons_thresh0.bed.gz",
-        # thresholded phastcons with 1k slop -- note that
-        # care should be taken with these, as they reduce the number of 
-        # features considerably
-        "conserved_phastcons_thresh0_slop1k.bed.gz", 
-        "conserved_phastcons_thresh471_slop1k.bed.gz", 
-        "conserved_phastcons_thresh527_slop1k.bed.gz",
         # merged feature track
         "merged_utrs_cds_introns_phastcons.bed.gz",
         # merged but no phastcons
-        "merged_utrs_cds_introns.bed.gz"
+        "merged_utrs_cds_introns.bed.gz",
+        # merged and unlabelled (e.g. treated as all one feature type, for sims and model comparison)
+        "merged_utrs_cds_introns_phastcons_unlabelled.bed.gz",
+        "merged_utrs_cds_introns_unlabelled.bed.gz"
 ] 
 
 # this is used for sims with combined conserved regions (phastcons)
@@ -236,15 +234,6 @@ rule conserved_track:
         bedtools merge | gzip > {output}
       """
 
-rule conserved_slop:
-  input: conserved="conserved_phastcons_thresh{thresh}.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_phastcons_thresh{thresh,[0-9]+}_slop1k.bed.gz"
-  shell:
-     """
-     zgrep -P "^chr[0-9]+\t" {input.conserved} | sort --version-sort -k 1,1 -k2,2n | \
-       bedtools slop -g {input.seqlens} -b 1000 | bedtools merge -d 2  | gzip > {output}
-     """
-
 rule merged_utrs_cds_introns:
   input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "merged_utrs_cds_introns.bed.gz"
@@ -254,7 +243,6 @@ rule merged_utrs_cds_introns:
       gzip > {output}
     """
 
-
 rule merged_utrs_cds_introns_phastcons:
   input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "merged_utrs_cds_introns_phastcons.bed.gz"
@@ -263,6 +251,28 @@ rule merged_utrs_cds_introns_phastcons:
     python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
       gzip > {output}
     """
+
+rule merged_utrs_cds_introns_unlabelled:
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "merged_utrs_cds_introns_unlabelled.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} | \
+      cut -f1-3 | \
+      gzip > {output}
+    """
+
+
+rule merged_utrs_cds_introns_phastcons_unlabelled:
+  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "merged_utrs_cds_introns_phastcons_unlabelled.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
+      cut -f1-3 | \
+      gzip > {output}
+    """
+
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
@@ -289,6 +299,7 @@ rule split_merged:
       """
 
 rule sim_neutral:
+   # for the only phastcons-only sims
    input: conserved="conserved_phastcons_thresh{thresh}_chr10.bed", seqlens="hg38_seqlens.tsv"
    output: "neutral_phastcons_thresh{thresh}_chr10.bed.gz"
    shell:
@@ -336,10 +347,10 @@ rule no_centro:
 ## === Neutral Regions
 neutral = ["neutral_phastcons_genes_chr10.bed", "neutral_phastcons_genes.bed.gz"]
 
-# putatively neutral regions -- not conserved tracks
-# this uses the unfiltered phastcons file -- maximum chance of being neutral
-# also, all genes are added in
-# note, the last step is the complement
+# Putatively neutral regions -- here we merge all phastcons and genes.
+# Note, the last step is to take the complement of the conserved regions = putatively netural regions
+# Importantly, below, we add in introns since these are neutralish-ish and make up a huge part of the 
+# human genome.
 rule neutral:
    input: conserved="phastConsElements100way.bed.gz", genes="hg38.ensembl_genes.bed.gz", seqlens="hg38_seqlens.tsv"
    output: "neutral_phastcons_genes.bed.gz"

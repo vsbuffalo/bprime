@@ -322,6 +322,11 @@ def bin_chrom(end, width, dtype='uint32'):
     assert np.all(bins < end+1)
     return bins
 
+def mean_ratio(x):
+    """
+    Return the ratio x / mean(x), using NaN mean.
+    """
+    return x/np.nanmean(x)
 
 def aggregate_site_array(x, bins, func, **kwargs):
     """

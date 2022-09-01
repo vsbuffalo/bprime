@@ -50,14 +50,14 @@ rule bmap_hg38:
   input: annot="../../annotation/merged_utrs_cds_introns_phastcons.bed.gz", 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/hapmap_genetic_map.txt"
-  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_10kN_mergedfeatures.pkl"
-  params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=10000
+  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_merged_phastcons.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
   shell:
     """
     python ../../../bgspy/command_line.py calcb \
       --recmap {input.recmap} --annot {input.annot} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
-      --output {output} --popsize {params.popsize} \
+      --output {output} --popsize {wildcards.popsize} \
       --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
       --step {wildcards.step}
     """
@@ -66,14 +66,47 @@ rule bmap_hg38_genomiconly:
   input: annot="../../annotation/merged_utrs_cds_introns.bed.gz", 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/hapmap_genetic_map.txt"
-  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_10kN_genomiconly.pkl"
-  params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=10000
+  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_genomiconly.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
   shell:
     """
     python ../../../bgspy/command_line.py calcb \
       --recmap {input.recmap} --annot {input.annot} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
-      --output {output} --popsize {params.popsize} \
+      --output {output} --popsize {wildcards.popsize} \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step}
+    """
+
+## The following to rules merge all features into a single type (e.g. features are unlabelled)
+rule bmap_hg38_unlabelled:
+  input: annot="../../annotation/merged_utrs_cds_introns_phastcons_unlabelled.bed.gz", 
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/hapmap_genetic_map.txt"
+  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_merged_phastcons_unlabelled.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot {input.annot} \
+      --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.popsize} \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step}
+    """
+
+rule bmap_hg38_genomiconly_unlabelled:
+  input: annot="../../annotation/merged_utrs_cds_introns_unlabelled.bed.gz", 
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/hapmap_genetic_map.txt"
+  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_merged_genomiconly_unlabelled.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot {input.annot} \
+      --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.popsize} \
       --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
       --step {wildcards.step}
     """
@@ -85,11 +118,17 @@ rule bmap_hg38_genomiconly:
 maps = [
         "bmap_hg38_7x5grid_10000step_chr10.pkl",
         "bmap_hg38_6x7grid_10000step_chr10.pkl",
-        #"bmap_hg38_20x21grid_10000step_chr10.pkl",
-        "bmap_hg38_6x5grid_10000step_10kN_mergedfeatures.pkl",
-         "bmap_hg38_6x5grid_10000step_10kN_genomiconly.pkl",
-        # for the simulations (uses phastcons currently)
-         "bmap_hg38_sims_10000step_chr10.pkl"
+        # merged genomic features with phastcons as a catch all
+        "bmap_hg38_6x5grid_10000step_1000N_merged_phastcons.pkl",
+        "bmap_hg38_6x5grid_10000step_10000N_merged_phastcons.pkl",
+        # merged genomic features without phastcons 
+        "bmap_hg38_6x5grid_10000step_10000N_genomiconly.pkl",
+        "bmap_hg38_6x5grid_10000step_1000N_genomiconly.pkl",
+        # for the simple simulations (uses phastcons currently)
+        "bmap_hg38_sims_10000step_chr10.pkl",
+        # unlabelled types -- currently only N=10k
+        "bmap_hg38_6x5grid_10000step_1000N_merged_phastcons_unlabelled.pkl",
+        "bmap_hg38_6x5grid_10000step_1000N_merged_genomiconly_unlabelled.pkl",
         ]
 
 rule all:

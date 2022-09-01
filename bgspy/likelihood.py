@@ -469,6 +469,9 @@ class BGSLikelihood:
         return self.dim()[2]
 
     def _load_optim(self, optim_res):
+        """
+        Taken an OptimResult() object.
+        """
         self.optim = optim_res
         # load in the best values
         self.theta_ = optim_res.theta
@@ -508,8 +511,16 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-
-    def predict(self, optim=None):
+    def predict(self, optim=None, theta=None):
+        """
+        Predicted π from the best fit (if optim = None). If optim is 'random', a
+        random MLE optimization is chosen (e.g. to get a senes of how much
+        variation there is across optimization). If optim is an integer,
+        this rank of optimization results is given (e.g. optim = 0 is the
+        best MLE).
+        """
+        if theta is not None:
+            return predict_freemutation(theta, self.logB, self.w)
         if optim is None:
             theta = self.theta_
         else:
@@ -521,6 +532,9 @@ class BGSLikelihood:
         return predict_freemutation(theta, self.logB, self.w)
 
     def R2(self):
+        """
+        The R² value of the predictions against actual results.
+        """
         pred_pi = self.predict()
         pi = pi_from_pairwise_summaries(self.Y)
         return R2(pred_pi, pi)
@@ -583,6 +597,14 @@ def negll_freemut_full(theta, grad, Y, B, w):
     new_theta[2:] = theta[1:] # times mutation rates
     #print("-->", theta, new_theta)
     return negll_c(new_theta, Y, B, w)
+
+def negll_simplex_full(theta, grad, Y, B, w):
+    """
+    Simplex model wrapper for negll_c().
+
+    grad is required for nlopt.
+    """
+    return negll_c(theta, Y, B, w)
 
 class FreeMutationModel(BGSLikelihood):
     def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
@@ -678,22 +700,31 @@ class SimplexModel(BGSLikelihood):
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds, paired=False)
 
-    def fit(self, starts=1, ncores=None):
+    def fit(self, starts=1, ncores=None, algo='ISRES'):
         """
-        Fit models on a single process.
+        Fit likelihood models with mumeric optimization (using nlopt).
 
-        Because of the more complex constraint program, this alway uses
-        nlopt.
+        starts: either an integer number of random starts or a list of starts.
+        ncores: number of cores to use for multiprocessing.
+        algo: the optimization algorithm to use.
         """
+        algo = algo.upper()
+        algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt',
+                 'NELDERMEAD':'nlopt', 'NEWUOA':'nlopt'}
+        assert algo in algos, f"algo must be in {algos}"
+        engine = algos[algo]
+
         if isinstance(starts, int):
             starts = [self.random_start() for _ in range(starts)]
-        if engine == 'scipy':
-            worker = partial(minimize, nll, bounds=self.bounds(),
-                             method='L-BFGS-B')
-        elif engine == 'nlopt':
-            pass
-        else:
-            raise ValueError("engine must be 'scipy' or 'nlopt'")
+        # don't request more cores than we need
+        ncores = min(len(starts), ncores)
+
+        nll = partial(negll_simplex_full, Y=self.Y,
+                      B=self.logB, w=self.w)
+        worker = partial(nlopt_mutation_worker,
+                         func=nll, nt=self.nt, nf=self.nf,
+                         bounds=self.bounds(), algo=algo)
+
         res = run_optims(worker, starts, ncores=ncores)
         self._load_optim(res)
 
