@@ -25,7 +25,7 @@ from scipy.optimize import minimize
 from numba import jit
 from bgspy.utils import signif
 from bgspy.data import pi_from_pairwise_summaries
-from bgspy.optim import run_optims, nlopt_mutation_worker
+from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -96,6 +96,21 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
         return list(zip(lb, ub))
     return lb, ub
 
+
+def bounds_fixed_mutation(nt, nf, log10_pi0_bounds=(-4, -2)):
+    """
+    Return the bounds on for optimization under the simplex model
+    model with fixed mutations.
+    """
+    l = [10**log10_pi0_bounds[0]]
+    u = [10**log10_pi0_bounds[1]]
+    l += [0.]*nf*nt
+    u += [1.]*nf*nt
+    lb = np.array(l)
+    ub = np.array(u)
+    assert np.all(lb < ub)
+    return lb, ub
+
 def random_start_mutation(nt, nf,
                           log10_pi0_bounds=(-4, -3),
                           log10_mu_bounds=(-11, -7)):
@@ -131,6 +146,23 @@ def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
     theta[2:] = W.flat
     check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
     return theta
+
+def random_start_fixed_mutation(nt, nf, log10_pi0_bounds=(-4, -3)):
+    """
+    Create a random start position log10 uniform over the bounds for π0
+    and μ, and uniform under the DFE weights for W, under the simplex model,
+    but for a fixed mutation rate.
+    """
+    pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
+    W = np.empty((nt, nf))
+    for i in range(nf):
+        W[:, i] = np.random.dirichlet([1.] * nt)
+        assert np.abs(W[:, i].sum() - 1.) < 1e-5
+    theta = np.empty(nt*nf + 1)
+    theta[0] = pi0
+    theta[1:] = W.flat
+    return theta
+
 
 def interp_logBw_c(x, w, B, i, j, k):
     """
@@ -346,52 +378,17 @@ def normal_ll_c(theta, Y, logB, w):
     return likclib.normal_loglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                                  logB.ctypes.shape, logB.ctypes.strides)
 
-def constraint_matrix(nt, nf):
-    nparams = nt*nf + 2
-    A = np.zeros((nf, nparams))
-    for i in range(nf):
-        W = A[i, 2:].reshape((nt, nf))
-        W[:, i] = 1.
-    return A
-
-def inequality_constraint_functions(nt, nf, log10_mu_bounds=(-11, -7)):
+def predict_simplex(theta, logB, w, mu=None):
     """
-    Inequality constraints for nlopt.
-     l < μW < u
-     l - μW < 0
-     μW - u < 0
+    Prediction function for SimplexModel and FixedMutationModel.
     """
-    A = constraint_matrix(nt, nf)
-    lower, upper = 10**log10_mu_bounds[0], 10**log10_mu_bounds[1]
-    def func_l(result, x, grad):
-        mu = x[1]
-        M = lower - (mu *  A.dot(x))
-        for i in range(nf):
-            result[i] = M[i]
-    def func_u(result, x, grad):
-        mu = x[1]
-        M = (mu *  A.dot(x)) - upper
-        for i in range(nf):
-            result[i] = M[i]
-    return func_l, func_u
-
-def equality_constraint_function(nt, nf):
-    """
-    Equality constraints for nlopt.
-    """
-    A = constraint_matrix(nt, nf)
-    def func(result, x, grad):
-        M = A.dot(x)
-        for i in range(nf):
-            result[i] = M[i] - 1.
-    return func
-
-def predict_simplex(theta, logB, w):
-    """
-    """
+    fixed_mu = mu is not None
     nx, nw, nt, nf = logB.shape
     # mut weight params
-    pi0, mu, W = theta[0], theta[1], theta[2:]
+    if not fixed_mu:
+        pi0, mu, W = theta[0], theta[1], theta[2:]
+    else:
+        pi0, W = theta[0], theta[1:]
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     logBw = np.zeros(nx, dtype=float)
@@ -511,26 +508,6 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-    def predict(self, optim=None, theta=None):
-        """
-        Predicted π from the best fit (if optim = None). If optim is 'random', a
-        random MLE optimization is chosen (e.g. to get a senes of how much
-        variation there is across optimization). If optim is an integer,
-        this rank of optimization results is given (e.g. optim = 0 is the
-        best MLE).
-        """
-        if theta is not None:
-            return predict_freemutation(theta, self.logB, self.w)
-        if optim is None:
-            theta = self.theta_
-        else:
-            thetas = self.optim.thetas_
-            if optim == 'random':
-                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
-            else:
-                theta = thetas[optim]
-        return predict_freemutation(theta, self.logB, self.w)
-
     def R2(self):
         """
         The R² value of the predictions against actual results.
@@ -606,6 +583,20 @@ def negll_simplex_full(theta, grad, Y, B, w):
     """
     return negll_c(theta, Y, B, w)
 
+def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
+    """
+    Simplex model wrapper for negll_c(), with fixed mutation.
+
+    grad is required for nlopt.
+    """
+    # insert the fixed μ
+    new_theta = np.zeros(theta.size + 1)
+    new_theta[0] = theta[0]
+    new_theta[1] = mu
+    new_theta[2:] = theta[1:]
+    return negll_c(new_theta, Y, B, w)
+
+
 class FreeMutationModel(BGSLikelihood):
     def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
         super().__init__(w=w, t=t, logB=logB, Y=Y,
@@ -670,6 +661,26 @@ class FreeMutationModel(BGSLikelihood):
     def nll(self):
         return self.nll_
 
+    def predict(self, optim=None, theta=None):
+        """
+        Predicted π from the best fit (if optim = None). If optim is 'random', a
+        random MLE optimization is chosen (e.g. to get a senes of how much
+        variation there is across optimization). If optim is an integer,
+        this rank of optimization results is given (e.g. optim = 0 is the
+        best MLE).
+        """
+        if theta is not None:
+            return predict_freemutation(theta, self.logB, self.w)
+        if optim is None:
+            theta = self.theta_
+        else:
+            thetas = self.optim.thetas_
+            if optim == 'random':
+                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
+            else:
+                theta = thetas[optim]
+        return predict_freemutation(theta, self.logB, self.w)
+
     def __repr__(self):
         base_rows = super().__repr__()
         if self.theta_ is not None:
@@ -677,7 +688,9 @@ class FreeMutationModel(BGSLikelihood):
             base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
             W = self.mle_W.reshape((self.nt, self.nf))
-            base_rows += "W = \n" + tabulate(W / W.sum(axis=0)) + "\n"
+            Wc = W / W.sum(axis=0)
+            tab = np.concatenate((self.t[:, None], np.round(Wc, 3)), axis=1)
+            base_rows += "W = \n" + tabulate(tab) + "\n"
             base_rows += "μ = \n" + tabulate(W.sum(axis=0)[None, :])
         return base_rows
 
@@ -709,8 +722,7 @@ class SimplexModel(BGSLikelihood):
         algo: the optimization algorithm to use.
         """
         algo = algo.upper()
-        algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt',
-                 'NELDERMEAD':'nlopt', 'NEWUOA':'nlopt'}
+        algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
         assert algo in algos, f"algo must be in {algos}"
         engine = algos[algo]
 
@@ -721,11 +733,102 @@ class SimplexModel(BGSLikelihood):
 
         nll = partial(negll_simplex_full, Y=self.Y,
                       B=self.logB, w=self.w)
-        worker = partial(nlopt_mutation_worker,
+        worker = partial(nlopt_simplex_worker,
                          func=nll, nt=self.nt, nf=self.nf,
                          bounds=self.bounds(), algo=algo)
-
         res = run_optims(worker, starts, ncores=ncores)
+        self._load_optim(res)
+
+    @property
+    def mle_mu(self):
+        """
+        Extract out the mutation rate, μ.
+        """
+        return self.theta_[1]
+
+
+    @property
+    def mle_W(self):
+        """
+        Extract out the W matrix.
+        """
+        return self.theta_[2:]
+
+    def __repr__(self):
+        base_rows = super().__repr__()
+        if self.theta_ is not None:
+            base_rows += "\n\nSimplex model ML estimates:\n"
+            base_rows += f"negative log-likelihood: {self.nll_}\n"
+            base_rows += f"π0 = {self.mle_pi0}\n"
+            base_rows += f"μ = {self.mle_mu}\n"
+            W = self.mle_W.reshape((self.nt, self.nf))
+            tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
+            base_rows += "W = \n" + tabulate(tab)
+        return base_rows
+
+    def predict(self, optim=None, theta=None):
+        """
+        Predicted π from the best fit (if optim = None). If optim is 'random', a
+        random MLE optimization is chosen (e.g. to get a senes of how much
+        variation there is across optimization). If optim is an integer,
+        this rank of optimization results is given (e.g. optim = 0 is the
+        best MLE).
+        """
+        if theta is not None:
+            return predict_simplex(theta, self.logB, self.w)
+        if optim is None:
+            theta = self.theta_
+        else:
+            thetas = self.optim.thetas_
+            if optim == 'random':
+                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
+            else:
+                theta = thetas[optim]
+        return predict_simplex(theta, self.logB, self.w)
+
+class FixedMutationModel(BGSLikelihood):
+    def __init__(self, w, t, logB, Y=None, log10_pi0_bounds=(-5, -1), seed=None):
+        super().__init__(w=w, t=t, logB=logB, Y=Y,
+                         log10_pi0_bounds=log10_pi0_bounds,
+                         seed=seed)
+
+
+    def random_start(self):
+        """
+        Random starts
+        """
+        return random_start_fixed_mutation(self.nt, self.nf,
+                                           self.log10_pi0_bounds)
+
+    def bounds(self):
+        return bounds_fixed_mutation(self.nt, self.nf,
+                                     self.log10_pi0_bounds)
+
+    def fit(self, mu, starts=1, ncores=None, algo='ISRES'):
+        """
+        Fit likelihood models with mumeric optimization (using nlopt).
+
+        starts: either an integer number of random starts or a list of starts.
+        ncores: number of cores to use for multiprocessing.
+        algo: the optimization algorithm to use.
+        """
+        algo = algo.upper()
+        algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
+        assert algo in algos, f"algo must be in {algos}"
+        engine = algos[algo]
+
+        if isinstance(starts, int):
+            starts = [self.random_start() for _ in range(starts)]
+        # don't request more cores than we need
+        ncores = min(len(starts), ncores)
+
+        nll = partial(negll_simplex_fixed_mutation_full, Y=self.Y,
+                      B=self.logB, w=self.w, mu=mu)
+        worker = partial(nlopt_simplex_worker, mu=mu,
+                         func=nll, nt=self.nt, nf=self.nf,
+                         bounds=self.bounds(), algo=algo)
+        res = run_optims(worker, starts, ncores=ncores)
+        self.mu = mu
         self._load_optim(res)
 
     @property
@@ -738,16 +841,35 @@ class SimplexModel(BGSLikelihood):
     def __repr__(self):
         base_rows = super().__repr__()
         if self.theta_ is not None:
-            base_rows += "\n\nFree-mutation model ML estimates:\n"
+            base_rows += "\n\nFixed-Mutation Simplex model ML estimates:\n"
+            base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
-            base_rows += "W = \n" + tabulate(self.mle_W.reshape((self.nt, self.nf)))
+            base_rows += f"μ = {self.mu} (fixed)\n"
+            W = self.mle_W.reshape((self.nt, self.nf))
+            tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
+            base_rows += "W = \n" + tabulate(tab)
+
         return base_rows
 
-
-    def __init__(self, *args, **kwargs):
-        super(LikelihoodSimplex).__init__(*args, **kwargs)
-
-    def fit(self):
-        pass
+    def predict(self, optim=None, theta=None, mu=None):
+        """
+        Predicted π from the best fit (if optim = None). If optim is 'random', a
+        random MLE optimization is chosen (e.g. to get a senes of how much
+        variation there is across optimization). If optim is an integer,
+        this rank of optimization results is given (e.g. optim = 0 is the
+        best MLE).
+        """
+        mu = self.mu if mu is None else mu
+        if theta is not None:
+            return predict_simplex(theta, self.logB, self.w, mu)
+        if optim is None:
+            theta = self.theta_
+        else:
+            thetas = self.optim.thetas_
+            if optim == 'random':
+                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
+            else:
+                theta = thetas[optim]
+        return predict_simplex(theta, self.logB, self.w, mu)
 
 

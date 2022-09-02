@@ -159,7 +159,6 @@ double negloglik(const double *theta,
         logBw_i = 0.; // initialize start of sum
         for (ssize_t j=0; j < nt; j++) {
             for (ssize_t k=0; k < nf; k++) {
-                // get the mutational DFE element W[j, k] (part of theta)
                 Wjk = W_GET(W, j, k, nf);
                 if (isnan(Wjk)) {
                     printf("ERROR: W_GET(W, j=%ld, k=%ld, nf=%ld) is returning NaN\n", 

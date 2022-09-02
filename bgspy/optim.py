@@ -73,24 +73,106 @@ def nlopt_mutation_worker(start, func, nt, nf, bounds,
     return nll, mle, success
 
 
-def nlopt_simplex_isres_worker(start, func, nt, nf, bounds,
-                               constraint_tol=1e-11, xtol_rel=1e-3,
-                               maxeval=1000000):
+def constraint_matrix(nt, nf, fixed_mu=False):
+    """
+    Build a constrain matrix A for the simplex model.
+    The constraint matrix is dot'd with the θ vector
+    and compared to the contraints.
+
+    The dimensionality of A is nparams x nconstraints.
+    For the simplex model, the number of contraints is the
+    number of features -- the DFE of each feature must sum
+    to one. The dot product A·θ should return the sums of
+    the DFE weights down each column.
+
+    """
+    offset = 2 - int(fixed_mu)
+    nparams = nt*nf + offset
+    A = np.zeros((nf, nparams))
+    for i in range(nf):
+        W = A[i, offset:].reshape((nt, nf))
+        W[:, i] = 1.
+    return A
+
+def inequality_constraint_functions(nt, nf, mu=None, log10_mu_bounds=(-11, -7)):
+    """
+    Return two functions for testing whether inequality contraints are met
+    (for nlopt). The contraint is that:
+
+       l < μW < u
+
+    where l and u are the lower and upper bounds for the mutation rate grid.
+
+    These are rearranged to give explicit lower and upper bounds, that must
+    be less than zero:
+
+       l - μW < 0
+       μW - u < 0
+    """
+    fixed_mu = mu is not None
+    A = constraint_matrix(nt, nf, fixed_mu=fixed_mu)
+    lower, upper = 10**log10_mu_bounds[0], 10**log10_mu_bounds[1]
+    def func_l(result, x, grad):
+        if not fixed_mu:
+            u = x[1]
+        else:
+            u = mu
+        M = lower - (u *  A.dot(x))
+        for i in range(nf):
+            result[i] = M[i]
+    def func_u(result, x, grad):
+        if not fixed_mu:
+            u = x[1]
+        else:
+            u = mu
+        M = (u *  A.dot(x)) - upper
+        for i in range(nf):
+            result[i] = M[i]
+    return func_l, func_u
+
+def equality_constraint_function(nt, nf, fixed_mu):
+    """
+    Ensure that all the DFE weights sum to 1. Returns a function
+    for nlopt to test this (will be equal to zero, within nlopt's
+    tolerance, if contraint is met).
+    """
+    A = constraint_matrix(nt, nf, fixed_mu)
+    def func(result, x, grad):
+        M = A.dot(x)
+        for i in range(nf):
+            result[i] = M[i] - 1.
+    return func
+
+def nlopt_simplex_worker(start, func, nt, nf, bounds, mu=None,
+                         constraint_tol=1e-11, xtol_rel=1e-3,
+                         maxeval=1000000, algo='ISRES'):
     """
     Use nlopt to do constrained (inequality to bound DFE weights
     and equality to enforce the simplex) and bounded optimization
     for the simplex model.
     """
-    opt = nlopt.opt(nlopt.GN_ISRES, nparams)
-    #opt = nlopt.opt(nlopt.LN_COBYLA, nparams)
+    fixed_mu = mu is not None
+    offset = 1 + int(not fixed_mu)
+    nparams = nt * nf + offset
+
+    if algo == 'ISRES':
+        nlopt_algo = nlopt.GN_ISRES
+    elif algo == 'NEWUOA':
+        nlopt_algo = nlopt.LN_NEWUOA_BOUND
+    elif algo == 'NELDERMEAD':
+        nlopt_algo = nlopt.LN_NELDERMEAD
+    else:
+        raise ValueError("algo must be 'isres' or 'cobyla'")
+
+    opt = nlopt.opt(nlopt_algo, nparams)
     opt.set_min_objective(func)
-    hl, hu = inequality_constraint_functions(nt, nf)
+    hl, hu = inequality_constraint_functions(nt, nf, mu=mu)
     tols = np.repeat(constraint_tol, nf)
     opt.add_inequality_mconstraint(hl, tols)
     opt.add_inequality_mconstraint(hu, tols)
-    ce = equality_constraint_function(nt, nf)
+    ce = equality_constraint_function(nt, nf, fixed_mu)
     opt.add_equality_mconstraint(ce, tols)
-    lb, ub = bounds_simplex(nt, nf)
+    lb, ub = bounds
     opt.set_lower_bounds(lb)
     opt.set_upper_bounds(ub)
     opt.set_xtol_rel(xtol_rel)
