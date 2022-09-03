@@ -35,6 +35,7 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
+         "cadd_whole_genome_SNVs.tsv.gz"
          ]
 
 rule centro:
@@ -50,6 +51,13 @@ rule centro_slop:
   shell:
     """
     bedtools slop -g {input.seqlens} -b 1000000 -i {input.centro} | sort --version-sort -k1,1 -k2,2n > {output}
+    """
+
+rule cadd:
+  output: "cadd_whole_genome_SNVs.tsv.gz"
+  shell:
+    """
+    wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
     """
 
 rule phastcons:
@@ -215,6 +223,8 @@ cons = [ # phastcons at different filtering thresholds:
         "merged_utrs_cds_introns_phastcons.bed.gz",
         # merged but no phastcons
         "merged_utrs_cds_introns.bed.gz",
+        # merged without introns (these are 40% of the genome and used to classify diversity
+        "merged_utrs_cds_phastcons.bed.gz",
         # merged and unlabelled (e.g. treated as all one feature type, for sims and model comparison)
         "merged_utrs_cds_introns_phastcons_unlabelled.bed.gz",
         "merged_utrs_cds_introns_unlabelled.bed.gz"
@@ -251,6 +261,16 @@ rule merged_utrs_cds_introns_phastcons:
     python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
       gzip > {output}
     """
+
+rule merged_utrs_cds_phastcons:
+  input: utrs="hg38.ensembl_utrs.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "merged_utrs_cds_phastcons.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
+      gzip > {output}
+    """
+
 
 rule merged_utrs_cds_introns_unlabelled:
   input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"

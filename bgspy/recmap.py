@@ -41,9 +41,15 @@ class RecMap(object):
     rate interpolators. Note that a conversion_factor of 1e-8 is the default
     for cM/Mb rates (1cM = 0.01M, 1Mb = 10^6 bases, 0.01 / 1e6 = 1e-8).
 
+    Notes:
+     Linear interpolation is the default -- quadratic can lead to some
+     rather strange values. One should randomly sample positions and
+     verify the cummulative interpolation is working proplerly on
+     new maps.
+
     """
     def __init__(self, mapfile, seqlens, fill_to_end=True,
-                 cumm_interpolation='quadratic',
+                 cumm_interpolation='linear',
                  rate_interpolation='linear',
                  conversion_factor=1e-8):
         self.mapfile = mapfile
@@ -60,6 +66,16 @@ class RecMap(object):
         self._readmap()
 
     def _readmap(self):
+        """
+        Notes:
+         cummulative rates are calculated as:
+          |  r1  |    r2       |         r3     |
+          |  w1  |    w2       |         w3     |
+                 m1            m2              m3
+        c1: = w1*r1
+        c2: = w2*r2 + w1*r1
+        c3: = w3*r3 + w2*r2 + w1*r1
+        """
         rates = defaultdict(list)
         last_chrom, last_end = None, None
         first_bin = True
@@ -121,11 +137,15 @@ class RecMap(object):
             rate = np.array([r for _, r in data])
             rbp = rate * self.conversion_factor
             rates[chrom] = RecPair(pos, rbp)
-            widths = np.diff(pos)
-            cumrates = np.nancumsum(rbp[1:]*widths)
-            pad_cumrates = np.zeros(cumrates.shape[0]+1)
-            pad_cumrates[1:] = cumrates
-            cumm_rates[chrom] = RecPair(pos, pad_cumrates)
+            assert pos[0] == 0
+            # note: we exclude the first bin (0) -- the cummulative
+            # distances should start from the first marker onwards (otherwise
+            # there's a jump)
+            widths = np.diff(pos[1:])
+            cumrates = np.nancumsum(rbp[1:-1]*widths)
+            cumm_pos = pos[1:-1]
+            assert len(cumm_pos) == len(cumrates)
+            cumm_rates[chrom] = RecPair(cumm_pos, cumrates)
         self.rates = rates
         self.cumm_rates = cumm_rates
         self.cumm_interpol = rate_interpol(cumm_rates, kind=self.cumm_interpolation)
