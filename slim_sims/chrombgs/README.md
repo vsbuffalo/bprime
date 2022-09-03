@@ -13,7 +13,7 @@ in by the SLiM script.
 
 Run with:
 
-    bash snakemake_runner.sh -c chrombgs_chr10.json all
+    bash snakemake_runner.sh -c chrombgs_thresh0_chr10.json all
 
 Notes/Warnings:
 
