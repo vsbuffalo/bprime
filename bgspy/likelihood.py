@@ -26,6 +26,7 @@ from numba import jit
 from bgspy.utils import signif
 from bgspy.data import pi_from_pairwise_summaries, GenomicBins
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
+from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -541,7 +542,16 @@ class BGSLikelihood:
     def resid(self):
         pred_pi = self.predict()
         pi = pi_from_pairwise_summaries(self.Y)
-        return (pred_pi - pi)**2
+        return pi - pred_pi
+
+    def resid_fitted_plot(self):
+        return resid_fitted_plot(self)
+
+    def diagnostic_plots(self):
+        return model_diagnostic_plots(self)
+
+    def predict_plot(self, chrom):
+        return predict_chrom_plot(self, chrom)
 
     @property
     def mle_pi0(self):

@@ -80,6 +80,35 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
         return float(T), float(Ne), float(Q2), float(V), float(Vm), float(U)
     return float(Ne)
 
+
+def bgs_segment_sc16_manual_vec(mu, sh, L, rbp, haploid_N):
+    """
+    """
+    assert isinstance(L, float)
+    assert isinstance(rbp, float)
+    mug, shg = np.meshgrid(mu, sh)
+    Ts, Nes, Q2s, Vs, Vms, Us = []
+    for m, s in zip(mug.flat, shg.flat):
+        res = bgs_segment_sc16(m, s, L, rbp, haploid_N, return_both=True)
+        T, Ne, Q2, V, Vm, U = res
+        Ts.append(T)
+        Nes.append(Ne)
+        Q2s.append(Q2)
+        Vs.append(V)
+        Vms.append(Vm)
+        Us.append(U)
+
+    shape = mu.size, sh.size
+    Ts = np.array(Ts).reshape(shape)
+    Nes = np.array(Nes).reshape(shape)
+    Q2s = np.array(Q2s).reshape(shape)
+    Vs = np.array(Vs).reshape(shape)
+    Vms = np.array(Vms).reshape(shape)
+    Us = np.array(Us).reshape(shape)
+
+    return Ts, Nes, Q2s, Vs, Vms, Us
+
+
 @np.vectorize
 def bgs_rec_sc16(mu, sh, L, r, N, Q_segment=False, full_output=False, return_both=False):
     """

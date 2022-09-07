@@ -14,8 +14,9 @@ from scipy import interpolate
 from scipy.stats import binned_statistic
 import statsmodels.api as sm
 import numpy as np
+import pandas as pd
 
-from bgspy.theory import bgs_segment
+from bgspy.data import pi_from_pairwise_summaries, trimmed_pi_mask, trimmed_pi_bounds
 SEED_MAX = 2**32-1
 
 # alias this
@@ -27,7 +28,6 @@ Grid = namedtuple('Grid', ('w','t'))
 
 # this dtype allows for simple metadata storage
 Bdtype = np.dtype('float32', metadata={'dims': ('site', 'w', 't', 'f')})
-#BScores = namedtuple('BScores', ('B', 'pos', 'w', 't', 'step'))
 
 RecPair = namedtuple('RecPair', ('end', 'rate'))
 Segments = namedtuple('Segments', ('ranges', 'rates', 'map_pos', 'features',
@@ -41,6 +41,10 @@ def midpoints(x):
         x = np.array(x)
     if isinstance(x, np.ndarray):
         return 0.5*(x[1:, ...] + x[:-1, ...])
+
+
+def is_sorted_array(x):
+    return np.all(x[:-1] <= x[1:])
 
 
 class BinnedStat:
@@ -67,13 +71,10 @@ class BinnedStat:
         # ignores the first bin, which is data for points left of zero
         return (self.midpoints, self.stat)
 
-def is_sorted_array(x):
-    return np.all(x[:-1] <= x[1:])
-
 class BScores:
     # TODO uncomment before next B calc
     #__slots__ = ('B', 'pos', 'w', 't', 'step', '_interpolators')
-    def __init__(self, B, pos, w, t, step=None):
+    def __init__(self, B, pos, w, t, features=None, step=None):
         self.B = B
         self.pos = pos
         assert set(B.keys()) == set(pos.keys()), "different chromosomes between Bs and positions!"
@@ -87,6 +88,7 @@ class BScores:
         self.X = None
         self.sd = None
         self.step = step
+        self.features = None
         self._interpolators = None
 
     @property
@@ -252,9 +254,11 @@ class BScores:
                 X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
         return X
 
-    def bin_means(self, bins, return_bins=False):
+    def bin_means(self, bins, merge=False, return_bins=False):
         """
         Average the bins into larger genomic windows.
+
+        If merge is True, this concatenates all the Bs together.
 
         We use the trapezoid rule, which works out to be the midpoint.
 
@@ -278,10 +282,10 @@ class BScores:
         window mean for x1:x2: 0.5 * (B0 + B1) + 0.5 * (B1 + B2)
 
         """
-        msg = "bins must be a chrom dict of bins or a GenomicBins"
-        assert isinstance(bins, (GenomicBins, dict)), msg
+        #msg = "bins must be a chrom dict of bins or a GenomicBins"
+        #assert isinstance(bins, (GenomicBins, dict)), msg
         means = dict()
-        for chrom in bins:
+        for chrom in bins.keys():
             y = self.B[chrom]
             x = self.pos[chrom]
             # midpoints work out to be linear interpolation mean, through
@@ -289,9 +293,11 @@ class BScores:
             # (like bins).
             mp_y = midpoints(y) # B-value midpoints
             mp_x = midpoints(x) # position midpoints
-            res = bin_aggregate(mp_x, mp_y, np.mean,
-                                         bins[chrom], axis=0)
+            res = bin_aggregate(mp_x, mp_y, np.mean, bins[chrom], axis=0)
             means[chrom] = res
+
+        if merge:
+            return np.concatenate([x.stat for x in means.values()], axis=0)
 
         if return_bins:
             return means
@@ -375,79 +381,206 @@ def bin_aggregate(pos, values, func, bins, right=False, **kwargs):
 
 class GenomicBins:
     """
-    A dictionary-like structure for chromosome genomic bins.
+    A class for chromosome genomic bins and data necessary to fit BGS likelihood
+    models (the pairwise summaries matrix Y). The B arrays are loaded
+    separately, and the BScores.bin_means() is called for these bin boundaries.
+    Outlier π bins can be masked using GenomicBins.mask_outliers.
+
+    Note that this supports multiple B' and B objects, each named and
+    stored in a dictionary, e.g. for multiple model runs and comparison.
+
+    The bin ends span the entire chromosome; so to indicate when
+    bins are dropped, e.g. for analysis, we use a mask (true indicates
+    valid, zero not).
+
+    Attributes ending in an underscore (_) store the full data (e.g.
+    unmasked. Note that the masks dictionary (GenomicBins.masks_) uses
+    True to denote "keep" or pass".
     """
     def __init__(self, seqlens, width, dtype='uint32'):
         width = int(width)
         self.width = width
+        # since the bins span the entire chromosome, we use masks
+        # to indicate bins to drop
         self.dtype = dtype
         self.seqlens = seqlens
         self._bin_chroms(seqlens, width, dtype)
+        self.data_ = dict()
+        self.n_ = dict()
+        self.B_ = dict()
+        self.Bp_ = dict()
 
     def __repr__(self):
         width = self.width
         nseqs = len(self.seqlens)
         msg = f"GenomicBins: {width:,}bp windows on {nseqs} chromosomes\n"
-        i = 0
+        msg = f"  "
         for chrom in self.seqlens:
-            x = list(map(str, self.bins[chrom][:3].tolist()))
-            y = list(map(str, self.bins[chrom][-3:].tolist()))
-            msg += f"  {chrom}: [" + ', '.join(x + ["..."] + y) + "]"
-            if i > 4:
-                msg += f"[... {nseqs - i} more chromosomes ...]"
+            x = list(map(str, self.bins_[chrom][:2].tolist()))
+            y = list(map(str, self.bins_[chrom][-2:].tolist()))
+            mperc = np.round((~self.masks_[chrom]).mean() * 100, 2)
+            msg += f"  {chrom}: [" + ', '.join(x + ["..."] + y) + f"] (masked {mperc}%)\n"
         return msg
 
-    def _bin_chroms(self, seqlens, width, dtype='uint32'):
-        "Bin all chromosomes and put the results in a dictionary."
-        self.bins = {c: bin_chrom(seqlens[c], width, dtype) for c in seqlens}
-
-    def __getitem__(self, chrom):
-        return self.bins[chrom]
-
-    @property
-    def midpoints(self):
-        """
-        Calculate midpoints of bins.
-        """
-        return midpoints(self.bins)
-
-    @property
-    def flat_midpoints(self):
-        """
-        Return a list of (chr, midpoint) positions for the bins.
-        """
-        out = []
-        for chrom, bins in self.bins.items():
-            for mp in midpoints(bins):
-                out.append((chrom, mp))
-        return out
-
-    @property
-    def flat(self):
-        """
-        Return a list of (chr, start, end) positions for the bins.
-        """
-        out = []
+    def iter_(self):
         for chrom, bins in self.bins.items():
             for i, end in enumerate(bins):
                 if i == 0:
                     continue
                 start = bins[i-1]
+                yield chrom, start, end
+
+    @property
+    def chroms_(self):
+        return np.array([c for c, _, _ in self.iter_()])
+
+    @property
+    def starts_(self):
+        return np.array([s for _, s, _ in self.iter_()])
+
+    @property
+    def ends_(self):
+        return np.array([e for _, _, e in self.iter_()])
+
+    def _bin_chroms(self, seqlens, width, dtype='uint32'):
+        "Bin all chromosomes and put the results in a dictionary."
+        self.bins_ = {c: bin_chrom(seqlens[c], width, dtype) for c in seqlens}
+        # the number of data points is one less than the number of bins (e.g.
+        # because of 0 rightmost bin
+        self.masks_ = {c: np.ones(len(b)-1, dtype='bool') for c, b in self.bins_.items()}
+
+    def nbins_(self, chrom=None):
+        n = {c: len(self.bins_[c])-1 for c in self.bins_.keys()}
+
+    def total_nbins(self, filter_masked=True):
+        if not filter_masked:
+            return sum(self.nbins_.values())
+        return sum([self.masks_[c].sum() for c in self.bins_.keys()])
+
+    def bins(self, filter_masked=True):
+        """
+        Return a dictionary of the mask-filtered bins.
+        """
+        out = defaultdict(list)
+        for chrom, bins in self.bins_.items():
+            for i, end in enumerate(bins):
+                if i == 0:
+                    continue
+                start = bins[i-1]
+                if not filter_masked or self.masks_[chrom][i-1]:
+                    out[chrom].append((start, end))
+        return out
+
+    def flat_bins(self, filter_masked=True):
+        out = []
+        for chrom, bins in self.bins(filter_masked).items():
+            for start, end in bins:
                 out.append((chrom, start, end))
         return out
 
-    def aggregate_site_array(self, x, func, **kwargs):
-        """
-        Given a site array,
-        """
+    def data(self, filter_masked=True):
         out = dict()
-        for chrom, bins in self.bins:
-            out[chrom] = aggregate_site_array(x, bins, func, **kwargs)
+        for chrom in self.data_:
+            dat = self.data_[chrom]
+            if filter_masked:
+                mask = self.masks_[chrom]
+                dat = dat[mask, ...]
+            out[chrom] = dat
         return out
 
-    def __iter__(self):
-        return iter(self.bins)
+    def keys(self):
+        return self.bins_.keys()
 
+    def __getitem__(self, chrom):
+        """
+        Return the raw bin boundaries for the specified chromosome 'chrom'.
+        No mask-based filtering, etc. -- e.g. for use with aggregating statistics.
+        """
+        return self.bins_[chrom]
+
+    def midpoints(self, filter_masked=True):
+        """
+        Calculate midpoints of mask-filtered bins.
+        """
+        out = defaultdict(list)
+        for chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for start, end in bins:
+                out[chrom].append((start+end)/2)
+        return out
+
+
+    def pi_pairs(self, chrom, filter_masked=True):
+        """
+        Return pair of midpoints, π for the specified chromosome.
+        Assumed self.data[chrom] is a Y matrix.
+
+        The behavior of mask filtering here is a bit different, since
+        the intended usage of this is for plots -- removed π values
+        are marked NaN since these are plotter (lines are disconnected
+        with plt.plot())
+        """
+        pi = pi_from_pairwise_summaries(self.data(filter_masked=False)[chrom])
+        if filter_masked:
+            pi[~self.masks_[chrom]] = np.nan
+        mp = self.midpoints(filter_masked=False)[chrom]
+        return mp, pi
+
+    @property
+    def mask_array(self):
+        mask = []
+        for chrom, masks in self.masks_.items():
+            for m in masks:
+                mask.append(m)
+        return np.array(mask, dtype='bool')
+
+    def mask_outliers(self, alpha):
+        """
+        Mark all bins that are within the quantile bounds defined by
+        alpha (can be single float or lower, upper bounds).
+        """
+        # get the bounds for the trimmed means -- these are chromosome-wide
+        # so on the full Y matrix
+        Y = self.Y(filter_masked=False)
+        cutoff = trimmed_pi_bounds(Y, alpha)
+        for chrom, Y_chrom in self.data_.items():
+            trim_mask = trimmed_pi_mask(Y_chrom, cutoff)
+            self.masks_[chrom] = trim_mask & self.masks_[chrom]
+        self.outlier_quantiles = cutoff
+
+    def Y(self, filter_masked=True):
+        """
+        Return the data matrix across all chromosomes, concatenated
+        along the first axis, e.g. for statistical analyses.
+        """
+        X = []
+        for chrom, data in self.data_.items():
+            for j in range(data.shape[0]):
+                if filter_masked is True:
+                    if self.masks_[chrom][j]:
+                        X.append(data[j, :])
+                else:
+                    X.append(data[j, :])
+        return np.stack(X)
+
+    def load_Bs(self, bgs_model, name):
+        """
+        Load the B and B' maps from a BGSModel, binning
+        it into the bins defined by this object.
+        """
+        B = bgs_model.BScores.bin_means(self, merge=True)
+        Bp = bgs_model.BpScores.bin_means(self, merge=True)
+        self.B_[name] = B
+        self.Bp_[name] = Bp
+
+    def B(self, name, filter_masked=True):
+        if filter_masked:
+            return self.B_[name][self.mask_array]
+        return self.B_[name]
+
+    def Bp(self, name, filter_masked=True):
+        if filter_masked:
+            return self.Bp_[name][self.mask_array]
+        return self.Bp_[name]
 
 
 def readfq(fp): # this is a generator function
@@ -800,10 +933,12 @@ def rle(inarray):
             p = np.cumsum(np.append(0, z))[:-1] # positions
             return(z, p, ia[i])
 
-def masks_to_ranges(mask_dict, priority):
+def masks_to_ranges(mask_dict, priority=None):
     """
     Given the masks from combine_features(), turn these into a chromosome
     range dictionary.
+
+    If priority is not None, a value is set.
     """
     ranges = defaultdict(list)
     for chrom in mask_dict:
@@ -811,7 +946,11 @@ def masks_to_ranges(mask_dict, priority):
         for rl, s, val in zip(rls, starts, vals):
             if val == 0:
                 continue
-            ranges[chrom].append((s, s + rl, priority[val-1]))
+            if priority is not None:
+                x = (s, s + rl, priority[val-1])
+            else:
+                x = (s, s + rl)
+            ranges[chrom].append(x)
     return ranges
 
 def load_bed_annotation(file, chroms=None):

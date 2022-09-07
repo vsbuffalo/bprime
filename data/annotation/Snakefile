@@ -10,10 +10,12 @@ PHASTCONS_THRESH_5 = 527
 genome = ["hg38.fa.gz"]
 
 rule hg38:
+  # fixes chromosome labels to start with 'chr'
   output: "hg38.fa.gz"
   shell:
     """
-    wget -O {output} http://ftp.ensembl.org/pub/release-107/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz
+    curl http://ftp.ensembl.org/pub/release-107/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz | \
+      zcat | sed 's/^>/>chr/' | gzip > {output}
     """
 
 # only keep autosomes
@@ -23,7 +25,7 @@ rule seqlens:
   shell:
     """
       bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
-      sed 's/^/chr/' | grep -P '^chr[0-9X]+' |  \
+      grep -P '^chr[0-9X]+' |  \
       sort  --version-sort -k 1,1 -k2,2n > {output}
     """
 
@@ -219,15 +221,18 @@ cons = [ # phastcons at different filtering thresholds:
         "conserved_phastcons_thresh471.bed.gz", 
         "conserved_phastcons_thresh527.bed.gz",
         "conserved_phastcons_thresh0.bed.gz",
-        # merged feature track
-        "merged_utrs_cds_introns_phastcons.bed.gz",
-        # merged but no phastcons
-        "merged_utrs_cds_introns.bed.gz",
-        # merged without introns (these are 40% of the genome and used to classify diversity
-        "merged_utrs_cds_phastcons.bed.gz",
-        # merged and unlabelled (e.g. treated as all one feature type, for sims and model comparison)
-        "merged_utrs_cds_introns_phastcons_unlabelled.bed.gz",
-        "merged_utrs_cds_introns_unlabelled.bed.gz"
+
+        # feature tracks with genomic elements only
+        "conserved_cds_utrs_phastcons.bed.gz",
+        "conserved_cds_utrs.bed.gz",
+        #    with introns
+        "conserved_cds_utrs_introns_phastcons.bed.gz",
+        "conserved_cds_utrs_introns.bed.gz",
+ 
+
+        # merged and unlabelled (e.g. treated as all one feature type, 
+        # for sims and model comparison)
+        "conserved_cds_utrs_phastcons_merged.bed.gz",
 ] 
 
 # this is used for sims with combined conserved regions (phastcons)
@@ -244,65 +249,68 @@ rule conserved_track:
         bedtools merge | gzip > {output}
       """
 
-rule merged_utrs_cds_introns:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "merged_utrs_cds_introns.bed.gz"
+rule conserved_cds_utrs_phastcons:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_phastcons.bed.gz"
   shell:
     """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} | \
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} --bed utr {input.utrs} --bed phastcons {input.phastcons} | \
       gzip > {output}
     """
 
-rule merged_utrs_cds_introns_phastcons:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "merged_utrs_cds_introns_phastcons.bed.gz"
+rule conserved_cds_utrs:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs.bed.gz"
   shell:
     """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed utr {input.utrs} --bed cds {input.cds} | \
       gzip > {output}
     """
 
-rule merged_utrs_cds_phastcons:
+rule conserved_cds_utrs_introns:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_introns.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds}  | \
+      gzip > {output}
+    """
+
+rule conserved_cds_utrs_introns_phastcons:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_introns_phastcons.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} \
+      --bed phastcons {input.phastcons} | \
+      gzip > {output}
+    """
+
+rule conserved_cds_utrs_phastcons_merged:
   input: utrs="hg38.ensembl_utrs.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "merged_utrs_cds_phastcons.bed.gz"
+  output: "conserved_cds_utrs_phastcons_merged.bed.gz"
   shell:
     """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
-      gzip > {output}
-    """
-
-
-rule merged_utrs_cds_introns_unlabelled:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "merged_utrs_cds_introns_unlabelled.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} | \
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed utr {input.utrs} --bed cds {input.cds} \
+      --bed phastcons {input.phastcons} | \
       cut -f1-3 | \
       gzip > {output}
     """
-
-
-rule merged_utrs_cds_introns_phastcons_unlabelled:
-  input: utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "merged_utrs_cds_introns_phastcons_unlabelled.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} --bed phastcons {input.phastcons} | \
-      cut -f1-3 | \
-      gzip > {output}
-    """
-
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
 sim_cons = ["conserved_phastcons_thresh0_chr10.bed",  # this is currently the primary conserved track for simulations
-            "merged_utrs_cds_introns_phastcons_chr10.bed",
+            "conserved_cds_utrs_phastcons_merged_chr10.bed",
             ]
 sim_neut = ["neutral_phastcons_thresh0_chr10.bed.gz"]
 
 # sepearate out conserved tracks into separate chromosome files
-rule split_conserved:
+rule split_phastcons:
   input: "conserved_phastcons_thresh{thresh}.bed.gz"
   output: "conserved_phastcons_thresh{thresh}_chr10.bed"
   shell:
@@ -311,8 +319,8 @@ rule split_conserved:
       """
 
 rule split_merged:
-  input: "merged_utrs_cds_introns_phastcons.bed.gz"
-  output: "merged_utrs_cds_introns_phastcons_chr10.bed"
+  input: "conserved_cds_utrs_phastcons_merged.bed.gz"
+  output: "conserved_cds_utrs_phastcons_merged_chr10.bed"
   shell:
       """
       zgrep "chr10" {input} | cut -f1-3 > {output}

@@ -65,6 +65,11 @@ class RecMap(object):
         self.rate_interpolation = rate_interpolation
         self._readmap()
 
+    def __repr__(self):
+        tot = sum([x.rate[-1] for x in self.cumm_rates.values()])
+        file = self.mapfile
+        return f"RecMap('{file}')\n total length: {np.round(tot, 2)} Morgans"
+
     def _readmap(self):
         """
         Notes:

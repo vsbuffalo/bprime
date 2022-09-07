@@ -22,6 +22,56 @@ def get_figax(figax, **kwargs):
         fig, ax = figax
     return fig, ax
 
+def resid_fitted_plot(model, color=True, figax=None):
+    """
+    Residuals-fitted plot, with lowess.
+    """
+    m = model
+    fig, ax = get_figax(figax)
+    lowess = sm.nonparametric.lowess
+    fitted, resid = m.predict(), m.resid()
+    color = 'chrom'
+    if color != 'chrom':
+        if color is True:
+            col = np.arange(len(m.bins))
+        else:
+            col = 'k'
+        ax.scatter(fitted, resid, c=col, linewidth=0, s=4, alpha=1)
+    else:
+        chroms = set([c for c, _, _ in m.bins])
+        for chrom in chroms:
+            chrom_idx = np.array([i for i, (c, s, e) in enumerate(m.bins) if c == chrom])
+            ax.scatter(fitted[chrom_idx], resid[chrom_idx], label=chrom, linewidth=0, s=4, alpha=1)
+        ax.legend()
+    lw = lowess(resid, fitted)
+    ax.plot(*lw.T, c='r')
+    ax.axhline(0, linestyle='dashed', c='cornflowerblue', zorder=-2)
+    return fig, ax
+
+
+def model_diagnostic_plots(model, figax=None):
+    m = model
+    fig, ax = get_figax(figax, ncols=2, nrows=2)
+    resid_fitted_plot(model, figax=(fig, ax[0, 0]))
+    return fig, ax
+
+
+def predict_chrom_plot(model, chrom, figax=None):
+    m = model
+    fig, ax = get_figax(figax, ncols=2, nrows=2)
+    midpoints = [(s+e)/2 for c, s, e in m.bins if c == chrom]
+    chrom_idx = np.array([i for i, (c, s, e) in enumerate(m.bins) if c == chrom])
+    y = m.predict()[chrom_idx]
+    if ratio:
+        y = mean_ratio(y)
+    ax.plot(midpoints, y, c='orange', label='prediction')
+    pi = pi_from_pairwise_summaries(m.Y)[chrom_idx]
+    if ratio:
+        pi = mean_ratio(pi)
+    ax.plot(midpoints, pi, c='g', alpha=0.4, label='data')
+    return fig, ax
+
+
 def surface_plot(x, y, z, xlabel=None, ylabel=None,
                  scale=None, ncontour=None, contour_ndigits=2,
                  figax=None, **kwargs):

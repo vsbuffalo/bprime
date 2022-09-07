@@ -14,6 +14,7 @@ x[:, :, F[:, 1]].sum(axis=2)
 """
 from collections import defaultdict
 import itertools
+import functools
 import warnings
 import tqdm
 import time
@@ -50,6 +51,8 @@ def BSC16_segment_lazy(mu, sh, segments, N):
     """
     L = segments.lengths
     rbp = segments.rates
+    # this sets up the input ararys such that np.vectorize
+    # will handle the broadcasting so the results are μ x sh x segements
     mu = mu.squeeze()[:, None, None]
     sh = sh.squeeze()[None, :, None]
     rbp = rbp.squeeze()[None, None, :]
@@ -58,7 +61,41 @@ def BSC16_segment_lazy(mu, sh, segments, N):
     return T, Ne, Q2, V, Vm, U
 
 
+def BSC16_segment_lazy_parallel(mu, sh, segments, N, ncores):
+    """
+    UNDER DEVEVELOPMENT
+    Compute the fixation time, Ne, etc for each segment, using the
+    equation that integrates over the entire segment *in parallel*.
+
+    Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
+    the factor of two.
+    """
+    L = segments.lengths
+    rbp = segments.rates
+
+    # stuff that's run on each core
+    mu = mu.squeeze()[:, None]
+    sh = sh.squeeze()[None, :]
+
+    # stuff that's shipped off to cores
+    rbp = rbp.squeeze().tolist()
+    L = L.squeeze().tolist()
+
+    # iterate over the segments, but each segments gets the full μ x sh.
+    func = functools.partial(bgs_segment_sc16_manual_vec, mu=mu, sh=sh,
+                             haploid_N=2*N, return_both=True)
+
+    with multiprocessing.Pool(ncores) as p:
+        res = list(tqdm.tqdm(p.imap(func, zip(L, rbp)), total=len(L)))
+
+    T, Ne, Q2, V, Vm, U = res
+    return T, Ne, Q2, V, Vm, U
+
 def bgs_segment_from_parts_sc16(parts, rf, log=True):
+    """
+    Take the pre-computed components of the S&C '16 equation
+    and use them to compute Ne.
+    """
     T, Ne, _, V, Vm, U = parts
     #assert T.shape[2] == rf.shape[2]
     #Q2 = (1/(Vm/V + rf))**2

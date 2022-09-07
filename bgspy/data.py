@@ -1,8 +1,11 @@
 import os
+import warnings
 import itertools
 import gzip
 import numpy as np
+from tqdm import tqdm
 import tskit
+from tabulate import tabulate
 from bgspy.utils import read_bed3, ranges_to_masks, GenomicBins
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
@@ -85,11 +88,15 @@ def load_fasta(fasta_file, chroms=None):
     """
     f = readfile(fasta_file)
     seqs = dict()
+    ignored = list()
     for chrom, seq, _ in readfq(f):
         if chroms is not None:
             if chrom not in chroms:
+                ignored.append(chrom)
                 continue
         seqs[chrom] = np.fromiter(map(ord, seq), dtype=np.ubyte)
+    #if len(ignored):
+    #    warnings.warn(f"{len(ignored)} chromosomes ignored during loading.")
     return seqs
 
 def get_accessible_from_seqs(seqs, mask_chars='Nnatcg'):
@@ -138,28 +145,31 @@ def pi_from_pairwise_summaries(x):
     n[denom == 0] = 0
     return BinnedStat(out, x.bins, n)
 
-def trimmed_bins(Y, bins, alpha=0.01):
-    """
-    From histograms of binned π along the genome some windows have outlier
-    diversity (usually in the upper tail). Likelihood-based methods may be
-    biased by these outlier windows, so a robust approach is to trim these
-    tails to the α specified here. If alpha is a tuple, it's for (lower, upper)
-    thresholds, e.g. trim the Y matrix by π to α/2, 1-α/2
 
-    We return the bins too; note that we return bins not as a GenomicBins
-    object since some bins will be excluded, and this assumes bins span the
-    entire chromosome. So we return bins as a list of (chrom, start, end) pairs.
+def trimmed_pi_bounds(Y, alpha):
+    """
     """
     if isinstance(alpha, float):
         lower, upper = alpha/2, 1-alpha/2
     else:
         lower, upper = alpha
     pi = pi_from_pairwise_summaries(Y)
+    q1, q2 = np.nanquantile(pi, lower), np.nanquantile(pi, upper)
+    return q1, q2
 
-    keep_idx = (np.nanquantile(pi, lower) < pi) & (np.nanquantile(pi, upper) > pi)
-    bins_flat = bins.flat
-    new_bins = [bin for keep, bin in zip(keep_idx, bins_flat) if keep]
-    return new_bins, Y[keep_idx, :], keep_idx
+
+def trimmed_pi_mask(Y, bounds):
+    """
+    From histograms of binned π along the genome some windows have outlier
+    diversity (usually in the upper tail). Likelihood-based methods may be
+    biased by these outlier windows, so a robust approach is to trim these
+    tails to the α specified here. If alpha is a tuple, it's for (lower, upper)
+    thresholds, e.g. trim the Y matrix by π to α/2, 1-α/2
+    """
+    q1, q2 = bounds
+    pi = pi_from_pairwise_summaries(Y)
+    keep_idx = (q1 < pi) & (q2 > pi)
+    return keep_idx
 
 class CountsDirectory:
     """
@@ -194,6 +204,26 @@ def filter_sites(counts, chrom, filter_neutral, filter_accessible,
         ac = ac * accesssible_masks[chrom][:, None]
     return ac
 
+def trim_map_ends(recmap, thresh_cM):
+    """
+    Find the positions for each chromosome that with thresh_cM cM
+    cut off each chromosome end. Returns chrom dict of lower, upper positions.
+    """
+    ends = dict()
+    for chrom in recmap.rates:
+        pos = recmap.cumm_rates[chrom].end
+        cumm_rates = recmap.cumm_rates[chrom].rate
+
+        start = thresh_cM / 100
+
+        # note: we use pos[1] because first is NaN
+        lower, upper = pos[1], pos[-1]
+        if any(cumm_rates < start):
+            lower = np.min(pos[cumm_rates < start])
+        end = cumm_rates[-1] - thresh_cM / 100
+        upper = np.max(pos[cumm_rates < end])
+        ends[chrom] = lower, upper
+    return ends
 
 class GenomeData:
     def __init__(self, genome=None):
@@ -202,6 +232,7 @@ class GenomeData:
         self.accesssible_masks = None
         self._npy_files = None
         self.counts = None
+        self.thresh_cM = None
 
     def _load_mask(self, file):
         """
@@ -216,7 +247,23 @@ class GenomeData:
         """
         self.accesssible_masks = self._load_mask(file)
 
+    def trim_ends(self, thresh_cM=0.1):
+        """
+        Trim off thresh_cM cM of ends.
+        """
+        assert self.genome.recmap is not None, "GenomeData.genome.recmap is not set!"
+        ends = trim_map_ends(self.genome.recmap, thresh_cM)
+        for chrom, (lower, upper) in ends.items():
+            self.accesssible_masks[chrom][0:(lower+1)] = 0
+            self.accesssible_masks[chrom][upper:] = 0
+        self.thresh_cM = thresh_cM
+
     def load_fasta(self, fasta_file, soft_mask=True):
+        """
+        Load a FASTA genome reference file, which is used to
+        determine which sites are accessible (e.g. Ns and soft-masked
+        are set as inaccessible).
+        """
         self.seqs = load_fasta(fasta_file, self.genome.chroms)
         if soft_mask:
             acc = get_accessible_from_seqs(self.seqs)
@@ -275,14 +322,6 @@ class GenomeData:
                     row = [chrom, pos, ntot[i], self.counts[chrom][i, 1]]
                     f.write("\t".join(map(str, row)) + "\n")
 
-    def stats(self):
-        out = dict()
-        for chrom in self.genome.chroms:
-            nneut = self.neutral_masks[chrom].mean()
-            nacc = self.accesssible_masks[chrom].mean()
-            out[chrom] = nneut, nacc
-        return out
-
     def load_neutral_masks(self, file):
         """
         Load a 3-column BED file of neutral ranges into mask objects.
@@ -318,41 +357,31 @@ class GenomeData:
     def chroms(self):
         return self.genome.chroms
 
-    def bin_reduce(self, width, merge=False, filter_neutral=None,
-                   filter_accessible=None):
+    def bin_pairwise_summaries(self, width, filter_neutral=None,
+                               filter_accessible=None, progress=True):
         """
-        Given a genomic window width, bin the data and compute bin-level
-        summaries for the likelihood.
+        Given a genomic window width, compute the pairwise statistics (the Y
+        matrix of same and different pairwise combinations) and bin reduce them
+        by summing counts within a bin.
 
-        Returns: Y matrix (nsame, ndiff cols) and a chrom dict of bin ends.
+        Returns: a GenomicBins object with the resulting data in GenomicBins.data.
         """
         bins = GenomicBins(self.genome.seqlens, width)
-        reduced = dict()
-        nwins = 0
-        for chrom in self.chroms:
+
+        chroms = self.chroms
+        chroms = chroms if not progress else tqdm(chroms)
+        for chrom in chroms:
             site_ac = filter_sites(self.counts, chrom, filter_neutral,
                                    filter_accessible,
                                    self.neutral_masks, self.accesssible_masks)
-
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
             Y = pairwise_summary(site_ac)
             # number of combinations summed into bins per chrom
             Y_binstat = aggregate_site_array(Y, bins[chrom], np.sum, axis=0)
-            reduced[chrom] = Y_binstat
-            nwins += len(Y_binstat)
-
-        if not merge:
-            return bins, reduced
-
-        X = np.empty((nwins, 2))
-        i = 0
-        for chrom, binstats in reduced.items():
-            for j in range(binstats.stat.shape[0]):
-                X[i, :] = binstats.stat[j, :]
-                i += 1
-        return bins, X
-
+            bins.data_[chrom] = Y_binstat.stat
+            bins.n_[chrom] = Y_binstat.n
+        return bins
 
     def npoly(self, filter_neutral=None, filter_accessible=None):
         out = dict()
@@ -362,19 +391,6 @@ class GenomeData:
                                    self.neut_masks, self.accesssible_masks)
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
-
-    def bin_pi(self, width, filter_neutral=None,
-               filter_accessible=None):
-        """
-        Calculate π from the binned summaries.
-        """
-        bins, reduced = self.bin_reduce(width, merge=False,
-                                        filter_neutral=filter_neutral,
-                                        filter_accessible=filter_accessible)
-        pi = dict()
-        for chrom in reduced.keys():
-            pi[chrom] = pi_from_pairwise_summaries(reduced[chrom])
-        return bins, pi
 
     def pi(self):
         pi = dict()
@@ -397,19 +413,29 @@ class GenomeData:
             seq_len = self.genome.seqlens[chrom]
             acces = np.nan
             neut = np.nan
+            both = np.ones(seq_len, dtype='bool')
             if self.accesssible_masks is not None:
-                acces = self.accesssible_masks[chrom].sum() / seq_len
+                access_mask = self.accesssible_masks[chrom]
+                acces = access_mask.mean()
+                both = both & access_mask
             if self.neutral_masks is not None:
-                neut = self.neutral_masks[chrom].sum() / seq_len
-            stats[chrom] = (acces, neut)
+                neut_mask = self.neutral_masks[chrom]
+                neut = neut_mask.mean()
+                both = both & neut_mask
+            stats[chrom] = (np.round(acces, 2),
+                            np.round(neut, 2),
+                            np.round(both.mean(), 2))
         return stats
 
     def __repr__(self):
         nchroms = len(self.genome.chroms)
-        msg = [f"GenomeData ({nchroms} chromosomes)\nMasks:",
-               f"         accessible    neutral"]
-        for chrom, (acces, neut) in self.mask_stats().items():
-            msg += [f"  {chrom}     {pretty_percent(acces)}%        {pretty_percent(neut)}%"]
+        msg = [f"GenomeData ({nchroms} chromosomes)\nMasks:"]
+        tab = ([('chrom', 'acc', 'neut', 'both')] +
+                [(chrom, a, n, b) for chrom, (a, n, b) in self.mask_stats().items()])
+        msg += [tabulate(tab, headers="firstrow")]
+        trim = self.thresh_cM is not None
+        trim_end = "" if not trim else f"{self.thresh_cM} cM"
+        msg += [f"chromosome ends trimmed? {trim} {trim_end}"]
         return "\n".join(msg)
 
 

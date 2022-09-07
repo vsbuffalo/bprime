@@ -39,12 +39,15 @@ from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
 from bgspy.utils import Bdtype, BScores, BinnedStat
-#from bgspy.likelihood import loglik
 from bgspy.classic import calc_B, calc_B_parallel, calc_BSC16_parallel
 from bgspy.parallel import MapPosChunkIterator
 
 
 class BGSModel(object):
+    """
+    BGSModel contains the the segments under purifying selection
+    to compute the B and B' values.
+    """
     def __init__(self, genome, t_grid=None, w_grid=None, split_length=None):
         # main genome data needed to calculate B
         self.genome = genome
@@ -65,15 +68,6 @@ class BGSModel(object):
         self.t = np.sort(t_grid)
         self.w = np.sort(w_grid)
 
-        # Genomic Data
-        self.data = None
-
-        #likelihood
-        self.pi0_ll = None
-        self.pi0_grid = None
-        self.pi0i_mle = None
-
-
     @property
     def seqlens(self):
         return self.genome.seqlens
@@ -85,55 +79,6 @@ class BGSModel(object):
     @property
     def segments(self):
         return self.genome.segments
-
-    def loglikelihood(self, width, pi0=None, pi0_bounds=None, pi0_grid=None,
-                      method='SC16'):
-        try:
-            b = {'SC16': self.BpScores,
-                 'BGS': self.BScores}[method]
-        except KeyError:
-            raise ValueError("method must be either 'SC16' or 'BGS'")
-        assert b is not None, "BScores are not calculated!"
-
-        # create the windows that are the unit of analysis
-        chrom_bins = bin_chroms(self.genome.seqlens, width)
-        comps = calc_loglik_components(b, self.Y, self.neut_pos, self.neut_masks,
-                                     self.nchroms, chrom_bins)
-        Y_binned, midpoint_Bs, pi_win = comps
-
-        # for pi0, merge all chromosomes
-        bs = np.stack(list(*midpoint_Bs.values()), axis=0)
-        ys = np.stack(list(*Y_binned.values()), axis=0)
-        chroms = list(b.pos.keys())
-        nset = sum([x is not None for x in (pi0, pi0_bounds, pi0_grid)])
-
-        if nset > 1:
-            raise ValueError("no more than one pi0, pi0_grid, pi0_bounds can be set")
-        if nset == 0:
-            raise ValueError("set either pi0, pi0_bounds, or pi0_grid")
-        if pi0_bounds is not None:
-            print(f"using bounded {pi0_bounds} optimizion for π0...")
-            f = loglik_pi0(bs, ys)
-            optim = minimize_scalar(f, bounds=(0, 0.1), method='bounded')
-            print(optim)
-            self.optim = optim
-            pi0 = optim.x
-        if pi0_grid is not None:
-            lls = [loglik(p, bs, ys).sum(axis=0) for p in tqdm.tqdm(pi0_grid)]
-            lls_mat = np.stack(lls)
-            max_idx = np.unravel_index(np.argmax(lls_mat), lls_mat.shape)
-            #__import__('pdb').set_trace()
-            pi0 = pi0_grid[max_idx[0]]
-            self.pi0_ll = lls_mat
-            self.pi0i_mle = max_idx[0]
-            self.pi0_grid = pi0_grid
-
-        # main likelihood routine
-        ll = loglik(pi0, bs, ys)
-        lls = ll.sum(axis=0)
-        mle = MLEFit(m.w, m.t, lls, pi0_grid, pi0)
-        mle._pi_win = pi_win
-        return mle
 
     def save(self, filename):
         assert filename.endswith('.pkl'), "filename should end in '.pkl'"
@@ -147,12 +92,18 @@ class BGSModel(object):
         return obj
 
     @property
+    def nf(self):
+        return len(self.segments.feature_map)
+
+    @property
     def BScores(self):
-        return BScores(self.Bs, self.B_pos, self.w, self.t, self.step)
+        features = [self.segments.inverse_feature_map[i] for i in range(self.nf)]
+        return BScores(self.Bs, self.B_pos, self.w, self.t, features, self.step)
 
     @property
     def BpScores(self):
-        return BScores(self.Bps, self.Bp_pos, self.w, self.t, self.step)
+        features = [self.segments.inverse_feature_map[i] for i in range(self.nf)]
+        return BScores(self.Bps, self.Bp_pos, self.w, self.t, features, self.step)
 
     def save_B(self, filename):
         """
