@@ -69,6 +69,11 @@ class BGSModel(object):
         self.w = np.sort(w_grid)
 
     @property
+    def features(self):
+        features = [self.segments.inverse_feature_map[i] for i in range(self.nf)]
+        return features
+
+    @property
     def seqlens(self):
         return self.genome.seqlens
 
@@ -97,13 +102,11 @@ class BGSModel(object):
 
     @property
     def BScores(self):
-        features = [self.segments.inverse_feature_map[i] for i in range(self.nf)]
-        return BScores(self.Bs, self.B_pos, self.w, self.t, features, self.step)
+        return BScores(self.Bs, self.B_pos, self.w, self.t, self.features, self.step)
 
     @property
     def BpScores(self):
-        features = [self.segments.inverse_feature_map[i] for i in range(self.nf)]
-        return BScores(self.Bps, self.Bp_pos, self.w, self.t, features, self.step)
+        return BScores(self.Bps, self.Bp_pos, self.w, self.t, self.features, self.step)
 
     def save_B(self, filename):
         """

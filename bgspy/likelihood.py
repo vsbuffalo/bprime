@@ -24,7 +24,7 @@ from scipy import interpolate
 from scipy.optimize import minimize
 from numba import jit
 from bgspy.utils import signif
-from bgspy.data import pi_from_pairwise_summaries, GenomicBins
+from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
 
@@ -421,39 +421,27 @@ class BGSLikelihood:
     (note Bs are stored in log-space.)
     """
     def __init__(self,
-                 # data stuff:
-                 bins, Y,
-                 # one way to specify the B tensor is manually
-                 w=None, t=None, logB=None,
-                 # another way:
-                 bscores=None,
+                 Y, w, t, logB, bins=None, features=None,
                  log10_pi0_bounds=(-5, -1)):
-        manual_specification = w is not None and t is not None and logB is not None
-        bscores_specification = bscores is not None
-        msg = "either w, t, and logB need to bet set, or bscores"
-        assert manual_specification or bscores_specification, msg
-        assert not (manual_specification and bscores_specification), msg
-        self.bscores = None
-        if bscores_specification:
-            w = bscores.w
-            t = bscores.t
-            # create the B tensor for these bins.
-            assert isinstance(bins, GenomicBins), "bins must be a GenomicBins object"
-            logB = np.concatenate([bscores.bin_means(bins).B[c] for c in bins.bins.keys()], axis=0)
-            self.bscores = bscores
-        else:
-            assert manual_specification
-
         self.w = w
         self.t = t
+        if bins is not None:
+            assert isinstance(bins, GenomicBinnedData)
+            assert bins.nbins() == Y.shape[0]
+        self.bins = bins
         self.log10_pi0_bounds = log10_pi0_bounds
         self.log10_mu_bounds = np.log10(w[0]), np.log10(w[-1])
+
         try:
             assert logB.ndim == 4
             assert logB.shape[1] == w.size
             assert logB.shape[2] == t.size
         except AssertionError:
-            raise AssertionError("logB has incorrection shape, should be nx x nw x nt x nf")
+            msg = "B dimensions ({logB.shape}) do not match (supplied w and t dimensions)"
+            raise AssertionError(msg)
+
+        # labels for the features
+        self.features = features
 
         # check the data and bins
         try:
@@ -464,11 +452,7 @@ class BGSLikelihood:
         self.Y = Y
 
         self.logB = logB
-        self.bins = bins
         self.theta_ = None
-        self.dim()
-        #self.rng = np.random.default_rng(seed)
-
 
     def dim(self):
         """
@@ -550,8 +534,8 @@ class BGSLikelihood:
     def diagnostic_plots(self):
         return model_diagnostic_plots(self)
 
-    def predict_plot(self, chrom):
-        return predict_chrom_plot(self, chrom)
+    def predict_plot(self, chrom, label='prediction', figax=None):
+        return predict_chrom_plot(self, chrom, label=label, figax=figax)
 
     @property
     def mle_pi0(self):
@@ -630,10 +614,10 @@ def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
 
 
 class FreeMutationModel(BGSLikelihood):
-    def __init__(self, bins, Y, w=None, t=None, logB=None, bscores=None,
-                 log10_pi0_bounds=(-5, -1)):
-        super().__init__(bins=bins, Y=Y, w=w, t=t, logB=logB, bscores=bscores,
-                         log10_pi0_bounds=log10_pi0_bounds)
+    def __init__(self, Y, w, t, logB, bins=None,
+                 features=None, log10_pi0_bounds=(-5, -1)):
+        super().__init__(Y=Y, w=w, t=t, logB=logB, features=features,
+                         bins=bins, log10_pi0_bounds=log10_pi0_bounds)
 
     def random_start(self):
         """
@@ -727,9 +711,10 @@ class FreeMutationModel(BGSLikelihood):
         return base_rows
 
 class SimplexModel(BGSLikelihood):
-    def __init__(self, bins, Y, w=None, t=None, logB=None, bscores=None,
-                 log10_pi0_bounds=(-5, -1)):
-        super().__init__(bins=bins, Y=Y, w=w, t=t, logB=logB, bscores=bscores,
+    def __init__(self, Y, w, t, logB, bins=None,
+                 features=None, log10_pi0_bounds=(-5, -1)):
+        super().__init__(Y=Y, w=w, t=t, logB=logB,
+                         bins=bins, features=features,
                          log10_pi0_bounds=log10_pi0_bounds)
 
     def random_start(self):
@@ -819,10 +804,10 @@ class SimplexModel(BGSLikelihood):
         return predict_simplex(theta, self.logB, self.w)
 
 class FixedMutationModel(BGSLikelihood):
-    def __init__(self, bins, Y, w=None, t=None, logB=None, bscores=None,
-                 log10_pi0_bounds=(-5, -1)):
-        super().__init__(bins=bins, Y=Y, w=w, t=t, logB=logB, bscores=bscores,
-                         log10_pi0_bounds=log10_pi0_bounds)
+    def __init__(self, Y, w, t, logB, bins=None,
+                 features=None, log10_pi0_bounds=(-5, -1)):
+        super().__init__(Y=Y, w=w, t=t, logB=logB, bins=bins,
+                         features=features, log10_pi0_bounds=log10_pi0_bounds)
 
     def random_start(self):
         """

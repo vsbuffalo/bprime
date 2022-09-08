@@ -7,7 +7,7 @@ from matplotlib import cm
 import statsmodels.api as sm
 import scipy.stats as stats
 from bgspy.theory import B_var_limit
-from bgspy.utils import signif
+from bgspy.utils import signif, mean_ratio
 
 def center_scale(x):
     return (x-x.mean())/x.std()
@@ -30,10 +30,10 @@ def resid_fitted_plot(model, color=True, figax=None):
     fig, ax = get_figax(figax)
     lowess = sm.nonparametric.lowess
     fitted, resid = m.predict(), m.resid()
-    color = 'chrom'
     if color != 'chrom':
+        bins = m.bins.flat_bins()
         if color is True:
-            col = np.arange(len(m.bins))
+            col = np.arange(len(bins))
         else:
             col = 'k'
         ax.scatter(fitted, resid, c=col, linewidth=0, s=4, alpha=1)
@@ -56,19 +56,24 @@ def model_diagnostic_plots(model, figax=None):
     return fig, ax
 
 
-def predict_chrom_plot(model, chrom, figax=None):
+def predict_chrom_plot(model, chrom, ratio=True,
+                       label='prediction',
+                       add_r2=False, figax=None):
     m = model
-    fig, ax = get_figax(figax, ncols=2, nrows=2)
-    midpoints = [(s+e)/2 for c, s, e in m.bins if c == chrom]
-    chrom_idx = np.array([i for i, (c, s, e) in enumerate(m.bins) if c == chrom])
+    fig, ax = get_figax(figax)
+    pi_midpoints, pi = model.bins.pi_pairs(chrom)
+    bins = m.bins.flat_bins()
+    chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
     y = m.predict()[chrom_idx]
     if ratio:
         y = mean_ratio(y)
-    ax.plot(midpoints, y, c='orange', label='prediction')
-    pi = pi_from_pairwise_summaries(m.Y)[chrom_idx]
+    midpoints = model.bins.midpoints()[chrom]
+    ax.plot(midpoints, y, label=label)
     if ratio:
         pi = mean_ratio(pi)
-    ax.plot(midpoints, pi, c='g', alpha=0.4, label='data')
+    ax.plot(pi_midpoints, pi, c='g', alpha=0.4, label='data')
+    if add_r2:
+        ax.set_title(f"$R^2 = {np.round(model.R2(), 2)}$")
     return fig, ax
 
 
