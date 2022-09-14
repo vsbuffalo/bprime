@@ -61,17 +61,22 @@ def predict_chrom_plot(model, chrom, ratio=True,
                        add_r2=False, figax=None):
     m = model
     fig, ax = get_figax(figax)
-    pi_midpoints, pi = model.bins.pi_pairs(chrom)
-    bins = m.bins.flat_bins()
+    midpoints, pi = model.bins.pi_pairs(chrom)
+    bins = m.bins.flat_bins(filter_masked=False)
     chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
-    y = m.predict()[chrom_idx]
+
+    predicts = m.predict()
+    # fill the predicted values into the full unmask-filtered matrix
+    predicts_full = model.bins.merge_filtered_data(predicts)
+
+    y = predicts_full[chrom_idx]
     if ratio:
         y = mean_ratio(y)
-    midpoints = model.bins.midpoints()[chrom]
+
     ax.plot(midpoints, y, label=label)
     if ratio:
         pi = mean_ratio(pi)
-    ax.plot(pi_midpoints, pi, c='g', alpha=0.4, label='data')
+    ax.plot(midpoints, pi, c='g', alpha=0.4, label='data')
     if add_r2:
         ax.set_title(f"$R^2 = {np.round(model.R2(), 2)}$")
     return fig, ax

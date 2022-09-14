@@ -40,7 +40,6 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
 def TRatchet(N, s, U, ploidy=2):
     return np.expm1(2*ploidy*N*s)*(np.cosh(s)/np.sinh(s) - 1)/(2*ploidy*N*U)
 
-@np.vectorize
 def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=False):
     """
     Using a non-linear solver to solve the pair of S&C '16 equations and
@@ -55,7 +54,15 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
     N = haploid_N
     U = L*mu
     Vm = U*sh**2
-    start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
+    try:
+        start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
+    except FloatingPointError:
+        # If there is an overflow, it's because sh N is too large -- implying
+        # a fixation time that is impossibly large, e.g. the ratchet does not
+        # click. This occurs in the case where strong BGS is occurring.
+        # We also need to prevent sh/T from underflowing -- it should just be
+        # a very small value.
+        start_T = haploid_N * 4
     def func(x):
         T, Ne = x
         V = U*sh - sh/T
@@ -64,7 +71,18 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
         Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
         return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
                  np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
-    out = fsolve(func, [start_T, N], full_output=True)
+    try:
+        out = fsolve(func, [start_T, N], full_output=True)
+    except FloatingPointError:
+        # return the strong BGS theory case
+        V = U*sh
+        VmV = Vm/V
+        Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
+        Ne = np.exp(-V * Q2)
+        T, Ne, Q2, V, Vm, U = np.Inf, Ne, Q2, V, Vm, U
+        if return_both:
+            return float(T), float(Ne), float(Q2), float(V), float(Vm), float(U)
+        return float(Ne)
     Ne = out[0][1]
     T =  out[0][0]
     V = U*sh - sh/T
@@ -81,13 +99,20 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
     return float(Ne)
 
 
-def bgs_segment_sc16_manual_vec(mu, sh, L, rbp, haploid_N):
+def bgs_segment_sc16_manual_vec(L_rbp, mu, sh, haploid_N):
     """
+    This mimics np.vectorize() but the vectorization is done manually.
+    This is because np.vectorize() creates a closure that cannot be
+    pickled for multiprocessing work, meaning the np.vectorize()
+    version is not parallelizable.
     """
-    assert isinstance(L, float)
+    L, rbp = L_rbp
+    assert isinstance(L, (int, float))
     assert isinstance(rbp, float)
+    assert isinstance(mu, np.ndarray)
+    assert isinstance(sh, np.ndarray)
     mug, shg = np.meshgrid(mu, sh)
-    Ts, Nes, Q2s, Vs, Vms, Us = []
+    Ts, Nes, Q2s, Vs, Vms, Us = [], [], [], [], [], []
     for m, s in zip(mug.flat, shg.flat):
         res = bgs_segment_sc16(m, s, L, rbp, haploid_N, return_both=True)
         T, Ne, Q2, V, Vm, U = res
@@ -98,13 +123,13 @@ def bgs_segment_sc16_manual_vec(mu, sh, L, rbp, haploid_N):
         Vms.append(Vm)
         Us.append(U)
 
-    shape = mu.size, sh.size
-    Ts = np.array(Ts).reshape(shape)
-    Nes = np.array(Nes).reshape(shape)
-    Q2s = np.array(Q2s).reshape(shape)
-    Vs = np.array(Vs).reshape(shape)
-    Vms = np.array(Vms).reshape(shape)
-    Us = np.array(Us).reshape(shape)
+    shape = sh.size, mu.size
+    Ts = np.array(Ts).reshape(shape).T
+    Nes = np.array(Nes).reshape(shape).T
+    Q2s = np.array(Q2s).reshape(shape).T
+    Vs = np.array(Vs).reshape(shape).T
+    Vms = np.array(Vms).reshape(shape).T
+    Us = np.array(Us).reshape(shape).T
 
     return Ts, Nes, Q2s, Vs, Vms, Us
 

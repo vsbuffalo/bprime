@@ -17,7 +17,7 @@ def test_combine_features():
                   (2, 4, 'cds'),
                   (5, 8, 'introns'),
                   (8, 9, 'cds')]}
-    assert c['chr1'] == masks_to_ranges(a, priority)['chr1']
+    assert c['chr1'] == masks_to_ranges(a, priority=priority)['chr1']
 
 def test_bin_chrom():
     # 0, 1, 2, 3, |  4, 5, 6, 7, | 8, 9, 10, 11, | 12, 13

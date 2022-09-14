@@ -10,7 +10,7 @@ from tabulate import tabulate
 from bgspy.utils import read_bed3, ranges_to_masks
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
-from bgspy.utils import readfq, pretty_percent, bin_chrom
+from bgspy.utils import readfq, pretty_percent, bin_chrom, mean_ratio
 from bgspy.genome import Genome
 
 # error out on overflows
@@ -192,13 +192,13 @@ class CountsDirectory:
 def filter_sites(counts, chrom, filter_neutral, filter_accessible,
                  neutral_masks=None, accesssible_masks=None):
     ac = counts[chrom]
-    if filter_neutral and neutral_masks is not None:
+    if filter_neutral or neutral_masks is not None:
         msg = "GenomeData.neutral_masks not set!"
         assert neutral_masks is not None, msg
         #print("using neutral masks...")
         ac = ac * neutral_masks[chrom][:, None]
 
-    if filter_accessible and accesssible_masks is not None:
+    if filter_accessible or accesssible_masks is not None:
         msg = "GenomeData.accesssible_masks not set!"
         assert accesssible_masks is not None, msg
         # print("using accessibility masks...")
@@ -586,7 +586,7 @@ class GenomicBinnedData(GenomicBins):
             out[chrom] = dat
         return out
 
-    def pi_pairs(self, chrom, filter_masked=True):
+    def pi_pairs(self, chrom, ratio=False, filter_masked=True):
         """
         Return pair of midpoints, π for the specified chromosome.
         Assumed self.data[chrom] is a Y matrix.
@@ -600,6 +600,8 @@ class GenomicBinnedData(GenomicBins):
         if filter_masked:
             pi[~self.masks_[chrom]] = np.nan
         mp = self.midpoints(filter_masked=False)[chrom]
+        if ratio:
+            pi = mean_ratio(pi)
         return mp, pi
 
     def mask_outliers(self, alpha):
@@ -646,4 +648,23 @@ class GenomicBinnedData(GenomicBins):
         if not filter_masked:
             return b
         return b[self.mask_array, ...]
+
+    def merge_filtered_data(self, data):
+        """
+        If we have data that's been mask-filtered, merge it back into an array
+        with NaNs for masked sites.
+        """
+        mask_array = self.mask_array
+        n = mask_array.size
+        nkeep = mask_array.sum()
+        nrows = data.shape[0]
+        assert nkeep == nrows, "data is not the size of masked filtered elements"
+        X = np.full((n, *data.shape[1:]), np.nan)
+        j = 0
+        for i in range(n):
+            if mask_array[i]:
+                X[i, ...] = data[j, ...]
+                j += 1
+        return X
+
 
