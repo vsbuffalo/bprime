@@ -1,3 +1,7 @@
+import numpy as np
+from bgspy.utils import read_cadd, write_bed
+from bgspy.utils import quantize_track, masks_to_ranges
+from bgspy.genome import Genome
 # WARNING: bedtools complement returns all the chromosomes!
 
 AUTOS = list(range(1, 23))
@@ -37,7 +41,9 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
-         "cadd_whole_genome_SNVs.tsv.gz"
+         "cadd_whole_genome_SNVs.tsv.gz",
+         "cadd_whole_genome_SNVs.npz",
+         "cadd_whole_genome_SNVs_binned.bed.gz"
          ]
 
 rule centro:
@@ -52,7 +58,7 @@ rule centro_slop:
   input: centro="hg38_centro.bed", seqlens="hg38_seqlens.tsv"
   shell:
     """
-    bedtools slop -g {input.seqlens} -b 1000000 -i {input.centro} | sort --version-sort -k1,1 -k2,2n > {output}
+    bedtools slop -g {input.seqlens} -b 5000000 -i {input.centro} | sort --version-sort -k1,1 -k2,2n > {output}
     """
 
 rule cadd:
@@ -61,6 +67,25 @@ rule cadd:
     """
     wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
     """
+
+rule cadd_npz:
+  input: cadd="cadd_whole_genome_SNVs.tsv.gz", seqlens="hg38_seqlens.tsv"
+  output: "cadd_whole_genome_SNVs.npz"
+  run:
+    g = Genome('hg38', seqlens_file=input.seqlens)
+    d = read_cadd(input.cadd, g.seqlens)
+    np.savez(output[0], **d)
+
+rule cadd_cov:
+  input: "cadd_whole_genome_SNVs.npz", seqlens="hg38_seqlens.tsv"
+  output: "cadd_whole_genome_SNVs_binned.bed.gz"
+  run:
+    print(output[0])
+    d = np.load(input[0])
+    g = Genome('hg38', seqlens_file=input.seqlens)
+    alphas = [0, 0.02, 0.06, 0.1, 0.2, 0.5, 1]
+    x = quantize_track(d, alphas)
+    write_bed(masks_to_ranges(x, return_val=True), output[0])
 
 rule phastcons:
   output: "phastConsElements100way.txt.gz"

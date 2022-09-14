@@ -15,3 +15,5 @@ def test_segment():
     lazy_B = np.exp(mu*a/(b*rf**2 + c*rf + d))
     seg_B = bgs_segment(mu, s, L, rbp, rf)
     np.testing.assert_allclose(lazy_B, seg_B)
+
+

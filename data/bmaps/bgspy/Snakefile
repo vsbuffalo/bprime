@@ -44,6 +44,24 @@ rule bmap_chr10:
       --step {wildcards.step}
     """
 
+rule bmap_chr10_dense:
+  input: annot=join("../../annotation/",  cons_track),
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/HapMapII_GRCh38/genetic_map_Hg38_chr10.txt"
+  output: pkl_b_file="bmap_hg38_sims_{grid_str}grid_{step}step_chr10.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot {input.annot} \
+      --seqlens {input.seqlens_file} \
+      --g '{wildcards.grid_str}' \
+      --output {output} --popsize {params.popsize} --chrom chr10 \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step}
+    """
+
+
 # ===== For Empirical Work =====
 
 rule bmap_hg38:

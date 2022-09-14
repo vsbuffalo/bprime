@@ -534,8 +534,9 @@ class BGSLikelihood:
     def diagnostic_plots(self):
         return model_diagnostic_plots(self)
 
-    def predict_plot(self, chrom, label='prediction', figax=None):
-        return predict_chrom_plot(self, chrom, label=label, figax=figax)
+    def predict_plot(self, chrom, ratio=True, label='prediction', figax=None):
+        return predict_chrom_plot(self, chrom, ratio=ratio,
+                                  label=label, figax=figax)
 
     @property
     def mle_pi0(self):

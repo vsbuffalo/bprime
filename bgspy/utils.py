@@ -6,6 +6,7 @@ import warnings
 import gzip
 import os
 import tqdm
+import pyBigWig
 from collections import namedtuple, defaultdict, deque, Counter
 from functools import partial
 import math
@@ -395,9 +396,69 @@ def aggregate_site_array(x, bins, func, **kwargs):
         # the data in between i-1 and i does into i, but
         # the results length is len(bins)-1
         vals[i-1, ...] = func(data_in_bin, **kwargs)
-        assert not np.any(np.isnan(data_in_bin)) # otherwise this changes n
+        #assert not np.any(np.isnan(data_in_bin)) # otherwise this changes n
         n[i-1] = np.sum(np.sum(data_in_bin, axis=1) > 0)
     return BinnedStat(vals, bins, n)
+
+def read_phastcons(filename, seqlens, dtype='float32'):
+    """
+    Read a UCSC PhastCons formatted TSV.
+
+    Score is scaled to range from 0-1000; we rescale it to 0-1 here.
+    """
+    phastcons = {c: np.full(seqlens[c], np.nan, dtype=dtype) for c in seqlens}
+    with readfile(filename) as f:
+        for line in f:
+            chrom, start, end, lod, score = line.strip().split('\t')
+            start, end = int(start), int(end)
+            if chrom not in seqlens:
+                continue
+            phastcons[chrom][start:end] = float(score)/1000
+    return phastcons
+
+
+def read_cadd(filename, seqlens, append_chr=True,
+              use_raw=False,
+              progress=True, dtype='float32'):
+    """
+    Parse a CADD file, a large per-basepair file of conservation scores.
+    Columns are: Chrom  Pos     Ref     Alt     RawScore        Phred
+
+    Phred-scaled are usually what we want -- these have been normalized to
+    *all* SNVs in the genome, and are good for comparison to other annotation
+    tracks, etc. However, due to scaling issues and floating cutoffs,
+    these scaling makes comparing CADD scores across various SNVs less
+    precise (see p. 889 of Rentzsch et al 2019 for more discussion).
+    """
+    cadd = {c: np.full(seqlens[c], np.nan, dtype=dtype) for c in seqlens}
+    last_chrom = None
+    with readfile(filename) as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+            chrom, pos, ref, alt, score, phred = line.strip().split('\t')
+            if chrom != last_chrom:
+                print(f"reading chromosome {chrom}...")
+                last_chrom = chrom
+            if append_chr:
+                chrom = 'chr' + chrom
+            if chrom not in seqlens:
+                break
+            val = float(score) if use_raw else float(phred)
+            cadd[chrom][int(pos)] = val
+    return cadd
+
+
+def read_bigwig(filename, seqlens, dtype='float32'):
+    """
+    Load a bigwig into numpy arrays.
+    """
+    bw = pyBigWig.open(filename)
+    bigwig = dict()
+    for chrom in seqlens:
+        bigwig[chrom] = np.array(bw.values(chrom, 0, seqlens[chrom]),
+                                 dtype=dtype)
+    return bigwig
 
 
 def bin_aggregate(pos, values, func, bins, right=False, **kwargs):
@@ -738,7 +799,7 @@ def rle(inarray):
             p = np.cumsum(np.append(0, z))[:-1] # positions
             return(z, p, ia[i])
 
-def masks_to_ranges(mask_dict, priority=None):
+def masks_to_ranges(mask_dict, return_val=False, priority=None):
     """
     Given the masks from combine_features(), turn these into a chromosome
     range dictionary.
@@ -753,10 +814,36 @@ def masks_to_ranges(mask_dict, priority=None):
                 continue
             if priority is not None:
                 x = (s, s + rl, priority[val-1])
+            elif return_val:
+                x = (s, s + rl, val)
             else:
                 x = (s, s + rl)
             ranges[chrom].append(x)
     return ranges
+
+def quantize_track(chromdict, alphas):
+    """
+    Take a conservation track, e.g. CADD, and bin it into quantiles,
+    and output to BEd.
+    """
+    assert alphas[0] == 0, "alphas must start with 0"
+    assert alphas[-1] == 1, "alphas must end with 1"
+    cuts = np.nanquantile(list(itertools.chain(*chromdict.values())), alphas)
+
+    bins = dict()
+    for chrom in chromdict.keys():
+        bins[chrom] = np.digitize(chromdict[chrom], cuts)
+    return bins
+
+def write_bed(chromdict, filename, compress=True):
+    if compress:
+        openfile = gzip.open(filename, 'wt')
+    else:
+        openfile = open(filename, 'wt')
+    with openfile as f:
+        for chrom, ranges in chromdict.items():
+            for vals in ranges:
+                f.write("\t".join(map(str, [chrom, *vals])) + "\n")
 
 def load_bed_annotation(file, chroms=None):
     """

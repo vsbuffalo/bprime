@@ -1,4 +1,7 @@
 ## classic.py -- funcs for calculating B using McVicker approach and parallelizing stuff
+# NOTE: this module was named with this project was using ML for B;
+# this didn't work out so this, at some point, should be merged in with
+# theory.py
 """
 Testing for einsum:
 
@@ -23,7 +26,8 @@ import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
 from bgspy.utils import haldanes_mapfun
 from bgspy.parallel import BChunkIterator, MapPosChunkIterator
-from bgspy.theory import bgs_segment_sc16, bgs_rec
+from bgspy.theory import bgs_segment_sc16, bgs_segment_sc16_manual_vec
+from bgspy.theory import bgs_rec
 
 # pre-computed optimal einsum_path
 BCALC_EINSUM_PATH = ['einsum_path', (0, 2), (0, 1)]
@@ -46,18 +50,34 @@ def BSC16_segment_lazy(mu, sh, segments, N):
     Compute the fixation time, Ne, etc for each segment, using the
     equation that integrates over the entire segment.
 
+    This is a convenience wrapper around _BSC16_segment_lazy(), which
+    takes L, rbp arguments in place of segments.
+
     Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
     the factor of two.
     """
     L = segments.lengths
     rbp = segments.rates
+    return _BSC16_segment_lazy(mu, sh, segements, N)
+
+def _BSC16_segment_lazy(mu, sh, L, rbp, N):
+    """
+    Compute the fixation time, Ne, etc for each segment, using the
+    equation that integrates over the entire segment.
+
+    Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
+    the factor of two.
+    """
     # this sets up the input ararys such that np.vectorize
     # will handle the broadcasting so the results are μ x sh x segements
     mu = mu.squeeze()[:, None, None]
     sh = sh.squeeze()[None, :, None]
     rbp = rbp.squeeze()[None, None, :]
     L = L.squeeze()[None, None, :]
-    T, Ne, Q2, V, Vm, U = bgs_segment_sc16(mu, sh, L, rbp, 2*N, return_both=True)
+    # we vectorize here so that bgs_segment_sc16() can be called in
+    # multiprocessing safely without pickling errors
+    bgs_segment_sc16_vec = np.vectorize(bgs_segment_sc16)
+    T, Ne, Q2, V, Vm, U = bgs_segment_sc16_vec(mu, sh, L, rbp, 2*N, return_both=True)
     return T, Ne, Q2, V, Vm, U
 
 
@@ -82,13 +102,16 @@ def BSC16_segment_lazy_parallel(mu, sh, segments, N, ncores):
     L = L.squeeze().tolist()
 
     # iterate over the segments, but each segments gets the full μ x sh.
-    func = functools.partial(bgs_segment_sc16_manual_vec, mu=mu, sh=sh,
-                             haploid_N=2*N, return_both=True)
+    func = functools.partial(bgs_segment_sc16_manual_vec,
+                             mu=mu, sh=sh, haploid_N=2*N)
 
-    with multiprocessing.Pool(ncores) as p:
-        res = list(tqdm.tqdm(p.imap(func, zip(L, rbp)), total=len(L)))
+    if ncores is None or ncores == 1:
+        res = list(tqdm.tqdm(map(func, zip(L, rbp)), total=len(L)))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(func, zip(L, rbp)), total=len(L)))
 
-    T, Ne, Q2, V, Vm, U = res
+    T, Ne, Q2, V, Vm, U = zip(*res)
     return T, Ne, Q2, V, Vm, U
 
 def bgs_segment_from_parts_sc16(parts, rf, log=True):
@@ -110,6 +133,7 @@ def bgs_segment_from_parts_sc16(parts, rf, log=True):
 
 def calc_B(genome, mut_grid, step):
     """
+    DEPRECATED --
     A Non-parallel version of calc_B_chunk_worker. For the most part,
     this is for debugging.
 
