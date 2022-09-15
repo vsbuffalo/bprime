@@ -1,6 +1,6 @@
 import numpy as np
-from bgspy.utils import read_cadd, write_bed
-from bgspy.utils import quantize_track, masks_to_ranges
+from bgspy.utils import read_cadd
+from bgspy.utils import quantize_track, genome_wide_quantiles
 from bgspy.genome import Genome
 # WARNING: bedtools complement returns all the chromosomes!
 
@@ -68,6 +68,21 @@ rule cadd:
     wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
     """
 
+rule phylop:
+  output: "hg38.phyloP30way.bw"
+  shell:
+    """
+    wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP30way/hg38.phyloP30way.bw
+    """
+
+rule phylop_npz:
+  input: 'hg38.phyloP30way.bw', seqlens="hg38_seqlens.tsv"
+  output: 'hg38.phyloP30way.npz'
+  run:
+    g = Genome('hg38', seqlens_file=input.seqlens)
+    d = read_bigwig(input.phylop, g.seqlens)
+    np.savez(output[0], **d)
+
 rule cadd_npz:
   input: cadd="cadd_whole_genome_SNVs.tsv.gz", seqlens="hg38_seqlens.tsv"
   output: "cadd_whole_genome_SNVs.npz"
@@ -78,14 +93,15 @@ rule cadd_npz:
 
 rule cadd_cov:
   input: "cadd_whole_genome_SNVs.npz", seqlens="hg38_seqlens.tsv"
-  output: "cadd_whole_genome_SNVs_binned.bed.gz"
+  output: "cadd_whole_genome_SNVs_binned.bed.gz", "cadd_binning_info.txt"
   run:
-    print(output[0])
     d = np.load(input[0])
     g = Genome('hg38', seqlens_file=input.seqlens)
-    alphas = [0, 0.02, 0.06, 0.1, 0.2, 0.5, 1]
-    x = quantize_track(d, alphas)
-    write_bed(masks_to_ranges(x, return_val=True), output[0])
+    alphas = np.array([0., 0.8, 0.9, 0.94, 0.98, 1.])
+    cuts = genome_wide_quantiles(d, alphas, subsample_chrom = 0.001)
+    label = [f"{np.round(a * 100, 1)}%" for a in alphas.flat]
+    quantize_track(d, cuts, labels=label, bed_file=output[0])
+    np.savetxt(output[1], np.stack((alphas, cuts)).T)
 
 rule phastcons:
   output: "phastConsElements100way.txt.gz"
@@ -101,15 +117,6 @@ rule phastcons_bed:
   shell:
     """
      zcat {input} | bioawk -t '{{ print $1,$2,$3 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
-    """
-
-rule phastcons_bed_filtered:
-  output: "phastConsElements100way_thresh{thresh}.bed.gz"
-  input: "phastConsElements100way.txt.gz"
-  shell:
-    """
-     # Remove alt chroms and filter the phastcons by a score constant
-     zcat {input} | bioawk -t ' $5 > {wildcards.thresh} {{ print $1,$2,$3 }}' | sort --version-sort -k1,1 -k2,2n |  gzip > {output}
     """
 
 rule ensembl_gff:
@@ -242,18 +249,15 @@ rule download_hapmap:
     """
 
 ## === Conservation Tracks
-cons = [ # phastcons at different filtering thresholds:
-        "conserved_phastcons_thresh471.bed.gz", 
-        "conserved_phastcons_thresh527.bed.gz",
-        "conserved_phastcons_thresh0.bed.gz",
+cons = ["conserved_phastcons.bed.gz",
 
         # feature tracks with genomic elements only
         "conserved_cds_utrs_phastcons.bed.gz",
         "conserved_cds_utrs.bed.gz",
-        #    with introns
+
+        # with introns
         "conserved_cds_utrs_introns_phastcons.bed.gz",
         "conserved_cds_utrs_introns.bed.gz",
- 
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
@@ -262,8 +266,8 @@ cons = [ # phastcons at different filtering thresholds:
 
 # this is used for sims with combined conserved regions (phastcons)
 rule conserved_track:
-  input: phastcons="phastConsElements100way_thresh{thresh}.bed.gz"
-  output: "conserved_phastcons_thresh{thresh,[0-9]+}.bed.gz"
+  input: phastcons="phastConsElements100way.bed.gz"
+  output: "conserved_phastcons.bed.gz"
   shell: 
       """
       # combine the files, sort and merge overlapping tracks
@@ -275,7 +279,7 @@ rule conserved_track:
       """
 
 rule conserved_cds_utrs_phastcons:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_utrs_phastcons.bed.gz"
   shell:
     """
@@ -305,7 +309,7 @@ rule conserved_cds_utrs_introns:
     """
 
 rule conserved_cds_utrs_introns_phastcons:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_utrs_introns_phastcons.bed.gz"
   shell:
     """
@@ -316,7 +320,7 @@ rule conserved_cds_utrs_introns_phastcons:
     """
 
 rule conserved_cds_utrs_phastcons_merged:
-  input: utrs="hg38.ensembl_utrs.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons_thresh0.bed.gz", seqlens="hg38_seqlens.tsv"
+  input: utrs="hg38.ensembl_utrs.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_utrs_phastcons_merged.bed.gz"
   shell:
     """
@@ -329,15 +333,15 @@ rule conserved_cds_utrs_phastcons_merged:
 
 ## === Simplified Annotation Tracks for Sims
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
-sim_cons = ["conserved_phastcons_thresh0_chr10.bed",  # this is currently the primary conserved track for simulations
+sim_cons = ["conserved_phastcons_chr10.bed",  # this is currently the primary conserved track for simulations
             "conserved_cds_utrs_phastcons_merged_chr10.bed",
             ]
-sim_neut = ["neutral_phastcons_thresh0_chr10.bed.gz"]
+sim_neut = ["neutral_phastcons_chr10.bed.gz"]
 
 # sepearate out conserved tracks into separate chromosome files
 rule split_phastcons:
-  input: "conserved_phastcons_thresh{thresh}.bed.gz"
-  output: "conserved_phastcons_thresh{thresh}_chr10.bed"
+  input: "conserved_phastcons.bed.gz"
+  output: "conserved_phastcons_chr10.bed"
   shell:
       """
       zgrep "chr10" {input} > {output}
@@ -353,8 +357,8 @@ rule split_merged:
 
 rule sim_neutral:
    # for the only phastcons-only sims
-   input: conserved="conserved_phastcons_thresh{thresh}_chr10.bed", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_thresh{thresh}_chr10.bed.gz"
+   input: conserved="conserved_phastcons_chr10.bed", seqlens="hg38_seqlens.tsv"
+   output: "neutral_phastcons_chr10.bed.gz"
    shell:
       """
        cut -f1-3 {input.conserved} | \
@@ -366,7 +370,7 @@ rule sim_neutral:
       """
 
 ## === Calcbkgd files
-calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons_thresh0/chr10.bed"]
+calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons/chr10.bed"]
 # only chr10
 rule seqlens_chr10:
   input: "hg38_seqlens.tsv"
@@ -377,12 +381,12 @@ rule seqlens_chr10:
     """
 
 rule chr10_conserved:
-  input: "conserved_phastcons_thresh0_chr10.bed"
-  output: "conserved_phastcons_thresh0/chr10.bed"
+  input: "conserved_phastcons_chr10.bed"
+  output: "conserved_phastcons/chr10.bed"
   shell:
     """
-    mkdir -p conserved_phastcons_thresh0
-    cp {input} conserved_phastcons_thresh0/chr10.bed
+    mkdir -p conserved_phastcons
+    cp {input} conserved_phastcons/chr10.bed
     """
 
 

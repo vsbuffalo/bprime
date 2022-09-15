@@ -12,6 +12,7 @@ from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
 from bgspy.utils import readfq, pretty_percent, bin_chrom, mean_ratio
 from bgspy.genome import Genome
+from bgspy.bootstrap import resample_blocks
 
 # error out on overflows
 np.seterr(all='raise')
@@ -456,6 +457,7 @@ class GenomicBins:
         # to indicate bins to drop
         self.dtype = dtype
         self.seqlens = seqlens
+        self.masks_ = None
         self._bin_chroms(seqlens, width, dtype)
 
     def __repr__(self):
@@ -585,6 +587,13 @@ class GenomicBinnedData(GenomicBins):
                 dat = dat[mask, ...]
             out[chrom] = dat
         return out
+
+    def resample_blocks(self, blocksize, nsamples=None, filter_masked=True):
+        """
+        Generate resampling indices of blocksize consecutive bins.
+        """
+        bins = self.bins(filter_masked=filter_masked)
+        return resample_blocks(bins, blocksize, nsamples)
 
     def pi_pairs(self, chrom, ratio=False, filter_masked=True):
         """

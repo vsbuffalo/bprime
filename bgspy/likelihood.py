@@ -27,6 +27,7 @@ from bgspy.utils import signif
 from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
+from bgspy.bootstrap import process_bootstraps
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -481,6 +482,18 @@ class BGSLikelihood:
         self.theta_ = optim_res.theta
         self.nll_ = optim_res.nll
 
+    def bootstrap(self, nboot, blocksize):
+        """
+        Resample bin indices and fit each time.
+        """
+        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
+        for b in tqdm.trange(nboot, position=0):
+            idx = self.bins.resample_blocks(blocksize=blocksize,
+                                            filter_masked=True)
+            self.fit(**kwargs, _indices=idx)
+
+
+
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
         np.savez(filename, starts=self.starts_, nlls=self.nlls_,
@@ -731,13 +744,15 @@ class SimplexModel(BGSLikelihood):
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds, paired=False)
 
-    def fit(self, starts=1, ncores=None, algo='ISRES'):
+    def fit(self, starts=1, ncores=None, algo='ISRES', _indices=None):
         """
         Fit likelihood models with mumeric optimization (using nlopt).
 
         starts: either an integer number of random starts or a list of starts.
         ncores: number of cores to use for multiprocessing.
         algo: the optimization algorithm to use.
+        _indices: indices to include in fit; this is primarily internal, for
+                  bootstrapping
         """
         algo = algo.upper()
         algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
@@ -749,12 +764,24 @@ class SimplexModel(BGSLikelihood):
         # don't request more cores than we need
         ncores = min(len(starts), ncores)
 
-        nll = partial(negll_simplex_full, Y=self.Y,
-                      B=self.logB, w=self.w)
+        Y = self.Y
+        logB = self.logB
+        bootstrap = _indices is not None
+        if bootstrap:
+            Y = Y[_indices, ...]
+            logB = logB[_indices, ...]
+
+        nll = partial(negll_simplex_full, Y=Y,
+                      B=logB, w=self.w)
         worker = partial(nlopt_simplex_worker,
                          func=nll, nt=self.nt, nf=self.nf,
                          bounds=self.bounds(), algo=algo)
-        res = run_optims(worker, starts, ncores=ncores)
+        tqdm_pos = None if not bootstrap else 1
+        res = run_optims(worker, starts, ncores=ncores, tqdm_position=tqdm_pos)
+
+        if not bootstrap:
+            # we don't clobber the existing results since this ins't a fit.
+            return process_bootstraps(res)
         self._load_optim(res)
 
     @property

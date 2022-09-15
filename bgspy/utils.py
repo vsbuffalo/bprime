@@ -418,11 +418,14 @@ def read_phastcons(filename, seqlens, dtype='float32'):
 
 
 def read_cadd(filename, seqlens, append_chr=True,
-              use_raw=False,
+              use_raw=False, mode='max',
               progress=True, dtype='float32'):
     """
     Parse a CADD file, a large per-basepair file of conservation scores.
     Columns are: Chrom  Pos     Ref     Alt     RawScore        Phred
+
+    CADD files have scores for multiple variants -- these are averaged across
+    variants for mode = 'average' or the max is taken for mode = 'max'
 
     Phred-scaled are usually what we want -- these have been normalized to
     *all* SNVs in the genome, and are good for comparison to other annotation
@@ -433,10 +436,14 @@ def read_cadd(filename, seqlens, append_chr=True,
     cadd = {c: np.full(seqlens[c], np.nan, dtype=dtype) for c in seqlens}
     last_chrom = None
     with readfile(filename) as f:
+        last_pos, scores, n = None, 0, 0
         for line in f:
             if line.startswith('#'):
                 continue
             chrom, pos, ref, alt, score, phred = line.strip().split('\t')
+            pos = int(pos)
+            # the score to track
+            score = float(score) if use_raw else float(phred)
             if chrom != last_chrom:
                 print(f"reading chromosome {chrom}...")
                 last_chrom = chrom
@@ -444,8 +451,30 @@ def read_cadd(filename, seqlens, append_chr=True,
                 chrom = 'chr' + chrom
             if chrom not in seqlens:
                 break
-            val = float(score) if use_raw else float(phred)
-            cadd[chrom][int(pos)] = val
+            if last_pos == pos or last_pos is None:
+                # we collect the scores across all possible variants
+                if mode == 'average':
+                    scores += score
+                elif mode == 'max':
+                    scores = np.nanmax([score, scores])
+                else:
+                    assert False
+                n += 1
+                last_pos = pos # this just changes in last_pos = None
+            else:
+                # we have a new site, we need to average the scores over variants
+                # that were collected and save it
+                if mode == 'average':
+                    val = scores / n
+                elif mode == 'max':
+                    val = scores
+                else:
+                    assert False
+                cadd[chrom][int(last_pos)] = val
+                last_pos = pos
+                scores, phreds, n = np.nan, np.nan, 0
+            if chrom != 'chr1':
+                __import__('pdb').set_trace()
     return cadd
 
 
@@ -799,12 +828,13 @@ def rle(inarray):
             p = np.cumsum(np.append(0, z))[:-1] # positions
             return(z, p, ia[i])
 
-def masks_to_ranges(mask_dict, return_val=False, priority=None):
+def masks_to_ranges(mask_dict, return_val=False, labels=None):
     """
     Given the masks from combine_features(), turn these into a chromosome
     range dictionary.
 
-    If priority is not None, a value is set.
+    If label is not None, the value is treated as an digitized index
+    (the labels are bins) and the label labels[i-1] are added to the ranges.
     """
     ranges = defaultdict(list)
     for chrom in mask_dict:
@@ -812,8 +842,8 @@ def masks_to_ranges(mask_dict, return_val=False, priority=None):
         for rl, s, val in zip(rls, starts, vals):
             if val == 0:
                 continue
-            if priority is not None:
-                x = (s, s + rl, priority[val-1])
+            if labels is not None:
+                x = (s, s + rl, labels[val-1])
             elif return_val:
                 x = (s, s + rl, val)
             else:
@@ -821,25 +851,55 @@ def masks_to_ranges(mask_dict, return_val=False, priority=None):
             ranges[chrom].append(x)
     return ranges
 
-def quantize_track(chromdict, alphas):
+
+def genome_wide_quantiles(chromdict, alphas, subsample_chrom=None,
+                          return_samples=False):
+    """
+    Take a chromdict of values and find the genome-wide quantiles.
+
+    If subsample_chrom is not None, a fraction of each chromosome are sampled.
+    """
+    if not subsample_chrom:
+        cuts = np.nanquantile(list(itertools.chain(*chromdict.values())), alphas)
+    else:
+        samples = []
+        for chrom, values in chromdict.items():
+            val = values[~np.isnan(values)]
+            seqlen = val.size
+            n = int(subsample_chrom * seqlen)
+            samples.extend(np.random.choice(val[~np.isnan(val)], n, replace=False))
+        cuts = np.nanquantile(samples, alphas)
+    if return_samples:
+        return cuts, samples
+    return cuts
+
+def quantize_track(chromdict, cuts, labels=None, bed_file=None, progress=True):
     """
     Take a conservation track, e.g. CADD, and bin it into quantiles,
     and output to BEd.
     """
-    assert alphas[0] == 0, "alphas must start with 0"
-    assert alphas[-1] == 1, "alphas must end with 1"
-    cuts = np.nanquantile(list(itertools.chain(*chromdict.values())), alphas)
-
     bins = dict()
-    for chrom in chromdict.keys():
-        bins[chrom] = np.digitize(chromdict[chrom], cuts)
-    return bins
+    chroms = list(chromdict.keys())
+    if progress:
+        chroms = tqdm.tqdm(chroms)
+    for chrom in chroms:
+        digitized = np.digitize(chromdict[chrom], cuts)
+        if bed_file is None:
+            bins[chrom] = digitized
+        else:
+            ranges = masks_to_ranges({chrom: digitized}, labels=labels)
+            write_bed(ranges, bed_file, append=True)
+    if bed_file is None:
+        return bins
 
-def write_bed(chromdict, filename, compress=True):
+def write_bed(chromdict, filename, compress=True, append=False):
+    mode = 'wt'
+    if append:
+        mode = 'at'
     if compress:
-        openfile = gzip.open(filename, 'wt')
+        openfile = gzip.open(filename, mode)
     else:
-        openfile = open(filename, 'wt')
+        openfile = open(filename, mode)
     with openfile as f:
         for chrom, ranges in chromdict.items():
             for vals in ranges:

@@ -47,6 +47,13 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
     for pre-calculating these for segments. full_output is for debugging the
     solver.
 
+    Note: there is a degenerate case here, the strong BGS case when R = 0, T =
+    ∞, and there's a numeric over- or underflow. For numeric over- or under-
+    flow we fill in the case where the -sh/T term is 0. I *do not* use the
+    classic/strong BGS theory functions here though, since this provides an
+    indepedent check in the cases where N|s| > 1 but overflow does not happen,
+    e.g. that we scale things correctly here.
+
     WARNING: to minimize errors, these equations are taken directly from
     S&C '16, which is a *haploid* model. Hence, the population size
     argument is called haploid_N -- to modify this for diploids, haploid_N = 2N.
