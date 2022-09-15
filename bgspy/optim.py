@@ -3,7 +3,7 @@ from collections import Counter
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import tqdm
+import tqdm.notebook as tqdm
 from tabulate import tabulate
 import nlopt
 from scipy.optimize import minimize
@@ -28,18 +28,25 @@ def extract_opt_info(x):
 def array_all(x):
     return tuple([np.array(a) for a in x])
 
-def run_optims(workerfunc, starts, tqdm_position=None, ncores=50):
+def run_optims(workerfunc, starts, progress=True, ncores=50):
     """
     """
-    pos = tqdm_position
     nstarts = len(starts)
     ncores = ncores if ncores is not None else 1
     ncores = min(nstarts, ncores)
     if ncores > 1:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(workerfunc, starts), position=pos, total=nstarts))
+            if progress:
+                res = list(tqdm.tqdm(p.imap(workerfunc, starts), total=nstarts))
+            else:
+                res = list(p.imap(workerfunc, starts))
     else:
-        res = list(tqdm.tqdm(map(workerfunc, starts), position=pos, total=nstarts))
+        # should be refactored TODO
+        if progress:
+            res = list(tqdm.tqdm(map(workerfunc, starts), total=nstarts))
+        else:
+            res = list(map(workerfunc, starts))
+
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
     return OptimResult(nlls, thetas, success, np.array(starts))
 

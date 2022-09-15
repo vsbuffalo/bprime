@@ -4,7 +4,7 @@ from collections import defaultdict
 import itertools
 import gzip
 import numpy as np
-from tqdm import tqdm
+import tqdm.notebook as tqdm
 import tskit
 from tabulate import tabulate
 from bgspy.utils import read_bed3, ranges_to_masks
@@ -371,7 +371,7 @@ class GenomeData:
         bins = GenomicBinnedData(self.genome.seqlens, width)
 
         chroms = self.chroms
-        chroms = chroms if not progress else tqdm(chroms)
+        chroms = chroms if not progress else tqdm.tqdm(chroms)
         for chrom in chroms:
             site_ac = filter_sites(self.counts, chrom, filter_neutral,
                                    filter_accessible,

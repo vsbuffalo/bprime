@@ -447,6 +447,7 @@ def read_cadd(filename, seqlens, append_chr=True,
             if chrom != last_chrom:
                 print(f"reading chromosome {chrom}...")
                 last_chrom = chrom
+                last_pos = 0
             if append_chr:
                 chrom = 'chr' + chrom
             if chrom not in seqlens:

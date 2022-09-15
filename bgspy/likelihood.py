@@ -3,7 +3,8 @@ import os
 import warnings
 import json
 import multiprocessing
-import tqdm
+#import tqdm.autonotebook as tqdm
+import tqdm.notebook as tqdm
 from tabulate import tabulate
 from functools import partial
 from collections import Counter, defaultdict
@@ -427,7 +428,9 @@ class BGSLikelihood:
         self.w = w
         self.t = t
         if bins is not None:
-            assert isinstance(bins, GenomicBinnedData)
+            # TODO: this is disabled for now because it throws an error with
+            # notebooks that's uncessary (even when bins really is GenomicBinnedData)
+            #assert isinstance(bins, GenomicBinnedData)
             assert bins.nbins() == Y.shape[0]
         self.bins = bins
         self.log10_pi0_bounds = log10_pi0_bounds
@@ -482,17 +485,20 @@ class BGSLikelihood:
         self.theta_ = optim_res.theta
         self.nll_ = optim_res.nll
 
-    def bootstrap(self, nboot, blocksize):
+    def bootstrap(self, nboot, blocksize, **kwargs):
         """
         Resample bin indices and fit each time.
         """
         assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
-        for b in tqdm.trange(nboot, position=0):
+        res = []
+        for b in tqdm.trange(nboot):
             idx = self.bins.resample_blocks(blocksize=blocksize,
                                             filter_masked=True)
-            self.fit(**kwargs, _indices=idx)
-
-
+            res.append(self.fit(**kwargs, _indices=idx))
+        nlls, thetas = process_bootstraps(res)
+        self.boot_nlls_ = nlls
+        self.boot_thetas_ = thetas
+        return nlls, thetas
 
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
@@ -646,7 +652,7 @@ class FreeMutationModel(BGSLikelihood):
                                self.log10_pi0_bounds,
                                self.log10_mu_bounds, paired=paired)
 
-    def fit(self, starts=1, ncores=None, algo='ISRES'):
+    def fit(self, starts=1, ncores=None, algo='ISRES', _indices=None):
         """
         Fit likelihood models with mumeric optimization (either scipy or nlopt).
 
@@ -664,20 +670,35 @@ class FreeMutationModel(BGSLikelihood):
             starts = [self.random_start() for _ in range(starts)]
         ncores = min(len(starts), ncores) # don't request more cores than we need
 
+        Y = self.Y
+        logB = self.logB
+        bootstrap = _indices is not None
+        if bootstrap:
+            Y = Y[_indices, ...]
+            logB = logB[_indices, ...]
+
+
         if engine == 'scipy':
-            nll = partial(negll_freemut_full, grad=None, Y=self.Y,
-                          B=self.logB, w=self.w)
+            nll = partial(negll_freemut_full, grad=None, Y=Y,
+                          B=logB, w=self.w)
             worker = partial(minimize, nll, bounds=self.bounds(paired=True),
                              method=algo, options={'eps':1e-9})
         elif engine == 'nlopt':
-            nll = partial(negll_freemut_full, Y=self.Y,
-                          B=self.logB, w=self.w)
+            nll = partial(negll_freemut_full, Y=Y,
+                          B=logB, w=self.w)
             worker = partial(nlopt_mutation_worker,
                              func=nll, nt=self.nt, nf=self.nf,
                              bounds=self.bounds(), algo=algo)
         else:
             raise ValueError("engine must be 'scipy' or 'nlopt'")
-        res = run_optims(worker, starts, ncores=ncores)
+
+        # run the optimization routine on muliple starts
+        res = run_optims(worker, starts, ncores=ncores,
+                        progress=not bootstrap)
+
+        if bootstrap:
+            # we don't clobber the existing results since this ins't a fit.
+            return res
         self._load_optim(res)
 
     @property
@@ -776,12 +797,13 @@ class SimplexModel(BGSLikelihood):
         worker = partial(nlopt_simplex_worker,
                          func=nll, nt=self.nt, nf=self.nf,
                          bounds=self.bounds(), algo=algo)
-        tqdm_pos = None if not bootstrap else 1
-        res = run_optims(worker, starts, ncores=ncores, tqdm_position=tqdm_pos)
 
-        if not bootstrap:
+        # run the optimization routine on muliple starts
+        res = run_optims(worker, starts, ncores=ncores, progress=not bootstrap)
+
+        if bootstrap:
             # we don't clobber the existing results since this ins't a fit.
-            return process_bootstraps(res)
+            return res
         self._load_optim(res)
 
     @property
