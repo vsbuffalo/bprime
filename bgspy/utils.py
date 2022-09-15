@@ -417,15 +417,11 @@ def read_phastcons(filename, seqlens, dtype='float32'):
     return phastcons
 
 
-def read_cadd(filename, seqlens, append_chr=True,
-              use_raw=False, mode='max',
-              progress=True, dtype='float32'):
+def load_bed_scores(filename, seqlens, progress=True, dtype='float32'):
     """
-    Parse a CADD file, a large per-basepair file of conservation scores.
-    Columns are: Chrom  Pos     Ref     Alt     RawScore        Phred
+    Load BED scores (e.g. for CADD) into numpy arays.
 
-    CADD files have scores for multiple variants -- these are averaged across
-    variants for mode = 'average' or the max is taken for mode = 'max'
+    Since this is mostly for CADD, some notes:
 
     Phred-scaled are usually what we want -- these have been normalized to
     *all* SNVs in the genome, and are good for comparison to other annotation
@@ -436,46 +432,19 @@ def read_cadd(filename, seqlens, append_chr=True,
     cadd = {c: np.full(seqlens[c], np.nan, dtype=dtype) for c in seqlens}
     last_chrom = None
     with readfile(filename) as f:
-        last_pos, scores, n = None, 0, 0
         for line in f:
             if line.startswith('#'):
                 continue
-            chrom, pos, ref, alt, score, phred = line.strip().split('\t')
-            pos = int(pos)
-            # the score to track
-            score = float(score) if use_raw else float(phred)
+            chrom, pos, alt, phred = line.strip().split('\t')
             if chrom != last_chrom:
                 print(f"reading chromosome {chrom}...")
                 last_chrom = chrom
-                last_pos = 0
             if append_chr:
                 chrom = 'chr' + chrom
             if chrom not in seqlens:
                 break
-            if last_pos == pos or last_pos is None:
-                # we collect the scores across all possible variants
-                if mode == 'average':
-                    scores += score
-                elif mode == 'max':
-                    scores = np.nanmax([score, scores])
-                else:
-                    assert False
-                n += 1
-                last_pos = pos # this just changes in last_pos = None
-            else:
-                # we have a new site, we need to average the scores over variants
-                # that were collected and save it
-                if mode == 'average':
-                    val = scores / n
-                elif mode == 'max':
-                    val = scores
-                else:
-                    assert False
-                cadd[chrom][int(last_pos)] = val
-                last_pos = pos
-                scores, phreds, n = np.nan, np.nan, 0
-            if chrom != 'chr1':
-                __import__('pdb').set_trace()
+            val = float(score) if use_raw else float(phred)
+            cadd[chrom][int(pos)] = val
     return cadd
 
 

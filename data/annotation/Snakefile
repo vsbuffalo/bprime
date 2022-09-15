@@ -1,5 +1,5 @@
 import numpy as np
-from bgspy.utils import read_cadd
+from bgspy.utils import load_bed_scores
 from bgspy.utils import quantize_track, genome_wide_quantiles
 from bgspy.genome import Genome
 # WARNING: bedtools complement returns all the chromosomes!
@@ -42,8 +42,9 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
          "cadd_whole_genome_SNVs.tsv.gz",
-         "cadd_whole_genome_SNVs.npz",
-         "cadd_whole_genome_SNVs_binned.bed.gz"
+         "cadd_whole_genome_SNVs.bed.gz",
+         #"cadd_whole_genome_SNVs.npz",
+         #"cadd_whole_genome_SNVs_binned.bed.gz"
          ]
 
 rule centro:
@@ -60,14 +61,7 @@ rule centro_slop:
     """
     bedtools slop -g {input.seqlens} -b 5000000 -i {input.centro} | sort --version-sort -k1,1 -k2,2n > {output}
     """
-
-rule cadd:
-  output: "cadd_whole_genome_SNVs.tsv.gz"
-  shell:
-    """
-    wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
-    """
-
+ 
 rule phylop:
   output: "hg38.phyloP30way.bw"
   shell:
@@ -83,25 +77,41 @@ rule phylop_npz:
     d = read_bigwig(input.phylop, g.seqlens)
     np.savez(output[0], **d)
 
-rule cadd_npz:
-  input: cadd="cadd_whole_genome_SNVs.tsv.gz", seqlens="hg38_seqlens.tsv"
-  output: "cadd_whole_genome_SNVs.npz"
-  run:
-    g = Genome('hg38', seqlens_file=input.seqlens)
-    d = read_cadd(input.cadd, g.seqlens)
-    np.savez(output[0], **d)
+rule cadd:
+  output: "cadd_whole_genome_SNVs.tsv.gz"
+  shell:
+    """
+    wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
+    """
 
-rule cadd_cov:
-  input: "cadd_whole_genome_SNVs.npz", seqlens="hg38_seqlens.tsv"
-  output: "cadd_whole_genome_SNVs_binned.bed.gz", "cadd_binning_info.txt"
-  run:
-    d = np.load(input[0])
-    g = Genome('hg38', seqlens_file=input.seqlens)
-    alphas = np.array([0., 0.8, 0.9, 0.94, 0.98, 1.])
-    cuts = genome_wide_quantiles(d, alphas, subsample_chrom = 0.001)
-    label = [f"{np.round(a * 100, 1)}%" for a in alphas.flat]
-    quantize_track(d, cuts, labels=label, bed_file=output[0])
-    np.savetxt(output[1], np.stack((alphas, cuts)).T)
+rule cadd_bed:
+  input: "cadd_whole_genome_SNVs.tsv.gz"
+  output: "cadd_whole_genome_SNVs.bed.gz"
+  shell:
+    """
+     zcat {input[0]} | bioawk -t '{{print $1,$2,$2,$4,$6}}' | grep -v '^#' | \
+       sed 's/^/chr/' | bedtools merge -i - -c 5 -o mean,max | gzip > {output[0]}
+    """
+
+# rule cadd_npz:
+#   input: cadd="cadd_whole_genome_SNVs.bed.gz", seqlens="hg38_seqlens.tsv"
+#   output: "cadd_whole_genome_SNVs.npz"
+#   run:
+#     g = Genome('hg38', seqlens_file=input.seqlens)
+#     d = read_cadd_bed(input.cadd, g.seqlens)
+#     np.savez(output[0], **d)
+
+# rule cadd_cov:
+#   input: "cadd_whole_genome_SNVs.npz", seqlens="hg38_seqlens.tsv"
+#   output: "cadd_whole_genome_SNVs_binned.bed.gz", "cadd_binning_info.txt"
+#   run:
+#     d = np.load(input[0])
+#     g = Genome('hg38', seqlens_file=input.seqlens)
+#     alphas = np.array([0., 0.8, 0.9, 0.94, 0.98, 1.])
+#     cuts = genome_wide_quantiles(d, alphas, subsample_chrom = 0.001)
+#     label = [f"{np.round(a * 100, 1)}%" for a in alphas.flat]
+#     quantize_track(d, cuts, labels=label, bed_file=output[0])
+#     np.savetxt(output[1], np.stack((alphas, cuts)).T)
 
 rule phastcons:
   output: "phastConsElements100way.txt.gz"
