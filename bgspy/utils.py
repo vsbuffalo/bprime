@@ -417,11 +417,14 @@ def read_phastcons(filename, seqlens, dtype='float32'):
     return phastcons
 
 
-def load_bed_scores(filename, seqlens, progress=True, dtype='float32'):
+def load_cadd_bed_scores(filename, seqlens, progress=True, mode='max',
+                         dtype='float32'):
     """
-    Load BED scores (e.g. for CADD) into numpy arays.
+    Load a CADD BED file (see Snakefile, this is usually formed by
+    running bedtools merge to combine the scores across variants).
+    cols: chrom, start, end, mean, max
 
-    Since this is mostly for CADD, some notes:
+    Note on CADD scores/phred:
 
     Phred-scaled are usually what we want -- these have been normalized to
     *all* SNVs in the genome, and are good for comparison to other annotation
@@ -431,20 +434,20 @@ def load_bed_scores(filename, seqlens, progress=True, dtype='float32'):
     """
     cadd = {c: np.full(seqlens[c], np.nan, dtype=dtype) for c in seqlens}
     last_chrom = None
+    assert mode == 'max' or mode =='mean', "mode must be 'mean' or 'max'"
     with readfile(filename) as f:
         for line in f:
             if line.startswith('#'):
                 continue
-            chrom, pos, alt, phred = line.strip().split('\t')
+            chrom, pos, _, mean, max = line.strip().split('\t')
+            mean, max = float(mean), float(max)
             if chrom != last_chrom:
                 print(f"reading chromosome {chrom}...")
                 last_chrom = chrom
-            if append_chr:
-                chrom = 'chr' + chrom
             if chrom not in seqlens:
                 break
-            val = float(score) if use_raw else float(phred)
-            cadd[chrom][int(pos)] = val
+            score = max if mode == 'max' else mean
+            cadd[chrom][int(pos)] = score
     return cadd
 
 

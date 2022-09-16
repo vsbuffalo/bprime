@@ -28,13 +28,83 @@ from bgspy.utils import signif
 from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
-from bgspy.bootstrap import process_bootstraps
+from bgspy.bootstrap import process_bootstraps, pivot_ci
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
 likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
+AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
+
+def fit_likelihood(seqlens_file, recmap_file, counts_dir,
+                   neut_file, access_file, genome_file,
+                   bp_file, b_file, outfile,
+                   ncores=70,
+                   nstarts=200, recycle_mle=False,
+                   B=None, blocksize=20, name=None,
+                   fit_file=None,
+                   window=1_000_000, outliers=(0.0, 0.995),
+                   thresh_cM=0.3):
+    """
+    Wrapper function for a standard BGS analysis. This also allow for one to
+    take a fit object, and use it for bootstrapping across a cluster.
+
+    Many of the defaults are tailored for my human genetics data (sorry, use
+    at your own caution for other organisms).
+
+    name: if None, inferred from seqlens file, e.g. '<name>_seqlens.tsv'
+    """
+    already_fit = fit_file is not None
+    if not already_fit:
+        # infer the genome name if not supplies
+        name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
+        seqlens = load_seqlens(seqlens)
+        if only_autos:
+            seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
+        g = Genome(name, seqlens=seqlens)
+        g.load_recmap(recmap_file)
+        gd = GenomeData(g)
+        gd.load_counts_dir(counts_dir)
+        gd.load_neutral_masks(neut_file)
+        gd.load_accessibile_masks(access_file)
+        gd.load_fasta(genome_file)
+        gd.trim_ends(thresh_cM=thresh_cM)
+
+        # bin the diversity data
+        bgs_bins = gd.bin_pairwise_summaries(window,
+                                            filter_accessible=True,
+                                            filter_neutral=True)
+        # mask bins that are outliers
+        bgs_bins.mask_outliers(outliers)
+
+        # genome models
+        gm_b = BGSModel.load(b_file)
+        gm_bp = BGSModel.load(bp_file)
+
+        # bin Bs
+        b = bgs_bins.bin_Bs(gm_b.BScores)
+        bp = bgs_bins.bin_Bs(bm_bp.BpScores)
+
+        # fit the simplex model
+        sm = SimplexModel(w=gm_b.w, t=gm_b.t, logB=, Y=Y, bins=bgs_bins)
+        sm.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+    else:
+        sm = BGSLikelihood.load(fit_file)
+
+    # bootstrap if needed
+    bootstrap = B is not None
+    if bootstrap:
+        starts = nstarts if not recycle_mle else [sm.theta_] * nstarts
+        nlls, thetas = fmb.bootstrap(nboot=B, blocksize=blocksize,
+                                     starts=starts, ncores=ncores, algo='ISRES')
+        if boots_outfile is not None:
+            np.savez(bootstrap, nlls=nlls, thetas=thetas)
+            return
+
+    smubp.save(outfile)
+
+
 
 def access(B, i, l, j, k):
     """
@@ -416,6 +486,13 @@ def predict_freemutation(theta, logB, w):
                 logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
     return pi0*np.exp(logBw)
 
+
+def rescale_freemutation_thetas(thetas):
+    """
+
+    """
+    pass
+
 class BGSLikelihood:
     """
     Y ~ π0 B(w)
@@ -499,6 +576,24 @@ class BGSLikelihood:
         self.boot_nlls_ = nlls
         self.boot_thetas_ = thetas
         return nlls, thetas
+
+    def ci(self):
+        assert self.boot_thetas_ is not None, "bootstrap() has not been run"
+        lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
+        return np.stack((lower, self.theta_, upper)).T
+
+    def save(self, filename):
+        """
+        Pickle this object.
+        """
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(self, filename):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+
 
     def save_runs(self, filename):
         success = np.array([x.success for x in self.res_], dtype=bool)
