@@ -248,14 +248,15 @@ def loglik(seqlens, recmap, counts_dir, neutral, access, fasta,
               help='number of consecutive blocks for block bootstrap')
 def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               bs_file, outfile, ncores, nstarts, window, outliers,
-              B, blocksize):
+              b, blocksize):
     outliers = tuple([float(x) for x in outliers.split(',')])
-    fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
+    fit_likelihood(fit_file=fit,
+                   seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file, outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
-                   B=B, blocksize=blocksize)
+                   B=b, blocksize=blocksize)
 
 
 if __name__ == "__main__":

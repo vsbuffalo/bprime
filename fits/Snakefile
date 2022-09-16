@@ -24,7 +24,7 @@ rule merged_fit:
          neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
          bs_file=merged_bs
   output: 'merged/mle_1Mbp.pkl'
-  params: ncores=20, nstarts=200, window=1_000_000
+  params: ncores=70, nstarts=200, window=1_000_000
   shell:
     """
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
@@ -43,11 +43,11 @@ rule merged_boots:
          neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
          bs_file=merged_bs
   output: 'merged/bootstrap_1Mbp_{boot}.pkl'
-  params: ncores=20, nstarts=200, window=1_000_000, blocksize=20
+  params: ncores=20, nstarts=10, window=1_000_000, blocksize=20
   shell:
     """
     bgspy bootstrap --fit {input.fit} \
-      --B 10 --blocksize {params.blocksize} \
+      --B 1 --blocksize {params.blocksize} \
       --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \

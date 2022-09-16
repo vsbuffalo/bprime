@@ -1,5 +1,6 @@
 ## likelihood.py -- functions for likelihood stuff
 import os
+import pickle
 import warnings
 import json
 import multiprocessing
@@ -104,7 +105,7 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
 
         # fit the simplex model
         vprint("-- fitting B simplex model --")
-        sm_b = SimplexModel(w=gm, t=gm.t, logB=b, Y=Y, bins=bgs_bins)
+        sm_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y, bins=bgs_bins)
         sm_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
         # now to the B'
@@ -112,9 +113,8 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         sm_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y, bins=bgs_bins)
         sm_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
-        with open(fit_file, 'wb') as f:
-            pickle.dump(sm_b, sm_bp, f)
-
+        with open(outfile, 'wb') as f:
+            pickle.dump((sm_b, sm_bp), f)
         vprint("-- model saved --")
 
     else:
@@ -138,8 +138,6 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
                                 nlls_bp=nlls_bp, thetas_bp=thetas_bp)
             print("-- bootstrapping results saved --")
             return
-
-    smubp.save(outfile)
 
 
 

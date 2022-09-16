@@ -439,7 +439,7 @@ def load_cadd_bed_scores(filename, seqlens, progress=True, mode='max',
         for line in f:
             if line.startswith('#'):
                 continue
-            chrom, pos, _, mean, max = line.strip().split('\t')
+            chrom, pos, _, count, mean, max = line.strip().split('\t')
             mean, max = float(mean), float(max)
             if chrom != last_chrom:
                 print(f"reading chromosome {chrom}...")
