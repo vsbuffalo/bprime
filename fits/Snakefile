@@ -1,0 +1,64 @@
+
+
+## Human Fits
+
+# main annotation files
+hg38_seqlens_file = "../data/annotation/hg38_seqlens.tsv"
+hg38_recmap_file = "../data/annotation/hapmap_genetic_map.txt"
+hg38_access_file = '../data/annotation/no_centro.bed'
+hg38_fasta_file = '../data/annotation/hg38.fa.gz'
+
+# neutral file
+hg38_neut_file = '../data/annotation/neutral_phastcons_genes_with_introns.bed.gz'
+
+# main data directory
+hg38_counts_dir = '../data/h1kg/hg1k_counts/'
+
+# genome models / B maps
+merged_bs = '../data/bmaps/bgspy/bmap_hg38_6x5grid_10000step_10000N_cds_utrs_phastcons_merged.pkl'
+
+
+rule merged_fit:
+  input: seqlens=hg38_seqlens_file, recmap_file=hg38_recmap_file,
+         access_file=hg38_access_file, fasta_file=hg38_fasta_file,
+         neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
+         bs_file=merged_bs
+  output: 'merged/mle_1Mbp.pkl'
+  params: ncores=20, nstarts=200, window=1_000_000
+  shell:
+    """
+    bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
+      --access {input.access_file} --bs-file {input.bs_file} \
+      --fasta {input.fasta_file} \
+      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --window {params.window} \
+      --outfile {output[0]}
+    """
+
+rule merged_boots:
+  input: fit='merged/mle_1Mbp.pkl', 
+         seqlens=hg38_seqlens_file, recmap_file=hg38_recmap_file,
+         access_file=hg38_access_file, fasta_file=hg38_fasta_file,
+         neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
+         bs_file=merged_bs
+  output: 'merged/bootstrap_1Mbp_{boot}.pkl'
+  params: ncores=20, nstarts=200, window=1_000_000, blocksize=20
+  shell:
+    """
+    bgspy bootstrap --fit {input.fit} \
+      --B 10 --blocksize {params.blocksize} \
+      --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
+      --access {input.access_file} --bs-file {input.bs_file} \
+      --fasta {input.fasta_file} \
+      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --window {params.window} \
+      --outfile {output[0]}
+    """
+
+merged_boots = [f"merged/bootstrap_1Mbp_{b}.pkl" for b in range(100)]
+merged_results = ['merged/mle_1Mbp.pkl'] + merged_boots
+
+rule all:
+  input: merged_results

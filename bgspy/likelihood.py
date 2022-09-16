@@ -3,8 +3,8 @@ import os
 import warnings
 import json
 import multiprocessing
-#import tqdm.autonotebook as tqdm
-import tqdm.notebook as tqdm
+import tqdm.autonotebook as tqdm
+#import tqdm.notebook as tqdm
 from tabulate import tabulate
 from functools import partial
 from collections import Counter, defaultdict
@@ -24,11 +24,14 @@ from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize
 from numba import jit
-from bgspy.utils import signif
+from bgspy.genome import Genome
+from bgspy.data import GenomeData
+from bgspy.utils import signif, load_seqlens
 from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
 from bgspy.bootstrap import process_bootstraps, pivot_ci
+from bgspy.models import BGSModel
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -38,14 +41,18 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 def fit_likelihood(seqlens_file, recmap_file, counts_dir,
-                   neut_file, access_file, genome_file,
-                   bp_file, b_file, outfile,
+                   neut_file, access_file, fasta_file,
+                   bs_file, outfile,
                    ncores=70,
-                   nstarts=200, recycle_mle=False,
-                   B=None, blocksize=20, name=None,
-                   fit_file=None,
+                   nstarts=200,
                    window=1_000_000, outliers=(0.0, 0.995),
-                   thresh_cM=0.3):
+                   recycle_mle=False,
+                   only_autos=True,
+                   B=None, blocksize=20,
+                   boots_outfile=None,
+                   name=None,
+                   fit_file=None,
+                   thresh_cM=0.3, verbose=True):
     """
     Wrapper function for a standard BGS analysis. This also allow for one to
     take a fit object, and use it for bootstrapping across a cluster.
@@ -55,23 +62,28 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
 
     name: if None, inferred from seqlens file, e.g. '<name>_seqlens.tsv'
     """
+    def vprint(*args, **kwargs):
+        if verbose:
+            print(*args, **kwargs)
     already_fit = fit_file is not None
     if not already_fit:
         # infer the genome name if not supplies
         name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
-        seqlens = load_seqlens(seqlens)
+        seqlens = load_seqlens(seqlens_file)
         if only_autos:
             seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
+        vprint("-- loading genome --")
         g = Genome(name, seqlens=seqlens)
         g.load_recmap(recmap_file)
         gd = GenomeData(g)
         gd.load_counts_dir(counts_dir)
         gd.load_neutral_masks(neut_file)
         gd.load_accessibile_masks(access_file)
-        gd.load_fasta(genome_file)
+        gd.load_fasta(fasta_file)
         gd.trim_ends(thresh_cM=thresh_cM)
 
         # bin the diversity data
+        vprint("-- binning pairwise diversity --")
         bgs_bins = gd.bin_pairwise_summaries(window,
                                             filter_accessible=True,
                                             filter_neutral=True)
@@ -79,27 +91,52 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         bgs_bins.mask_outliers(outliers)
 
         # genome models
-        gm_b = BGSModel.load(b_file)
-        gm_bp = BGSModel.load(bp_file)
+        vprint("-- loading Bs --")
+        gm = BGSModel.load(bs_file)
 
         # bin Bs
-        b = bgs_bins.bin_Bs(gm_b.BScores)
-        bp = bgs_bins.bin_Bs(bm_bp.BpScores)
+        vprint("-- binning Bs --")
+        b = bgs_bins.bin_Bs(gm.BScores)
+        bp = bgs_bins.bin_Bs(gm.BpScores)
+
+        # get the diversity data
+        Y = bgs_bins.Y()
 
         # fit the simplex model
-        sm = SimplexModel(w=gm_b.w, t=gm_b.t, logB=, Y=Y, bins=bgs_bins)
-        sm.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+        vprint("-- fitting B simplex model --")
+        sm_b = SimplexModel(w=gm, t=gm.t, logB=b, Y=Y, bins=bgs_bins)
+        sm_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+
+        # now to the B'
+        vprint("-- fitting B' simplex model --")
+        sm_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y, bins=bgs_bins)
+        sm_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+
+        with open(fit_file, 'wb') as f:
+            pickle.dump(sm_b, sm_bp, f)
+
+        vprint("-- model saved --")
+
     else:
-        sm = BGSLikelihood.load(fit_file)
+        with open(fit_file, 'rb') as f:
+            sm_b, sb_p = pickle.load(f)
 
     # bootstrap if needed
     bootstrap = B is not None
     if bootstrap:
         starts = nstarts if not recycle_mle else [sm.theta_] * nstarts
-        nlls, thetas = fmb.bootstrap(nboot=B, blocksize=blocksize,
-                                     starts=starts, ncores=ncores, algo='ISRES')
+        print("-- bootstrapping B --")
+        nlls_b, thetas_b = sm_b.bootstrap(nboot=B, blocksize=blocksize,
+                                          starts=starts, ncores=ncores,
+                                          algo='ISRES')
+        print("-- bootstrapping B' --")
+        nlls_bp, thetas_bp = sm_bp.bootstrap(nboot=B, blocksize=blocksize,
+                                             starts=starts, ncores=ncores,
+                                             algo='ISRES')
         if boots_outfile is not None:
-            np.savez(bootstrap, nlls=nlls, thetas=thetas)
+            np.savez(boots_outfile, nlls_b=nlls_b, thetas_b=thetas_b,
+                                nlls_bp=nlls_bp, thetas_bp=thetas_bp)
+            print("-- bootstrapping results saved --")
             return
 
     smubp.save(outfile)

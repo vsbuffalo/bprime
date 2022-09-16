@@ -230,8 +230,11 @@ class Genome(object):
         msg = "set seqlens_file or seqlens, not both!"
         if seqlens is not None:
             assert seqlens_file is None, msg
-            chroms = [] if chroms is None else chroms
-            self.seqlens = {c: s for c, s in seqlens.items() if c in chroms}
+            if chroms is not None:
+                sl = {c: s for c, s in seqlens.items() if c in chroms}
+            else:
+                sl = {c: s for c, s in seqlens.items()}
+            self.seqlens = sl
         if seqlens_file is not None:
             assert seqlens is None, msg
             self.load_seqlens(seqlens_file, chroms)

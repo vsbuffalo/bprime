@@ -4,7 +4,8 @@ from collections import defaultdict
 import itertools
 import gzip
 import numpy as np
-import tqdm.notebook as tqdm
+#mport tqdm.notebook as tqdm
+import tqdm.autonotebook as tqdm
 import tskit
 from tabulate import tabulate
 from bgspy.utils import read_bed3, ranges_to_masks

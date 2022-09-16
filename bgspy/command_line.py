@@ -11,6 +11,7 @@ from bgspy.utils import sum_logliks_over_chroms
 from bgspy.plots import chrom_plot, ll_grid
 from bgspy.genome import Genome
 from bgspy.utils import Grid
+from bgspy.likelihood import fit_likelihood
 
 SPLIT_LENGTH_DEFAULT = 10_000
 STEP_DEFAULT = 10_000
@@ -170,102 +171,92 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
     print(f"rec stats: {rec_stats}")
 
 @cli.command()
-@click.option('--b', required=True, type=click.Path(exists=True),
-              help='B file from calcb')
-@click.option('--dac', required=True, type=click.Path(exists=True),
-              help='three column TSV of chrom, pos, nchroms, derived allele counts')
-@click.option('--regions', required=True, type=click.Path(exists=True),
-              help='BED file of neutral regions')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
-@click.option('--pi0', help='manual π0', default=None, required=False, type=float)
-#@click.option('--pi0-lower', default=0, required=False, type=float)
-#@click.option('--pi0-upper', default=0.01, required=False, type=float)
-@click.option('--rmin', default=0.1, required=False, type=float)
-@click.option('--pi0-ngrid', default=30, required=False, type=int)
-@click.option('--width', default=1_000_000, required=False, type=int,
-              help='width for π and B')
-@click.option('--output', required=True,
-              type=click.Path(exists=False, writable=True))
-@click.option('-progress/--no-progress', default=True, help="display the progress bar")
-def loglik(b, dac, regions, seqlens, pi0, rmin, pi0_ngrid,
-           width, output, progress):
-    assert False, "all out of date -- eg DAC file"
-    sl = load_seqlens(seqlens)
-    nr = read_bed(regions)
-    m = BGSModel(seqlens=sl)
-    m.load_B(b)
-    m.load_dacfile(dac, nr)
-    #pi0_bounds = None
-    pi_bar = m.gwpi()
-    pi0_grid = None
-    if pi0 is None:
-        #pi0_bounds = (pi0_lower, pi0_upper)
-        pi0_max = pi_bar/rmin
-        pi0_grid = np.linspace(rmin*pi_bar, pi0_max, pi0_ngrid)
-    if pi0_grid is not None and pi0 is not None:
-        print("warning: both fixed π0 and π0 grid are set; using fixed π0!")
-        pi0_grid = None
-    ll, pi0 = m.loglikelihood(pi0=pi0, pi0_grid=pi0_grid)
-    lls = ll.sum(axis=0) # sum over sites
-    binned_B = m.bin_B(width)
-    binned_pi = m.pi(width)
-    wi_mle, ti_mle = np.where(lls == np.nanmax(lls))
-    if m.pi0i_mle is not None:
-        pi0_mle = pi0_grid[m.pi0i_mle]
-    else:
-        pi0_mle = None
-    w_mle, t_mle = m.w[wi_mle], m.t[ti_mle]
-    llo = (lls, pi0, m.pi0_ll, pi0_grid, m.w, m.t, binned_B, binned_pi,
-           pi_bar, pi0_mle, w_mle, t_mle, wi_mle, ti_mle, m.metadata)
-    with open(output, 'wb') as f:
-        pickle.dump(llo, f)
-
+@click.option('--recmap', required=True, type=click.Path(exists=True),
+              help='HapMap formatted recombination map')
+@click.option('--counts-dir', required=True, type=click.Path(exists=True),
+              help='directory to Numpy .npy per-basepair counts')
+@click.option('--neutral', required=True, type=click.Path(exists=True),
+              help='neutral region BED file')
+@click.option('--access', required=True, type=click.Path(exists=True),
+              help='accessible regions BED file (e.g. no centromeres)')
+@click.option('--fasta', required=True, type=click.Path(exists=True),
+              help='FASTA reference file (e.g. to mask Ns and lowercase'+
+                   '/soft-masked bases')
+@click.option('--bs-file', required=True, type=click.Path(exists=True),
+              help="BGSModel genome model pickle file (contains B' and B)")
+@click.option('--outfile', required=True,
+              type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for results")
+@click.option('--ncores',
+              help='number of cores to use for multi-start optimization',
+              type=int, default=None)
+@click.option('--nstarts',
+              help='number of starts for multi-start optimization',
+              type=int, default=None)
+@click.option('--window',
+              help='size (in basepairs) of the window',
+              type=int, default=1_000_000)
+@click.option('--outliers',
+              help='quantiles for trimming bin π',
+              type=str, default='0.0,0.995')
+def loglik(seqlens, recmap, counts_dir, neutral, access, fasta,
+           bs_file, outfile, ncores, nstarts, window, outliers):
+    outliers = tuple([float(x) for x in outliers.split(',')])
+    fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
+                   counts_dir=counts_dir, neut_file=neutral,
+                   access_file=access, fasta_file=fasta,
+                   bs_file=bs_file, outfile=outfile, ncores=ncores,
+                   nstarts=nstarts, window=window, outliers=outliers)
 
 @cli.command()
-@click.option('--lik', required=True, type=click.Path(exists=True),
-              help='likelihood results in tuple')
-@click.option('--width', required=False, type=float, default='10')
-@click.option('--height', required=False, type=float, default='7.5')
-@click.option('--output', required=True,
-              type=click.Path(exists=False, writable=True))
-def llfig(lik, width, height, output):
-    with open(lik, 'rb') as f:
-        ll_tuple = pickle.load(f)
-        ll, pi0, pi0_ll, pi0_grid, ws, ts, binned_B, binned_pi, gwpi, pi0_mle, w_mle, t_mle, wi_mle, ti_mle, md = ll_tuple
-        pi0_neut  = 4 * 2.5e-7*1000
-        w_sim, t_sim = float(md['mu']), -float(md['s'])*float(md['h'])
-        ti_true = np.argmin(np.abs(ts-t_sim))
-        wi_true = np.argmin(np.abs(ws-w_sim))
-        chroms = list(ll_tuple[6].keys())
-        with PdfPages(output) as pdf:
-            fig, ax = ll_grid(ll, ws, ts,
-                              xlabel='$t$', ylabel='$\mu$',
-                              true=(t_sim, w_sim),
-                              mle=(t_mle, w_mle),
-                              ncontour=10,
-                              mid_quant=0.50)
-            pdf.savefig(fig)
-            if ll_tuple[2] is not None:
-                # pi0 grid MLE is set
-                if pi0_mle is None:
-                    pi0_mle = pi0_neut
-                fig, ax = ll_grid(pi0_ll[:, :, ti_true], pi0_grid, ws,
-                                  xlabel='$\mu$', ylabel='$\pi_0$',
-                                  true=(w_sim, pi0_neut),
-                                  mle=(w_mle, pi0_mle),
-                                  mid_quant=0.50)
-                pdf.savefig(fig)
-                fig, ax = ll_grid(pi0_ll[:, wi_true, :], pi0_grid, ts,
-                                  xlabel='$t$', ylabel='$\pi_0$',
-                                  true=(t_sim, pi0_neut),
-                                  mle=(t_mle, pi0_mle),
-                                  mid_quant=0.50)
-                pdf.savefig(fig)
-            for chrom in chroms:
-                fig, ax = chrom_plot(ll_tuple, chrom, figsize=(width, height))
-                pdf.savefig(fig)
-    return ll_tuple
+@click.option('--fit', required=True, type=click.Path(exists=True),
+              help='pickle file of fitted results')
+@click.option('--seqlens', required=True, type=click.Path(exists=True),
+              help='tab-delimited file of chromosome names and their length')
+@click.option('--recmap', required=True, type=click.Path(exists=True),
+              help='HapMap formatted recombination map')
+@click.option('--counts-dir', required=True, type=click.Path(exists=True),
+              help='directory to Numpy .npy per-basepair counts')
+@click.option('--neutral', required=True, type=click.Path(exists=True),
+              help='neutral region BED file')
+@click.option('--access', required=True, type=click.Path(exists=True),
+              help='accessible regions BED file (e.g. no centromeres)')
+@click.option('--fasta', required=True, type=click.Path(exists=True),
+              help='FASTA reference file (e.g. to mask Ns and lowercase'+
+                   '/soft-masked bases')
+@click.option('--bs-file', required=True, type=click.Path(exists=True),
+              help="BGSModel genome model pickle file (contains B' and B)")
+@click.option('--outfile', required=True,
+              type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for results")
+@click.option('--ncores',
+              help='number of cores to use for multi-start optimization',
+              type=int, default=None)
+@click.option('--nstarts',
+              help='number of starts for multi-start optimization',
+              type=int, default=None)
+@click.option('--window',
+              help='size (in basepairs) of the window',
+              type=int, default=1_000_000)
+@click.option('--outliers',
+              help='quantiles for trimming bin π',
+              type=str, default='0.0,0.995')
+@click.option('--B', type=int, help='number of bootstrap replicates')
+@click.option('--blocksize', type=int,
+              help='number of consecutive blocks for block bootstrap')
+def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
+              bs_file, outfile, ncores, nstarts, window, outliers,
+              B, blocksize):
+    outliers = tuple([float(x) for x in outliers.split(',')])
+    fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
+                   counts_dir=counts_dir, neut_file=neutral,
+                   access_file=access, fasta_file=fasta,
+                   bs_file=bs_file, outfile=outfile, ncores=ncores,
+                   nstarts=nstarts, window=window, outliers=outliers,
+                   B=B, blocksize=blocksize)
+
 
 if __name__ == "__main__":
     res = cli()

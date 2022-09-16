@@ -17,7 +17,7 @@ setup(
     long_description=open('README.md').read(),
     #scripts=[],
     entry_points = {
-        'console_scripts': ['bgspy=bgspy.command_line:main'],
+        'console_scripts': ['bgspy=bgspy.command_line:cli']
     },
     ext_modules=[likclib_ext],
 )
