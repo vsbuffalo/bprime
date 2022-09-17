@@ -1,0 +1,12 @@
+{
+    "name": "hg38_merged",
+    "windows": [1000000],
+    "blocksize": 10000000,
+    "seqlens_file": "../data/annotation/hg38_seqlens.tsv",
+    "recmap_file": "../data/annotation/hapmap_genetic_map.txt",
+    "access_file": "../data/annotation/no_centro.bed",
+    "fasta_file": "../data/annotation/hg38.fa.gz",
+    "neut_file": "../data/annotation/neutral_phastcons_genes_with_introns.bed.gz",
+    "counts_dir": "../data/h1kg/hg1k_counts/",
+    "Bs_file": "../data/bmaps/bgspy/bmap_hg38_6x5grid_10000step_10000N_cds_utrs_phastcons_merged.pkl"
+}

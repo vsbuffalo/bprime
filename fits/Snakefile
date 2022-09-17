@@ -1,30 +1,31 @@
-
-
-## Human Fits
-
 # main annotation files
-hg38_seqlens_file = "../data/annotation/hg38_seqlens.tsv"
-hg38_recmap_file = "../data/annotation/hapmap_genetic_map.txt"
-hg38_access_file = '../data/annotation/no_centro.bed'
-hg38_fasta_file = '../data/annotation/hg38.fa.gz'
 
-# neutral file
-hg38_neut_file = '../data/annotation/neutral_phastcons_genes_with_introns.bed.gz'
+# other params
+NCORES = 20
+NCORES_BOOT = 20
+NSTARTS = 1000
+NSTARTS_BOOT = 100
 
-# main data directory
-hg38_counts_dir = '../data/h1kg/hg1k_counts/'
+# from config
+name = config["name"]
+seqlens_file = config["seqlens_file"]
+recmap_file = config["recmap_file"]
+access_file = config["access_file"]
+neut_file = config["neut_file"]
+fasta_file = config["fasta_file"]
+counts_dir = config["counts_dir"]
+Bs_file = config["Bs_file"]
+windows = [int(w) for w in config["windows"]]
+blocksize = int(config["blocksize"])
 
-# genome models / B maps
-merged_bs = '../data/bmaps/bgspy/bmap_hg38_6x5grid_10000step_10000N_cds_utrs_phastcons_merged.pkl'
 
-
-rule merged_fit:
-  input: seqlens=hg38_seqlens_file, recmap_file=hg38_recmap_file,
-         access_file=hg38_access_file, fasta_file=hg38_fasta_file,
-         neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
-         bs_file=merged_bs
-  output: 'merged/mle_1Mbp.pkl'
-  params: ncores=70, nstarts=200, window=1_000_000
+rule fit:
+  input: seqlens=seqlens_file, recmap_file=recmap_file,
+         access_file=access_file, fasta_file=fasta_file,
+         neut_file=neut_file, counts_dir=counts_dir,
+         bs_file=Bs_file
+  output: f'{name}/window_{{window}}/mle.pkl'
+  params: ncores=NCORES, nstarts=NSTARTS
   shell:
     """
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
@@ -32,33 +33,36 @@ rule merged_fit:
       --access {input.access_file} --bs-file {input.bs_file} \
       --fasta {input.fasta_file} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
-      --window {params.window} \
+      --window {wildcards.window} \
       --outfile {output[0]}
     """
 
-rule merged_boots:
-  input: fit='merged/mle_1Mbp.pkl', 
-         seqlens=hg38_seqlens_file, recmap_file=hg38_recmap_file,
-         access_file=hg38_access_file, fasta_file=hg38_fasta_file,
-         neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
-         bs_file=merged_bs
-  output: 'merged/bootstrap_1Mbp_{boot}.npz'
-  params: ncores=20, nstarts=10, window=1_000_000, blocksize=20
+rule bootstrap:
+  input: fit=f'{name}/window_{{window}}/mle.pkl', 
+         seqlens=seqlens_file, recmap_file=recmap_file,
+         access_file=access_file, fasta_file=fasta_file,
+         neut_file=neut_file, counts_dir=counts_dir,
+         bs_file=Bs_file
+  output: f'{name}/window_{{window}}/bootstraps/bootstrap_{{boot}}.npz'
+  params: ncores=NCORES_BOOT, nstarts=NSTARTS_BOOT, blocksize=blocksize
   shell:
     """
     bgspy bootstrap --fit {input.fit} \
-      --B 1 --blocksize {params.blocksize} \
+      --B 10 --blocksize {params.blocksize} \
       --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
       --fasta {input.fasta_file} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
-      --window {params.window} \
+      --window {wildcards.window} \
       --outfile {output[0]}
     """
 
-merged_boots = [f"merged/bootstrap_1Mbp_{b}.npz" for b in range(100)]
-merged_results = ['merged/mle_1Mbp.pkl'] + merged_boots
+all_results = []
+for window in windows:
+  all_results.append(f'{name}/window_{window}/mle.pkl')
+  boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for b in range(100)]
+  all_results.extend(boots)
 
 rule all:
-  input: merged_results
+  input: all_results

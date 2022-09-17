@@ -245,11 +245,13 @@ def loglik(seqlens, recmap, counts_dir, neutral, access, fasta,
               type=str, default='0.0,0.995')
 @click.option('--B', type=int, help='number of bootstrap replicates')
 @click.option('--blocksize', type=int,
-              help='number of consecutive blocks for block bootstrap')
+              help='number of basepairs for block size for bootstrap')
 def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               bs_file, outfile, ncores, nstarts, window, outliers,
               b, blocksize):
     outliers = tuple([float(x) for x in outliers.split(',')])
+    # internally we use blocksize to represent the number of adjacent windows
+    blocksize  = int(window / blocksize)
     fit_likelihood(fit_file=fit,
                    seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
