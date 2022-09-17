@@ -42,7 +42,7 @@ rule merged_boots:
          access_file=hg38_access_file, fasta_file=hg38_fasta_file,
          neut_file=hg38_neut_file, counts_dir=hg38_counts_dir,
          bs_file=merged_bs
-  output: 'merged/bootstrap_1Mbp_{boot}.pkl'
+  output: 'merged/bootstrap_1Mbp_{boot}.npz'
   params: ncores=20, nstarts=10, window=1_000_000, blocksize=20
   shell:
     """
@@ -57,7 +57,7 @@ rule merged_boots:
       --outfile {output[0]}
     """
 
-merged_boots = [f"merged/bootstrap_1Mbp_{b}.pkl" for b in range(100)]
+merged_boots = [f"merged/bootstrap_1Mbp_{b}.npz" for b in range(100)]
 merged_results = ['merged/mle_1Mbp.pkl'] + merged_boots
 
 rule all:

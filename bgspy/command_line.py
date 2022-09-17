@@ -254,7 +254,7 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
                    access_file=access, fasta_file=fasta,
-                   bs_file=bs_file, outfile=outfile, ncores=ncores,
+                   bs_file=bs_file, boots_outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
                    B=b, blocksize=blocksize)
 

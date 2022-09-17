@@ -43,7 +43,7 @@ AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 def fit_likelihood(seqlens_file, recmap_file, counts_dir,
                    neut_file, access_file, fasta_file,
-                   bs_file, outfile,
+                   bs_file, outfile=None,
                    ncores=70,
                    nstarts=200,
                    window=1_000_000, outliers=(0.0, 0.995),
@@ -119,7 +119,7 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
 
     else:
         with open(fit_file, 'rb') as f:
-            sm_b, sb_p = pickle.load(f)
+            sm_b, sm_bp = pickle.load(f)
 
     # bootstrap if needed
     bootstrap = B is not None
