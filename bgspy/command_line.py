@@ -251,7 +251,10 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               b, blocksize):
     outliers = tuple([float(x) for x in outliers.split(',')])
     # internally we use blocksize to represent the number of adjacent windows
-    blocksize  = int(window / blocksize)
+    msg = (f"specified blocksize ({blocksize}) creates blocks less "
+            "than the width of one window ({window})")
+    assert int(blocksize / window) > 1, msg
+    blocksize  = int(blocksize / window)
     fit_likelihood(fit_file=fit,
                    seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
@@ -260,6 +263,39 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    nstarts=nstarts, window=window, outliers=outliers,
                    B=b, blocksize=blocksize)
 
+
+@cli.command()
+@click.option('--fit', required=True, type=click.Path(exists=True),
+              help='pickle file of fitted results')
+@click.option('--bootstrap-dir', required=True, type=click.Path(exists=True),
+              help='directory of bootstrap results (e.g. if run with Snakemake) to collect')
+@click.option('--outfile', required=True,
+              type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for new fit object")
+def collect_straps(fit, bootstrap_dir, outfile):
+    """
+    Collection all the bootstrap files (e.g. if run on a cluster with Snakemake).
+    """
+    with open(fit, 'rb') as f:
+        sm_b, sm_bp = pickle.load(f)
+    strap_files = os.listdir(bootstrap_dir)
+    nlls_b, thetas_b = [], []
+    nlls_bp, thetas_bp = [], []
+    for f in strap_files:
+        d = np.load(os.path.join(bootstrap_dir, f))
+        nlls_b.append(d['nlls_b'])
+        nlls_bp.append(d['nlls_bp'])
+        thetas_b.append(d['thetas_b'])
+        thetas_bp.append(d['thetas_bp'])
+
+    sm_b.boot_nlls_ = np.concatenate(nlls_b, axis=0)
+    sm_b.boot_thetas_ = np.concatenate(thetas_b, axis=0)
+    sm_bp.boot_nlls_ = np.concatenate(nlls_bp, axis=0)
+    sm_bp.boot_thetas_ = np.concatenate(thetas_bp, axis=0)
+
+    with open(outfile, 'wb') as f:
+        pickle.dump((sm_b, sm_bp), f)
+ 
 
 if __name__ == "__main__":
     res = cli()
