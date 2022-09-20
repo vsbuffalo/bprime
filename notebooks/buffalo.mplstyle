@@ -3,13 +3,13 @@
 
 ### Boxplots
 boxplot.bootstrap: None
-boxplot.boxprops.color: g
+boxplot.boxprops.color: k
 boxplot.boxprops.linestyle: -
 boxplot.boxprops.linewidth: 1.0
 boxplot.capprops.color: k
 boxplot.capprops.linestyle: -
 boxplot.capprops.linewidth: 1.0
-boxplot.flierprops.color: b
+boxplot.flierprops.color: k
 boxplot.flierprops.linestyle: none
 boxplot.flierprops.linewidth: 1.0
 boxplot.flierprops.marker: +
@@ -17,12 +17,12 @@ boxplot.flierprops.markeredgecolor: k
 boxplot.flierprops.markerfacecolor: auto
 boxplot.flierprops.markersize: 6.0
 boxplot.meanline: False
-boxplot.meanprops.color: r
+boxplot.meanprops.color: k
 boxplot.meanprops.linestyle: -
 boxplot.meanprops.linewidth: 1.0
-boxplot.medianprops.color: r
+boxplot.medianprops.color: k
 boxplot.meanprops.marker: s
-boxplot.meanprops.markerfacecolor: r
+boxplot.meanprops.markerfacecolor: k
 boxplot.meanprops.markeredgecolor: k
 boxplot.meanprops.markersize: 6.0
 boxplot.medianprops.linestyle: -
@@ -34,7 +34,7 @@ boxplot.showcaps: False
 boxplot.showfliers: False
 boxplot.showmeans: False
 boxplot.vertical: True
-boxplot.whiskerprops.color: b
+boxplot.whiskerprops.color: k
 boxplot.whiskerprops.linestyle: --
 boxplot.whiskerprops.linewidth: 1.0
 boxplot.whiskers: 1.5

@@ -452,9 +452,17 @@ rule neutral_chr10:
 
 rec = decode + hapmap 
 
+## === Other Data (e.g. GWAS catalog)
+other = ["gwas_catalog.tsv"]
+rule gwsascat:
+  output: "gwas_catalog.tsv"
+  shell: 
+     """
+     wget -O {output[0]} https://www.ebi.ac.uk/gwas/api/search/downloads/full
+     """
+
 ## === Main target
-print(annot + rec + cons + sim_cons + neutral + accessible + genome)
 rule all:
-  input: annot + rec + cons + sim_cons + neutral + accessible + genome + sim_neut + calc_bkgd
+  input: annot + rec + cons + sim_cons + neutral + accessible + genome + sim_neut + calc_bkgd + other
 
 

@@ -530,6 +530,21 @@ class GenomicBins:
     def keys(self):
         return self.bins_.keys()
 
+    def chroms(self, filter_masked=True):
+        chroms = []
+        for chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for _ in bins:
+                chroms.append(chrom)
+        return np.array(chroms)
+
+    def cumm_midpoints(self, filter_masked=True):
+        mids = []
+        for chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for start, end in bins:
+                offset = mids[-1] if len(mids) else 0
+                mids.append((start+end)/2 + offset)
+        return np.array(mids)
+
     def __getitem__(self, chrom):
         """
         Return the raw bin boundaries for the specified chromosome 'chrom'.
@@ -658,6 +673,17 @@ class GenomicBinnedData(GenomicBins):
         if not filter_masked:
             return b
         return b[self.mask_array, ...]
+
+    def load_rec(self, recmap):
+        flatbins = self.flat_bins()
+        recbins = np.full(len(flatbins), np.nan)
+        i = 0
+        for chrom, start, end in flatbins:
+            r1 = recmap.lookup(chrom, start, cummulative=True)
+            r2 = recmap.lookup(chrom, end, cummulative=True)
+            recbins[i] = (r2-r1) / (end-start)
+            i += 1
+        return recbins
 
     def merge_filtered_data(self, data):
         """

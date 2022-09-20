@@ -288,14 +288,15 @@ def collect_straps(fit, bootstrap_dir, outfile):
         thetas_b.append(d['thetas_b'])
         thetas_bp.append(d['thetas_bp'])
 
+    # join all the strap
     sm_b.boot_nlls_ = np.concatenate(nlls_b, axis=0)
-    sm_b.boot_thetas_ = np.concatenate(thetas_b, axis=0)
+    sm_b.boot_thetas_ = np.concatenate(thetas_b, axis=1).T
     sm_bp.boot_nlls_ = np.concatenate(nlls_bp, axis=0)
-    sm_bp.boot_thetas_ = np.concatenate(thetas_bp, axis=0)
+    sm_bp.boot_thetas_ = np.concatenate(thetas_bp, axis=1).T
 
     with open(outfile, 'wb') as f:
         pickle.dump((sm_b, sm_bp), f)
- 
+
 
 if __name__ == "__main__":
     res = cli()
