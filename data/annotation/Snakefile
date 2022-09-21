@@ -148,7 +148,7 @@ rule ensembl_promoters:
    # based on 2kb left of 5'-UTR.
    shell:
      """
-     bedtools flank -i <(zgrep five_prime_UTR {input.gff}) -g {input.seqlens} -l 5000 -r 0 -s | \
+     bedtools flank -i <(zgrep five_prime_UTR {input.gff}) -g {input.seqlens} -l 2000 -r 0 -s | \
       bedtools sort | bedtools merge | gzip > {output}
      """
 
@@ -275,6 +275,7 @@ rule download_hapmap:
 cons = ["conserved_phastcons.bed.gz",
 
         # feature tracks with genomic elements only
+        "conserved_cds_phastcons.bed.gz",
         "conserved_cds_utrs_phastcons.bed.gz",
         "conserved_cds_utrs.bed.gz",
         "conserved_cds_utrs_promoters2kb.bed.gz",
@@ -282,6 +283,7 @@ cons = ["conserved_phastcons.bed.gz",
         # with introns
         "conserved_cds_utrs_introns_phastcons.bed.gz",
         "conserved_cds_utrs_introns.bed.gz",
+        "conserved_cds_utrs_introns_promoters2kb.bed.gz",
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
@@ -301,6 +303,17 @@ rule conserved_track:
         sort  --version-sort -k 1,1 -k2,2n | \
         bedtools merge | gzip > {output}
       """
+
+rule conserved_cds_phastcons:
+  input: cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_phastcons.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} --bed phastcons {input.phastcons} | \
+      gzip > {output}
+    """
+
 
 rule conserved_cds_utrs_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -342,6 +355,18 @@ rule conserved_cds_utrs_introns:
       --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds}  | \
       gzip > {output}
     """
+
+rule conserved_cds_utrs_introns_promoters2kb:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", promoters="hg38.ensembl_promoters_2kb.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_introns_promoters2kb.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed utr {input.utrs} --bed cds {input.cds} --bed intron {input.introns} \
+      --bed promoter {input.promoters} | \
+      gzip > {output}
+    """
+
 
 rule conserved_cds_utrs_introns_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"

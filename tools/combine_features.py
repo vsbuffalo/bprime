@@ -14,7 +14,7 @@ def main(seqlens, bed):
     assert all([k in PRIORITY for k in bed.keys()]), f"keys must be in {PRIORITY}"
     beds = {c: read_bed3(f) for c, f in bed.items()}
     masks = combine_features(beds, PRIORITY, load_seqlens(seqlens))
-    res = masks_to_ranges(masks, PRIORITY)
+    res = masks_to_ranges(masks, labels=PRIORITY)
     for chrom, ranges in res.items():
         for range in ranges:
             print(f"{chrom}\t{range[0]}\t{range[1]}\t{range[2]}")
