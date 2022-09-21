@@ -1,5 +1,5 @@
 import numpy as np
-from bgspy.utils import load_cadd_bed_scores
+from bgspy.utils import load_cadd_bed_scores, read_bigwig
 from bgspy.utils import quantize_track, genome_wide_quantiles
 from bgspy.genome import Genome
 # WARNING: bedtools complement returns all the chromosomes!
@@ -41,10 +41,12 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
+         "hg38.ensembl_promoters_2kb.bed.gz",
          "cadd_whole_genome_SNVs.tsv.gz",
          "cadd_whole_genome_SNVs.bed.gz",
          "cadd_whole_genome_SNVs.npz",
          #"cadd_whole_genome_SNVs_binned.bed.gz"
+         "hg38.phyloP30way.npz"
          ]
 
 rule centro:
@@ -70,7 +72,7 @@ rule phylop:
     """
 
 rule phylop_npz:
-  input: 'hg38.phyloP30way.bw', seqlens="hg38_seqlens.tsv"
+  input: phylop='hg38.phyloP30way.bw', seqlens="hg38_seqlens.tsv"
   output: 'hg38.phyloP30way.npz'
   run:
     g = Genome('hg38', seqlens_file=input.seqlens)
@@ -101,17 +103,17 @@ rule cadd_npz:
     d = load_cadd_bed_scores(input.cadd, g.seqlens)
     np.savez(output[0], **d)
 
-# rule cadd_cov:
-#   input: "cadd_whole_genome_SNVs.npz", seqlens="hg38_seqlens.tsv"
-#   output: "cadd_whole_genome_SNVs_binned.bed.gz", "cadd_binning_info.txt"
-#   run:
-#     d = np.load(input[0])
-#     g = Genome('hg38', seqlens_file=input.seqlens)
-#     alphas = np.array([0., 0.8, 0.9, 0.94, 0.98, 1.])
-#     cuts = genome_wide_quantiles(d, alphas, subsample_chrom = 0.001)
-#     label = [f"{np.round(a * 100, 1)}%" for a in alphas.flat]
-#     quantize_track(d, cuts, labels=label, bed_file=output[0])
-#     np.savetxt(output[1], np.stack((alphas, cuts)).T)
+rule cadd_cov:
+  input: "cadd_whole_genome_SNVs.npz", seqlens="hg38_seqlens.tsv"
+  output: "cadd_whole_genome_SNVs_binned.bed.gz", "cadd_binning_info.txt"
+  run:
+    d = np.load(input[0])
+    g = Genome('hg38', seqlens_file=input.seqlens)
+    alphas = np.array([0., 0.8, 0.9, 0.94, 0.98, 1.])
+    cuts = genome_wide_quantiles(d, alphas, subsample_chrom = 0.001)
+    label = [f"{np.round(a * 100, 1)}%" for a in alphas.flat]
+    quantize_track(d, cuts, labels=label, bed_file=output[0])
+    np.savetxt(output[1], np.stack((alphas, cuts)).T)
 
 rule phastcons:
   output: "phastConsElements100way.txt.gz"
@@ -139,6 +141,17 @@ rule ensembl_gff:
        grep -v "chrY" | \
        gzip > {output}
      """
+
+rule ensembl_promoters:
+   input: gff="hg38.ensembl.gff3.gz", seqlens="hg38_seqlens.tsv"
+   output: "hg38.ensembl_promoters_2kb.bed.gz"
+   # based on 2kb left of 5'-UTR.
+   shell:
+     """
+     bedtools flank -i <(zgrep five_prime_UTR {input.gff}) -g {input.seqlens} -l 5000 -r 0 -s | \
+      bedtools sort | bedtools merge | gzip > {output}
+     """
+
 
 rule ensembl_pseudogenes:
    input: "hg38.ensembl.gff3.gz"
@@ -264,6 +277,7 @@ cons = ["conserved_phastcons.bed.gz",
         # feature tracks with genomic elements only
         "conserved_cds_utrs_phastcons.bed.gz",
         "conserved_cds_utrs.bed.gz",
+        "conserved_cds_utrs_promoters2kb.bed.gz",
 
         # with introns
         "conserved_cds_utrs_introns_phastcons.bed.gz",
@@ -305,6 +319,17 @@ rule conserved_cds_utrs:
     """
     python ../../tools/combine_features.py --seqlens {input.seqlens} \
       --bed utr {input.utrs} --bed cds {input.cds} | \
+      gzip > {output}
+    """
+
+rule conserved_cds_utrs_promoters2kb:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", promoters="hg38.ensembl_promoters_2kb.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_promoters2kb.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed utr {input.utrs} --bed cds {input.cds} \
+      --bed promoter {input.promoters} | \
       gzip > {output}
     """
 

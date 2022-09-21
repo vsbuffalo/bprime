@@ -30,22 +30,24 @@ def resid_fitted_plot(model, color=True, figax=None):
     fig, ax = get_figax(figax)
     lowess = sm.nonparametric.lowess
     fitted, resid = m.predict(), m.resid()
+    bins = m.bins.flat_bins()
     if color != 'chrom':
-        bins = m.bins.flat_bins()
         if color is True:
             col = np.arange(len(bins))
         else:
             col = 'k'
         ax.scatter(fitted, resid, c=col, linewidth=0, s=4, alpha=1)
     else:
-        chroms = set([c for c, _, _ in m.bins])
+        chroms = set([c for c, _, _ in bins])
         for chrom in chroms:
-            chrom_idx = np.array([i for i, (c, s, e) in enumerate(m.bins) if c == chrom])
+            chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
             ax.scatter(fitted[chrom_idx], resid[chrom_idx], label=chrom, linewidth=0, s=4, alpha=1)
         ax.legend()
     lw = lowess(resid, fitted)
     ax.plot(*lw.T, c='r')
     ax.axhline(0, linestyle='dashed', c='cornflowerblue', zorder=-2)
+    ax.set_ylabel('residuals')
+    ax.set_xlabel('predicted $\hat{\pi}$')
     return fig, ax
 
 

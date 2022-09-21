@@ -3,7 +3,7 @@ import click
 from bgspy.utils import combine_features, read_bed3, load_seqlens
 from bgspy.utils import masks_to_ranges
 
-PRIORITY = ('cds', 'intron', 'utr', 'phastcons')
+PRIORITY = ('phastcons', 'cds', 'intron', 'utr', 'promoter')
 
 @click.command()
 @click.option('--seqlens', required=True, type=click.Path(exists=True),

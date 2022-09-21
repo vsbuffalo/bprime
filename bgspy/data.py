@@ -229,6 +229,19 @@ def trim_map_ends(recmap, thresh_cM):
     return ends
 
 class GenomeData:
+    """
+    Main class for per-basepair genomic data, e.g. for calculating diversity
+    with the proper denominator. GenomeData.counts is a key lookup
+    to the underlying allele count data. It has specific methods for this kind
+    of data, e.g. GenomeData.bin_pairwise_summaries().
+
+    As the project grew, I realized this class could easily be more general
+    and we could store any per-basepair data like CADD or phylop scores, so
+    some additional more general methods were added.
+
+    Eventually the former case should be a subclass of this more general
+    class.
+    """
     def __init__(self, genome=None):
         self.genome = genome
         self.neutral_masks = None
@@ -236,6 +249,7 @@ class GenomeData:
         self._npy_files = None
         self.counts = None
         self.thresh_cM = None
+        self.labels = None # labels for counts
 
     def _load_mask(self, file):
         """
@@ -360,12 +374,50 @@ class GenomeData:
     def chroms(self):
         return self.genome.chroms
 
+    def bin_data(self, width, func,
+                 filter_neutral=None,
+                 filter_accessible=None,
+                 mask_inaccessible_bins_frac=0.7,
+                 progress=True, **kwargs):
+        """
+        If this is being used to store any per-basepair data (e.g. not just
+        pairwise summaries per basepair), this will summarize it with func.
+        """
+        bins = GenomicBinnedData(self.genome.seqlens, width)
+
+        chroms = self.chroms
+        chroms = chroms if not progress else tqdm.tqdm(chroms)
+        for chrom in chroms:
+            site_data = filter_sites(self.counts, chrom, filter_neutral,
+                                     filter_accessible,
+                                     self.neutral_masks, self.accesssible_masks)
+            if site_data.ndim == 1:
+                site_data = site_data[:, None]
+            # number of combinations summed into bins per chrom
+            binstat = aggregate_site_array(site_data, bins[chrom], func, **kwargs)
+            bins.data_[chrom] = binstat.stat
+            bins.n_[chrom] = binstat.n
+        if mask_inaccessible_bins_frac is not None and self.accesssible_masks is not None:
+            f = mask_inaccessible_bins_frac
+            print(f"masking bins based on whether {f*100}% of basepairs are inaccessible.")
+            bins.mask_accessible(self.accesssible_masks,
+                                 mask_inaccessible_bins_frac)
+        bins.labels = self.labels
+        return bins
+
+
     def bin_pairwise_summaries(self, width, filter_neutral=None,
-                               filter_accessible=None, progress=True):
+                               filter_accessible=None,
+                               mask_inaccessible_bins_frac=0.7,
+                               progress=True):
         """
         Given a genomic window width, compute the pairwise statistics (the Y
         matrix of same and different pairwise combinations) and bin reduce them
         by summing counts within a bin.
+
+        We also do bin-level masking for bins with a high fraction of
+        inaccessible sites -- if that fraction is greater than
+        mask_inaccessible_bins_frac, that bin is masked.
 
         Returns: a GenomicBins object with the resulting data in GenomicBins.data.
         """
@@ -384,6 +436,9 @@ class GenomeData:
             Y_binstat = aggregate_site_array(Y, bins[chrom], np.sum, axis=0)
             bins.data_[chrom] = Y_binstat.stat
             bins.n_[chrom] = Y_binstat.n
+        if mask_inaccessible_bins_frac is not None:
+            bins.mask_accessible(self.accesssible_masks,
+                                 mask_inaccessible_bins_frac)
         return bins
 
     def npoly(self, filter_neutral=None, filter_accessible=None):
@@ -460,6 +515,22 @@ class GenomicBins:
         self.seqlens = seqlens
         self.masks_ = None
         self._bin_chroms(seqlens, width, dtype)
+
+    def mask_accessible(self, chrom_masks, frac):
+        """
+        This is a way to bring up the per-basepair masks (from e.g. a
+        GenomeData object) -- if the mean number of unaccessible
+        sited in a window is above frac, this bin is masked.
+        """
+        if self.masks_ is None:
+            self.clear_masks()
+
+        for chrom, mask in chrom_masks.items():
+            fracs = aggregate_site_array(~mask[:, None],
+                                         self.bins_[chrom],
+                                         np.nanmean)
+            self.masks_[chrom] = np.logical_and(self.masks_[chrom],
+                                                fracs.stat.squeeze() < frac)
 
     def __repr__(self):
         width = self.width
@@ -590,6 +661,18 @@ class GenomicBinnedData(GenomicBins):
         self.data_ = dict()
         self.B_ = None
         self.Bp_ = None
+        self.labels = None # for metadata if counts is for data
+
+    # def aggregate_site_data(self, chromdict, func):
+    #     """
+    #     File the data_ attribute by binning site level data.
+    #     """
+    #     self.n_ = dict()
+    #     for chrom in self.bins_:
+    #         data = chromdict[chrom]
+    #         stat = aggregate_site_array(data[:, None], self.bins_[chrom], func=func)
+    #         self.data_[chrom] = stat.stat.squeeze()
+    #         self.n_[chrom] = stat.n.squeeze()
 
     def data(self, filter_masked=True):
         """
@@ -611,7 +694,20 @@ class GenomicBinnedData(GenomicBins):
         bins = self.bins(filter_masked=filter_masked)
         return resample_blocks(bins, blocksize, nsamples)
 
-    def pi_pairs(self, chrom, ratio=False, filter_masked=True):
+    def pairs(self, chrom, ratio=False):
+        """
+        Return the midpoints, data from self.data_ for chrom.
+
+        See note at pi_pairs() for why filter_masked = False
+        """
+        mp = self.midpoints(filter_masked=False)[chrom]
+        x = self.data(filter_masked=False)[chrom]
+        x[~self.masks_[chrom]] = np.nan
+        if ratio:
+            x = mean_ratio(x)
+        return mp, x
+
+    def pi_pairs(self, chrom, ratio=False):
         """
         Return pair of midpoints, π for the specified chromosome.
         Assumed self.data[chrom] is a Y matrix.
@@ -622,8 +718,7 @@ class GenomicBinnedData(GenomicBins):
         with plt.plot())
         """
         pi = pi_from_pairwise_summaries(self.data(filter_masked=False)[chrom])
-        if filter_masked:
-            pi[~self.masks_[chrom]] = np.nan
+        pi[~self.masks_[chrom]] = np.nan
         mp = self.midpoints(filter_masked=False)[chrom]
         if ratio:
             pi = mean_ratio(pi)

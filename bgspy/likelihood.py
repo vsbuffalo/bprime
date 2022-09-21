@@ -677,8 +677,8 @@ class BGSLikelihood:
         pi = pi_from_pairwise_summaries(self.Y)
         return pi - pred_pi
 
-    def resid_fitted_plot(self):
-        return resid_fitted_plot(self)
+    def resid_fitted_plot(self, *args, **kwargs):
+        return resid_fitted_plot(self, *args, **kwargs)
 
     def diagnostic_plots(self):
         return model_diagnostic_plots(self)

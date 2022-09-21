@@ -373,6 +373,12 @@ def bin_chrom(end, width, dtype='uint32'):
     assert np.all(bins < end+1)
     return bins
 
+def bin_chroms(seqlens, width, dtype='uint32'):
+    bins = dict()
+    for chrom, length in seqlens.items():
+        bins[chrom] = bin_chrom(seqlens[chrom], width, dtype=dtype)
+    return bins
+
 def mean_ratio(x):
     """
     Return the ratio x / mean(x), using NaN mean.
@@ -834,6 +840,7 @@ def genome_wide_quantiles(chromdict, alphas, subsample_chrom=None,
     """
     if not subsample_chrom:
         cuts = np.nanquantile(list(itertools.chain(*chromdict.values())), alphas)
+        return cuts
     else:
         samples = []
         for chrom, values in chromdict.items():
@@ -844,7 +851,6 @@ def genome_wide_quantiles(chromdict, alphas, subsample_chrom=None,
         cuts = np.nanquantile(samples, alphas)
     if return_samples:
         return cuts, samples
-    return cuts
 
 def quantize_track(chromdict, cuts, labels=None, bed_file=None, progress=True):
     """
