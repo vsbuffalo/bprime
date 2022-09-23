@@ -17,8 +17,8 @@
 \renewcommand{\P}{\mathbb{P}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\V}{\text{V}}
-% \DeclareMathOperator{\var}{var}
-% \DeclareMathOperator{\cov}{cov}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
 
 \addbibresource{biblio.bib}
 
@@ -73,7 +73,190 @@ throughout the genome. These regions are under differing levels of selective
 constraint, which induces background selection at neighboring regions.
 
 
+Signal processing
 
+Genomes have inherent structure that impacts the linked selection map. There is
+tremendous heterogeneity across species in the organization of likely selected
+regions on the genetic and physical maps.
+
+Within an organism, there are two key determinants of B maps: recombination and
+gene density. 
+
+Initially, the relationship between recombination and diversity was regressed
+with no regard to the spatial organization of the genome.
+
+Certain regions are pinchpoints of selection: some combination of low
+recombination and high gene density lead to very strong reductions in genetic
+diversity. In these regions, coalescent dynamics change considerably; where as
+under strong background selection, deleterious alleles would not fix, in these
+regions the can fix. Additionally, the selective interference impacts positive
+selection.
+
+\section*{Theory}
+
+We model the reduction in pairwise coalescence times along the genome due to
+background selection by extending the work of \textcite{Santiago2016-mu}
+(hereafter, the SC16 model). The SC16 model derives from a class of linked
+selection \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs} that
+predict the reduction in pairwise coalescence time at a focal neutral site
+using macro-state parameters such as fitness variation, rather than micro-state
+parameters like the frequency trajectories of selected alleles (e.g.
+\textcite{Maynard_Smith1974-zr}). We will briefly introduce the SC16 model's
+approach and how we validated this model could be extended to whole-genome
+inference.
+
+Classic background selection theory models how coalescence times are reduced by
+deleterious mutation-selection balance at neighboring sites. Building upon
+older models of genetic load \parencite{Crow1970-wj,Kimura1966-bk}, these
+models consider the equilibrium distribution of the \emph{number} of
+deleterious mutations segregating on haplotypes
+\parencite{Charlesworth1993-gb,Nordborg1996-nq}. Given an infinitely large
+population, or sufficiently strong selection, the deleterious mutations in
+these models cannot fix; consequently, any lineage containing 
+
+While the effect of selection on linked selection distorts neighboring
+genealogies (XXX), skewing the site frequency spectrum (XXX) and altering
+linkage disequilibria along the chromosome, we focus on the impact of selection
+on pairwise coalescence rates. This simple summary is amenable to mathematical
+and statistical inference, and is robust to difficulties in identifying rare
+variants. The effect of background selection on pairwise coalescence rates is
+expressed as the reduction ratio $B = \nicefrac{N_e}{N}$ where $N$ is the
+drift-effective population size (i.e. including demographic processes) and
+$N_e$ is the effective population size under background selection.
+
+Under quantitative genetic models of linked selection, the reduction in
+effective population size is determined by the product of fitness variation,
+$V_f$, and an inflation factor $Q$. It is helpful to understand this by comparing
+it to a model of $N_e$ without \emph{heritable} fitness variation but with
+\emph{non-heritable} fitness variation. In this case, 
+
+\begin{align}
+  N_e = \frac{4N}{2 + V_k},
+\end{align}
+
+where $V_k$ is the variance in offspring number across individuals. Under a
+constant population size Wright--Fisher model of reproduction, $V_k \approx 2$,
+and this simplifies to $N_e = N$. However, as first noted by
+\textcite{Robertson1961-ho}, linked selection inflates the variance in
+offspring number, as a neutral allele that becomes associated with a
+high-fitness or low-fitness genetic background has an $1-r$ chance of remaining
+associated with that background in the next generation, where $r$ is the chance
+of recombination (or independent assortment, $r=\nicefrac{1}{2}$). 
+
+
+This persistence of this association inflates the effective variance in fitness
+by a factory $Q^2$, 
+
+\begin{align}
+  N_e = \frac{4N}{2 + V_k + 4 Q^2 V_f},
+\end{align}
+
+
+\begin{align}
+  N_e = \frac{4N}{2 + V_k + 4 Q(r)^2 V_f},
+\end{align}
+
+
+
+
+\begin{align}
+  N_e = N \exp\left(-Q^2 V_f\right)
+\end{align}
+
+In a region of $L$ basepairs under purifying selection, there is a net flux of
+deleterious mutations in at rate $U = 2 \mu L$ per generation (where the factor
+of two is because in diploids, $2L$ is the total number of basepairs per genome). 
+
+Typical models of background selection consider the equilibrium distribution of
+the \emph{count} of deleterious mutations, rather than then level of fitness
+variation implied by this count. If we assume fixed additive effects across
+alleles and multiplicative fitness effects across loci, each copy of a
+deleterious mutation an individual carries reduces their fitness by a factor of
+$1-s$. The total reduction for an individual is
+
+\begin{align}
+  x = (1-s)^n
+\end{align}
+
+where $n$ is the number of deleterious alleles an individual carries. Under
+mutation-selection balance, the population evolves to either a stationary
+distribution under the strong BGS domain, or a traveling distribution in weak
+selection case. Under some assumptions, equilibrium models of the strong domain
+show that the distribution $f(n) \sim \text{Pois}(\nicefrac{U}{s})$
+\parencite{Kimura1966-bk,Crow1970-wj} (CHECK) in the asexual case, and the
+fixation rate of deleterious mutations per generation, or ratchet rate, is $R =
+0$ since the probability of fixation, $p_F$ is zero. By contrast, as the
+selection coefficient grows weaker, $s \to 0$, the probability of fixation $p_F
+\to \nicefrac{1}{2N}$, and the ratchet approaches the neutral rate of $R =
+\mu$. The weak selection domain is of importance because both because it
+implies a certain likely irreversible rate of fitness reduction, and because it
+could possibly confound population genetic inference which assumes dynamics
+only under the strong model.
+
+As $s \to 0$, the fitness distribution, put on a scale reflecting the fitness
+relative at one moment in time, travels leftwards and changes shape. It has
+been difficult to find dynamic equations for the rate of the ratchet, since
+lower moments of the distribution, such as the variation, depend on higher
+moments, such as the skew \parencite{Good2013-lp,Haigh1978-gt,Higgs1995-xc}.
+This moment closure problem occurs regardless of whether one models the count
+number of deleterious mutations (XXX) or the fitness distribution (XXX).
+
+We can approximate the mapping between the distribution of deleterious
+mutations in the population, and the fitness distribution.
+
+Assuming $s$ is small, we can write express this in terms of the additive
+genetic variance, 
+
+\begin{align}
+  V(f) \approx s^2 \V(n) + \delta_\text{LD}.
+\end{align}
+
+The first term is the additive genic variance, which is 
+
+
+Under this model, the rate of the ratchet $R = U  - s V(n)$, which implies,
+
+\begin{align}
+  R = U - \nicefrac{V(f)}{s} \\
+  V(f) = s(U - R)
+\end{align}
+
+
+
+
+
+
+\begin{align}
+
+\end{align}
+
+
+
+
+- We need to mention the two heterozygosities (S&C '16 says they diverge under
+$N_e s < 1$ -- could explain anything we see?)
+
+- A point about reconciling the two micro and macro-state theories of
+population and quantitative genetics.
+
+
+
+
+
+\subsection*{The Rate of the Ratchet}
+
+
+\section*{Methods}
+
+\subsection*{Data Preprocessing}
+
+\subsection*{Human}
+
+Site-level neutral and accessibility masks
+
+Bin-level masks based on fraction of accessible bases in a window (7\%).
+
+Bin-level tail filtering.
 
 \printbibliography
 
