@@ -8,8 +8,8 @@
 \RequirePackage{wasysym}
 \RequirePackage{authblk}
 \RequirePackage{bm}
-\RequirePackage{bbm}
-% \RequirePackage[osf]{mathpazo}
+% \RequirePackage{bbm}
+\RequirePackage[osf]{mathpazo}
 \RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,maxbibnames=9,maxcitenames=1,backend=biber,natbib=true,uniquelist=false,hyperref=true]{biblatex}
 \usepackage{color}
 \usepackage{nicefrac}
@@ -93,6 +93,34 @@ regions the can fix. Additionally, the selective interference impacts positive
 selection.
 
 \section*{Theory}
+
+\subsection*{Effective Population Size for Pairwise Diversity}
+
+When quantifying genetic variation with average pairwise diversity, often a
+single effective population size parameterizes the rate of pairwise
+coalescences of the entire evolutionary history. This is sufficient for
+constant-rate Kingman coalescences, but weak selection distorts genealogies
+(desai and nicolaison), creating a coalescent process with non-constant rates.
+Consequently, the expected pairwise coalescent time between two lineages $i$
+and $j$ 
+
+\begin{align}
+  \E(T) &= \sum_i T(i) \P(\mathrm{MRCA}(i)) \\
+        &= \sum_i T(i) \prod_{t=1}^i \left(1 - \frac{1}{2N_{e(i)}}\right)
+\end{align}
+
+
+% ADD TO INTRO TODO
+Comment about characteristic scale $\nicefrac{\mu}{s}$. Is the fact that we see
+BGS on megabase scales because this is the only scale we can detect strong
+selection under?
+
+
+approximately $\pi \approx 4N_e \mu$ (for low mutation rate). However, this
+assumes a constant Kingman coalescent with coalescent effective population size
+$N_e$. 
+
+\subsection*{}
 
 We model the reduction in pairwise coalescence times along the genome due to
 background selection by extending the work of \textcite{Santiago2016-mu}
@@ -195,20 +223,28 @@ only under the strong model.
 
 As $s \to 0$, the fitness distribution, put on a scale reflecting the fitness
 relative at one moment in time, travels leftwards and changes shape. It has
-been difficult to find dynamic equations for the rate of the ratchet, since
-lower moments of the distribution, such as the variation, depend on higher
-moments, such as the skew \parencite{Good2013-lp,Haigh1978-gt,Higgs1995-xc}.
-This moment closure problem occurs regardless of whether one models the count
+been difficult to find dynamic equations for the rate of the ratchet and
+fitness distribution, since lower moments of the distribution, such as the
+variation, depend on higher moments, such as the skew
+\parencite{Good2013-lp,Haigh1978-gt,Higgs1995-xc}. This is known as the ``moment
+closure problem" and it occurs regardless of whether one models the count
 number of deleterious mutations (XXX) or the fitness distribution (XXX).
 
 We can approximate the mapping between the distribution of deleterious
-mutations in the population, and the fitness distribution.
+mutations in the population, and the fitness distribution. It is worth noting
+that the count of deleterious mutations in an individual $i$ can be written
+$n_i = \sum_l^{L} g_l$ where each $g_l$ is an indicator variable for whether
+the individual carries a mutation at position $l$. Then, $\V_i(n) = \sum_l
+\V(g_l) + \sum_{i,j}\cov(g_i, g_j)$.
 
-Assuming $s$ is small, we can write express this in terms of the additive
-genetic variance, 
+the
+number of deleterious mutations in gamete $i$; thus $V(n) = \sum_i^{2N} V(x_i)
++ \sum_{i \ne j} \cov(x_i, x_j)$ where the last term is the correlation among
+gamete mutation counts, which is an LD quantity. Then, assuming $s$ is small,
+we can write express this in terms of the additive genetic variance, 
 
 \begin{align}
-  V(f) \approx s^2 \V(n) + \delta_\text{LD}.
+  V(f) &\approx s^2 \V_a(n) + \delta_\text{LD}
 \end{align}
 
 The first term is the additive genic variance, which is 
@@ -223,17 +259,16 @@ Under this model, the rate of the ratchet $R = U  - s V(n)$, which implies,
 
 
 
+Throughout, it's worthwhile to keep into mind many population-level
+macro-states are simply distributional summaries of the current population. For
+example, the variance in deleterious mutations in the population is simply,
+$\V(n) = \nicefrac{1}{2N} \sum_i (x_i - \mu_x)^2$
 
 
 
-\begin{align}
-
-\end{align}
 
 
-
-
-- We need to mention the two heterozygosities (S&C '16 says they diverge under
+- We need to mention the two heterozygosities (S\&C '16 says they diverge under
 $N_e s < 1$ -- could explain anything we see?)
 
 - A point about reconciling the two micro and macro-state theories of
