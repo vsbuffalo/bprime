@@ -160,7 +160,7 @@ which allows us to understand how these approximations may impact our
 statistical methods and inspect model fit in regions where these approximations
 are less likely to hold.
 
-\subsection*{Effective Population Size for Pairwise Diversity}
+\subsection*{Pairwise Diversity under Background Selection}
 
 The central quantity of interest for our statistical inference methods is
 average pairwise diversity along the chromosome. While other summaries of the
@@ -210,17 +210,24 @@ mating, such that
 \end{align}
 
 in the limit where $\mu \to 0$. This is equation 4 of
-\textcite{Santiago2016-mu}; they define the sum the heterozygosity effective
+\textcite{Santiago2016-mu}; they define the sum as the heterozygosity effective
 population size.
 
+\subsection*{Forward in Time Models of Background Selection}
 
+Next, show how quantitative genetic models of linked selection
+\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu}
+model $b(t)$ forward in time.
 
-Throughout, we assume that there is a constant \emph{drift-effective}
-population size, $N_d$, which determines the rate of coalescence due only to
-neutral demographic processes. We then consider the observed levels of neutral
-pairwise diversity as a reduction factor down from the drift effective
-population size, e.g. $\pi \approx 4 N_e \mu = 4 B N_d \mu$, where $B$ is a
-reduction factor due to the background selection process.
+\begin{align}
+  b(t) = \frac{N_v}{N_d}
+\end{align}
+
+where
+
+\begin{align}
+  N_v = \lim_{t \to \infty} \frac{p_0 (1 - p_0) - \var(p_{t-1})}{2\var(p_t) - \var(p_{t-1})}
+\end{align}
 
 \subsection*{Linked Selection Models for Variance-Effective Population Size}
 
