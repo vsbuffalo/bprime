@@ -8,9 +8,16 @@
 \RequirePackage{wasysym}
 \RequirePackage{authblk}
 \RequirePackage{bm}
-% \RequirePackage{bbm}
+\RequirePackage{bbm}
 \RequirePackage[osf]{mathpazo}
-\RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,maxbibnames=9,maxcitenames=1,backend=biber,natbib=true,uniquelist=false,hyperref=true]{biblatex}
+\RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,
+                date=year,
+                maxbibnames=9,maxnames=5,maxcitenames=2,
+                backend=biber,uniquelist=false,uniquename=false,
+                % style=apa,
+                sorting=nyt,
+                % sorting=,
+                hyperref=true]{biblatex}
 \usepackage{color}
 \usepackage{nicefrac}
 
@@ -29,85 +36,211 @@
 \begin{document}
 \maketitle
 
-A central goal of evolutionary genetics is to quantify the relative roles
-different evolutionary processes have on genetic variation. Certain
-evolutionary processes, such as demographic bottlenecks or expansions, act
-uniformly across the genome as a whole. Other processes, such as selection, are
-hypothesized to act differently across the genome depending on the density of
-genomic features, and local heterogeneity in recombination and mutation rate.
-With the emergence of population genomic data, a variety of statistical models
-have teased apart the contribution of these various processes. These
-statistical models differ in how they reduce large genomic data to summary
-statistics, as well as in their statistical methodology. Some models reduce
-genomic data to the histograms of the frequency spectrum (XXX), while others
-model scalar summaries of the frequency spectrum along the genome. 
+% A central goal of evolutionary genetics is to quantify the relative roles
+% different evolutionary processes have on genetic variation. Certain
+% evolutionary processes, such as demographic bottlenecks or expansions, act
+% uniformly across the genome as a whole. Other processes, such as selection, are
+% hypothesized to act differently across the genome depending on the density of
+% genomic features, and local heterogeneity in recombination and mutation rate.
+% With the emergence of population genomic data, a variety of statistical models
+% have teased apart the contribution of these various processes. These
+% statistical models differ in how they reduce large genomic data to summary
+% statistics, as well as in their statistical methodology. Some models reduce
+% genomic data to the histograms of the frequency spectrum (XXX), while others
+% model scalar summaries of the frequency spectrum along the genome. 
 
-One class of models, parametric statistical models, leverage population genetic
-theory to inform expectations of the mean pairwise diversity along the
-chromosome. Estimation under these models often uses a composite likelihood
-approach, where the joint distribution is assumed independent across positions.
-While composite likelihoods are simpler to formulate and lead to consistent
-parameter estimation, ignoring dependencies between neighboring sites has two
-primary disadvantages. First, unlike proper likelihoods, the composite
-likelihood's curvature is uninformative about parameter estimate uncertainty.
-Previous work has circumvented this shortcoming through (1) resampling-based
-uncertainty estimates, or (2) adjusting the composite likelihood's curvature to
-account for these dependencies. Second, similar to inference under phylogenetic
-comparative models, the dependency structure tells us how to properly weight
-information across sites. For example, imagine a conserved segment 10 kilobases
-long right on the border of two genomic bins, which due to linked selection,
-bot experience a reduction in diversity. When estimating parameters, the
-independence assumption of composite likelihoods would weight these observed
-reductions equal to the amount of a reduction observed on an entirely different
-independent chromosome. 
+% One class of models, parametric statistical models, leverage population genetic
+% theory to inform expectations of the mean pairwise diversity along the
+% chromosome. Estimation under these models often uses a composite likelihood
+% approach, where the joint distribution is assumed independent across positions.
+% While composite likelihoods are simpler to formulate and lead to consistent
+% parameter estimation, ignoring dependencies between neighboring sites has two
+% primary disadvantages. First, unlike proper likelihoods, the composite
+% likelihood's curvature is uninformative about parameter estimate uncertainty.
+% Previous work has circumvented this shortcoming through (1) resampling-based
+% uncertainty estimates, or (2) adjusting the composite likelihood's curvature to
+% account for these dependencies. Second, similar to inference under phylogenetic
+% comparative models, the dependency structure tells us how to properly weight
+% information across sites. For example, imagine a conserved segment 10 kilobases
+% long right on the border of two genomic bins, which due to linked selection,
+% bot experience a reduction in diversity. When estimating parameters, the
+% independence assumption of composite likelihoods would weight these observed
+% reductions equal to the amount of a reduction observed on an entirely different
+% independent chromosome. 
 
-patterns of genetic variability along the genome are treated as
-coming from an indeprocess $m(z)$.
-
-
-Here, we focus on solving an issue processes: background
-
-BGS as evolution around the static features of the genome. Due to the slow rate
-of genomic structural evolution, much of the genome can be treated as static
-throughout the genome. These regions are under differing levels of selective
-constraint, which induces background selection at neighboring regions.
+% patterns of genetic variability along the genome are treated as
+% coming from an indeprocess $m(z)$.
 
 
-Signal processing
+% Here, we focus on solving an issue processes: background
 
-Genomes have inherent structure that impacts the linked selection map. There is
-tremendous heterogeneity across species in the organization of likely selected
-regions on the genetic and physical maps.
+% BGS as evolution around the static features of the genome. Due to the slow rate
+% of genomic structural evolution, much of the genome can be treated as static
+% throughout the genome. These regions are under differing levels of selective
+% constraint, which induces background selection at neighboring regions.
 
-Within an organism, there are two key determinants of B maps: recombination and
-gene density. 
 
-Initially, the relationship between recombination and diversity was regressed
-with no regard to the spatial organization of the genome.
+% Signal processing
 
-Certain regions are pinchpoints of selection: some combination of low
-recombination and high gene density lead to very strong reductions in genetic
-diversity. In these regions, coalescent dynamics change considerably; where as
-under strong background selection, deleterious alleles would not fix, in these
-regions the can fix. Additionally, the selective interference impacts positive
+% Genomes have inherent structure that impacts the linked selection map. There is
+% tremendous heterogeneity across species in the organization of likely selected
+% regions on the genetic and physical maps.
+
+% Within an organism, there are two key determinants of B maps: recombination and
+% gene density. 
+
+% Initially, the relationship between recombination and diversity was regressed
+% with no regard to the spatial organization of the genome.
+
+% Certain regions are pinchpoints of selection: some combination of low
+% recombination and high gene density lead to very strong reductions in genetic
+% diversity. In these regions, coalescent dynamics change considerably; where as
+% under strong background selection, deleterious alleles would not fix, in these
+% regions the can fix. Additionally, the selective interference impacts positive
+% selection.
+
+- Disentangling evolutionary processes from the patterns of genetic variation
+across the genome. The structure of what can be under selection shapes these
+patterns when selection acts; when drift acts, these patterns should not exist.
+
+- For species with small effective population sizes (and perhaps large map
+lengths), BGS seems to be a dominant selective force in shaping patterns of
+diversity (e.g. at the megabase scale in humans).
+
+- However, current approaches to fitting BGS models fail under the weak
+selection domain. This weak selection domain is important (discuss
+HRI/ratchet/etc). Importantly, the characteristic scale of the impact of linked
+selection is $\nicefrac{s}{r}$, meaning weak selection acts on smaller scales
+than strong selection. Our ability to see selection at small scales may be
+inhibited by the fact that our current BGS theory only works for strong
 selection.
+
+- We need to say briefly that we're using BGS to mean linked selection due to
+purifying selection, and thus the strong and weak regimes (classically it has
+just meant the strong regime).
 
 \section*{Theory}
 
+There has been considerable past work to find both the rate of the ratchet
+(XXX), and summaries of the genealogies created under weak purifying selection
+(XXX). Our approximation combines a few theoretic avenues from past work. Our
+primary goal is to find a theoretic scaling function $B$ that rescales the neutral
+pairwise coalescent times the appropriate amount to 
+
+Strictly speaking, there is no way to rescale the coalescent under general
+background selection process, as genealogies deviate from the Kingman
+coalescent slightly under strong selection
+\parencite{Walczak2012-fi,Cvijovic2018-vd} and greatly under weak selection
+\parencite{OFallon2010-my}
+
+First, we approximate the coalescent effective population size, which
+determines expected pairwise diversity, from the variance effective population
+size. Then, we use a general quantitative genetic model of linked selection to
+find the variance effective population size under background selection. Since
+the impact of selection under this model is parameterized by the additive
+genetic fitness variance, we use an approximation for this based on the
+additive \emph{genic} variance, which depends on the rate of the ratchet.
+Previous work has been unable to find a simple closed-form solution to the rate
+of the ratchet because it depends on moments of the fitness distribution (e.g.
+fitness variation), which in turn depend on even higher-moments of the fitness
+distribution (e.g. the skew of the fitness distribution). While the ratchet
+should scale with the probability of fixation, the probability of fixation
+(Kimura, Malecot, XXX) is not accurate when multiple deleterious mutations are
+segregating simultaneously and in close linkage with one another. A key insight
+of \textcite{Santiago2016-mu} was that the classic equation for the probability
+of fixation is fairly robust as long as the correct effective population size
+is used. Their approach is to solve a system of two non-linear equations: one
+for the variance effective population size (which depends on the rate of the
+ratchet), and another for the time to fixation (which depends on the effective
+population size).
+
+Below, we step through the theory we use in our statistical methods. We
+re-derive central parts to illustrate where approximations have been made,
+which allows us to understand how these approximations may impact our
+statistical methods and inspect model fit in regions where these approximations
+are less likely to hold.
+
 \subsection*{Effective Population Size for Pairwise Diversity}
 
-When quantifying genetic variation with average pairwise diversity, often a
-single effective population size parameterizes the rate of pairwise
-coalescences of the entire evolutionary history. This is sufficient for
-constant-rate Kingman coalescences, but weak selection distorts genealogies
-(desai and nicolaison), creating a coalescent process with non-constant rates.
-Consequently, the expected pairwise coalescent time between two lineages $i$
-and $j$ 
+The central quantity of interest for our statistical inference methods is
+average pairwise diversity along the chromosome. While other summaries of the
+data, such as the allele frequency spectrum, may be more informative about the
+evolutionary processes acting in a region, we lack population genetic theory
+for these quantities under most selective regimes and they require more degrees
+of freedom to characterize. By contrast, neutral diversity under an
+infinite-sites model is determined only by the per-basepair mutation rate $\mu$
+and the expected pairwise coalescent time $\E[T_2]$,
 
 \begin{align}
-  \E(T) &= \sum_i T(i) \P(\mathrm{MRCA}(i)) \\
-        &= \sum_i T(i) \prod_{t=1}^i \left(1 - \frac{1}{2N_{e(i)}}\right)
+  \E(\pi) = 2 \mu \E(T_2)
 \end{align}
+
+Let us assume that there is a constant \emph{drift-effective} population size
+$N_d$ which determines the rate of coalescence due only to neutral demographic
+processes. Additionally, we assume some background selection process that in
+expectation rescales the drift-effective population size by $b(t)$ at time $t$
+(though this could be any process that modifies the coalescence rate). Then,
+the expected pairwise coalescent time is
+
+\begin{align}
+  \E(T_2) = \sum_{i=1}^\infty \frac{i}{2 b(t) N_d}\prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right).
+\end{align}
+
+The time-dependency of $b(t)$ is needed because coalescence rates essentially
+speed up in the past under intermediate to weak selection, similar to
+population growth \parencite{Walczak2012-fi,Seger2010-rs,Good2014-yz}.
+Intuitively, this is because lineages are unlikely to coalesce with numerous
+less fit lineages they encounter as they go back in time, until ultimately
+coalescing in one of the least-loaded fitness classes. 
+
+Previous work in the strong background selection domain
+\parencite{Charlesworth1993-gb,Nordborg1996-nq} approximates $\E(T_2)$ as $2
+f_0 N_d$, where $f_0 = e^{-\nicefrac{U}{s}}$ is size of the least-loaded
+fitness class. XXX on delay
+
+Here, we model the background selection process forward in time. We approximate
+the expected pairwise diversity with the probability of heterozygosity,
+$\E(\pi) \approx \mathcal{H}$, which holds under weak mutation and random
+mating, such that
+
+\begin{align}
+  %\mathcal{H} =  2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+  \mathcal{H} &= 1 - \sum_{i=1}^\infty (1-\mu)^{2i} \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right) \\
+              &\approx 2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+\end{align}
+
+in the limit where $\mu \to 0$. This is equation 4 of
+\textcite{Santiago2016-mu}; they define the sum the heterozygosity effective
+population size.
+
+
+
+Throughout, we assume that there is a constant \emph{drift-effective}
+population size, $N_d$, which determines the rate of coalescence due only to
+neutral demographic processes. We then consider the observed levels of neutral
+pairwise diversity as a reduction factor down from the drift effective
+population size, e.g. $\pi \approx 4 N_e \mu = 4 B N_d \mu$, where $B$ is a
+reduction factor due to the background selection process.
+
+\subsection*{Linked Selection Models for Variance-Effective Population Size}
+
+We wish to derive an expression for the reduction factor $B$. Ideally, this
+reduction factor would rescale the coalescent-effective population size, but
+this would require knowing the coalescent rate function $\lambda(t)$ over the
+evolutionary history $0 < t < \infty$. Instead, following previous work
+\parencite{Santiago1995-hx,Santiago1998-bs}, we derive the rescaling function
+$B$ relative to the variance-effective population size.
+
+Following past quantitative genetic models of linked selection
+\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu},
+we consider the long-run variance effective population size, 
+
+\begin{align}
+  N_v := \lim_{t \to \infty} \frac{p_0(1-p_0)}{2\var\left(p_t - p_0\right)}
+\end{align}
+
+
+
 
 
 % ADD TO INTRO TODO
