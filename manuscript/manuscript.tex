@@ -178,52 +178,148 @@ and the expected pairwise coalescent time $\E[T_2]$,
 Let us assume that there is a constant \emph{drift-effective} population size
 $N_d$ which determines the rate of coalescence due only to neutral demographic
 processes. Additionally, we assume some background selection process that in
-expectation rescales the drift-effective population size by $b(t)$ at time $t$
-(though this could be any process that modifies the coalescence rate). Then,
-the expected pairwise coalescent time is
+expectation scales the effective population size by $b(t)$ at time $t$ (though
+this could in theory be due to any process). Then, the expected pairwise
+coalescent time is
 
 \begin{align}
+  \label{eq:T_2}
   \E(T_2) = \sum_{i=1}^\infty \frac{i}{2 b(t) N_d}\prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right).
 \end{align}
 
-The time-dependency of $b(t)$ is needed because coalescence rates essentially
-speed up in the past under intermediate to weak selection, similar to
-population growth \parencite{Walczak2012-fi,Seger2010-rs,Good2014-yz}.
-Intuitively, this is because lineages are unlikely to coalesce with numerous
-less fit lineages they encounter as they go back in time, until ultimately
-coalescing in one of the least-loaded fitness classes. 
+The time-dependency of $b(t)$ is required because the background selection
+process will usually alter the rate of coalesce through time. For example,
+under weak and intermediate selection, coalesce rates speed up as lineages move
+in the past under intermediate to weak selection, similar to population growth
+\parencite{Walczak2012-fi,Seger2010-rs,Good2014-yz}. 
 
-Previous work in the strong background selection domain
-\parencite{Charlesworth1993-gb,Nordborg1996-nq} approximates $\E(T_2)$ as $2
-f_0 N_d$, where $f_0 = e^{-\nicefrac{U}{s}}$ is size of the least-loaded
-fitness class. XXX on delay
+% Intuitively, this is
+% because lineages are unlikely to coalesce with numerous less fit lineages they
+% encounter as they go back in time, until ultimately coalescing in one of the
+% least-loaded fitness classes. 
 
-Here, we model the background selection process forward in time. We approximate
-the expected pairwise diversity with the probability of heterozygosity,
-$\E(\pi) \approx \mathcal{H}$, which holds under weak mutation and random
-mating, such that
+This formulation is general and classic background selection theory (in the
+no-ratchet domain) is a special case of it. Under classic BGS and load theory,
+two randomly sampled lineages will each carry a number of deleterious mutations
+sampled from a Poisson stationary distribution. Because any lineage carrying $j
+> 0$ strongly deleterious mutations is destined to extinction, these lineages
+can only coalesce in a common ancestor in the least-loaded class with zero
+deleterious mutations. Under the Poisson stationary distribution, the size of
+this class is $f_0 N$, where $f_0 = e^{-\nicefrac{U}{s}}$, so the coalescent
+rate is scaled by $\nicefrac{1}{f_0}$. Once the lineages reach this fitness
+class, there are no fitness differences among individuals, so they coalesce
+following the Kingman process. A lineage moves backwards in time $t_d$
+generations through the ``delay phase" to the least-loaded class. Classic BGS
+theory ignores this delay phase, since $t_d \sim \log(j+1)/s << f_0 N$
+(Durrett, p. 213). 
 
-\begin{align}
-  %\mathcal{H} =  2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
-  \mathcal{H} &= 1 - \sum_{i=1}^\infty (1-\mu)^{2i} \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right) \\
-              &\approx 2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
-\end{align}
+%Here, we model the background selection process forward in time. We approximate
+%the expected pairwise diversity with the probability of heterozygosity,
+%$\E(\pi) \approx \mathcal{H}$, which holds under weak mutation and random
+%mating, such that
 
-in the limit where $\mu \to 0$. This is equation 4 of
-\textcite{Santiago2016-mu}; they define the sum as the heterozygosity effective
-population size.
+%\begin{align}
+%  %\mathcal{H} =  2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+%  \mathcal{H} &= 1 - \sum_{i=1}^\infty (1-\mu)^{2i} \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right) \\
+%              &\approx 2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+%\end{align}
 
-\subsection*{Forward in Time Models of Background Selection}
+%in the limit where $\mu \to 0$. This is equation 4 of
+%\textcite{Santiago2016-mu}; they define the sum as the heterozygosity effective
+%population size.
+
+\subsection*{Forward in Time Models of Linked Selection}
 
 Next, show how quantitative genetic models of linked selection
 \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu}
-model $b(t)$ forward in time.
+essentially model $b(t)$ with an analogous forward in time process. Their
+approach is to consider how the variance in neutral allele frequency change is
+impacted by a linked selection process. Under a Wright--Fisher model, the
+variance in allele frequency change is also determined by a pairwise
+coalescence rate, often expressed as a \emph{variance-effective} population
+size, 
 
 \begin{align}
-  b(t) = \frac{N_v}{N_d}
+  \V(p_t) = p_0(1-p_0)\left(1 - \prod_{i=1}^t \left(1-\frac{1}{2N_e(t)}\right)\right)
 \end{align}
 
-where
+where if $N_e(t) = N_e$ and $t=1$, this is the familiar Wright--Fisher variance
+$\V(p_1) = p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency
+changes per generation are independent, and neutral diversity is set by this
+single $N_e$. 
+
+XXX
+
+Since we track an arbitrary neutral allele's frequency $p_i$, by symmetry,
+linked selection has no impact on the direction of change, $\E(\delta p_i) =
+0$. We derive an expression for $\V(p_t)$ by induction following the approach
+of \textcite{Santiago1995-hx}. In the first generation, the frequency change
+can be partitioned into three components. Conditioning on the parent's
+heritable fitnesses, we can imagine constructing an infinite number of
+evolutionary replicates. Across all replicates, a random neutral allele's is
+pushed 
+
+\begin{align}
+  p_1 - p_0 = \sum_{i=1}^{N} 
+\end{align}
+
+
+
+Since the variance in neutral allele frequency change is also determined by the
+pairwise coalescence rate, this provides us with a way to model $b(t)$ under
+linked selection.
+
+
+
+
+These models derive an expression for the variance-effective population size of
+a focal neutral site, $N_v(t)$, based on how linked fitness variation perturbs
+the frequency trajectory at this site.  The variance-effective population size
+for a constant $N_e$ is defined by the variance in allele frequency change at
+the neutral site, over evolutionary replicates, 
+
+where if $t=1$, this is the familiar Wright--Fisher variance $\V(p_1) =
+p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency changes per
+generation are independent, and neutral diversity is set by this
+single $N_e$. 
+
+However when selection is acting at linked sites, neutral diversity is
+determined by the long-run $\V(p_t)$ as $t \to \infty$. Intuitively, this is
+because the rate of drift is magnified by autocorrelation in allele frequency
+change (XXX), and diversity is determined by the cumulative impact of these
+autocorrelations in the long-run. This autocorrelation effectively reduces the
+coalescence rate in a time-dependent manner, analogous to equation
+\eqref{eq:T_2}. Thus, a single constant $N_e$ is insufficient to describe
+levels of neutral variation, since it is insufficient 
+
+The variance in allele frequency change after $t$ generations is
+
+\begin{align}
+  \V(p_t) = p_0(1-p_0)\left(1 - \prod_{i=1}^t \left(1-\frac{1}{2N_e(t)}\right)\right)
+\end{align}
+
+This is the basis of the quantitative genetic models of linked selection: a
+forward in time model for $\V(p_t)$ implies a pairwise coalescence rate
+function $b(t)$, which determines statistics based on pairwise coalescence such
+as $\E(\pi)$.
+
+Next, we consider how fitness variation impacts $\V(p_t)$.
+
+
+
+Throughout, we will take the variance $\V(p_t)$ to be the variance over
+evolutionary replicates. Since the variance is for a random neutral allele's
+frequency, 
+
+
+
+
+
+
+a reasonable approximation to how background selection process
+rescales the coalescent rate at this site is given by $b(t) =
+\nicefrac{N_v(t)}{N_d}$. 
+
 
 \begin{align}
   N_v = \lim_{t \to \infty} \frac{p_0 (1 - p_0) - \var(p_{t-1})}{2\var(p_t) - \var(p_{t-1})}
