@@ -184,7 +184,7 @@ coalescent time is
 
 \begin{align}
   \label{eq:T_2}
-  \E(T_2) = \sum_{i=1}^\infty \frac{i}{2 b(t) N_d}\prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right).
+  \E(T_2) = \sum_{i=1}^\infty \frac{i}{2 b(i) N_d}\prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right).
 \end{align}
 
 The time-dependency of $b(t)$ is required because the background selection
@@ -232,16 +232,141 @@ theory ignores this delay phase, since $t_d \sim \log(j+1)/s << f_0 N$
 
 Next, show how quantitative genetic models of linked selection
 \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu}
-essentially model $b(t)$ with an analogous forward in time process. Their
-approach is to consider how the variance in neutral allele frequency change is
-impacted by a linked selection process. Under a Wright--Fisher model, the
-variance in allele frequency change is also determined by a pairwise
-coalescence rate, often expressed as a \emph{variance-effective} population
-size, 
+find expressions for $b(t)$ with by modeling the selective process forward in
+time. Their approach is to consider how the variance in neutral allele
+frequency change is impacted by a linked selection process. 
+
+% First, we will show
+% how the variance in allele frequency is related to the k
+
+For comparison, we start with the recursion for the variance in allele
+frequency change in a neutral Wright--Fisher model. Under binomial sampling of
+alleles, the random frequency $x_t$ is $2N x_t \sim \mathrm{Binom}(x_{t-1},
+2N)$. If we look forward in time on generation and treat $x_0$ as fixed,
 
 \begin{align}
-  \V(p_t) = p_0(1-p_0)\left(1 - \prod_{i=1}^t \left(1-\frac{1}{2N_e(t)}\right)\right)
+  \V(x_1) = \E_1\left[(x_1 - x_0)^2\right]= \frac{x_0(1-x_0)}{2N},
 \end{align}
+
+and
+
+\begin{align}
+  \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
+          &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
+          &= \E_1\left[\E_2\left[(x_2-x_1)^2|x_1\right]\right] + \E_1\left[ (x_1 - x_0)^2\right] \\
+          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N}
+\end{align}
+
+such that in general, 
+
+\begin{align}
+  \label{eq:var_freq}
+  %\V(x_t) &= \frac{x_0(1-x_0)}{2N}\left(\sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i-1} \right)
+  \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right)
+\end{align}
+
+This geometric series converges to the familiar expression,
+
+\begin{align}
+  \V(x_t) &= x_0(1-x_0)\left(1 - \left(1 - \frac{1}{2N}\right)^t \right).
+\end{align}
+
+which in the limit $t \to \infty$, converges to the Bernoulli variance
+$x_0(1-x_0)$ as the frequency either goes to 1 with probability $x_0$ or 0 with
+probability $1-x_0$.
+
+Now, if the effective population size were to change each generation, equation
+\eqref{eq:var_freq} would be,
+
+\begin{align}
+  \V(x_t) &= \V(x_0) \left(1 + \sum_{i=1}^t \prod_{j=1}^{i} \left(1 - \frac{1}{2N(j)}\right) \right)
+\end{align}
+
+Note that this too converges to $x_0(1-x_0)$ as $t \to \infty$.
+
+Note now that equation 4 is a special case, when the evolutionary process has
+independent allele frequency changes through the generations. Selection
+processes will often lead to correlations in $\delta_i$ and $\delta_j$ for $i
+\ne j$. These correlations are because the neutral allele in generations $i$
+and $j$ can share some fraction of their fitness background, and in so far as
+the selective pressures are the same in generations $i$ and $j$, selection will
+perturb the frequency trajectories in the same direction. 
+
+One way we can model these dependencies is to partition $\delta_i$ into drift
+and selection components. Over evolutionary replicates, the drift components
+are independent and the selection components have some degree of
+autocorrelation. Consider $\delta x_i = \delta_S x_i + \delta_D x_i$
+
+
+
+\begin{align}
+  \V(x_2) &= \V\left(\delta x_2 + \delta x_1\right) \\
+          &= \V(\delta_D x_2) + \V(\delta_D x_1) + 2 \cov(\delta_S x_2, \delta_S x_1) \\
+          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N} +  2 \cov(\delta_S x_2, \delta_S x_1) \\
+\end{align}
+
+since the drift changes are the familiar ones of equation XXX. The covariances
+are determined by the selective process dynamics, linkage disequilibrium, and
+the recombination rate.
+
+
+
+Let us imagine there is some stochastic process $b(t)$ that rescales the coalescent
+rate, 
+
+\begin{align}
+  \V(x_t) &= \frac{x_0(1-x_0)}{2N(0)}\left(\sum_{i=1}^t \prod_{j=1}^{i-1} \left(1 - \frac{1}{2b(j)N}\right) \right)
+\end{align}
+
+
+
+\begin{align}
+  \var(p_3 - p_0) = \E & \left( \bigg( \underbrace{S_1(1 + (1-r) G + (1-r)^2 G^2)}_{\text{creation and persistence of generation 1 associations} \;\; := \; S_1 Q_3} \right. +  D_1 + H_1+ \nonumber \\
+                       & \underbrace{S_2(1 + (1-r) G)}_{\text{creation and persistence of generation 2 associations} \;\; := \; S_2 Q_2}+ D_2 + H_2 + \nonumber \\
+                       &  \underbrace{S_3}_{\text{creation of generation 3 associations} \;\; := \; S_3 Q_1  }\left. + D_3 + H_3 \bigg)^2 \right). &
+    \label{eq:scr-var2}
+\end{align}
+%
+
+Note the similarity between the equations.
+
+\begin{align}
+  V &\propto \frac{1}{2b(0)N_d}\left(\sum_{i=1}^\infty \prod_{t=1}^{i-1} \left(1 - \frac{1}{2b(t)N_d}\right) \right) \\
+  W &\propto \sum_{i=1}^\infty \frac{i}{2 b(i) N_d} \prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right) \\
+\end{align}
+
+
+Let us define the function $a(t)$ to be the product, which is the cumulative
+failure to coalesce up to time $t$.
+
+\begin{align}
+  a(t) = \prod_{i=1}^{t-1} \left( 1-\frac{1}{2 b(i) N_d} \right)
+\end{align}
+
+Comparing this to equation \eqref{eq:T_2} up to constant factors, 
+
+\begin{align}
+  V &\propto \sum_{i=1}^\infty a(t) \\
+  W &\propto \sum_{i=1}^\infty i \; a(t) \\
+\end{align}
+
+end{align}
+
+XXX we swap indices
+
+Now, if we assume that the final coalesce in the waiting time process were to
+have a fixed rate of $\nicefrac{1}{2b(0)N_d}$, this 
+
+we see that both the waiting time process and the variance process 
+
+Intuitively, these define a stochastic selection process in two ways through
+the function $b(t)$ that modulates the rate of pairwise coalesce. 
+
+
+
+
+
+
 
 where if $N_e(t) = N_e$ and $t=1$, this is the familiar Wright--Fisher variance
 $\V(p_1) = p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency
@@ -251,13 +376,49 @@ single $N_e$.
 XXX
 
 Since we track an arbitrary neutral allele's frequency $p_i$, by symmetry,
-linked selection has no impact on the direction of change, $\E(\delta p_i) =
-0$. We derive an expression for $\V(p_t)$ by induction following the approach
-of \textcite{Santiago1995-hx}. In the first generation, the frequency change
+linked selection has no impact on the direction of change, $\E(\Delta p_i) =
+0$. We will work through a short proof of $\V(p_t)$ by induction following the
+approach of \textcite{Santiago1995-hx}. Throughout, we will use angular
+brackets to indicate an average over all diploid individuals in the population,
+of some value with an individual-level index. For example, if we denote the
+number of allele an individual carries in generation $t$ as $x_{t,i} \in \{0,
+1, 2\}$, the population frequency at time $p_t$ is
+
+\begin{align}
+  p_t = \langle x_t \rangle = \frac{1}{N} \sum_{i=1}^N x_{t,i}
+\end{align}
+
+
+\begin{align}
+  \Delta_H p &= \langle x (f-1) \rangle \\
+  \Delta_N p &= \langle x d \rangle \\
+  \Delta_M p &= \langle \delta \rangle \\
+\end{align}
+
+Assuming uninherited, random environments, only the $\Delta_{_H} p$ terms
+create autocorrelation in $p_t$. The autocorrelation is created because during
+the random pairing of neutral alleles to fitness backgrounds, associations are
+created between an individual $i$'s allele frequency and their fitness $f_i$.
+This is because both fitness and the neutral alleles reside in the same
+individual in the present generation. 
+
+We can imagine now how these associations change over evolutionary replicates
+in the next generation. In a fraction $r$ of the cases, the neutral allele 
+recombines off (or segregates away, if they are on different chromosomes) the
+fitness background. In a faction of $1-r$ XXX
+
+\begin{align}
+  \cov(\Delta_H p_t, \Delta_H p_s) &= \E(\langle x_t (f_t-1) \rangle , \langle x_s (f_s-1) \rangle)
+\end{align}
+
+Note that this covariance is only 
+
+
+In the first generation, the frequency change
 can be partitioned into three components. Conditioning on the parent's
 heritable fitnesses, we can imagine constructing an infinite number of
 evolutionary replicates. Across all replicates, a random neutral allele's is
-pushed 
+perturbed 
 
 \begin{align}
   p_1 - p_0 = \sum_{i=1}^{N} 
