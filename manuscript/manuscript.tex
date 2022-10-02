@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 \RequirePackage{fullpage}
-\RequirePackage[font=small,labelfont=bf]{caption}
+%\RequirePackage[font=small,labelfont=bf]{caption}
 \RequirePackage{amsmath,amssymb,amsthm}
 \RequirePackage{graphicx}
 \RequirePackage[hidelinks]{hyperref}
@@ -9,7 +9,11 @@
 \RequirePackage{authblk}
 \RequirePackage{bm}
 \RequirePackage{bbm}
-\RequirePackage[osf]{mathpazo}
+%\RequirePackage[osf]{mathpazo}
+\let\temp\rmdefault
+\RequirePackage{mathpazo}
+\let\rmdefault\temp
+
 \RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,
                 date=year,
                 maxbibnames=9,maxnames=5,maxcitenames=2,
@@ -119,7 +123,92 @@ selection.
 purifying selection, and thus the strong and weak regimes (classically it has
 just meant the strong regime).
 
-\section*{Theory}
+\section*{Results}
+
+\subsection*{Theory}
+
+- overview of why BGS models fail?
+
+% could be in intro too:
+
+As genomes are transmitted through the generations, lifetime events selectively
+alter what is passed to the next generation. While selection truly acts on the
+genetic variants that directly cause heritable fitness differences among
+individuals, neighboring regions experience an indirect contraction in genetic
+variability. This byproduct is known as \emph{linked selection}, and it occurs
+when selection changes a site's frequency on timescale faster than
+recombination can decouple that site from its genetic background. Because
+linked selection modifies the genetic variability in a regionally-correlated
+way, it creates patterns in genomic data that are used to understand the types
+of selection processes acting on genomes.
+
+Much work has been done on developing mathematical theory for two primary
+selection processes: hitchhiking and background selection. In turn, statistical
+methods have use this theory for a variety of wide-ranging empirical problems.
+Early on, researchers found correlations between recombination rates and
+genetic diversity in small genomes with limited recombination like
+\emph{Drosophila} (XXX), consistent with linked selection processes acting on
+genome-wide scales. With population genomic data, small-scale (XXX kb) dips in
+genetic diversity was evidence of rare but strong selective sweeps in humans
+(XXX) and other species (XXX). 
+
+models of background selection can
+closely predict levels of human-chimp divergence at the megabase scale (XXX). 
+
+
+
+humans (XXX), though these offered only a partial picture of the selection
+processes acting (XXX). 
+
+Linked
+selection studies have found additional strong selective sweeps in taxa across
+the kingdom of life (XXX), and attention turned towards estimating the relative
+contributions of the hitchhiking and background processes (Eyalshiv).
+processes (Eyalshiv). 
+
+From an evolutionary perspective, models of linked selection
+
+
+The other use of these models is to understand how linked selection processes
+differentially alter the genetic variability, or equivalently, the genealogical
+trees, along the genome. 
+
+
+
+
+
+
+
+Early on, some pointed out that evidence of strong selective sweeps in the
+human genome was not the full story 
+
+Generally, in organisms with large amounts of recombination, linked selection
+has 
+
+
+Weak selection processes 
+
+distorts
+genome-wide 
+
+diversity.
+
+The linked selection literature has primarily focused on developing theory for,
+and quantifying the effects of two linked selection processes: hitchhiking and
+background selection. Genome-wide models of the hitchhiking process consider
+how beneficial mutations that sporadically enter the population 
+
+- QGLS polygenic linked selection
+
+- H and W
+
+- inflation factor
+
+\subsection*{Statistical Methods}
+
+\section*{Appendix}
+
+\subsection*{Overview of Theory}
 
 There has been considerable past work to find both the rate of the ratchet
 (XXX), and summaries of the genealogies created under weak purifying selection
@@ -236,8 +325,7 @@ find expressions for $b(t)$ with by modeling the selective process forward in
 time. Their approach is to consider how the variance in neutral allele
 frequency change is impacted by a linked selection process. 
 
-% First, we will show
-% how the variance in allele frequency is related to the k
+\subsubsection*{Variance in Neutral Allele Frequency in a Neutral System}
 
 For comparison, we start with the recursion for the variance in allele
 frequency change in a neutral Wright--Fisher model. Under binomial sampling of
@@ -253,11 +341,15 @@ and
 \begin{align}
   \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
           &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
-          &= \E_1\left[\E_2\left[(x_2-x_1)^2|x_1\right]\right] + \E_1\left[ (x_1 - x_0)^2\right] \\
+          &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
+          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + 2\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
+          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
           &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N}
 \end{align}
 
-such that in general, 
+Note that the cross-moment $\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right]
+= 0$ under neutral evolution. In general, the variance in allele frequency
+after $t$ generations of neutral evolution is,
 
 \begin{align}
   \label{eq:var_freq}
@@ -275,42 +367,126 @@ which in the limit $t \to \infty$, converges to the Bernoulli variance
 $x_0(1-x_0)$ as the frequency either goes to 1 with probability $x_0$ or 0 with
 probability $1-x_0$.
 
-Now, if the effective population size were to change each generation, equation
-\eqref{eq:var_freq} would be,
+% Now, if the effective population size were to change each generation, equation
+% \eqref{eq:var_freq} would be,
 
-\begin{align}
-  \V(x_t) &= \V(x_0) \left(1 + \sum_{i=1}^t \prod_{j=1}^{i} \left(1 - \frac{1}{2N(j)}\right) \right)
-\end{align}
+% \begin{align}
+%   \V(x_t) &= \V(x_0) \left(1 + \sum_{i=1}^t \prod_{j=1}^{i} \left(1 - \frac{1}{2N(j)}\right) \right)
+% \end{align}
 
-Note that this too converges to $x_0(1-x_0)$ as $t \to \infty$.
+% Note that this too converges to $x_0(1-x_0)$ as $t \to \infty$.
 
-Note now that equation 4 is a special case, when the evolutionary process has
-independent allele frequency changes through the generations. Selection
-processes will often lead to correlations in $\delta_i$ and $\delta_j$ for $i
-\ne j$. These correlations are because the neutral allele in generations $i$
-and $j$ can share some fraction of their fitness background, and in so far as
-the selective pressures are the same in generations $i$ and $j$, selection will
-perturb the frequency trajectories in the same direction. 
+\subsubsection*{Variance in Neutral Allele Frequency with Linked Selection}
 
-One way we can model these dependencies is to partition $\delta_i$ into drift
+Note that equation XXX is a special case, when the evolutionary process has
+independent allele frequency changes through the generations and thus the
+cross-moment is zero. Selection generates correlations between allele frequency
+changes at nearby neutral sites. These correlations created by linked selection
+inflate the variance in neutral allele frequency $\V(x_t)$ beyond what it would
+be in a system without linked selection operating. The magnitude of this
+inflation term is set by the selection process and its dynamics, linkage
+disequilibrium, and the recombination rate. Even k
+
+
+
+
+The theory of this began with \textcite{Robertson1961-ho},
+and was thoroughly worked out by Santiago and Caballero
+(\citeyear{Santiago1995-hx}, \citeyear{Santiago1998-bs}; see also
+\cite{Barton2000-zg} and \cite{Buffalo2019-qs}). Our BGS statistical methods
+employ the extension of this model for weak BGS \parencite{Santiago2016-mu}.
+For completeness, we step through a quick derivation of the linked selection
+inflation factor models here, based on
+\textcite{Santiago1995-hx,Santiago1998-bs}.
+
+Quantitative genetic models of linked selection
+
+
+
+%%%%%
+
+One way we can model these dependencies is to partition $\Delta_i$ into drift
 and selection components. Over evolutionary replicates, the drift components
 are independent and the selection components have some degree of
-autocorrelation. Consider $\delta x_i = \delta_S x_i + \delta_D x_i$
-
-
+autocorrelation. Let us partition $\Delta x_i = \Delta_S x_i + \Delta_D x_i$,
 
 \begin{align}
-  \V(x_2) &= \V\left(\delta x_2 + \delta x_1\right) \\
-          &= \V(\delta_D x_2) + \V(\delta_D x_1) + 2 \cov(\delta_S x_2, \delta_S x_1) \\
-          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N} +  2 \cov(\delta_S x_2, \delta_S x_1) \\
+  \V(x_2) &= \V\left(\Delta x_2 + \Delta x_1\right) \\
+          &= \V(\Delta_D x_2) + \V(\Delta_D x_1) + 2 \cov(\Delta_S x_2, \Delta_S x_1) \\
+          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N} +  2 \cov(\Delta_S x_2, \Delta_S x_1) 
 \end{align}
 
-since the drift changes are the familiar ones of equation XXX. The covariances
-are determined by the selective process dynamics, linkage disequilibrium, and
-the recombination rate.
+since $\Delta_D x_i \perp \Delta_D x_j$ for $i \ne j$. The covariances are
+determined by the selective process dynamics, linkage disequilibrium, and the
+recombination rate. These covariances are throughly worked out in
+\textcite{Santiago1995-hx} and \textcite{Buffalo2019-qs}, so we give a short
+derivation here. Throughout, we assume random mating, hermaphroditic
+individuals, and a constant population size. We will use angular brackets to
+indicate an average over all diploid individuals in the population, of some
+value with an individual-level index. For example, if we denote the number of
+allele an individual carries in generation $t$ as $z_{t,i} \in \{0, 1, 2\}$,
+the population frequency at time $x_t$ is
+
+\begin{align}
+  x_t = \langle z_t \rangle = \frac{1}{2N} \sum_{i=1}^N z_{t,i}
+\end{align}
+
+Across evolutionary replicates, each parent $i$ passes one of their two neutral
+alleles to a random number $k_i$ offspring. The \emph{heritable fitness} of an
+individual $f_i$ is defined as the expected number of offspring passed down
+across evolutionary replicates, such that $k_i = f_i + \varepsilon_i$.  Some
+selection process determines the distribution of $f_i$, but the this occurs
+independently of the process that sorts neutral alleles into diploid
+individuals. We are unsure of the neutral allele count in an individual in the
+initial generation, $z_{t,0}$, so we condition on it and take expectations
+later. Then, the frequency in the initial and first generations are,
+
+\begin{align}
+  x_0 = \langle z_0 \rangle = \frac{1}{2N} \sum_{i=1}^N z_{0,i} \\
+  x_1 = \langle z_1 \rangle = \frac{1}{2N} \sum_{i=1}^N \left( k_i \frac{z_{0,i}}{2} + \sum_{j=1}^{k_i} \delta_{i,j} \right)
+\end{align}
+
+The first term is the average number of neutral alleles each parent passes to
+its $k_i$ offspring. In reality, alleles are discrete, so each heterozygous
+parent also passes a random $\pm \nicefrac{1}{2}$ to each offspring, which
+leads to the second term. The variable $\delta_{i,j}$ is 0 if the parent is a
+homozygote, but if the parent is a heterozygote, is $\pm \nicefrac{1}{2}$ with
+equal probability over evolutionary replicates.
+
+Since individuals are exchangeable with their contribution to the
+heterozygosity term and population size is constant,
+
+\begin{align}
+  \sum_{i=1}^N \sum_{j=1}^{k_i} \delta_{i,j} = \sum_{i=1}^N \delta_{i} 
+\end{align}
+
+We can further partition the offspring number into heritable and non-heritable
+parts,
+
+\begin{align}
+  x_1 &= \frac{1}{2N} \sum_{i=1}^N \left( (f_i + \varepsilon_i) \frac{z_{0,i}}{2} + \delta_{i} \right) \\
+      &= \frac{1}{4N} \sum_{i=1}^N f_i z_{0,i} + \frac{1}{4N} \sum_{i=1}^N \varepsilon_i z_{0,i} + \frac{1}{2N} \sum_{i=1}^N \delta_{i} \\
+      &=  \frac{1}{4} \langle f \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle \\
+\end{align}
+
+% TODO factor 1/2 error
+
+\begin{align}
+  x_1 - x_0 &= \frac{1}{4} \langle f \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle - \langle z_0 \rangle \\
+            &= \frac{1}{4} \langle (f-1) \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle 
+\end{align}
+
+Now, we look at the variance of this over evolutionary replicates. By symmetry,
+the expected change in a neutral allele is $\E(\Delta x_t) = 0$ since we track
+an arbitrary neutral allele. Then the variance $\V(\Delta x_1) = \E( {\Delta
+x_1}^2)$,
+
+\begin{align}
+  \V(\Delta x_1) &= \frac{1}{4} \langle (f-1) \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle 
+\end{align}
 
 
-
+OLD
 Let us imagine there is some stochastic process $b(t)$ that rescales the coalescent
 rate, 
 
@@ -392,7 +568,7 @@ number of allele an individual carries in generation $t$ as $x_{t,i} \in \{0,
 \begin{align}
   \Delta_H p &= \langle x (f-1) \rangle \\
   \Delta_N p &= \langle x d \rangle \\
-  \Delta_M p &= \langle \delta \rangle \\
+  \Delta_M p &= \langle \Delta \rangle \\
 \end{align}
 
 Assuming uninherited, random environments, only the $\Delta_{_H} p$ terms
@@ -641,7 +817,7 @@ gamete mutation counts, which is an LD quantity. Then, assuming $s$ is small,
 we can write express this in terms of the additive genetic variance, 
 
 \begin{align}
-  V(f) &\approx s^2 \V_a(n) + \delta_\text{LD}
+  V(f) &\approx s^2 \V_a(n) + \Delta_\text{LD}
 \end{align}
 
 The first term is the additive genic variance, which is 
