@@ -52,119 +52,62 @@ recombination can decouple that site from its genetic background. Because
 linked selection modifies the genetic variability in a regionally-correlated
 way, it creates observable patterns in genomic data that are used to understand
 the type of selection processes acting on genomes and estimate key evolutionary
-quantities.
+quantities. 
+
+% , with characteristic length
+% $\nicefrac{s}{r}$ basepairs, where $s$ is the heterozygous selection
+% coefficient and $r$ is the per-basepair recombination rate. Sweeps were found
+% in humans, \emph{Drosophila}, and other species (XXX), though it was unclear
+% whether hitchhiking alone could explain the observed genome-wide correlation
+% between recombination rate and genetic diversity in some species (XXX). 
 
 Much work has been done on developing mathematical theory for two linked
-selection processes: hitchhiking and background selection. What distinguishes
-these are the evolutionary processes that generate fitness variation, and the
-resulting selection dynamics. Classic hitchhiking models assume new beneficial
-variants occur and sweep to fixation (XXX). Theory predicts that classic sweeps
-affect diversity on small spatial scales, with characteristic length
-$\nicefrac{s}{r}$ basepairs, where $s$ is the heterozygous selection
-coefficient and $r$ is the per-basepair recombination rate. Sweeps were found
-in humans, \emph{Drosophila}, and other species (XXX), though it was unclear
-whether hitchhiking alone could explain the observed genome-wide correlation
-between recombination rate and genetic diversity in some species (XXX). Since
-the sweeps leave relatively narrow footprint, they influence genome-wide
-diversity only when beneficial mutations are recurring and recombination is
-relatively limited, as in \emph{Drosophila}. 
+selection processes: hitchhiking and background selection. These are
+distinguished by the evolutionary processes that generate fitness variation and
+the resulting selection dynamics. Under the classic hitchhiking model, a new
+beneficial mutation sweeps fixation, leading to a dip in genetic diversity on a
+small spatial scale. Since the sweeps leave relatively narrow footprint, they
+influence genome-wide diversity only when beneficial mutations are recurring
+and recombination is relatively limited, as in \emph{Drosophila}. These models
+assume sweeps are sufficiently rare as to not occur simultaneously, which is
+consistent with the slow estimated rate of strongly beneficial mutations (XXX).
+Overall, the classic hitchhiking model is simple because the underlying
+selection process does not generate polygenic fitness variation, even though
+this is type of variation plays a dominant role in adaptation (XXX).
 
-By contrast, background selection occurs because of the steady influx of new
-deleterious mutations into conserved regions each generation. Since far more
-new mutations are deleterious than beneficial in functional regions, it would
-seem like background selection would have a dominant role in shaping genetic
-diversity. However, deleterious mutations segregate on a timescale inversely
-proportional to their selection cost (XXX). Strongly deleterious mutations
-eliminate neighboring genetic variability on the few chromosomes they may
-recombine onto before the eventual extinction, and consequently have very weak
-effects on larger spatial scales. Moderately weakly selected mutations can
-persist for much longer periods, allowing for more recombination before their
-eventual loss and produce reductions in diversity on shorter spatial scales.
-The reduction in diversity under background selection is determined
-approximately by $\nicefrac{U}{R}$, where $U = \mu_D L$ is the number of
-deleterious mutations (at rate $\mu_D$ per basepair, per generation) in a
-conserved region of $L$ basepairs per generation, and $R = r L$, which is the
-total recombination per generation in Morgans. Since the deleterious mutation
-rate is relatively constant across conserved regions, the reduction due to
-background selection closely matches the composition of conserved regions and
-recombination along the genome. Remarkably, simple mathematical models of
-background selection closely predicts levels of human-chimp divergence at the
-megabase scale (XXX) from genome-wide patterns of recombination and regions
-conserved between species (McVicker). 
+By contrast, background selection is a consequence of the fitness variation
+created by a steady influx of new deleterious mutations. The classic background
+selection model (XXX) considers how the balance between mutation introducing
+deleterious variants into the population and selection removing them, reduces
+nearby genetic variability. A critical assumption of this model is that such an
+equilibrium between mutation and selection exists, which is the case only when
+these mutations have a large enough fitness cost to ensure that they cannot fix
+in the population. Under this process, the number of deleterious mutations per
+gamete reaches a Poisson stationary distribution with rate $\nicefrac{U}{s}$,
+where $U = \mu_D L$ is the deleterious mutation rate ($\mu_D$ per basepair per
+generation) in a region of $L$ basepairs for mutations with a heterozygous
+selection coefficient of $s$ (XXX). The fraction of gametes without any
+mutations is then $f_0 = \exp(-\nicefrac{\mu_D}{s})$. Without recombination,
+any gamete with deleterious mutations is destined to bring its linked neutral
+variation with it to extinction, effectively reducing diversity levels to those
+expected in a neutrally-evolving population of size $f_0 N$. 
 
+Remarkably, predictions from simple background selection models with
+recombination closely match large-scale patterns of human diversity and
+divergence (XXX). Since background approximately rescales a neutral coalescent
+process by $f_0$, the predicted diversity is reduced from neutral levels by a
+factor $B = \nicefrac{N_e}{N}$, which is the ratio of effective population size
+under background selection to the population size. In background selection
+models with recombination, $B$ is determined by the number of conserved
+basepairs and recombination in a region. Consequently the predicted reduction
+along the genome (known as $B$ maps) mirror the regional density of conserved
+elements under purifying selection and recombination rates. These $B$ maps have
+been used in studies of XXX, are inputs into machine learning models that
+predict functional constraint, and XXX. Furthermore, since new deleterious
+mutations are perpetually flowing into populations $B$ maps may provide a
+better null model for evolution than the standard neutral model.
 
-
-
-
-
-
-This leads to some of the unidentifiability of hitchhiking versus background
-selection.
-
-and the reduction is determined
-by 
-
-While the rate
-new beneficial mutations enter the population is low (XXX), 
-
-The spatial scale of background selection is 
-
-kkkkkk
-
-not all
-adaptation occurs from such new beneficial mutations sweeping to fixation (XXX)
-
-
-Other processes also act
-on beneficial fitness variation to engender linked selection, such as polygenic
-selection after an optimum shift \parencite{Buffalo2019-qs,Buffalo2020-my} or
-soft sweeps from standing variation (XXX). 
-
-In turn, statistical methods have use this theory for a variety of wide-ranging
-empirical problems.  Early on, researchers 
-
-While it is difficult to differentiate the selective processes
-leading to linked selection, studies indicate background selection 
-
-hitchhiking events where a low-frequency 
-
-studies
-in \emph{Drosophila} and humans indicate background selection has a large role
-in shaping patterns of diversity, especially at large spatial scales (i.e.
-megabases). 
-
-
-Another central empirical goal is to estimate the relative strengths of the
-these two selection processes on levels of genetic diversity (Eyalshiv). Since
-the effects of linked selection are determined in part by mutation rate and
-distribution of fitness effects (DFE), these statistical methods also estimate
-these important evolutionary parameters from genomic data. These estimates
-should, in theory, align with others using different approaches, such as
-trio-based estimates of the mutation rate and estimates of the DFE from
-site-frequency spectra.
-
-Understanding the extent to which linked selection influences other
-evolutionary processes is a central question in evolutionary genetics. Two
-central questions have emerged. First, while genetic drift is thought to be the
-main source of random fluctuations in neutral allele frequencies, linked
-selection can have a similar impact on neutral sites, increasing the variance
-in allele frequency change as if the population size were effectively smaller.
-Although linked selection causes significant reductions in genetic diversity in
-some species, it is unlikely to explain the narrow range of observed diversity
-across species \parencite{Buffalo2021-uf}. Second, by perturbing the
-frequencies of neighboring alleles, selection can interfere with their
-selection dynamics, known as Hill-Robertson interference (HRI, XXX). When
-recombination is limited, simultaneous selection across the genome reduces the
-odds beneficial mutations are fixed (HRI), effectively like selection was
-occurring in an smaller population size. The Hill-Robertson effect is thought
-to be weak in organisms in organisms with large recombination maps, perhaps
-because of selection for increased recombination.
-
-
-
-
-Our focus here is to begin to fix some deficiencies in the background selection
-model. In particular, 
+While background selection models do predict diversity levels 
 
 % outline?
 - Disentangling evolutionary processes from the patterns of genetic variation
@@ -971,5 +914,116 @@ Bin-level tail filtering.
 % under strong background selection, deleterious alleles would not fix, in these
 % regions the can fix. Additionally, the selective interference impacts positive
 % selection.
+
+
+
+% Understanding the extent to which linked selection influences other
+% evolutionary processes is a central question in evolutionary genetics. Two
+% central questions have emerged. First, while genetic drift is thought to be the
+% main source of random fluctuations in neutral allele frequencies, linked
+% selection can have a similar impact on neutral sites, increasing the variance
+% in allele frequency change as if the population size were effectively smaller.
+% Although linked selection causes significant reductions in genetic diversity in
+% some species, it is unlikely to explain the narrow range of observed diversity
+% across species \parencite{Buffalo2021-uf}. Second, by perturbing the
+% frequencies of neighboring alleles, selection can interfere with their
+% selection dynamics, known as Hill-Robertson interference (HRI, XXX). When
+% recombination is limited, simultaneous selection across the genome reduces the
+% odds beneficial mutations are fixed (HRI), effectively like selection was
+% occurring in an smaller population size. The Hill-Robertson effect is thought
+% to be weak in organisms in organisms with large recombination maps, perhaps
+% because of selection for increased recombination.
+
+
+% In organisms with limited recombination such as
+% \emph{Drosophila}, estimates suggest background selection plays a marginally
+% larger role than hard sweeps in reducing diversity \parencite{Elyashiv2016-vt}.
+
+
+
+% closely predict large-scale patterns of
+% diversity across the genome
+
+
+
+
+
+% Since far more new mutations are deleterious than beneficial in functional
+% regions, it would seem like background selection would have a dominant role in
+% shaping genetic diversity. However, deleterious mutations segregate on a
+% timescale inversely proportional to their selection cost (XXX). Strongly
+% deleterious mutations eliminate neighboring genetic variability on the few
+% chromosomes they may recombine onto before the eventual extinction, and
+% consequently have very weak effects on larger spatial scales. Moderately weakly
+% selected mutations can persist for much longer periods, allowing for more
+% recombination before their eventual loss and produce reductions in diversity on
+% shorter spatial scales.  The reduction in diversity under background selection
+% is determined approximately by $\nicefrac{U}{R}$, where $U = \mu_D L$ is the
+% number of deleterious mutations (at rate $\mu_D$ per basepair, per generation)
+% in a conserved region of $L$ basepairs per generation, and $R = r L$, which is
+% the total recombination per generation in Morgans. Since the deleterious
+% mutation rate is relatively constant across conserved regions, the reduction
+% due to background selection closely matches the composition of conserved
+% regions and recombination along the genome. Remarkably, simple mathematical
+% models of background selection closely predicts levels of human-chimp
+% divergence at the megabase scale (XXX) from genome-wide patterns of
+% recombination and regions conserved between species (McVicker). 
+
+
+% This leads to some of the unidentifiability of hitchhiking versus background
+% selection.
+
+% and the reduction is determined
+% by 
+
+% While the rate
+% new beneficial mutations enter the population is low (XXX), 
+
+% The spatial scale of background selection is 
+
+% kkkkkk
+
+% not all
+% adaptation occurs from such new beneficial mutations sweeping to fixation (XXX)
+
+
+% Other processes also act
+% on beneficial fitness variation to engender linked selection, such as polygenic
+% selection after an optimum shift \parencite{Buffalo2019-qs,Buffalo2020-my} or
+% soft sweeps from standing variation (XXX). 
+
+% In turn, statistical methods have use this theory for a variety of wide-ranging
+% empirical problems.  Early on, researchers 
+
+% While it is difficult to differentiate the selective processes
+% leading to linked selection, studies indicate background selection 
+
+% hitchhiking events where a low-frequency 
+
+% studies
+% in \emph{Drosophila} and humans indicate background selection has a large role
+% in shaping patterns of diversity, especially at large spatial scales (i.e.
+% megabases). 
+
+
+% Another central empirical goal is to estimate the relative strengths of the
+% these two selection processes on levels of genetic diversity (Eyalshiv). Since
+% the effects of linked selection are determined in part by mutation rate and
+% distribution of fitness effects (DFE), these statistical methods also estimate
+% these important evolutionary parameters from genomic data. These estimates
+% should, in theory, align with others using different approaches, such as
+% trio-based estimates of the mutation rate and estimates of the DFE from
+% site-frequency spectra.
+
+
+
+
+% Our focus here is to begin to fix some deficiencies in the background selection
+% model. In particular, 
+
+
+
+
+
 
 
