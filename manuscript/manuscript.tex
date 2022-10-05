@@ -107,7 +107,7 @@ predict functional constraint, and XXX. Furthermore, since new deleterious
 mutations are perpetually flowing into populations $B$ maps may provide a
 better null model for evolution than the standard neutral model.
 
-While background selection models do predict diversity levels 
+While background selection models do predict diversity levels  XXX
 
 % outline?
 - Disentangling evolutionary processes from the patterns of genetic variation
@@ -142,15 +142,9 @@ $\delta_{LD}$ term could be much larger.
 - overview of why BGS models fail?
 
 
-
-even when sites under selection are sparse.
-
 From an evolutionary perspective, linked selection is important because by
 modifying neighboring levels of genetic diversity, it is also directly altering
 the selection dynamics at these neighboring sites. 
-
-Typically evolutionary genetic models consider 
-
 
 
 The other use of these models is to understand how linked selection processes
@@ -191,6 +185,67 @@ how beneficial mutations that sporadically enter the population
 \section*{Appendix}
 
 \subsection*{Overview of Theory}
+
+Here, I step through a quick derivation of \textcite{Santiago1998-bs}.
+Throughout, we assume random mating, hermaphroditic individuals, and a constant
+population size. 
+
+The change in a neutral allele's frequency in one generation can be partitioned
+into the three sources of stochasticity: the random associations with fitness
+backgrounds (i.e. \emph{draft}), the non-heritable randomness in family size,
+and the Mendelian noise from heterozygotes segregating. If we let $x_{0,i} \in
+\{0, 1, 2\}$ be the number of neutral alleles individual $i$ in generation 0
+carries, we can partition the neutral allele frequency change into the
+underlying stochastic causes,
+
+\begin{align}
+  p_1 = \frac{1}{N} \sum_{i=1}^N \left( \frac{x_{0,i}}{2} k_i + \sum_{j=1}^{k_i} \delta_{0,i,j} \right)
+\end{align}
+
+where $k_i$ is the number of surviving gametes parent $i$ passes on, and
+$\delta_{0,i,j}$ is a random term that encapsulates the noise due to Mendelian
+segregation of heterozygotes. If parent $i$ is a homozygote ($x_{0,i} \in \{0,
+2\}$), then $\delta_{0,i,j} = 0$, whereas if $x_{0,i} = 1$ then $\delta_{0,i,j}
+= \pm \nicefrac{1}{2}$ with equal probability. This is because a heterozygous
+parent will transmit half a neutral allele in expectation, but each round of
+Mendelian segregation must pass on either 0 or 1 alleles, which the random $\pm
+\nicefrac{1}{2}$ term imposes. There is the condition that $\nicefrac{1}{N}
+\sum_i k_i = 2$, since each diploid parent must have two kids to maintain a
+constant population size.
+
+Then, noting that $p_0 = \nicefrac{1}{2N} \sum_{i=1}^N x_{0,i}$, the allele
+frequency change is,
+
+\begin{align}
+  \Delta p_1 = p_1 - p_0 = \frac{1}{N} \sum_{i=1}^N \frac{x_{0,i}}{2} (k_i - 1) + \frac{1}{N} \sum_{i=1}^N \sum_{j=1}^{k_i} \delta_{0,i,j}.
+\end{align}
+
+Next, we can partition the gamete number into heritable ($f_i$) and
+non-heritable ($\varepsilon_i$) fitness components of each individual $i$, $k_i
+= f_i + \varepsilon_i$. We define $f_i$ such that $\nicefrac{1}{N} \sum_i f_i =
+2$ in a constant population, and $\varepsilon_i$ is noise term centered around
+zero. Then, the neutral allele frequency change is,
+
+\begin{align}
+  \Delta p_1 &= \frac{1}{2N} \sum_{i=1}^N x_{0,i} (f_i - 1) +
+               \frac{1}{2N} \sum_{i=1}^N x_{0,i} \varepsilon_i
+  + \frac{1}{N} \sum_{i=1}^N \sum_{j=1}^{k_i} \delta_{0,i,j} \\
+  % \Delta p_1 &= \frac{1}{2N} \sum_{i=1}^N x_{0,i} (f_i - 1) +
+               % \frac{1}{2N} \sum_{i=1}^N x_{0,i} \varepsilon_i
+  % + \frac{1}{N} \sum_{i=1}^N \sum_{j=1}^{k_i} \delta_{0,i,j} \\
+  \Delta p_1 &= \Delta_{_H} p_1 + \Delta_{_N} p_1 + \Delta_{_M} p_1
+\end{align}
+
+which we will derive the variance of through time (c.f. \cite{Santiago1995-hx}
+equation 2 and \cite{Buffalo2019-qs} equation 30). This equation is very
+general, and allows for any reproduction model with finite offspring variance
+and can account for the impact of linked selection under a variety of selection
+processes.
+
+
+
+
+%%% OLD
 
 There has been considerable past work to find both the rate of the ratchet
 (XXX), and summaries of the genealogies created under weak purifying selection
