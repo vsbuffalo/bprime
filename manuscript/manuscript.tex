@@ -195,11 +195,12 @@ into the three sources of stochasticity: the random associations with fitness
 backgrounds (i.e. \emph{draft}), the non-heritable randomness in family size,
 and the Mendelian noise from heterozygotes segregating. If we let $x_{0,i} \in
 \{0, \nicefrac{1}{2}, 1\}$ be the frequency of neutral alleles individual $i$
-in generation 0 carries, we can partition the neutral allele frequency change
-into the underlying stochastic causes,
+in generation 0 carries, we can partition the random neutral allele frequency
+of the population ($x_t$ without the individual index) into the underlying
+stochastic causes,
 
 \begin{align}
-  p_1 = \frac{1}{2N} \sum_{i=1}^N \left( x_{0,i}k_{0,i} + \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \right)
+  x_1 = \frac{1}{2N} \sum_{i=1}^N \left( x_{0,i}k_{0,i} + \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \right)
 \end{align}
 
 where $k_{0,i}$ is the number of surviving gametes parent $i$ passes on, and
@@ -215,24 +216,25 @@ number of gametes they transmit. Since each diploid parent must have two
 offspring to maintain a constant population size, $\nicefrac{1}{N} \sum_i
 k_{0,i} = 2$. 
 
-Then, noting that $p_0 = \nicefrac{1}{N} \sum_{i=1}^N x_{0,i}$, the allele
-frequency change is,
+The frequency in the initial generation is $x_0 = \nicefrac{1}{N} \sum_{i=1}^N
+x_{0,i}$, though to indicate that we treat this as fixed, we use $p_0 = x_0$.
+Then, the allele frequency change is,
 
 \begin{align}
-  \Delta p_1 = p_1 - p_0 &= \frac{1}{2N} \sum_{i=1}^N x_{0,i} (k_{0,i} - 1) + \frac{1}{2N} \sum_{i=1}^N \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \\
-  \Delta p_1 &= K_1 + H_1
+  \Delta x_1 = x_1 - p_0 &= \frac{1}{2N} \sum_{i=1}^N x_{0,i} (k_{0,i} - 1) + \frac{1}{2N} \sum_{i=1}^N \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \\
+  \Delta x_1 &= K_1 + H_1
 \end{align}
 
 where $K_1$ and $H_1$ are the random change in neutral allele frequency change
 due to offspring number (including heritable and non-heritable components), and
 Mendelian segregation.
 
-Now, let us look the variance of $\var(\Delta p_1)$ over evolutionary
+Now, let us look the variance of $\var(\Delta x_1)$ over evolutionary
 replicates. Since the Mendelian random process and the offspring random process
 are independent,
 
 \begin{align}
-  \var(\Delta p_1) &= \var(K_1) + \var(H_1).
+  \var(\Delta x_1) &= \var(K_1) + \var(H_1).
 \end{align}
 
 Looking at each term,
@@ -295,6 +297,44 @@ variance under a Wright--Fisher model ($V_\text{WF}$), we'd have
 \end{align}
 
 (c.f. \cite{Wright1938-tv}).
+
+Now, we look at this variance equation behaves with $t > 1$. 
+
+\begin{align}
+  \V(x_1) = \E_1\left[(x_1 - x_0)^2\right]= \frac{x_0(1-x_0)}{2N},
+\end{align}
+
+and
+
+\begin{align}
+  \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
+          &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
+          &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
+          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + 2\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
+          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] + C_{1,2} \\
+          &= \frac{p_0(1-p_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{p_0(1-p_0)}{2N} + C_{1,2}
+\end{align}
+
+Consequently, the variance of the neutral allele frequency changes each
+generation according to the probability of failing to coalesce each generation
+and the pairwise covariance terms $C_{i,j}$ that build up due to associations
+with heritable fitness backgrounds. Note that the covariance term $C_{1,2} =
+\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] = 0$ under neutral
+evolution, and this simplifies to the well-known equation for variance in a
+Wright--Fisher population.
+
+
+
+
+% In general, the variance in allele frequency after $t$ generations
+% of neutral evolution is,
+
+%\begin{align}
+%  \label{eq:var_freq}
+%  %\V(x_t) &= \frac{x_0(1-x_0)}{2N}\left(\sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i-1} \right)
+%  \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right)
+%\end{align}
+
 
 
 
