@@ -184,20 +184,18 @@ how beneficial mutations that sporadically enter the population
 
 \section*{Appendix}
 
-\subsection*{Overview of Theory}
+\subsection*{Overview of Quantitative Genetic Linked Selection Theory}
 
-Here, I step through a quick derivation of \textcite{Santiago1998-bs}.
+Here, we step through a quick derivation of \textcite{Santiago1998-bs}.
 Throughout, we assume random mating, hermaphroditic individuals, and a constant
-population size. 
-
-The change in a neutral allele's frequency in one generation can be partitioned
-into the three sources of stochasticity: the random associations with fitness
-backgrounds (i.e. \emph{draft}), the non-heritable randomness in family size,
-and the Mendelian noise from heterozygotes segregating. If we let $x_{0,i} \in
-\{0, \nicefrac{1}{2}, 1\}$ be the frequency of neutral alleles individual $i$
-in generation 0 carries, we can partition the random neutral allele frequency
-of the population ($x_t$ without the individual index) into the underlying
-stochastic causes,
+population size. The change in a neutral allele's frequency in one generation
+can be partitioned into the three sources of stochasticity: the random
+associations with fitness backgrounds (i.e. \emph{draft}), the non-heritable
+randomness in family size, and the Mendelian noise from heterozygotes
+segregating. If we let $x_{0,i} \in \{0, \nicefrac{1}{2}, 1\}$ be the frequency
+of neutral alleles individual $i$ in generation 0 carries, we can partition the
+random neutral allele frequency of the population ($x_t$ without the individual
+index) into the underlying stochastic causes,
 
 \begin{align}
   x_1 = \frac{1}{2N} \sum_{i=1}^N \left( x_{0,i}k_{0,i} + \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \right)
@@ -278,7 +276,7 @@ p_0(1-p_0)$, so
 Finally, we have
 
 \begin{align}
-  \var(\Delta p_1) &= K_1 + H_1 \\
+  \var(\Delta x_1) &= \var(K_1) + \var(H_1) \\
   &\approx \frac{p_0(1-p_0)}{2N} \frac{\var(k)}{4} + \frac{p_0(1-p_0)}{2N} \frac{1}{2} \\
                    &\approx \frac{p_0(1-p_0)}{2N}\left(\frac{\var(k)}{4} + \frac{1}{2}\right)
 \end{align}
@@ -307,6 +305,7 @@ Now, we look at this variance equation behaves with $t > 1$.
 and
 
 \begin{align}
+  \label{eq:var_wf}
   \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
           &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
           &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
@@ -322,6 +321,154 @@ with heritable fitness backgrounds. Note that the covariance term $C_{1,2} =
 \E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] = 0$ under neutral
 evolution, and this simplifies to the well-known equation for variance in a
 Wright--Fisher population.
+
+Now, we turn our attention to the case where there is heritable fitness
+variation, which leads to non-zero covariance terms $C_{i,j}$. These terms
+emerge when $\var(k)$ has a heritable component of fitness that can be
+transmitted along with the neutral allele, thereby affecting the neutral
+allele's trajectory in later generations. If we write the offspring number into
+heritable and non-heritable components, $k_i = 2f_i + \varepsilon_i$, then
+$\var(k_i) = 4 V_h + V_n$. We can further decompose the $K_1$ term into $K_1 =
+S_1 + D_1$,
+
+\begin{align}
+  \var(\Delta x_1) &= \var(S_1) + \var(D_1) + \var(H_1) \\
+  &\approx \frac{p_0(1-p_0)}{2N} V_h + \frac{p_0(1-p_0)}{2N} \frac{V_n}{4} + \frac{p_0(1-p_0)}{2N} \frac{1}{2}. \\
+\end{align}
+
+(c.f. \cite{Santiago1995-hx} equation 11).
+
+To see how the covariance terms accumulate, consider $\var(x_3 - p_0)$. Note
+that $\E(S_t) = \E(D_t) = \E(H_3) = 0$, since which neutral allele we track is
+arbitrary, so by symmetry the expected change is zero. Then,
+
+\begin{align}
+  \label{eq:var_x}
+  \var(x_3 - p_0) &= \E\left[ \left(S_1 + D_1 + H_1 + S_2 + D_2 + H_2 + S_3 + D_3 + H_3 \right)^2 \right] \\
+                  &= \E({S_1}^2) + \E({S_2}^2) + \E({S_3}^2)  \\
+                  &+ 2\E(S_1 S_2) + 2\E(S_1 S_3) + 2\E(S_2 S_3) \\
+                  &+ \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) + \E({D_3}^2) + \E({H_3}^2)
+\end{align}
+
+The covariance terms $\E(S_i S_j)$ for $j > i$ represent the expected
+neutral allele frequency change from a neutral allele becoming associated with
+a fitness background in generation $i$ and that fitness association persisting
+until generation $j$. Let us consider $S_1$ and $S_2$. We have,
+
+\begin{align}
+  S_1 = \frac{1}{2N} \sum_{i=1}^N x_{0,i}(f_{0,i} - 1) = \cov(x_{0,i}, f_{0,i}) \\
+  S_2 = \frac{1}{2N} \sum_{i=1}^N x_{1,i}(f_{1,i} - 1) = \cov(x_{1,i}, f_{0,i})
+\end{align}
+
+which are chance covariances (across the population, \emph{not} evolutionary
+replicates) created by the random sorting of neutral alleles and fitness into
+individuals, \emph{each generation}. These covariances are equivalent to the
+Robertson-Price equation \parencite{Robertson1966-fs,Price1970-si}, which
+predict the change in neutral frequency due to heritable fitness (and likewise
+with the change due to non-heritable factors).
+
+Considering the underlying haplotypes that lead to $x_{0,i}$ and $f_{0,i}$ can
+give us an equation for the dynamics of the $\E(S_i S_j)$ (for $j > i$) terms
+over evolutionary replicates. Let us partition the allele frequency and fitness
+by into the average of the paternal contributions. The neutral allele frequency
+per gamete is either 0 or 1, and we assume the fitnesses across gametes are
+additive. Then, as long as there is random mating, we can simplify the
+associations in a diploid by looking at a single gamete,
+
+\begin{align}
+  S_1 = \cov(x_{0,i}, f_{0,i}) &= \cov\left(\frac{x_{0,i}' + x_{0,i}''}{2}, f_{0,i}' + f_{0,i}''\right)  \\
+                               &= \frac{1}{2}\left(\cov(x_{0,i}', f_{0,i}' + f_{0,i}'') + \cov(x_{0,i}'', f_{0,i}' + f_{0,i}'')\right)  \\
+                               &= \cov(x_{0,i}', f_{0,i}' + f_{0,i}'')  \\
+                               &= \cov(x_{0,i}', f_{0,i}') + \cov(x_{0,i}', f_{0,i}'')  \\
+                               &= S_1' + S_1''
+\end{align}
+
+which follows from symmetry, since it does not matter which gamete carrying the
+neutral allele we track (c.f. \cite{Santiago1998-bs} p. 2107). The primes now
+indicate whether the selected locus is on the same gamete as the neutral
+allele (single prime), or the homologous gamete (double prime).
+
+After meiosis, a fraction $1-r$ of these associations between the tracked
+neutral neutral allele $x_{0,1}'$ and fitness background $f_{0,i}'$ persist,
+and a fraction $r$ disassociate its currently coupled background and create an
+association with the homologous fitness background, $f_{0,i}''$. When linkage
+is tight, this latter term can be ignored as we will do here, though it does
+impact background levels of neutral diversity \parencite{Santiago1995-hx}.
+Additionally, the fitness effects of the selected background may change in
+later generations, in complex ways \parencite{Barton1986-yh,Turelli1990-kd}.
+\textcite{Santiago1995-hx} assume an equilibrium level of fitness variation
+$V_h$, with the fitness variance associated with a particular background
+decaying at a simple geometric decay at rate $Z$ each generation, which is
+sufficient for background selection. An approximate rate of the decay can be
+worked out for the particular selective system. In general, this can be a much
+more complicated function; \textcite{Buffalo2019-qs} show that even fluctuating
+selection can be accommodated.
+
+Now, the associations created in generation 1 and that persist in future
+generations as (ignoring $S_i''$ terms) follow the pattern
+
+\begin{align}
+  S_{2}' &= S_1 Z(1-r) \\
+  S_{3}' &= S_1 Z^2(1-r)^2 \\
+  S_{4}' &= S_1 Z^3(1-r)^3.
+\end{align}
+
+Then, the cumulative effect of the fitness associations created in generation
+$1$ can be written as,
+
+\begin{align}
+  S_1 Q_t &= S_1 + S_2' + S_3' + \ldots + S_t' \\
+  Q_t &= 1 + \sum_{i=1}^t r^i (1-Z)^i \\
+  Q_\infty &= \frac{1}{1-r (1-Z)}
+\end{align}
+
+which shows the long reach of heritable fitness factors in altering allele
+frequency through the generations. In terms like $\E(S_1 S_2)$, a fraction
+$S_1'$ of the heritable allele frequency change $S_2$ were \emph{previously}
+built associations between the neutral allele and a fitness background from
+$S_1$. As long as the direction of selection is the same, the expected change
+of this fraction of associations formed in the first generation to later
+generations 2 and 3 would be,
+
+\begin{align}
+  \E(S_1 S_2) &= \E(S_1^2) Z(1-r) = \E(S_1^2) Q_2^2 \\
+  \E(S_1 S_3) &= \E(S_1^2) Z^2(1-r)^2 = \E(S_1^2) Q_3^2.
+\end{align}
+
+With these covariance terms, we now have a full model for $\var(p_t - p_0)$. We
+will look at the case for $t=2$. As shown in equation XXX, the second moment of
+every term is a function of the variance in neutral allele frequency in that
+generation, $x_t(1-x_t)$. This variance does not stay its initial value of
+$x_0(1-x_0)$; it decays each generation due to coalesce from the drift and
+selection processes modeled by this approach. The rate at which this decay
+happens is the effective population size each generation implied by this model. 
+We write (this differs from the original \cite{Santiago1995-hx} derivation),
+
+\begin{align}
+  \var(x_2 - p_0) &= \E({S_1}^2) + 2\E(S_1 S_2) + \E({S_2}^2) \\
+                  & + \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) \\
+  \frac{\var(x_2 - p_0)}{p_0(1-p_0)} &= \frac{V_h}{2N_{e,1}} + \frac{V_h Q_2^2}{2N_{e,2}}\left(1-\frac{1}{2N_{e,1}}\right)  +  \frac{V_h}{2N_{e,2}}  \left(1-\frac{1}{2N_{e,1}}\right)  \\ 
+                                     &+ \frac{V_n}{8N_{e,1}} + \frac{1}{4N_{e,1}} + \frac{V_n}{8N_{e,2}}  \left(1 - \frac{1}{2N_{e,1}}\right) 
++ \frac{1}{4N_{e,2}} \left(1 - \frac{1}{2N_{e,1}}\right).
+\end{align}
+
+A general equation of this is,
+
+\begin{align}
+  \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right) \\
+\end{align}
+
+In the original derivation of \textcite{Santiago1995-hx}, they set each
+$N_{e,t}$ term to a single $N_e$ for which they solve for. 
+
+
+This is an asymptotic $N_e$, but this does not accurately describe the levels
+of diversity (\cite{Santiago1998-bs} equation 16, \cite{Santiago2016-mu}
+equation 4).
+
+\begin{align}
+  \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right) + \sum_{i \ne j} C_{i,j}
+\end{align}
 
 
 
