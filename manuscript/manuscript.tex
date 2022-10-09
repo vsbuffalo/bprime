@@ -346,14 +346,16 @@ arbitrary, so by symmetry the expected change is zero. Then,
   \label{eq:var_x}
   \var(x_3 - p_0) &= \E\left[ \left(S_1 + D_1 + H_1 + S_2 + D_2 + H_2 + S_3 + D_3 + H_3 \right)^2 \right] \\
                   &= \E({S_1}^2) + \E({S_2}^2) + \E({S_3}^2)  \\
-                  &+ 2\E(S_1 S_2) + 2\E(S_1 S_3) + 2\E(S_2 S_3) \\
+                  &+ \E(S_1 S_2) + \E(S_1 S_3) + \E(S_2 S_3) \\
                   &+ \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) + \E({D_3}^2) + \E({H_3}^2)
 \end{align}
 
-The covariance terms $\E(S_i S_j)$ for $j > i$ represent the expected
-neutral allele frequency change from a neutral allele becoming associated with
-a fitness background in generation $i$ and that fitness association persisting
-until generation $j$. Let us consider $S_1$ and $S_2$. We have,
+The covariance terms $\E(S_i S_j)$ for $j > i$ represent the expected neutral
+allele frequency change from a neutral allele becoming associated with a
+fitness background in generation $i$ and that fitness association persisting
+until generation $j$. However, the covariances terms $\E(S_j S_i)$ for $j > i$
+are zero since associations in the future cannot affect the past (see p. 1041
+of \cite{Buffalo2019-qs}). Let us consider $S_1$ and $S_2$. We have,
 
 \begin{align}
   S_1 = \frac{1}{2N} \sum_{i=1}^N x_{0,i}(f_{0,i} - 1) = \cov(x_{0,i}, f_{0,i}) \\
@@ -442,33 +444,100 @@ generation, $x_t(1-x_t)$. This variance does not stay its initial value of
 $x_0(1-x_0)$; it decays each generation due to coalesce from the drift and
 selection processes modeled by this approach. The rate at which this decay
 happens is the effective population size each generation implied by this model. 
-We write (this differs from the original \cite{Santiago1995-hx} derivation),
+We can write,
 
 \begin{align}
-  \var(x_2 - p_0) &= \E({S_1}^2) + 2\E(S_1 S_2) + \E({S_2}^2) \\
+  \var(x_2 - p_0) &= \E({S_1}^2) + \E(S_1 S_2) + \E({S_2}^2) \\
                   & + \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) \\
   \frac{\var(x_2 - p_0)}{p_0(1-p_0)} &= \frac{V_h}{2N_{e,1}} + \frac{V_h Q_2^2}{2N_{e,2}}\left(1-\frac{1}{2N_{e,1}}\right)  +  \frac{V_h}{2N_{e,2}}  \left(1-\frac{1}{2N_{e,1}}\right)  \\ 
                                      &+ \frac{V_n}{8N_{e,1}} + \frac{1}{4N_{e,1}} + \frac{V_n}{8N_{e,2}}  \left(1 - \frac{1}{2N_{e,1}}\right) 
 + \frac{1}{4N_{e,2}} \left(1 - \frac{1}{2N_{e,1}}\right).
 \end{align}
 
-A general equation of this is,
+In general, the evolution of the variance in allele frequency change in a
+system with polygenic selection is given by,
 
 \begin{align}
-  \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right) \\
+  \label{eqn:var_xt}
+  \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right). \\
 \end{align}
 
+Since the probability of coalesce (or, equivalently, identity by descent) is
+proportional to the variance in allele frequency change
+\parencite{Barton2000-zg}, this encodes the pairwise coalescent rate of the
+population through time under polygenic selection through the $N_{e,t}$ terms.
 In the original derivation of \textcite{Santiago1995-hx}, they set each
-$N_{e,t}$ term to a single $N_e$ for which they solve for. 
-
-
-This is an asymptotic $N_e$, but this does not accurately describe the levels
-of diversity (\cite{Santiago1998-bs} equation 16, \cite{Santiago2016-mu}
-equation 4).
+$N_{e,t}$ term to a single $N$ and solve this summation in the limit to
+infinity giving,
 
 \begin{align}
-  \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right) + \sum_{i \ne j} C_{i,j}
+  \label{eq:var_asymp}
+  \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \frac{4 V_h Q_\infty^2 +V_n+2}{4 (2 N-1)}.
 \end{align}
+
+To relate this to an asymptotic effective population size, note that in an
+ideal Wright--Fisher population,
+
+\begin{align}
+  \V(x_t) &= p_0(1-p_0) \left[1 - \left(1 - \frac{1}{2N_e}\right)^t \right]
+\end{align}
+
+such that if we look at the change in the variance in allele frequency change
+between adjacent generations $t$ and $t-1$, we get an implied $N_{e,t}$
+
+\begin{align}
+  \label{eqn:ne_var}
+  N_{e,t} = \frac{p_0(1-p_0) - \var(x_{t-1})}{2(\var(x_t) - \var(x_{t-1}))}
+\end{align}
+%
+(cf. p. 1018, \cite{Santiago1995-hx}). 
+
+Solving this for equation \eqref{eq:var_asymp} gives the asymptotic effective
+population size,
+
+\begin{align}
+  %N_e &= \frac{2 (2 N-1)}{4 V_h Q_\infty^2 +V_n+2} \\
+  N_e &\approx \frac{4N}{4 V_h Q_\infty^2 +V_n+2}
+\end{align}
+
+(cf. equation 18, \cite{Santiago1995-hx}). Levels of pairwise diversity,
+however, depend on the full distribution of pairwise coalesce times, or the
+$N_{e,t}$. While this would require solving the recursion defined by equations
+\eqref{eqn:var_xt} and \eqref{eqn:ne_var}, \textcite{Santiago1998-bs} show
+that a good approximation is just assume a single effective population size for
+all timepoints, $N_{e,t} = N_e$, but use the time-indexed $Q_t$. This leads to,
+
+\begin{align}
+  N_{e,t} &\approx \frac{4N}{4 V_h Q_t^2 +V_n+2}
+\end{align}
+
+% HERE
+
+% \begin{align}
+%   \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right) \\
+% \end{align}
+
+
+
+
+% The $N_{e,t}$ terms are analogous to an instantaneous coalesce rate at
+% generation $t$, which can be expressed in terms of the variance in allele
+% frequency change by noting that in an ideal Wright--Fisher population,
+
+% \begin{align}
+%   \V(x_t) &= p_0(1-p_0) \left[1 - \left(1 - \frac{1}{2N}\right)^t \right]
+% \end{align}
+
+
+
+
+% This is an asymptotic $N_e$, but this does not accurately describe the levels
+% of diversity (\cite{Santiago1998-bs} equation 16, \cite{Santiago2016-mu}
+% equation 4).
+
+% \begin{align}
+%   \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right) + \sum_{i \ne j} C_{i,j}
+% \end{align}
 
 
 
