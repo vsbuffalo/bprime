@@ -184,9 +184,9 @@ how beneficial mutations that sporadically enter the population
 
 \section*{Appendix}
 
-\subsection*{Overview of Quantitative Genetic Linked Selection Theory}
+\subsection*{Overview of Quantitative Genetic Models of Effective Population Size}
 
-Here, we step through a quick derivation of \textcite{Santiago1998-bs}.
+Here, we step through a quick derivation of \textcite{Santiago1995-hx}.
 Throughout, we assume random mating, hermaphroditic individuals, and a constant
 population size. The change in a neutral allele's frequency in one generation
 can be partitioned into the three sources of stochasticity: the random
@@ -310,26 +310,34 @@ and
           &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
           &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
           &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + 2\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
-          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] + C_{1,2} \\
-          &= \frac{p_0(1-p_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{p_0(1-p_0)}{2N} + C_{1,2}
+          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] + \mathcal{C}_{1,2} \\
+          &= \frac{p_0(1-p_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{p_0(1-p_0)}{2N} + \mathcal{C}_{1,2}
 \end{align}
 
 Consequently, the variance of the neutral allele frequency changes each
 generation according to the probability of failing to coalesce each generation
-and the pairwise covariance terms $C_{i,j}$ that build up due to associations
-with heritable fitness backgrounds. Note that the covariance term $C_{1,2} =
+and the pairwise covariance terms $\mathcal{C}_{i,j}$ that build up due to associations
+with heritable fitness backgrounds. Note that the covariance term $\mathcal{C}_{1,2} =
 \E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] = 0$ under neutral
 evolution, and this simplifies to the well-known equation for variance in a
 Wright--Fisher population.
 
 Now, we turn our attention to the case where there is heritable fitness
-variation, which leads to non-zero covariance terms $C_{i,j}$. These terms
-emerge when $\var(k)$ has a heritable component of fitness that can be
+variation, which leads to non-zero covariance terms $\mathcal{C}_{i,j}$. These
+terms emerge when $\var(k)$ has a heritable component of fitness that can be
 transmitted along with the neutral allele, thereby affecting the neutral
-allele's trajectory in later generations. If we write the offspring number into
-heritable and non-heritable components, $k_i = 2f_i + \varepsilon_i$, then
-$\var(k_i) = 4 V_h + V_n$. We can further decompose the $K_1$ term into $K_1 =
-S_1 + D_1$,
+allele's trajectory in later generations. If we partition the offspring number
+into heritable and non-heritable components, $k_i = 2f_i + \varepsilon_i$, then
+$\var(k_i) = 4 V_h + V_n$. When there is heritable fitness variation across
+individuals, $V_h > 0$. Because the population size is assumed to be constant,
+the mean heritable fitness across individuals is constrained to be $\E_i(f_i) =
+1$; this implies that the individual fitness values $f_i$ are relative
+fitnesses as is standard in population genetics, in this case to the population
+mean. Thus $V_h$ is the squared coefficient of heritable fitness variation
+(this is often denoted as $C^2 = \nicefrac{V_A}{\bar{w}^2}$, see
+\cite{Crow1958-pc,Charlesworth1987-ab,Houle1992-ur}).
+
+We can further decompose the $K_1$ term into $K_1 = S_1 + D_1$,
 
 \begin{align}
   \var(\Delta x_1) &= \var(S_1) + \var(D_1) + \var(H_1) \\
@@ -455,7 +463,8 @@ We can write,
 \end{align}
 
 In general, the evolution of the variance in allele frequency change in a
-system with polygenic selection is given by,
+system with heritable fitness due to a single locus $r$ recombination fraction
+away from the neutral site is given by,
 
 \begin{align}
   \label{eqn:var_xt}
@@ -465,10 +474,9 @@ system with polygenic selection is given by,
 Since the probability of coalesce (or, equivalently, identity by descent) is
 proportional to the variance in allele frequency change
 \parencite{Barton2000-zg}, this encodes the pairwise coalescent rate of the
-population through time under polygenic selection through the $N_{e,t}$ terms.
-In the original derivation of \textcite{Santiago1995-hx}, they set each
-$N_{e,t}$ term to a single $N$ and solve this summation in the limit to
-infinity giving,
+population through time under selection through the $N_{e,t}$ terms.  In the
+original derivation of \textcite{Santiago1995-hx}, they set each $N_{e,t}$ term
+to a single $N$ and solve this summation in the limit to infinity giving,
 
 \begin{align}
   \label{eq:var_asymp}
@@ -503,15 +511,150 @@ population size,
 (cf. equation 18, \cite{Santiago1995-hx}). Levels of pairwise diversity,
 however, depend on the full distribution of pairwise coalesce times, or the
 $N_{e,t}$. While this would require solving the recursion defined by equations
-\eqref{eqn:var_xt} and \eqref{eqn:ne_var}, \textcite{Santiago1998-bs} show
-that a good approximation is just assume a single effective population size for
-all timepoints, $N_{e,t} = N_e$, but use the time-indexed $Q_t$. This leads to,
+\eqref{eqn:var_xt} and \eqref{eqn:ne_var}, \textcite{Santiago1998-bs} show that
+a reasonably good approximation follows from using a single effective
+population size for all timepoints, $N_{e,t} = N_e$, but use the time-indexed
+$Q_t$. This leads to,
 
 \begin{align}
+  \label{eq:ne_t}
   N_{e,t} &\approx \frac{4N}{4 V_h Q_t^2 +V_n+2}
 \end{align}
 
-% HERE
+(c.f. equation 15 of \cite{Santiago1995-hx} and p. 1270 of \cite{Santiago2016-mu}).
+
+
+\subsection*{Effective Population Size Under Polygenic Selection}
+
+The results of the previous section assume only a single locus a recombination
+fraction $r$ apart from the neutral locus is determining the coalesce rate. The
+model of \textcite{Santiago1998-bs} extends this to the case where fitness is
+polygenic. As they show in their original paper, this system can accommodate a
+variety of different equilibrium selection systems as long as expressions for
+$V_h$ and $Z$ can be worked out. Other authors have extended similar models to
+more elaborate bbreeding structures \parencite{Wray1990-zf,Woolliams1993-qo}.
+
+First, we extend equation \eqref{eq:ne_t} to a polygenic system. Throughout, a
+multiplicative fitness model is assumed (i.e. independent effects, no
+epistasis), where the fitness of individual $i$ is the product of their fitness
+contributions from each locus $l$, $w_{i,l}$, giving $w_i = \prod_{l=1}^L
+w_{i,l}$. Then, assuming mean fitness is one, the total fitness variation is
+multiplicative across the locus-level fitnesses,
+
+\begin{align}
+  V_h %&= \E_i\left( w_i^2 \right) - 1 \\
+      %&= \prod_{l=1}^L (1 + \alpha_{l}^2 \V(g_l))  - 1  \\
+      &= \prod_{l=1}^L (1 + V_{h,l})  - 1
+\end{align}
+
+Now, the $Q_t^2 V_h$ term in the single-locus model is now under a
+multiplicative polygenic model,
+
+\begin{align}
+  Q_t^2 V_h &= \prod_{l=1}^L \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)  - 1
+\end{align}
+
+where $Q_{t,l}$ is the cumulative impact of selection due to the selected site
+$l$ (c.f. equation 4 \cite{Santiago1998-bs}). The factor of $\nicefrac{1}{2}$
+is due to the fact that we are ignoring the chance that the fitness background
+on the homologous chromosome recombines onto the haplotype with the tracked
+neutral allele (i.e. due to the $Q_t''$ associations). In other words, only
+half the fitness variation in a diploid can stay associated with the neutral
+allele through the generations.
+
+To simplify the derivation, assume $V_n = 2$ as under a Wright--Fisher model.
+Then, the effective population size is,
+
+\begin{align}
+  N_{e,t} &\approx \frac{N}{V_h Q_t^2 + 1} \\
+          &\approx \frac{N}{\prod_{l=1}^L \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)} \\
+          &\approx N \exp\left(- \sum_{l=1}^L \frac{V_{h,l} Q_{t,l}^2}{2}\right)
+\end{align}
+
+(c.f. \cite{Santiago1998-bs} equation 4b). This summation can then in turn be
+approximated by a integral; see \textcite{Santiago1998-bs} for more. Note that
+another way to arrive at this equation is to take the product of reduction
+factors $\nicefrac{N_e}{N}$ across selected sites, as in equation 4 of
+\textcite{Hudson1995-xc}.
+
+The heritable variance in fitness $V_h$ associated with the tracked neutral
+allele does not remain constant through the generations, but decays due to
+selection and drift, and is maintained by the input of new mutations. For an
+arbitrary polygenic selective system, the dynamics are extraordinarily
+complicated due to the complexity of multilocus selection. However, several
+quantitative genetic models simplify these dynamics by assuming an
+infinitesimal model, where the trait is sufficiently polygenic that the allele
+frequency changes at the underlying loci due to selection are negligible
+compared to drift. This allows for a critical assumption of the quantitative
+genetic models of linked selection, that the decay rate in variation is
+constant (and thus independent of the underlying allele frequency changes). In
+the Santiago and Caballero model, this is the decay factor $Z$.
+
+
+
+The theory of \textcite{Santiago1998-bs} is based on an equilibrium model,
+where $\Delta V_h = 0$ of the long run, even if the fitness variation
+\emph{associated} with the allele's haplotype is changing. This macro-scale
+
+\begin{align}
+  \Delta V_h &= V_m - V_h\left(1 - \frac{1}{2 N_e}\right) \\
+\end{align}
+
+
+\subsection*{Effective Population Size Under Strong Background Selection}
+
+Under strong background selection, multiple segregating deleterious sites
+contribute to fitness variation. BGS models assume a multiplicative fitness
+model, such that the fitness of an individual $i$ is
+
+\begin{align}
+  w_i = (1-s)^{n_i}
+\end{align}
+
+where $n_i$ is the number of deleterious mutations this individual carries.
+
+Classic background selection theory assumes an infinite population size, such
+that mutation frequencies are at their mutation-selection equilibrium and the
+expected number of mutations is $n_i = \nicefrac{\mu}{s}L$ where $L$ is the
+total number of basepairs that can be mutated (the mutational target size).
+Under a multiplicative fitness function in an infinite population, selection
+cannot generate linkage disequilibria \parencite{Turelli1990-kd}. Thus the
+classic strong background selection model assumes additive genetic fitness is
+equal to the additive genic fitness (which excludes the contribution of
+covariance between selected sites), 
+
+\begin{align}
+  \V_i(w_i) &= 2 \sum_{l=1}^L p(1-p) s^2 \\
+            &= 2 L \frac{\mu}{s} \left( 1 - \frac{\mu}{s}\right) s^2 = U s + \mathcal{O}(\mu^2) \approx Us.
+\end{align}
+
+where we define $U := 2 L \mu$ to be the deleterious mutation rate per diploid
+genome, per generation. 
+
+
+
+Next, \textcite{Santiago1998-bs} find a general
+equation for the factor $Z$ by which fitness variation associated with the
+neutral allele is reduced under mutation-selection balance. This is a
+macro-scale variable reflecting the average balance between the average loss of
+fitness variance due to selection under an infinitesimal model and drift. Each
+generation, the gain of new fitness variance per generation is $V_m$.
+
+\begin{align}
+  Z = 
+\end{align}
+
+
+Then, with under the strong background selection model,
+a site under purifying selection reduces diversity at a focal neutral site $r$
+by a factor of
+
+\begin{align}
+  \frac{N_{e,t}}{N} = \exp \left(-\frac{V_{h,1} Q_{t,1}^2}{2}\right)
+\end{align}
+
+
+
 
 % \begin{align}
 %   \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right) \\
@@ -608,642 +751,642 @@ all timepoints, $N_{e,t} = N_e$, but use the time-indexed $Q_t$. This leads to,
 
 %%% OLD
 
-There has been considerable past work to find both the rate of the ratchet
-(XXX), and summaries of the genealogies created under weak purifying selection
-(XXX). Our approximation combines a few theoretic avenues from past work. Our
-primary goal is to find a theoretic scaling function $B$ that rescales the neutral
-pairwise coalescent times the appropriate amount to 
+%There has been considerable past work to find both the rate of the ratchet
+%(XXX), and summaries of the genealogies created under weak purifying selection
+%(XXX). Our approximation combines a few theoretic avenues from past work. Our
+%primary goal is to find a theoretic scaling function $B$ that rescales the neutral
+%pairwise coalescent times the appropriate amount to 
 
-Strictly speaking, there is no way to rescale the coalescent under general
-background selection process, as genealogies deviate from the Kingman
-coalescent slightly under strong selection
-\parencite{Walczak2012-fi,Cvijovic2018-vd} and greatly under weak selection
-\parencite{OFallon2010-my}
+%Strictly speaking, there is no way to rescale the coalescent under general
+%background selection process, as genealogies deviate from the Kingman
+%coalescent slightly under strong selection
+%\parencite{Walczak2012-fi,Cvijovic2018-vd} and greatly under weak selection
+%\parencite{OFallon2010-my}
 
-First, we approximate the coalescent effective population size, which
-determines expected pairwise diversity, from the variance effective population
-size. Then, we use a general quantitative genetic model of linked selection to
-find the variance effective population size under background selection. Since
-the impact of selection under this model is parameterized by the additive
-genetic fitness variance, we use an approximation for this based on the
-additive \emph{genic} variance, which depends on the rate of the ratchet.
-Previous work has been unable to find a simple closed-form solution to the rate
-of the ratchet because it depends on moments of the fitness distribution (e.g.
-fitness variation), which in turn depend on even higher-moments of the fitness
-distribution (e.g. the skew of the fitness distribution). While the ratchet
-should scale with the probability of fixation, the probability of fixation
-(Kimura, Malecot, XXX) is not accurate when multiple deleterious mutations are
-segregating simultaneously and in close linkage with one another. A key insight
-of \textcite{Santiago2016-mu} was that the classic equation for the probability
-of fixation is fairly robust as long as the correct effective population size
-is used. Their approach is to solve a system of two non-linear equations: one
-for the variance effective population size (which depends on the rate of the
-ratchet), and another for the time to fixation (which depends on the effective
-population size).
+%First, we approximate the coalescent effective population size, which
+%determines expected pairwise diversity, from the variance effective population
+%size. Then, we use a general quantitative genetic model of linked selection to
+%find the variance effective population size under background selection. Since
+%the impact of selection under this model is parameterized by the additive
+%genetic fitness variance, we use an approximation for this based on the
+%additive \emph{genic} variance, which depends on the rate of the ratchet.
+%Previous work has been unable to find a simple closed-form solution to the rate
+%of the ratchet because it depends on moments of the fitness distribution (e.g.
+%fitness variation), which in turn depend on even higher-moments of the fitness
+%distribution (e.g. the skew of the fitness distribution). While the ratchet
+%should scale with the probability of fixation, the probability of fixation
+%(Kimura, Malecot, XXX) is not accurate when multiple deleterious mutations are
+%segregating simultaneously and in close linkage with one another. A key insight
+%of \textcite{Santiago2016-mu} was that the classic equation for the probability
+%of fixation is fairly robust as long as the correct effective population size
+%is used. Their approach is to solve a system of two non-linear equations: one
+%for the variance effective population size (which depends on the rate of the
+%ratchet), and another for the time to fixation (which depends on the effective
+%population size).
 
-Below, we step through the theory we use in our statistical methods. We
-re-derive central parts to illustrate where approximations have been made,
-which allows us to understand how these approximations may impact our
-statistical methods and inspect model fit in regions where these approximations
-are less likely to hold.
+%Below, we step through the theory we use in our statistical methods. We
+%re-derive central parts to illustrate where approximations have been made,
+%which allows us to understand how these approximations may impact our
+%statistical methods and inspect model fit in regions where these approximations
+%are less likely to hold.
 
-\subsection*{Pairwise Diversity under Background Selection}
+%\subsection*{Pairwise Diversity under Background Selection}
 
-The central quantity of interest for our statistical inference methods is
-average pairwise diversity along the chromosome. While other summaries of the
-data, such as the allele frequency spectrum, may be more informative about the
-evolutionary processes acting in a region, we lack population genetic theory
-for these quantities under most selective regimes and they require more degrees
-of freedom to characterize. By contrast, neutral diversity under an
-infinite-sites model is determined only by the per-basepair mutation rate $\mu$
-and the expected pairwise coalescent time $\E[T_2]$,
-
-\begin{align}
-  \E(\pi) = 2 \mu \E(T_2)
-\end{align}
-
-Let us assume that there is a constant \emph{drift-effective} population size
-$N_d$ which determines the rate of coalescence due only to neutral demographic
-processes. Additionally, we assume some background selection process that in
-expectation scales the effective population size by $b(t)$ at time $t$ (though
-this could in theory be due to any process). Then, the expected pairwise
-coalescent time is
-
-\begin{align}
-  \label{eq:T_2}
-  \E(T_2) = \sum_{i=1}^\infty \frac{i}{2 b(i) N_d}\prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right).
-\end{align}
-
-The time-dependency of $b(t)$ is required because the background selection
-process will usually alter the rate of coalesce through time. For example,
-under weak and intermediate selection, coalesce rates speed up as lineages move
-in the past under intermediate to weak selection, similar to population growth
-\parencite{Walczak2012-fi,Seger2010-rs,Good2014-yz}. 
-
-% Intuitively, this is
-% because lineages are unlikely to coalesce with numerous less fit lineages they
-% encounter as they go back in time, until ultimately coalescing in one of the
-% least-loaded fitness classes. 
-
-This formulation is general and classic background selection theory (in the
-no-ratchet domain) is a special case of it. Under classic BGS and load theory,
-two randomly sampled lineages will each carry a number of deleterious mutations
-sampled from a Poisson stationary distribution. Because any lineage carrying $j
-> 0$ strongly deleterious mutations is destined to extinction, these lineages
-can only coalesce in a common ancestor in the least-loaded class with zero
-deleterious mutations. Under the Poisson stationary distribution, the size of
-this class is $f_0 N$, where $f_0 = e^{-\nicefrac{U}{s}}$, so the coalescent
-rate is scaled by $\nicefrac{1}{f_0}$. Once the lineages reach this fitness
-class, there are no fitness differences among individuals, so they coalesce
-following the Kingman process. A lineage moves backwards in time $t_d$
-generations through the ``delay phase" to the least-loaded class. Classic BGS
-theory ignores this delay phase, since $t_d \sim \log(j+1)/s << f_0 N$
-(Durrett, p. 213). 
-
-%Here, we model the background selection process forward in time. We approximate
-%the expected pairwise diversity with the probability of heterozygosity,
-%$\E(\pi) \approx \mathcal{H}$, which holds under weak mutation and random
-%mating, such that
+%The central quantity of interest for our statistical inference methods is
+%average pairwise diversity along the chromosome. While other summaries of the
+%data, such as the allele frequency spectrum, may be more informative about the
+%evolutionary processes acting in a region, we lack population genetic theory
+%for these quantities under most selective regimes and they require more degrees
+%of freedom to characterize. By contrast, neutral diversity under an
+%infinite-sites model is determined only by the per-basepair mutation rate $\mu$
+%and the expected pairwise coalescent time $\E[T_2]$,
 
 %\begin{align}
-%  %\mathcal{H} =  2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
-%  \mathcal{H} &= 1 - \sum_{i=1}^\infty (1-\mu)^{2i} \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right) \\
-%              &\approx 2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+%  \E(\pi) = 2 \mu \E(T_2)
 %\end{align}
 
-%in the limit where $\mu \to 0$. This is equation 4 of
-%\textcite{Santiago2016-mu}; they define the sum as the heterozygosity effective
-%population size.
+%Let us assume that there is a constant \emph{drift-effective} population size
+%$N_d$ which determines the rate of coalescence due only to neutral demographic
+%processes. Additionally, we assume some background selection process that in
+%expectation scales the effective population size by $b(t)$ at time $t$ (though
+%this could in theory be due to any process). Then, the expected pairwise
+%coalescent time is
+
+%\begin{align}
+%  \label{eq:T_2}
+%  \E(T_2) = \sum_{i=1}^\infty \frac{i}{2 b(i) N_d}\prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right).
+%\end{align}
+
+%The time-dependency of $b(t)$ is required because the background selection
+%process will usually alter the rate of coalesce through time. For example,
+%under weak and intermediate selection, coalesce rates speed up as lineages move
+%in the past under intermediate to weak selection, similar to population growth
+%\parencite{Walczak2012-fi,Seger2010-rs,Good2014-yz}. 
+
+%% Intuitively, this is
+%% because lineages are unlikely to coalesce with numerous less fit lineages they
+%% encounter as they go back in time, until ultimately coalescing in one of the
+%% least-loaded fitness classes. 
+
+%This formulation is general and classic background selection theory (in the
+%no-ratchet domain) is a special case of it. Under classic BGS and load theory,
+%two randomly sampled lineages will each carry a number of deleterious mutations
+%sampled from a Poisson stationary distribution. Because any lineage carrying $j
+%> 0$ strongly deleterious mutations is destined to extinction, these lineages
+%can only coalesce in a common ancestor in the least-loaded class with zero
+%deleterious mutations. Under the Poisson stationary distribution, the size of
+%this class is $f_0 N$, where $f_0 = e^{-\nicefrac{U}{s}}$, so the coalescent
+%rate is scaled by $\nicefrac{1}{f_0}$. Once the lineages reach this fitness
+%class, there are no fitness differences among individuals, so they coalesce
+%following the Kingman process. A lineage moves backwards in time $t_d$
+%generations through the ``delay phase" to the least-loaded class. Classic BGS
+%theory ignores this delay phase, since $t_d \sim \log(j+1)/s << f_0 N$
+%(Durrett, p. 213). 
+
+%%Here, we model the background selection process forward in time. We approximate
+%%the expected pairwise diversity with the probability of heterozygosity,
+%%$\E(\pi) \approx \mathcal{H}$, which holds under weak mutation and random
+%%mating, such that
+
+%%\begin{align}
+%%  %\mathcal{H} =  2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+%%  \mathcal{H} &= 1 - \sum_{i=1}^\infty (1-\mu)^{2i} \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right) \\
+%%              &\approx 2 \mu \sum_{i=1}^\infty \prod_{t=1}^i \left(1-\frac{1}{2 b(t) N_d} \right)
+%%\end{align}
+
+%%in the limit where $\mu \to 0$. This is equation 4 of
+%%\textcite{Santiago2016-mu}; they define the sum as the heterozygosity effective
+%%population size.
+
+%\subsection*{Forward in Time Models of Linked Selection}
+
+%Next, show how quantitative genetic models of linked selection
+%\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu}
+%find expressions for $b(t)$ with by modeling the selective process forward in
+%time. Their approach is to consider how the variance in neutral allele
+%frequency change is impacted by a linked selection process. 
+
+%\subsubsection*{Variance in Neutral Allele Frequency in a Neutral System}
+
+%For comparison, we start with the recursion for the variance in allele
+%frequency change in a neutral Wright--Fisher model. Under binomial sampling of
+%alleles, the random frequency $x_t$ is $2N x_t \sim \mathrm{Binom}(x_{t-1},
+%2N)$. If we look forward in time on generation and treat $x_0$ as fixed,
+
+%\begin{align}
+%  \V(x_1) = \E_1\left[(x_1 - x_0)^2\right]= \frac{x_0(1-x_0)}{2N},
+%\end{align}
+
+%and
+
+%\begin{align}
+%  \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
+%          &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
+%          &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
+%          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + 2\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
+%          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
+%          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N}
+%\end{align}
+
+%Note that the cross-moment $\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right]
+%= 0$ under neutral evolution. In general, the variance in allele frequency
+%after $t$ generations of neutral evolution is,
+
+%\begin{align}
+%  \label{eq:var_freq}
+%  %\V(x_t) &= \frac{x_0(1-x_0)}{2N}\left(\sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i-1} \right)
+%  \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right)
+%\end{align}
+
+%This geometric series converges to the familiar expression,
+
+%\begin{align}
+%  \V(x_t) &= x_0(1-x_0)\left(1 - \left(1 - \frac{1}{2N}\right)^t \right).
+%\end{align}
+
+%which in the limit $t \to \infty$, converges to the Bernoulli variance
+%$x_0(1-x_0)$ as the frequency either goes to 1 with probability $x_0$ or 0 with
+%probability $1-x_0$.
+
+%% Now, if the effective population size were to change each generation, equation
+%% \eqref{eq:var_freq} would be,
+
+%% \begin{align}
+%%   \V(x_t) &= \V(x_0) \left(1 + \sum_{i=1}^t \prod_{j=1}^{i} \left(1 - \frac{1}{2N(j)}\right) \right)
+%% \end{align}
+
+%% Note that this too converges to $x_0(1-x_0)$ as $t \to \infty$.
+
+%\subsubsection*{Variance in Neutral Allele Frequency with Linked Selection}
+
+%Note that equation XXX is a special case, when the evolutionary process has
+%independent allele frequency changes through the generations and thus the
+%cross-moment is zero. Selection generates correlations between allele frequency
+%changes at nearby neutral sites. These correlations created by linked selection
+%inflate the variance in neutral allele frequency $\V(x_t)$ beyond what it would
+%be in a system without linked selection operating. The magnitude of this
+%inflation term is set by the selection process and its dynamics, linkage
+%disequilibrium, and the recombination rate. Even k
+
+
+
+
+%The theory of this began with \textcite{Robertson1961-ho},
+%and was thoroughly worked out by Santiago and Caballero
+%(\citeyear{Santiago1995-hx}, \citeyear{Santiago1998-bs}; see also
+%\cite{Barton2000-zg} and \cite{Buffalo2019-qs}). Our BGS statistical methods
+%employ the extension of this model for weak BGS \parencite{Santiago2016-mu}.
+%For completeness, we step through a quick derivation of the linked selection
+%inflation factor models here, based on
+%\textcite{Santiago1995-hx,Santiago1998-bs}.
 
-\subsection*{Forward in Time Models of Linked Selection}
+%Quantitative genetic models of linked selection
 
-Next, show how quantitative genetic models of linked selection
-\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu}
-find expressions for $b(t)$ with by modeling the selective process forward in
-time. Their approach is to consider how the variance in neutral allele
-frequency change is impacted by a linked selection process. 
+
+
+%%%%%%
 
-\subsubsection*{Variance in Neutral Allele Frequency in a Neutral System}
-
-For comparison, we start with the recursion for the variance in allele
-frequency change in a neutral Wright--Fisher model. Under binomial sampling of
-alleles, the random frequency $x_t$ is $2N x_t \sim \mathrm{Binom}(x_{t-1},
-2N)$. If we look forward in time on generation and treat $x_0$ as fixed,
+%One way we can model these dependencies is to partition $\Delta_i$ into drift
+%and selection components. Over evolutionary replicates, the drift components
+%are independent and the selection components have some degree of
+%autocorrelation. Let us partition $\Delta x_i = \Delta_S x_i + \Delta_D x_i$,
+
+%\begin{align}
+%  \V(x_2) &= \V\left(\Delta x_2 + \Delta x_1\right) \\
+%          &= \V(\Delta_D x_2) + \V(\Delta_D x_1) + 2 \cov(\Delta_S x_2, \Delta_S x_1) \\
+%          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N} +  2 \cov(\Delta_S x_2, \Delta_S x_1) 
+%\end{align}
 
-\begin{align}
-  \V(x_1) = \E_1\left[(x_1 - x_0)^2\right]= \frac{x_0(1-x_0)}{2N},
-\end{align}
-
-and
-
-\begin{align}
-  \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
-          &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
-          &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
-          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + 2\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
-          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
-          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N}
-\end{align}
-
-Note that the cross-moment $\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right]
-= 0$ under neutral evolution. In general, the variance in allele frequency
-after $t$ generations of neutral evolution is,
-
-\begin{align}
-  \label{eq:var_freq}
-  %\V(x_t) &= \frac{x_0(1-x_0)}{2N}\left(\sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i-1} \right)
-  \V(x_t) &= \V(x_1) \left(1 + \sum_{i=1}^t \left(1 - \frac{1}{2N}\right)^{i} \right)
-\end{align}
-
-This geometric series converges to the familiar expression,
-
-\begin{align}
-  \V(x_t) &= x_0(1-x_0)\left(1 - \left(1 - \frac{1}{2N}\right)^t \right).
-\end{align}
-
-which in the limit $t \to \infty$, converges to the Bernoulli variance
-$x_0(1-x_0)$ as the frequency either goes to 1 with probability $x_0$ or 0 with
-probability $1-x_0$.
-
-% Now, if the effective population size were to change each generation, equation
-% \eqref{eq:var_freq} would be,
-
-% \begin{align}
-%   \V(x_t) &= \V(x_0) \left(1 + \sum_{i=1}^t \prod_{j=1}^{i} \left(1 - \frac{1}{2N(j)}\right) \right)
-% \end{align}
-
-% Note that this too converges to $x_0(1-x_0)$ as $t \to \infty$.
-
-\subsubsection*{Variance in Neutral Allele Frequency with Linked Selection}
-
-Note that equation XXX is a special case, when the evolutionary process has
-independent allele frequency changes through the generations and thus the
-cross-moment is zero. Selection generates correlations between allele frequency
-changes at nearby neutral sites. These correlations created by linked selection
-inflate the variance in neutral allele frequency $\V(x_t)$ beyond what it would
-be in a system without linked selection operating. The magnitude of this
-inflation term is set by the selection process and its dynamics, linkage
-disequilibrium, and the recombination rate. Even k
-
-
-
-
-The theory of this began with \textcite{Robertson1961-ho},
-and was thoroughly worked out by Santiago and Caballero
-(\citeyear{Santiago1995-hx}, \citeyear{Santiago1998-bs}; see also
-\cite{Barton2000-zg} and \cite{Buffalo2019-qs}). Our BGS statistical methods
-employ the extension of this model for weak BGS \parencite{Santiago2016-mu}.
-For completeness, we step through a quick derivation of the linked selection
-inflation factor models here, based on
-\textcite{Santiago1995-hx,Santiago1998-bs}.
-
-Quantitative genetic models of linked selection
-
-
-
-%%%%%
-
-One way we can model these dependencies is to partition $\Delta_i$ into drift
-and selection components. Over evolutionary replicates, the drift components
-are independent and the selection components have some degree of
-autocorrelation. Let us partition $\Delta x_i = \Delta_S x_i + \Delta_D x_i$,
-
-\begin{align}
-  \V(x_2) &= \V\left(\Delta x_2 + \Delta x_1\right) \\
-          &= \V(\Delta_D x_2) + \V(\Delta_D x_1) + 2 \cov(\Delta_S x_2, \Delta_S x_1) \\
-          &= \frac{x_0(1-x_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{x_0(1-x_0)}{2N} +  2 \cov(\Delta_S x_2, \Delta_S x_1) 
-\end{align}
-
-since $\Delta_D x_i \perp \Delta_D x_j$ for $i \ne j$. The covariances are
-determined by the selective process dynamics, linkage disequilibrium, and the
-recombination rate. These covariances are throughly worked out in
-\textcite{Santiago1995-hx} and \textcite{Buffalo2019-qs}, so we give a short
-derivation here. Throughout, we assume random mating, hermaphroditic
-individuals, and a constant population size. We will use angular brackets to
-indicate an average over all diploid individuals in the population, of some
-value with an individual-level index. For example, if we denote the number of
-allele an individual carries in generation $t$ as $z_{t,i} \in \{0, 1, 2\}$,
-the population frequency at time $x_t$ is
-
-\begin{align}
-  x_t = \langle z_t \rangle = \frac{1}{2N} \sum_{i=1}^N z_{t,i}
-\end{align}
-
-Across evolutionary replicates, each parent $i$ passes one of their two neutral
-alleles to a random number $k_i$ offspring. The \emph{heritable fitness} of an
-individual $f_i$ is defined as the expected number of offspring passed down
-across evolutionary replicates, such that $k_i = f_i + \varepsilon_i$.  Some
-selection process determines the distribution of $f_i$, but the this occurs
-independently of the process that sorts neutral alleles into diploid
-individuals. We are unsure of the neutral allele count in an individual in the
-initial generation, $z_{t,0}$, so we condition on it and take expectations
-later. Then, the frequency in the initial and first generations are,
+%since $\Delta_D x_i \perp \Delta_D x_j$ for $i \ne j$. The covariances are
+%determined by the selective process dynamics, linkage disequilibrium, and the
+%recombination rate. These covariances are throughly worked out in
+%\textcite{Santiago1995-hx} and \textcite{Buffalo2019-qs}, so we give a short
+%derivation here. Throughout, we assume random mating, hermaphroditic
+%individuals, and a constant population size. We will use angular brackets to
+%indicate an average over all diploid individuals in the population, of some
+%value with an individual-level index. For example, if we denote the number of
+%allele an individual carries in generation $t$ as $z_{t,i} \in \{0, 1, 2\}$,
+%the population frequency at time $x_t$ is
 
-\begin{align}
-  x_0 = \langle z_0 \rangle = \frac{1}{2N} \sum_{i=1}^N z_{0,i} \\
-  x_1 = \langle z_1 \rangle = \frac{1}{2N} \sum_{i=1}^N \left( k_i \frac{z_{0,i}}{2} + \sum_{j=1}^{k_i} \delta_{i,j} \right)
-\end{align}
+%\begin{align}
+%  x_t = \langle z_t \rangle = \frac{1}{2N} \sum_{i=1}^N z_{t,i}
+%\end{align}
 
-The first term is the average number of neutral alleles each parent passes to
-its $k_i$ offspring. In reality, alleles are discrete, so each heterozygous
-parent also passes a random $\pm \nicefrac{1}{2}$ to each offspring, which
-leads to the second term. The variable $\delta_{i,j}$ is 0 if the parent is a
-homozygote, but if the parent is a heterozygote, is $\pm \nicefrac{1}{2}$ with
-equal probability over evolutionary replicates.
+%Across evolutionary replicates, each parent $i$ passes one of their two neutral
+%alleles to a random number $k_i$ offspring. The \emph{heritable fitness} of an
+%individual $f_i$ is defined as the expected number of offspring passed down
+%across evolutionary replicates, such that $k_i = f_i + \varepsilon_i$.  Some
+%selection process determines the distribution of $f_i$, but the this occurs
+%independently of the process that sorts neutral alleles into diploid
+%individuals. We are unsure of the neutral allele count in an individual in the
+%initial generation, $z_{t,0}$, so we condition on it and take expectations
+%later. Then, the frequency in the initial and first generations are,
 
-Since individuals are exchangeable with their contribution to the
-heterozygosity term and population size is constant,
+%\begin{align}
+%  x_0 = \langle z_0 \rangle = \frac{1}{2N} \sum_{i=1}^N z_{0,i} \\
+%  x_1 = \langle z_1 \rangle = \frac{1}{2N} \sum_{i=1}^N \left( k_i \frac{z_{0,i}}{2} + \sum_{j=1}^{k_i} \delta_{i,j} \right)
+%\end{align}
 
-\begin{align}
-  \sum_{i=1}^N \sum_{j=1}^{k_i} \delta_{i,j} = \sum_{i=1}^N \delta_{i} 
-\end{align}
+%The first term is the average number of neutral alleles each parent passes to
+%its $k_i$ offspring. In reality, alleles are discrete, so each heterozygous
+%parent also passes a random $\pm \nicefrac{1}{2}$ to each offspring, which
+%leads to the second term. The variable $\delta_{i,j}$ is 0 if the parent is a
+%homozygote, but if the parent is a heterozygote, is $\pm \nicefrac{1}{2}$ with
+%equal probability over evolutionary replicates.
 
-We can further partition the offspring number into heritable and non-heritable
-parts,
+%Since individuals are exchangeable with their contribution to the
+%heterozygosity term and population size is constant,
 
-\begin{align}
-  x_1 &= \frac{1}{2N} \sum_{i=1}^N \left( (f_i + \varepsilon_i) \frac{z_{0,i}}{2} + \delta_{i} \right) \\
-      &= \frac{1}{4N} \sum_{i=1}^N f_i z_{0,i} + \frac{1}{4N} \sum_{i=1}^N \varepsilon_i z_{0,i} + \frac{1}{2N} \sum_{i=1}^N \delta_{i} \\
-      &=  \frac{1}{4} \langle f \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle \\
-\end{align}
+%\begin{align}
+%  \sum_{i=1}^N \sum_{j=1}^{k_i} \delta_{i,j} = \sum_{i=1}^N \delta_{i} 
+%\end{align}
 
-% TODO factor 1/2 error
+%We can further partition the offspring number into heritable and non-heritable
+%parts,
 
-\begin{align}
-  x_1 - x_0 &= \frac{1}{4} \langle f \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle - \langle z_0 \rangle \\
-            &= \frac{1}{4} \langle (f-1) \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle 
-\end{align}
+%\begin{align}
+%  x_1 &= \frac{1}{2N} \sum_{i=1}^N \left( (f_i + \varepsilon_i) \frac{z_{0,i}}{2} + \delta_{i} \right) \\
+%      &= \frac{1}{4N} \sum_{i=1}^N f_i z_{0,i} + \frac{1}{4N} \sum_{i=1}^N \varepsilon_i z_{0,i} + \frac{1}{2N} \sum_{i=1}^N \delta_{i} \\
+%      &=  \frac{1}{4} \langle f \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle \\
+%\end{align}
 
-Now, we look at the variance of this over evolutionary replicates. By symmetry,
-the expected change in a neutral allele is $\E(\Delta x_t) = 0$ since we track
-an arbitrary neutral allele. Then the variance $\V(\Delta x_1) = \E( {\Delta
-x_1}^2)$,
+%% TODO factor 1/2 error
 
-\begin{align}
-  \V(\Delta x_1) &= \frac{1}{4} \langle (f-1) \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle 
-\end{align}
+%\begin{align}
+%  x_1 - x_0 &= \frac{1}{4} \langle f \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle - \langle z_0 \rangle \\
+%            &= \frac{1}{4} \langle (f-1) \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle 
+%\end{align}
 
+%Now, we look at the variance of this over evolutionary replicates. By symmetry,
+%the expected change in a neutral allele is $\E(\Delta x_t) = 0$ since we track
+%an arbitrary neutral allele. Then the variance $\V(\Delta x_1) = \E( {\Delta
+%x_1}^2)$,
 
-OLD
-Let us imagine there is some stochastic process $b(t)$ that rescales the coalescent
-rate, 
+%\begin{align}
+%  \V(\Delta x_1) &= \frac{1}{4} \langle (f-1) \; z_{0} \rangle + \frac{1}{4} \langle \varepsilon \; z_{0} \rangle + \frac{1}{2}\langle \delta \rangle 
+%\end{align}
 
-\begin{align}
-  \V(x_t) &= \frac{x_0(1-x_0)}{2N(0)}\left(\sum_{i=1}^t \prod_{j=1}^{i-1} \left(1 - \frac{1}{2b(j)N}\right) \right)
-\end{align}
 
+%OLD
+%Let us imagine there is some stochastic process $b(t)$ that rescales the coalescent
+%rate, 
 
+%\begin{align}
+%  \V(x_t) &= \frac{x_0(1-x_0)}{2N(0)}\left(\sum_{i=1}^t \prod_{j=1}^{i-1} \left(1 - \frac{1}{2b(j)N}\right) \right)
+%\end{align}
 
-\begin{align}
-  \var(p_3 - p_0) = \E & \left( \bigg( \underbrace{S_1(1 + (1-r) G + (1-r)^2 G^2)}_{\text{creation and persistence of generation 1 associations} \;\; := \; S_1 Q_3} \right. +  D_1 + H_1+ \nonumber \\
-                       & \underbrace{S_2(1 + (1-r) G)}_{\text{creation and persistence of generation 2 associations} \;\; := \; S_2 Q_2}+ D_2 + H_2 + \nonumber \\
-                       &  \underbrace{S_3}_{\text{creation of generation 3 associations} \;\; := \; S_3 Q_1  }\left. + D_3 + H_3 \bigg)^2 \right). &
-    \label{eq:scr-var2}
-\end{align}
-%
 
-Note the similarity between the equations.
 
-\begin{align}
-  V &\propto \frac{1}{2b(0)N_d}\left(\sum_{i=1}^\infty \prod_{t=1}^{i-1} \left(1 - \frac{1}{2b(t)N_d}\right) \right) \\
-  W &\propto \sum_{i=1}^\infty \frac{i}{2 b(i) N_d} \prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right) \\
-\end{align}
+%\begin{align}
+%  \var(p_3 - p_0) = \E & \left( \bigg( \underbrace{S_1(1 + (1-r) G + (1-r)^2 G^2)}_{\text{creation and persistence of generation 1 associations} \;\; := \; S_1 Q_3} \right. +  D_1 + H_1+ \nonumber \\
+%                       & \underbrace{S_2(1 + (1-r) G)}_{\text{creation and persistence of generation 2 associations} \;\; := \; S_2 Q_2}+ D_2 + H_2 + \nonumber \\
+%                       &  \underbrace{S_3}_{\text{creation of generation 3 associations} \;\; := \; S_3 Q_1  }\left. + D_3 + H_3 \bigg)^2 \right). &
+%    \label{eq:scr-var2}
+%\end{align}
+%%
 
+%Note the similarity between the equations.
 
-Let us define the function $a(t)$ to be the product, which is the cumulative
-failure to coalesce up to time $t$.
+%\begin{align}
+%  V &\propto \frac{1}{2b(0)N_d}\left(\sum_{i=1}^\infty \prod_{t=1}^{i-1} \left(1 - \frac{1}{2b(t)N_d}\right) \right) \\
+%  W &\propto \sum_{i=1}^\infty \frac{i}{2 b(i) N_d} \prod_{t=1}^{i-1} \left(1-\frac{1}{2 b(t) N_d}\right) \\
+%\end{align}
 
-\begin{align}
-  a(t) = \prod_{i=1}^{t-1} \left( 1-\frac{1}{2 b(i) N_d} \right)
-\end{align}
 
-Comparing this to equation \eqref{eq:T_2} up to constant factors, 
+%Let us define the function $a(t)$ to be the product, which is the cumulative
+%failure to coalesce up to time $t$.
 
-\begin{align}
-  V &\propto \sum_{i=1}^\infty a(t) \\
-  W &\propto \sum_{i=1}^\infty i \; a(t) \\
-\end{align}
+%\begin{align}
+%  a(t) = \prod_{i=1}^{t-1} \left( 1-\frac{1}{2 b(i) N_d} \right)
+%\end{align}
 
-end{align}
+%Comparing this to equation \eqref{eq:T_2} up to constant factors, 
 
-XXX we swap indices
+%\begin{align}
+%  V &\propto \sum_{i=1}^\infty a(t) \\
+%  W &\propto \sum_{i=1}^\infty i \; a(t) \\
+%\end{align}
 
-Now, if we assume that the final coalesce in the waiting time process were to
-have a fixed rate of $\nicefrac{1}{2b(0)N_d}$, this 
+%end{align}
 
-we see that both the waiting time process and the variance process 
+%XXX we swap indices
 
-Intuitively, these define a stochastic selection process in two ways through
-the function $b(t)$ that modulates the rate of pairwise coalesce. 
+%Now, if we assume that the final coalesce in the waiting time process were to
+%have a fixed rate of $\nicefrac{1}{2b(0)N_d}$, this 
 
+%we see that both the waiting time process and the variance process 
 
+%Intuitively, these define a stochastic selection process in two ways through
+%the function $b(t)$ that modulates the rate of pairwise coalesce. 
 
 
 
 
 
-where if $N_e(t) = N_e$ and $t=1$, this is the familiar Wright--Fisher variance
-$\V(p_1) = p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency
-changes per generation are independent, and neutral diversity is set by this
-single $N_e$. 
 
-XXX
 
-Since we track an arbitrary neutral allele's frequency $p_i$, by symmetry,
-linked selection has no impact on the direction of change, $\E(\Delta p_i) =
-0$. We will work through a short proof of $\V(p_t)$ by induction following the
-approach of \textcite{Santiago1995-hx}. Throughout, we will use angular
-brackets to indicate an average over all diploid individuals in the population,
-of some value with an individual-level index. For example, if we denote the
-number of allele an individual carries in generation $t$ as $x_{t,i} \in \{0,
-1, 2\}$, the population frequency at time $p_t$ is
+%where if $N_e(t) = N_e$ and $t=1$, this is the familiar Wright--Fisher variance
+%$\V(p_1) = p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency
+%changes per generation are independent, and neutral diversity is set by this
+%single $N_e$. 
 
-\begin{align}
-  p_t = \langle x_t \rangle = \frac{1}{N} \sum_{i=1}^N x_{t,i}
-\end{align}
+%XXX
 
+%Since we track an arbitrary neutral allele's frequency $p_i$, by symmetry,
+%linked selection has no impact on the direction of change, $\E(\Delta p_i) =
+%0$. We will work through a short proof of $\V(p_t)$ by induction following the
+%approach of \textcite{Santiago1995-hx}. Throughout, we will use angular
+%brackets to indicate an average over all diploid individuals in the population,
+%of some value with an individual-level index. For example, if we denote the
+%number of allele an individual carries in generation $t$ as $x_{t,i} \in \{0,
+%1, 2\}$, the population frequency at time $p_t$ is
 
-\begin{align}
-  \Delta_H p &= \langle x (f-1) \rangle \\
-  \Delta_N p &= \langle x d \rangle \\
-  \Delta_M p &= \langle \Delta \rangle \\
-\end{align}
+%\begin{align}
+%  p_t = \langle x_t \rangle = \frac{1}{N} \sum_{i=1}^N x_{t,i}
+%\end{align}
 
-Assuming uninherited, random environments, only the $\Delta_{_H} p$ terms
-create autocorrelation in $p_t$. The autocorrelation is created because during
-the random pairing of neutral alleles to fitness backgrounds, associations are
-created between an individual $i$'s allele frequency and their fitness $f_i$.
-This is because both fitness and the neutral alleles reside in the same
-individual in the present generation. 
 
-We can imagine now how these associations change over evolutionary replicates
-in the next generation. In a fraction $r$ of the cases, the neutral allele 
-recombines off (or segregates away, if they are on different chromosomes) the
-fitness background. In a faction of $1-r$ XXX
+%\begin{align}
+%  \Delta_H p &= \langle x (f-1) \rangle \\
+%  \Delta_N p &= \langle x d \rangle \\
+%  \Delta_M p &= \langle \Delta \rangle \\
+%\end{align}
 
-\begin{align}
-  \cov(\Delta_H p_t, \Delta_H p_s) &= \E(\langle x_t (f_t-1) \rangle , \langle x_s (f_s-1) \rangle)
-\end{align}
+%Assuming uninherited, random environments, only the $\Delta_{_H} p$ terms
+%create autocorrelation in $p_t$. The autocorrelation is created because during
+%the random pairing of neutral alleles to fitness backgrounds, associations are
+%created between an individual $i$'s allele frequency and their fitness $f_i$.
+%This is because both fitness and the neutral alleles reside in the same
+%individual in the present generation. 
 
-Note that this covariance is only 
+%We can imagine now how these associations change over evolutionary replicates
+%in the next generation. In a fraction $r$ of the cases, the neutral allele 
+%recombines off (or segregates away, if they are on different chromosomes) the
+%fitness background. In a faction of $1-r$ XXX
 
+%\begin{align}
+%  \cov(\Delta_H p_t, \Delta_H p_s) &= \E(\langle x_t (f_t-1) \rangle , \langle x_s (f_s-1) \rangle)
+%\end{align}
 
-In the first generation, the frequency change
-can be partitioned into three components. Conditioning on the parent's
-heritable fitnesses, we can imagine constructing an infinite number of
-evolutionary replicates. Across all replicates, a random neutral allele's is
-perturbed 
+%Note that this covariance is only 
 
-\begin{align}
-  p_1 - p_0 = \sum_{i=1}^{N} 
-\end{align}
 
+%In the first generation, the frequency change
+%can be partitioned into three components. Conditioning on the parent's
+%heritable fitnesses, we can imagine constructing an infinite number of
+%evolutionary replicates. Across all replicates, a random neutral allele's is
+%perturbed 
 
+%\begin{align}
+%  p_1 - p_0 = \sum_{i=1}^{N} 
+%\end{align}
 
-Since the variance in neutral allele frequency change is also determined by the
-pairwise coalescence rate, this provides us with a way to model $b(t)$ under
-linked selection.
 
 
+%Since the variance in neutral allele frequency change is also determined by the
+%pairwise coalescence rate, this provides us with a way to model $b(t)$ under
+%linked selection.
 
 
-These models derive an expression for the variance-effective population size of
-a focal neutral site, $N_v(t)$, based on how linked fitness variation perturbs
-the frequency trajectory at this site.  The variance-effective population size
-for a constant $N_e$ is defined by the variance in allele frequency change at
-the neutral site, over evolutionary replicates, 
 
-where if $t=1$, this is the familiar Wright--Fisher variance $\V(p_1) =
-p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency changes per
-generation are independent, and neutral diversity is set by this
-single $N_e$. 
 
-However when selection is acting at linked sites, neutral diversity is
-determined by the long-run $\V(p_t)$ as $t \to \infty$. Intuitively, this is
-because the rate of drift is magnified by autocorrelation in allele frequency
-change (XXX), and diversity is determined by the cumulative impact of these
-autocorrelations in the long-run. This autocorrelation effectively reduces the
-coalescence rate in a time-dependent manner, analogous to equation
-\eqref{eq:T_2}. Thus, a single constant $N_e$ is insufficient to describe
-levels of neutral variation, since it is insufficient 
+%These models derive an expression for the variance-effective population size of
+%a focal neutral site, $N_v(t)$, based on how linked fitness variation perturbs
+%the frequency trajectory at this site.  The variance-effective population size
+%for a constant $N_e$ is defined by the variance in allele frequency change at
+%the neutral site, over evolutionary replicates, 
 
-The variance in allele frequency change after $t$ generations is
+%where if $t=1$, this is the familiar Wright--Fisher variance $\V(p_1) =
+%p_0(1-p_0) / 2N_e$. When selection is not acting, allele frequency changes per
+%generation are independent, and neutral diversity is set by this
+%single $N_e$. 
 
-\begin{align}
-  \V(p_t) = p_0(1-p_0)\left(1 - \prod_{i=1}^t \left(1-\frac{1}{2N_e(t)}\right)\right)
-\end{align}
+%However when selection is acting at linked sites, neutral diversity is
+%determined by the long-run $\V(p_t)$ as $t \to \infty$. Intuitively, this is
+%because the rate of drift is magnified by autocorrelation in allele frequency
+%change (XXX), and diversity is determined by the cumulative impact of these
+%autocorrelations in the long-run. This autocorrelation effectively reduces the
+%coalescence rate in a time-dependent manner, analogous to equation
+%\eqref{eq:T_2}. Thus, a single constant $N_e$ is insufficient to describe
+%levels of neutral variation, since it is insufficient 
 
-This is the basis of the quantitative genetic models of linked selection: a
-forward in time model for $\V(p_t)$ implies a pairwise coalescence rate
-function $b(t)$, which determines statistics based on pairwise coalescence such
-as $\E(\pi)$.
+%The variance in allele frequency change after $t$ generations is
 
-Next, we consider how fitness variation impacts $\V(p_t)$.
+%\begin{align}
+%  \V(p_t) = p_0(1-p_0)\left(1 - \prod_{i=1}^t \left(1-\frac{1}{2N_e(t)}\right)\right)
+%\end{align}
 
+%This is the basis of the quantitative genetic models of linked selection: a
+%forward in time model for $\V(p_t)$ implies a pairwise coalescence rate
+%function $b(t)$, which determines statistics based on pairwise coalescence such
+%as $\E(\pi)$.
 
+%Next, we consider how fitness variation impacts $\V(p_t)$.
 
-Throughout, we will take the variance $\V(p_t)$ to be the variance over
-evolutionary replicates. Since the variance is for a random neutral allele's
-frequency, 
 
 
+%Throughout, we will take the variance $\V(p_t)$ to be the variance over
+%evolutionary replicates. Since the variance is for a random neutral allele's
+%frequency, 
 
 
 
 
-a reasonable approximation to how background selection process
-rescales the coalescent rate at this site is given by $b(t) =
-\nicefrac{N_v(t)}{N_d}$. 
 
 
-\begin{align}
-  N_v = \lim_{t \to \infty} \frac{p_0 (1 - p_0) - \var(p_{t-1})}{2\var(p_t) - \var(p_{t-1})}
-\end{align}
+%a reasonable approximation to how background selection process
+%rescales the coalescent rate at this site is given by $b(t) =
+%\nicefrac{N_v(t)}{N_d}$. 
 
-\subsection*{Linked Selection Models for Variance-Effective Population Size}
 
-We wish to derive an expression for the reduction factor $B$. Ideally, this
-reduction factor would rescale the coalescent-effective population size, but
-this would require knowing the coalescent rate function $\lambda(t)$ over the
-evolutionary history $0 < t < \infty$. Instead, following previous work
-\parencite{Santiago1995-hx,Santiago1998-bs}, we derive the rescaling function
-$B$ relative to the variance-effective population size.
+%\begin{align}
+%  N_v = \lim_{t \to \infty} \frac{p_0 (1 - p_0) - \var(p_{t-1})}{2\var(p_t) - \var(p_{t-1})}
+%\end{align}
 
-Following past quantitative genetic models of linked selection
-\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu},
-we consider the long-run variance effective population size, 
+%\subsection*{Linked Selection Models for Variance-Effective Population Size}
 
-\begin{align}
-  N_v := \lim_{t \to \infty} \frac{p_0(1-p_0)}{2\var\left(p_t - p_0\right)}
-\end{align}
+%We wish to derive an expression for the reduction factor $B$. Ideally, this
+%reduction factor would rescale the coalescent-effective population size, but
+%this would require knowing the coalescent rate function $\lambda(t)$ over the
+%evolutionary history $0 < t < \infty$. Instead, following previous work
+%\parencite{Santiago1995-hx,Santiago1998-bs}, we derive the rescaling function
+%$B$ relative to the variance-effective population size.
 
+%Following past quantitative genetic models of linked selection
+%\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu},
+%we consider the long-run variance effective population size, 
 
+%\begin{align}
+%  N_v := \lim_{t \to \infty} \frac{p_0(1-p_0)}{2\var\left(p_t - p_0\right)}
+%\end{align}
 
 
 
-% ADD TO INTRO TODO
-Comment about characteristic scale $\nicefrac{\mu}{s}$. Is the fact that we see
-BGS on megabase scales because this is the only scale we can detect strong
-selection under?
 
 
-approximately $\pi \approx 4N_e \mu$ (for low mutation rate). However, this
-assumes a constant Kingman coalescent with coalescent effective population size
-$N_e$. 
+%% ADD TO INTRO TODO
+%Comment about characteristic scale $\nicefrac{\mu}{s}$. Is the fact that we see
+%BGS on megabase scales because this is the only scale we can detect strong
+%selection under?
 
-\subsection*{}
 
-We model the reduction in pairwise coalescence times along the genome due to
-background selection by extending the work of \textcite{Santiago2016-mu}
-(hereafter, the SC16 model). The SC16 model derives from a class of linked
-selection \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs} that
-predict the reduction in pairwise coalescence time at a focal neutral site
-using macro-state parameters such as fitness variation, rather than micro-state
-parameters like the frequency trajectories of selected alleles (e.g.
-\textcite{Maynard_Smith1974-zr}). We will briefly introduce the SC16 model's
-approach and how we validated this model could be extended to whole-genome
-inference.
+%approximately $\pi \approx 4N_e \mu$ (for low mutation rate). However, this
+%assumes a constant Kingman coalescent with coalescent effective population size
+%$N_e$. 
 
-Classic background selection theory models how coalescence times are reduced by
-deleterious mutation-selection balance at neighboring sites. Building upon
-older models of genetic load \parencite{Crow1970-wj,Kimura1966-bk}, these
-models consider the equilibrium distribution of the \emph{number} of
-deleterious mutations segregating on haplotypes
-\parencite{Charlesworth1993-gb,Nordborg1996-nq}. Given an infinitely large
-population, or sufficiently strong selection, the deleterious mutations in
-these models cannot fix; consequently, any lineage containing 
+%\subsection*{}
 
-While the effect of selection on linked selection distorts neighboring
-genealogies (XXX), skewing the site frequency spectrum (XXX) and altering
-linkage disequilibria along the chromosome, we focus on the impact of selection
-on pairwise coalescence rates. This simple summary is amenable to mathematical
-and statistical inference, and is robust to difficulties in identifying rare
-variants. The effect of background selection on pairwise coalescence rates is
-expressed as the reduction ratio $B = \nicefrac{N_e}{N}$ where $N$ is the
-drift-effective population size (i.e. including demographic processes) and
-$N_e$ is the effective population size under background selection.
+%We model the reduction in pairwise coalescence times along the genome due to
+%background selection by extending the work of \textcite{Santiago2016-mu}
+%(hereafter, the SC16 model). The SC16 model derives from a class of linked
+%selection \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs} that
+%predict the reduction in pairwise coalescence time at a focal neutral site
+%using macro-state parameters such as fitness variation, rather than micro-state
+%parameters like the frequency trajectories of selected alleles (e.g.
+%\textcite{Maynard_Smith1974-zr}). We will briefly introduce the SC16 model's
+%approach and how we validated this model could be extended to whole-genome
+%inference.
 
-Under quantitative genetic models of linked selection, the reduction in
-effective population size is determined by the product of fitness variation,
-$V_f$, and an inflation factor $Q$. It is helpful to understand this by comparing
-it to a model of $N_e$ without \emph{heritable} fitness variation but with
-\emph{non-heritable} fitness variation. In this case, 
+%Classic background selection theory models how coalescence times are reduced by
+%deleterious mutation-selection balance at neighboring sites. Building upon
+%older models of genetic load \parencite{Crow1970-wj,Kimura1966-bk}, these
+%models consider the equilibrium distribution of the \emph{number} of
+%deleterious mutations segregating on haplotypes
+%\parencite{Charlesworth1993-gb,Nordborg1996-nq}. Given an infinitely large
+%population, or sufficiently strong selection, the deleterious mutations in
+%these models cannot fix; consequently, any lineage containing 
 
-\begin{align}
-  N_e = \frac{4N}{2 + V_k},
-\end{align}
+%While the effect of selection on linked selection distorts neighboring
+%genealogies (XXX), skewing the site frequency spectrum (XXX) and altering
+%linkage disequilibria along the chromosome, we focus on the impact of selection
+%on pairwise coalescence rates. This simple summary is amenable to mathematical
+%and statistical inference, and is robust to difficulties in identifying rare
+%variants. The effect of background selection on pairwise coalescence rates is
+%expressed as the reduction ratio $B = \nicefrac{N_e}{N}$ where $N$ is the
+%drift-effective population size (i.e. including demographic processes) and
+%$N_e$ is the effective population size under background selection.
 
-where $V_k$ is the variance in offspring number across individuals. Under a
-constant population size Wright--Fisher model of reproduction, $V_k \approx 2$,
-and this simplifies to $N_e = N$. However, as first noted by
-\textcite{Robertson1961-ho}, linked selection inflates the variance in
-offspring number, as a neutral allele that becomes associated with a
-high-fitness or low-fitness genetic background has an $1-r$ chance of remaining
-associated with that background in the next generation, where $r$ is the chance
-of recombination (or independent assortment, $r=\nicefrac{1}{2}$). 
+%Under quantitative genetic models of linked selection, the reduction in
+%effective population size is determined by the product of fitness variation,
+%$V_f$, and an inflation factor $Q$. It is helpful to understand this by comparing
+%it to a model of $N_e$ without \emph{heritable} fitness variation but with
+%\emph{non-heritable} fitness variation. In this case, 
 
+%\begin{align}
+%  N_e = \frac{4N}{2 + V_k},
+%\end{align}
 
-This persistence of this association inflates the effective variance in fitness
-by a factory $Q^2$, 
+%where $V_k$ is the variance in offspring number across individuals. Under a
+%constant population size Wright--Fisher model of reproduction, $V_k \approx 2$,
+%and this simplifies to $N_e = N$. However, as first noted by
+%\textcite{Robertson1961-ho}, linked selection inflates the variance in
+%offspring number, as a neutral allele that becomes associated with a
+%high-fitness or low-fitness genetic background has an $1-r$ chance of remaining
+%associated with that background in the next generation, where $r$ is the chance
+%of recombination (or independent assortment, $r=\nicefrac{1}{2}$). 
 
-\begin{align}
-  N_e = \frac{4N}{2 + V_k + 4 Q^2 V_f},
-\end{align}
 
+%This persistence of this association inflates the effective variance in fitness
+%by a factory $Q^2$, 
 
-\begin{align}
-  N_e = \frac{4N}{2 + V_k + 4 Q(r)^2 V_f},
-\end{align}
+%\begin{align}
+%  N_e = \frac{4N}{2 + V_k + 4 Q^2 V_f},
+%\end{align}
 
 
+%\begin{align}
+%  N_e = \frac{4N}{2 + V_k + 4 Q(r)^2 V_f},
+%\end{align}
 
 
-\begin{align}
-  N_e = N \exp\left(-Q^2 V_f\right)
-\end{align}
 
-In a region of $L$ basepairs under purifying selection, there is a net flux of
-deleterious mutations in at rate $U = 2 \mu L$ per generation (where the factor
-of two is because in diploids, $2L$ is the total number of basepairs per genome). 
 
-Typical models of background selection consider the equilibrium distribution of
-the \emph{count} of deleterious mutations, rather than then level of fitness
-variation implied by this count. If we assume fixed additive effects across
-alleles and multiplicative fitness effects across loci, each copy of a
-deleterious mutation an individual carries reduces their fitness by a factor of
-$1-s$. The total reduction for an individual is
+%\begin{align}
+%  N_e = N \exp\left(-Q^2 V_f\right)
+%\end{align}
 
-\begin{align}
-  x = (1-s)^n
-\end{align}
+%In a region of $L$ basepairs under purifying selection, there is a net flux of
+%deleterious mutations in at rate $U = 2 \mu L$ per generation (where the factor
+%of two is because in diploids, $2L$ is the total number of basepairs per genome). 
 
-where $n$ is the number of deleterious alleles an individual carries. Under
-mutation-selection balance, the population evolves to either a stationary
-distribution under the strong BGS domain, or a traveling distribution in weak
-selection case. Under some assumptions, equilibrium models of the strong domain
-show that the distribution $f(n) \sim \text{Pois}(\nicefrac{U}{s})$
-\parencite{Kimura1966-bk,Crow1970-wj} (CHECK) in the asexual case, and the
-fixation rate of deleterious mutations per generation, or ratchet rate, is $R =
-0$ since the probability of fixation, $p_F$ is zero. By contrast, as the
-selection coefficient grows weaker, $s \to 0$, the probability of fixation $p_F
-\to \nicefrac{1}{2N}$, and the ratchet approaches the neutral rate of $R =
-\mu$. The weak selection domain is of importance because both because it
-implies a certain likely irreversible rate of fitness reduction, and because it
-could possibly confound population genetic inference which assumes dynamics
-only under the strong model.
+%Typical models of background selection consider the equilibrium distribution of
+%the \emph{count} of deleterious mutations, rather than then level of fitness
+%variation implied by this count. If we assume fixed additive effects across
+%alleles and multiplicative fitness effects across loci, each copy of a
+%deleterious mutation an individual carries reduces their fitness by a factor of
+%$1-s$. The total reduction for an individual is
 
-As $s \to 0$, the fitness distribution, put on a scale reflecting the fitness
-relative at one moment in time, travels leftwards and changes shape. It has
-been difficult to find dynamic equations for the rate of the ratchet and
-fitness distribution, since lower moments of the distribution, such as the
-variation, depend on higher moments, such as the skew
-\parencite{Good2013-lp,Haigh1978-gt,Higgs1995-xc}. This is known as the ``moment
-closure problem" and it occurs regardless of whether one models the count
-number of deleterious mutations (XXX) or the fitness distribution (XXX).
+%\begin{align}
+%  x = (1-s)^n
+%\end{align}
 
-We can approximate the mapping between the distribution of deleterious
-mutations in the population, and the fitness distribution. It is worth noting
-that the count of deleterious mutations in an individual $i$ can be written
-$n_i = \sum_l^{L} g_l$ where each $g_l$ is an indicator variable for whether
-the individual carries a mutation at position $l$. Then, $\V_i(n) = \sum_l
-\V(g_l) + \sum_{i,j}\cov(g_i, g_j)$.
+%where $n$ is the number of deleterious alleles an individual carries. Under
+%mutation-selection balance, the population evolves to either a stationary
+%distribution under the strong BGS domain, or a traveling distribution in weak
+%selection case. Under some assumptions, equilibrium models of the strong domain
+%show that the distribution $f(n) \sim \text{Pois}(\nicefrac{U}{s})$
+%\parencite{Kimura1966-bk,Crow1970-wj} (CHECK) in the asexual case, and the
+%fixation rate of deleterious mutations per generation, or ratchet rate, is $R =
+%0$ since the probability of fixation, $p_F$ is zero. By contrast, as the
+%selection coefficient grows weaker, $s \to 0$, the probability of fixation $p_F
+%\to \nicefrac{1}{2N}$, and the ratchet approaches the neutral rate of $R =
+%\mu$. The weak selection domain is of importance because both because it
+%implies a certain likely irreversible rate of fitness reduction, and because it
+%could possibly confound population genetic inference which assumes dynamics
+%only under the strong model.
 
-the
-number of deleterious mutations in gamete $i$; thus $V(n) = \sum_i^{2N} V(x_i)
-+ \sum_{i \ne j} \cov(x_i, x_j)$ where the last term is the correlation among
-gamete mutation counts, which is an LD quantity. Then, assuming $s$ is small,
-we can write express this in terms of the additive genetic variance, 
+%As $s \to 0$, the fitness distribution, put on a scale reflecting the fitness
+%relative at one moment in time, travels leftwards and changes shape. It has
+%been difficult to find dynamic equations for the rate of the ratchet and
+%fitness distribution, since lower moments of the distribution, such as the
+%variation, depend on higher moments, such as the skew
+%\parencite{Good2013-lp,Haigh1978-gt,Higgs1995-xc}. This is known as the ``moment
+%closure problem" and it occurs regardless of whether one models the count
+%number of deleterious mutations (XXX) or the fitness distribution (XXX).
 
-\begin{align}
-  V(f) &\approx s^2 \V_a(n) + \Delta_\text{LD}
-\end{align}
+%We can approximate the mapping between the distribution of deleterious
+%mutations in the population, and the fitness distribution. It is worth noting
+%that the count of deleterious mutations in an individual $i$ can be written
+%$n_i = \sum_l^{L} g_l$ where each $g_l$ is an indicator variable for whether
+%the individual carries a mutation at position $l$. Then, $\V_i(n) = \sum_l
+%\V(g_l) + \sum_{i,j}\cov(g_i, g_j)$.
 
-The first term is the additive genic variance, which is 
+%the
+%number of deleterious mutations in gamete $i$; thus $V(n) = \sum_i^{2N} V(x_i)
+%+ \sum_{i \ne j} \cov(x_i, x_j)$ where the last term is the correlation among
+%gamete mutation counts, which is an LD quantity. Then, assuming $s$ is small,
+%we can write express this in terms of the additive genetic variance, 
 
+%\begin{align}
+%  V(f) &\approx s^2 \V_a(n) + \Delta_\text{LD}
+%\end{align}
 
-Under this model, the rate of the ratchet $R = U  - s V(n)$, which implies,
+%The first term is the additive genic variance, which is 
 
-\begin{align}
-  R = U - \nicefrac{V(f)}{s} \\
-  V(f) = s(U - R)
-\end{align}
 
+%Under this model, the rate of the ratchet $R = U  - s V(n)$, which implies,
 
+%\begin{align}
+%  R = U - \nicefrac{V(f)}{s} \\
+%  V(f) = s(U - R)
+%\end{align}
 
-Throughout, it's worthwhile to keep into mind many population-level
-macro-states are simply distributional summaries of the current population. For
-example, the variance in deleterious mutations in the population is simply,
-$\V(n) = \nicefrac{1}{2N} \sum_i (x_i - \mu_x)^2$
 
 
+%Throughout, it's worthwhile to keep into mind many population-level
+%macro-states are simply distributional summaries of the current population. For
+%example, the variance in deleterious mutations in the population is simply,
+%$\V(n) = \nicefrac{1}{2N} \sum_i (x_i - \mu_x)^2$
 
 
 
-- We need to mention the two heterozygosities (S\&C '16 says they diverge under
-$N_e s < 1$ -- could explain anything we see?)
 
-- A point about reconciling the two micro and macro-state theories of
-population and quantitative genetics.
+
+%- We need to mention the two heterozygosities (S\&C '16 says they diverge under
+%$N_e s < 1$ -- could explain anything we see?)
+
+%- A point about reconciling the two micro and macro-state theories of
+%population and quantitative genetics.
 
 
 
