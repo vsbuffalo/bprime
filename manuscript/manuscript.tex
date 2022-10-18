@@ -408,8 +408,8 @@ Additionally, the fitness effects of the selected background may change in
 later generations, in complex ways \parencite{Barton1986-yh,Turelli1990-kd}.
 \textcite{Santiago1995-hx} assume an equilibrium level of fitness variation
 $V_h$, with the fitness variance associated with a particular background
-decaying at a simple geometric decay at rate $Z$ each generation, which is
-sufficient for background selection. An approximate rate of the decay can be
+decaying at a simple geometric decay at rate $1-\kappa$ each generation, which
+is sufficient for background selection. An approximate rate of the decay can be
 worked out for the particular selective system. In general, this can be a much
 more complicated function; \textcite{Buffalo2019-qs} show that even fluctuating
 selection can be accommodated.
@@ -418,18 +418,19 @@ Now, the associations created in generation 1 and that persist in future
 generations as (ignoring $S_i''$ terms) follow the pattern
 
 \begin{align}
-  S_{2}' &= S_1 Z(1-r) \\
-  S_{3}' &= S_1 Z^2(1-r)^2 \\
-  S_{4}' &= S_1 Z^3(1-r)^3.
+  S_{2}' &= S_1 (1-\kappa)(1-r) \\
+  S_{3}' &= S_1 (1-\kappa)^2(1-r)^2 \\
+  S_{4}' &= S_1 (1-\kappa)^3(1-r)^3.
 \end{align}
 
 Then, the cumulative effect of the fitness associations created in generation
 $1$ can be written as,
 
 \begin{align}
+  \label{eq:qterm}
   S_1 Q_t &= S_1 + S_2' + S_3' + \ldots + S_t' \\
-  Q_t &= 1 + \sum_{i=1}^t r^i (1-Z)^i \\
-  Q_\infty &= \frac{1}{1-r (1-Z)}
+  Q_t &= 1 + \sum_{i=1}^t \left((1-r)\kappa\right)^i \\
+  Q_\infty &= \frac{1}{1-(1-r) \kappa}
 \end{align}
 
 which shows the long reach of heritable fitness factors in altering allele
@@ -441,8 +442,8 @@ of this fraction of associations formed in the first generation to later
 generations 2 and 3 would be,
 
 \begin{align}
-  \E(S_1 S_2) &= \E(S_1^2) Z(1-r) = \E(S_1^2) Q_2^2 \\
-  \E(S_1 S_3) &= \E(S_1^2) Z^2(1-r)^2 = \E(S_1^2) Q_3^2.
+  \E(S_1 S_2) &= \E(S_1^2) (1-\kappa)(1-r) = \E(S_1^2) Q_2^2 \\
+  \E(S_1 S_3) &= \E(S_1^2) (1-\kappa)^2(1-r)^2 = \E(S_1^2) Q_3^2.
 \end{align}
 
 With these covariance terms, we now have a full model for $\var(p_t - p_0)$. We
@@ -531,7 +532,7 @@ fraction $r$ apart from the neutral locus is determining the coalesce rate. The
 model of \textcite{Santiago1998-bs} extends this to the case where fitness is
 polygenic. As they show in their original paper, this system can accommodate a
 variety of different equilibrium selection systems as long as expressions for
-$V_h$ and $Z$ can be worked out. Other authors have extended similar models to
+$V_h$ and $1-\kappa$ can be worked out. Other authors have extended similar models to
 more elaborate bbreeding structures \parencite{Wray1990-zf,Woolliams1993-qo}.
 
 First, we extend equation \eqref{eq:ne_t} to a polygenic system. Throughout, a
@@ -571,35 +572,102 @@ Then, the effective population size is,
           &\approx N \exp\left(- \sum_{l=1}^L \frac{V_{h,l} Q_{t,l}^2}{2}\right)
 \end{align}
 
-(c.f. \cite{Santiago1998-bs} equation 4b). This summation can then in turn be
+(c.f. \cite{Santiago1998-bs} equation 4b). Santiago and Caballero ignore the
+covariances between the locus-specific variation decay rates $1-\kappa_l$ terms
+and the locus-specific variances, $V_{h,l}$. This allows for the terms to be
+separated,
+
+\begin{align}
+  N_{e,t} &\approx N \exp\left(- \frac{V_h}{2} \sum_{l=1}^L Q_{t,l}^2\right).
+\end{align}
+
+
+\subsection*{Continuous Approximation to the Segment Under Selection}
+
+Our model differs from that of \textcite{Santiago1998-bs} in that we do not
+integrate over the entire genome. In their 1998 model, Santiago and Caballero
+consider the impact of both sites under selection on the same chromosome, as
+well as sites on independently assorting chromosomes. We only consider the
+contribution of a single segment under purifying selection, and the reduction
+from additional segments accumulate multiplicatively (similar to our
+implementation of the classic BGS model, XXX).
+
+If we assume that the $L$ selected sites are evenly distributed in a region of
+length $G$ basepairs, we can rewrite the sum as $\nicefrac{L}{G} \sum_{l=1}^G
+Q_{t,l}^2$
+
+
+\begin{align}
+  N_{e,t} &\approx N \exp\left(- \frac{V_h}{2} \sum_{l=1}^L Q_{t,l}^2\right).
+\end{align}
+
+
+
+
+For a continuous recombination map, the recombination fraction between the
+neutral allele and a selected site $d$ map distance away is given by Haldane's
+map function, $r = (1-e^{-2d})/2$. Santiago and Caballero assume the focal
+neutral site is in the middle of the chromosome, and integrate over the map
+distance. Assuming that linkage is not too tight, 
+
+\begin{align}
+  Q_\infty &= \frac{1}{1-r \kappa}
+\end{align}
+
+
+
+
+
+
+For our model, we consider the contribution of individual contiguous segments
+of basepairs rather than the whole genome. 
+
+This summation can then in turn be
 approximated by a integral; see \textcite{Santiago1998-bs} for more. Note that
 another way to arrive at this equation is to take the product of reduction
 factors $\nicefrac{N_e}{N}$ across selected sites, as in equation 4 of
 \textcite{Hudson1995-xc}.
 
+
+
+\subsection*{The Variance Dynamics}
+
 The heritable variance in fitness $V_h$ associated with the tracked neutral
 allele does not remain constant through the generations, but decays due to
 selection and drift, and is maintained by the input of new mutations. For an
 arbitrary polygenic selective system, the dynamics are extraordinarily
-complicated due to the complexity of multilocus selection. However, several
-quantitative genetic models simplify these dynamics by assuming an
-infinitesimal model, where the trait is sufficiently polygenic that the allele
-frequency changes at the underlying loci due to selection are negligible
-compared to drift. This allows for a critical assumption of the quantitative
-genetic models of linked selection, that the decay rate in variation is
-constant (and thus independent of the underlying allele frequency changes). In
-the Santiago and Caballero model, this is the decay factor $Z$.
+complicated due to the complexity of multilocus selection, and the dynamics of
+the trait response to selection depend on the variance, which in turn depends
+on higher moments of the fitness distribution. We discuss the simplification of
+Santiago and Caballero's model here; hereafter, we assume that $V_h = V_A$, the
+genetic variance in additive fitness put on a relative scale such that
+$\E_i(f_i) = 1$. 
 
+Each generation, the genetic variance changes due to changes in the allele
+frequencies at selected sites and linkage disequilibria between these sites.
+These are typically expressed as recursions, but certain models permit these
+changes to be expressed as a proportional reduction (e.g. truncation selection
+and stabilizing selection models; \cite{Keightley1988-eq} p. 36, and
+\cite{Walsh2018-bt} p. 557). Santiago and Caballero's model follows this
+approach, assuming the variance decays due to selection and drift at a constant
+rate $Z := 1-\kappa$ through the generations, such that the variance in the next
+generation excluding mutation is $V_A' = (1-\kappa) V_A$ and $\Delta V_A =
+-\kappa V_A$.
 
-
-The theory of \textcite{Santiago1998-bs} is based on an equilibrium model,
-where $\Delta V_h = 0$ of the long run, even if the fitness variation
-\emph{associated} with the allele's haplotype is changing. This macro-scale
+With mutation, $\Delta V_A = V_m - \kappa V_A$. The model of Santiago and
+Caballero assumes that under the long-run equilibrium, $\Delta V_A = 0$, such
+that $\kappa V_A = V_m$, and thus the rate of loss is $\kappa =
+\nicefrac{V_m}{V_A}$. Then the variance for the dynamics simplify to,
 
 \begin{align}
-  \Delta V_h &= V_m - V_h\left(1 - \frac{1}{2 N_e}\right) \\
+  \label{eq:Z}
+  V_A' &= \left(1 - \frac{V_m}{V_A}\right) V_A \\
+  Z &:= \frac{V_A'}{V_A} = 1 - \kappa = 1 - \frac{V_m}{V_A}
 \end{align}
 
+(c.f. \cite{Santiago1998-bs} equation 9). 
+
+% TODO this is a good description that could make its way to maintext
 
 \subsection*{Effective Population Size Under Strong Background Selection}
 
@@ -615,51 +683,49 @@ where $n_i$ is the number of deleterious mutations this individual carries.
 
 Classic background selection theory assumes an infinite population size, such
 that mutation frequencies are at their mutation-selection equilibrium and the
-expected number of mutations is $n_i = \nicefrac{\mu}{s}L$ where $L$ is the
-total number of basepairs that can be mutated (the mutational target size).
-Under a multiplicative fitness function in an infinite population, selection
-cannot generate linkage disequilibria \parencite{Turelli1990-kd}. Thus the
-classic strong background selection model assumes additive genetic fitness is
-equal to the additive genic fitness (which excludes the contribution of
-covariance between selected sites), 
+expected number of mutations across individuals is $\E_i(n_i) =
+\nicefrac{\mu}{s}L$ where $L$ is the total number of basepairs that can be
+mutated (the mutational target size).  Under a multiplicative fitness function
+in an infinite population, selection cannot generate linkage disequilibria
+\parencite{Turelli1990-kd}. Thus the classic strong background selection model
+assumes additive genetic fitness is equal to the additive genic fitness (which
+excludes the contribution of covariance between selected sites), 
 
 \begin{align}
-  \V_i(w_i) &= 2 \sum_{l=1}^L p(1-p) s^2 \\
+  V_\text{BGS} &:= \V_i(w_i) = 2 \sum_{l=1}^L p(1-p) s^2 \\
             &= 2 L \frac{\mu}{s} \left( 1 - \frac{\mu}{s}\right) s^2 = U s + \mathcal{O}(\mu^2) \approx Us.
 \end{align}
 
-where we define $U := 2 L \mu$ to be the deleterious mutation rate per diploid
-genome, per generation. 
-
-
-
-Next, \textcite{Santiago1998-bs} find a general
-equation for the factor $Z$ by which fitness variation associated with the
-neutral allele is reduced under mutation-selection balance. This is a
-macro-scale variable reflecting the average balance between the average loss of
-fitness variance due to selection under an infinitesimal model and drift. Each
-generation, the gain of new fitness variance per generation is $V_m$.
+where $U$ is defined $U := 2 L \mu$, the deleterious mutation rate per diploid
+genome, per generation. They then set $V_A = V_\text{BGS}$, and note that $V_m
+\approx Us^2$, since mutations have frequency of $\nicefrac{1}{2N}$ and each
+increase the variance by a factor of $s^2$. Note that because the classic BGS
+model assumes deterministic selection dynamics (i.e. an infinite population),
+the equilibrium $Z$ given by equation \eqref{eq:Z} excludes the reduction due
+to drift, which reduces the variance by an additional factor $1 -
+\nicefrac{1}{2N_e}$. Thus, the reduction factor under the strong BGS model is,
 
 \begin{align}
-  Z = 
+  Z \left(1 - \frac{1}{2N_e}\right) = (1 - s)\left(1 - \frac{1}{2N_e}\right) \approx 1 - s -\frac{1}{2N_e}
 \end{align}
 
+(c.f. \cite{Santiago1998-bs} equation 10). An alternate derivation can be found
+by working out the deterministic reduction in variance from the single-locus
+dynamics. Thus, $Q' = $
 
-Then, with under the strong background selection model,
-a site under purifying selection reduces diversity at a focal neutral site $r$
-by a factor of
+the reduction under the classic BGS model is,
 
 \begin{align}
-  \frac{N_{e,t}}{N} = \exp \left(-\frac{V_{h,1} Q_{t,1}^2}{2}\right)
+  N_e = N \exp()
 \end{align}
 
+\subsection*{Weak Selection Dynamics}
 
-
-
-% \begin{align}
-%   \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right) \\
-% \end{align}
-
+With the possibility of weak selection, deleterious alleles can drift up in
+frequency and fix. Consequently, the fitness distribution is no longer
+stationary, as the set of haplotypes without any deleterious mutations can be
+lost due to drift. The approach of \textcite{Santiago2016-mu} that we implement
+in our methods is to derive an equation for 
 
 
 
