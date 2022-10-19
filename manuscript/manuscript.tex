@@ -429,11 +429,17 @@ $1$ can be written as,
 \begin{align}
   \label{eq:qterm}
   S_1 Q_t &= S_1 + S_2' + S_3' + \ldots + S_t' \\
-  Q_t &= 1 + \sum_{i=1}^t \left((1-r)\kappa\right)^i \\
-  Q_\infty &= \frac{1}{1-(1-r) \kappa}
+  Q_t &= 1 + \sum_{i=1}^t \left((1-r)\kappa\right)^i
 \end{align}
 
-which shows the long reach of heritable fitness factors in altering allele
+which converges to,
+
+\begin{align}
+  \label{eq:Qinf}
+  Q_\infty &= \frac{1}{1-(1-r) \kappa}.
+\end{align}
+
+This shows the long reach of heritable fitness factors in altering allele
 frequency through the generations. In terms like $\E(S_1 S_2)$, a fraction
 $S_1'$ of the heritable allele frequency change $S_2$ were \emph{previously}
 built associations between the neutral allele and a fitness background from
@@ -538,21 +544,22 @@ more elaborate bbreeding structures \parencite{Wray1990-zf,Woolliams1993-qo}.
 First, we extend equation \eqref{eq:ne_t} to a polygenic system. Throughout, a
 multiplicative fitness model is assumed (i.e. independent effects, no
 epistasis), where the fitness of individual $i$ is the product of their fitness
-contributions from each locus $l$, $w_{i,l}$, giving $w_i = \prod_{l=1}^L
-w_{i,l}$. Then, assuming mean fitness is one, the total fitness variation is
-multiplicative across the locus-level fitnesses,
+contributions from each locus $l$, $w_{i,l}$, giving $w_i = \prod_{l=1}^n
+w_{i,l}$. Then, assuming mean fitness is one and independence between sites,
+the total fitness variation is multiplicative across the locus-level fitnesses,
 
 \begin{align}
   V_h %&= \E_i\left( w_i^2 \right) - 1 \\
-      %&= \prod_{l=1}^L (1 + \alpha_{l}^2 \V(g_l))  - 1  \\
-      &= \prod_{l=1}^L (1 + V_{h,l})  - 1
+      %&= \prod_{l=1}^n (1 + \alpha_{l}^2 \V(g_l))  - 1  \\
+      &= \prod_{l=1}^n (1 + V_{h,l})  - 1
 \end{align}
 
-Now, the $Q_t^2 V_h$ term in the single-locus model is now under a
-multiplicative polygenic model,
+Similarly, the $Q_t^2 V_h$ term in the single-locus model is multiplicative
+under the polygenic model, as the change in site-specific fitness variances are
+assumed independent,
 
 \begin{align}
-  Q_t^2 V_h &= \prod_{l=1}^L \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)  - 1
+  Q_t^2 V_h &= \prod_{l=1}^n \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)  - 1
 \end{align}
 
 where $Q_{t,l}$ is the cumulative impact of selection due to the selected site
@@ -568,19 +575,28 @@ Then, the effective population size is,
 
 \begin{align}
   N_{e,t} &\approx \frac{N}{V_h Q_t^2 + 1} \\
-          &\approx \frac{N}{\prod_{l=1}^L \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)} \\
-          &\approx N \exp\left(- \sum_{l=1}^L \frac{V_{h,l} Q_{t,l}^2}{2}\right)
+          &\approx \frac{N}{\prod_{l=1}^n \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)} \\
+          &\approx N \exp\left(- \sum_{l=1}^n \frac{V_{h,l} Q_{t,l}^2}{2}\right)
 \end{align}
 
-(c.f. \cite{Santiago1998-bs} equation 4b). Santiago and Caballero ignore the
-covariances between the locus-specific variation decay rates $1-\kappa_l$ terms
-and the locus-specific variances, $V_{h,l}$. This allows for the terms to be
-separated,
+(c.f. \cite{Santiago1998-bs} equation 4b). If we write each site $l$'s
+contribution to the variance as a deviation from the average contribution,
+$V_{h,l}^2 = \nicefrac{1}{n} V_h + \varepsilon_l$, then 
 
 \begin{align}
-  N_{e,t} &\approx N \exp\left(- \frac{V_h}{2} \sum_{l=1}^L Q_{t,l}^2\right).
+  N_{e,t} &\approx N \exp\left(- \frac{1}{2}\sum_{l=1}^n \left(\frac{1}{n}V_{h} + \varepsilon_l\right)  Q_{t,l}^2\right) \\
+          &\approx N \exp\left(- \frac{V_{h}}{2n} \sum_{l=1}^n Q_{t,l}^2+ \sum_{l=1}^n \varepsilon_l  Q_{t,l}^2\right)
 \end{align}
 
+Santiago and Caballero assume that over evolutionary replicates, as selected
+sites are randomly distributed, there is not systematic covariance between the
+fitness variation at a site and the decay of its association with the neutral
+site, e.g. $\E(\varepsilon_l Q_{t,l}^2) = 0$, and thus ignore the second sum
+term. 
+
+\begin{align}
+      N_{e,t} &\approx N \exp\left(- \frac{V_{h}}{2n} \sum_{l=1}^n Q_{t,l}^2\right) \\
+\end{align}
 
 \subsection*{Continuous Approximation to the Segment Under Selection}
 
@@ -590,43 +606,43 @@ consider the impact of both sites under selection on the same chromosome, as
 well as sites on independently assorting chromosomes. We only consider the
 contribution of a single segment under purifying selection, and the reduction
 from additional segments accumulate multiplicatively (similar to our
-implementation of the classic BGS model, XXX).
+implementation of the classic BGS model, XXX). Like their model, we imagine the
+reduction experienced by a focal neutral site in the middle of the segment.
+The implementation of our method differs slightly on though, see XXX.
 
-If we assume that the $L$ selected sites are evenly distributed in a region of
-length $G$ basepairs, we can rewrite the sum as $\nicefrac{L}{G} \sum_{l=1}^G
-Q_{t,l}^2$
-
-
-\begin{align}
-  N_{e,t} &\approx N \exp\left(- \frac{V_h}{2} \sum_{l=1}^L Q_{t,l}^2\right).
-\end{align}
-
-
-
-
-For a continuous recombination map, the recombination fraction between the
-neutral allele and a selected site $d$ map distance away is given by Haldane's
-map function, $r = (1-e^{-2d})/2$. Santiago and Caballero assume the focal
-neutral site is in the middle of the chromosome, and integrate over the map
-distance. Assuming that linkage is not too tight, 
+Since $Q_{t,l}$ terms depend on $l$ only through the recombination fraction
+between the neutral allele and the selected site, $r(l)$. Assuming a constant
+per-basepair recombination rate of $r_\text{BP}$, $r(l) = r_\text{BP} l$ we can
+approximate the sum with an integral for the asymptotic $Q_\infty$. The
+reduction experienced in the middle of a chromosome is twice the reduction
+experienced from each half, 
 
 \begin{align}
-  Q_\infty &= \frac{1}{1-r \kappa}
+      N_{e,\infty} &\approx N \exp\left(- \frac{V_{h}}{2n} \sum_{l=1}^n Q_{\infty,l}^2\right) \\
+              &\approx N \exp\left(- \frac{V_{h}}{L} \int_0^{\nicefrac{L}{2}} Q_{\infty}(r)^2 dr \right) \\
 \end{align}
 
+where $L = n r_\text{BP}$ is the total segment length in Morgans. Let us define
+the total asymptotic effect of associations from all sites as $Q_\infty^2$.
+Then,
 
+\begin{align}
+  Q_\infty^2 &= \frac{2}{L}\int_0^{\nicefrac{n r_\text{BP}}{2}} Q_{\infty}(x)^2 dx  \\
+  &=  \frac{2}{L} \int_0^{\nicefrac{L}{2}} \left(\frac{1}{1 - (1-x)Z}\right)^2 dx  \\
+  &= \frac{2}{(1-Z) (2-(2-L) Z)}
+\end{align}
 
+Santiago and Caballero further approximate this; we can derive their
+approximation by setting $Z = 1-\kappa$ and doing a first-order Taylor series
+expansion around $\kappa$ (since the loss in variance is presumed to be small).
+Then,
 
+\begin{align}
+  Q_\infty^2 = \frac{2}{L (1-Z)} + \frac{2 (L-2)}{L^2}+\frac{2 \left(L^2-4 L+4\right) (1-Z)}{L^3} + \mathcal{O}(\kappa^2)
+\end{align}
 
+Santiago and Caballero 
 
-For our model, we consider the contribution of individual contiguous segments
-of basepairs rather than the whole genome. 
-
-This summation can then in turn be
-approximated by a integral; see \textcite{Santiago1998-bs} for more. Note that
-another way to arrive at this equation is to take the product of reduction
-factors $\nicefrac{N_e}{N}$ across selected sites, as in equation 4 of
-\textcite{Hudson1995-xc}.
 
 
 
