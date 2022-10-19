@@ -641,10 +641,21 @@ Then,
   Q_\infty^2 = \frac{2}{L (1-Z)} + \frac{2 (L-2)}{L^2}+\frac{2 \left(L^2-4 L+4\right) (1-Z)}{L^3} + \mathcal{O}(\kappa^2)
 \end{align}
 
-Santiago and Caballero 
+Santiago and Caballero's approximation only keeps this first term, e.g. their
+$Q_\infty^2 \approx 2/(L(1-Z))$, which is only accurate in the domain $L >
+0.2$. 
 
+\begin{align}
+  N_{e,\infty}^{\text(SC98)} \approx N \exp\left(-\frac{V_h}{(1-Z)L}\right) 
+\end{align}
 
+(c.f. \cite{Santiago1998-bs} equation 8). For small $L$, the small $\kappa$
+approximation strongly deviates from the full equation; thus, throughout, we
+use the unapproximated version,
 
+\begin{align}
+  N_{e,\infty}^* \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-L) Z)} \right).
+\end{align}
 
 \subsection*{The Variance Dynamics}
 
@@ -718,22 +729,29 @@ genome, per generation. They then set $V_A = V_\text{BGS}$, and note that $V_m
 increase the variance by a factor of $s^2$. Note that because the classic BGS
 model assumes deterministic selection dynamics (i.e. an infinite population),
 the equilibrium $Z$ given by equation \eqref{eq:Z} excludes the reduction due
-to drift, which reduces the variance by an additional factor $1 -
-\nicefrac{1}{2N_e}$. Thus, the reduction factor under the strong BGS model is,
+to drift. The reduction factor under the strong BGS model is,
 
 \begin{align}
-  Z \left(1 - \frac{1}{2N_e}\right) = (1 - s)\left(1 - \frac{1}{2N_e}\right) \approx 1 - s -\frac{1}{2N_e}
+  Z_\text{BGS} := 1 - \frac{Vm}{V_\text{BGS}} = 1 - \frac{Us^2}{Us} = 1 - s
 \end{align}
 
 (c.f. \cite{Santiago1998-bs} equation 10). An alternate derivation can be found
 by working out the deterministic reduction in variance from the single-locus
-dynamics. Thus, $Q' = $
+dynamics. 
 
-the reduction under the classic BGS model is,
+Using $Z_\text{BGS}$, $V_m$, and $V$ under the background selection model, and
+approximation $N_{e,\infty}^\text{SC98}$ (equation XXX), find an equation
+reminiscent of the classic background selection with recombination results. We
+find that by using the full equation XXX $N_{e,\infty}^*$ rather than the
+approximation of Santiago and Caballero, the reduction due to background
+selection is
 
 \begin{align}
-  N_e = N \exp()
+  N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + L - Ls} \right)
 \end{align}
+
+which matches equation 8 of \textcite{Hudson1995-xc} up to the $Ls$ term and
+equation 10 of \textcite{Nordborg1996-nq} up to the $2s$ term.
 
 \subsection*{Weak Selection Dynamics}
 
