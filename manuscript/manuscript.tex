@@ -40,19 +40,19 @@
 \begin{document}
 \maketitle
 
-\section*{Introduction}
+% \section*{Introduction}
 
-As genomes are transmitted through the generations, lifetime events selectively
-alter what is passed to the next generation. While selection directly acts on
-the genetic variants that cause heritable fitness differences among
-individuals, neighboring regions experience an indirect contraction in genetic
-variability. This byproduct is known as \emph{linked selection}, and it occurs
-when selection changes a site's frequency on timescale faster than
-recombination can decouple that site from its genetic background. Because
-linked selection modifies the genetic variability in a regionally-correlated
-way, it creates observable patterns in genomic data that are used to understand
-the type of selection processes acting on genomes and estimate key evolutionary
-quantities. 
+% As genomes are transmitted through the generations, lifetime events selectively
+% alter what is passed to the next generation. While selection directly acts on
+% the genetic variants that cause heritable fitness differences among
+% individuals, neighboring regions experience an indirect contraction in genetic
+% variability. This byproduct is known as \emph{linked selection}, and it occurs
+% when selection changes a site's frequency on timescale faster than
+% recombination can decouple that site from its genetic background. Because
+% linked selection modifies the genetic variability in a regionally-correlated
+% way, it creates observable patterns in genomic data that are used to understand
+% the type of selection processes acting on genomes and estimate key evolutionary
+% quantities. 
 
 % , with characteristic length
 % $\nicefrac{s}{r}$ basepairs, where $s$ is the heterozygous selection
@@ -61,126 +61,126 @@ quantities.
 % whether hitchhiking alone could explain the observed genome-wide correlation
 % between recombination rate and genetic diversity in some species (XXX). 
 
-Much work has been done on developing mathematical theory for two linked
-selection processes: hitchhiking and background selection. These are
-distinguished by the evolutionary processes that generate fitness variation and
-the resulting selection dynamics. Under the classic hitchhiking model, a new
-beneficial mutation sweeps fixation, leading to a dip in genetic diversity on a
-small spatial scale. Since the sweeps leave relatively narrow footprint, they
-influence genome-wide diversity only when beneficial mutations are recurring
-and recombination is relatively limited, as in \emph{Drosophila}. These models
-assume sweeps are sufficiently rare as to not occur simultaneously, which is
-consistent with the slow estimated rate of strongly beneficial mutations (XXX).
-Overall, the classic hitchhiking model is simple because the underlying
-selection process does not generate polygenic fitness variation, even though
-this is type of variation plays a dominant role in adaptation (XXX).
+% Much work has been done on developing mathematical theory for two linked
+% selection processes: hitchhiking and background selection. These are
+% distinguished by the evolutionary processes that generate fitness variation and
+% the resulting selection dynamics. Under the classic hitchhiking model, a new
+% beneficial mutation sweeps fixation, leading to a dip in genetic diversity on a
+% small spatial scale. Since the sweeps leave relatively narrow footprint, they
+% influence genome-wide diversity only when beneficial mutations are recurring
+% and recombination is relatively limited, as in \emph{Drosophila}. These models
+% assume sweeps are sufficiently rare as to not occur simultaneously, which is
+% consistent with the slow estimated rate of strongly beneficial mutations (XXX).
+% Overall, the classic hitchhiking model is simple because the underlying
+% selection process does not generate polygenic fitness variation, even though
+% this is type of variation plays a dominant role in adaptation (XXX).
 
-By contrast, background selection is a consequence of the fitness variation
-created by a steady influx of new deleterious mutations. The classic background
-selection model (XXX) considers how the balance between mutation introducing
-deleterious variants into the population and selection removing them, reduces
-nearby genetic variability. A critical assumption of this model is that such an
-equilibrium between mutation and selection exists, which is the case only when
-these mutations have a large enough fitness cost to ensure that they cannot fix
-in the population. Under this process, the number of deleterious mutations per
-gamete reaches a Poisson stationary distribution with rate $\nicefrac{U}{s}$,
-where $U = \mu_D L$ is the deleterious mutation rate ($\mu_D$ per basepair per
-generation) in a region of $L$ basepairs for mutations with a heterozygous
-selection coefficient of $s$ (XXX). The fraction of gametes without any
-mutations is then $f_0 = \exp(-\nicefrac{\mu_D}{s})$. Without recombination,
-any gamete with deleterious mutations is destined to bring its linked neutral
-variation with it to extinction, effectively reducing diversity levels to those
-expected in a neutrally-evolving population of size $f_0 N$. 
+% By contrast, background selection is a consequence of the fitness variation
+% created by a steady influx of new deleterious mutations. The classic background
+% selection model (XXX) considers how the balance between mutation introducing
+% deleterious variants into the population and selection removing them, reduces
+% nearby genetic variability. A critical assumption of this model is that such an
+% equilibrium between mutation and selection exists, which is the case only when
+% these mutations have a large enough fitness cost to ensure that they cannot fix
+% in the population. Under this process, the number of deleterious mutations per
+% gamete reaches a Poisson stationary distribution with rate $\nicefrac{U}{s}$,
+% where $U = \mu_D L$ is the deleterious mutation rate ($\mu_D$ per basepair per
+% generation) in a region of $L$ basepairs for mutations with a heterozygous
+% selection coefficient of $s$ (XXX). The fraction of gametes without any
+% mutations is then $f_0 = \exp(-\nicefrac{\mu_D}{s})$. Without recombination,
+% any gamete with deleterious mutations is destined to bring its linked neutral
+% variation with it to extinction, effectively reducing diversity levels to those
+% expected in a neutrally-evolving population of size $f_0 N$. 
 
-Remarkably, predictions from simple background selection models with
-recombination closely match large-scale patterns of human diversity and
-divergence (XXX). Since background approximately rescales a neutral coalescent
-process by $f_0$, the predicted diversity is reduced from neutral levels by a
-factor $B = \nicefrac{N_e}{N}$, which is the ratio of effective population size
-under background selection to the population size. In background selection
-models with recombination, $B$ is determined by the number of conserved
-basepairs and recombination in a region. Consequently the predicted reduction
-along the genome (known as $B$ maps) mirror the regional density of conserved
-elements under purifying selection and recombination rates. These $B$ maps have
-been used in studies of XXX, are inputs into machine learning models that
-predict functional constraint, and XXX. Furthermore, since new deleterious
-mutations are perpetually flowing into populations $B$ maps may provide a
-better null model for evolution than the standard neutral model.
+% Remarkably, predictions from simple background selection models with
+% recombination closely match large-scale patterns of human diversity and
+% divergence (XXX). Since background approximately rescales a neutral coalescent
+% process by $f_0$, the predicted diversity is reduced from neutral levels by a
+% factor $B = \nicefrac{N_e}{N}$, which is the ratio of effective population size
+% under background selection to the population size. In background selection
+% models with recombination, $B$ is determined by the number of conserved
+% basepairs and recombination in a region. Consequently the predicted reduction
+% along the genome (known as $B$ maps) mirror the regional density of conserved
+% elements under purifying selection and recombination rates. These $B$ maps have
+% been used in studies of XXX, are inputs into machine learning models that
+% predict functional constraint, and XXX. Furthermore, since new deleterious
+% mutations are perpetually flowing into populations $B$ maps may provide a
+% better null model for evolution than the standard neutral model.
 
-While background selection models do predict diversity levels  XXX
+% While background selection models do predict diversity levels  XXX
 
-% outline?
-- Disentangling evolutionary processes from the patterns of genetic variation
-across the genome. The structure of what can be under selection shapes these
-patterns when selection acts; when drift acts, these patterns should not exist.
+% % outline?
+% - Disentangling evolutionary processes from the patterns of genetic variation
+% across the genome. The structure of what can be under selection shapes these
+% patterns when selection acts; when drift acts, these patterns should not exist.
 
-- For species with small effective population sizes (and perhaps large map
-lengths), BGS seems to be a dominant selective force in shaping patterns of
-diversity (e.g. at the megabase scale in humans).
+% - For species with small effective population sizes (and perhaps large map
+% lengths), BGS seems to be a dominant selective force in shaping patterns of
+% diversity (e.g. at the megabase scale in humans).
 
-- However, current approaches to fitting BGS models fail under the weak
-selection domain. This weak selection domain is important (discuss
-HRI/ratchet/etc). Importantly, the characteristic scale of the impact of linked
-selection is $\nicefrac{s}{r}$, meaning weak selection acts on smaller scales
-than strong selection. Our ability to see selection at small scales may be
-inhibited by the fact that our current BGS theory only works for strong
-selection.
+% - However, current approaches to fitting BGS models fail under the weak
+% selection domain. This weak selection domain is important (discuss
+% HRI/ratchet/etc). Importantly, the characteristic scale of the impact of linked
+% selection is $\nicefrac{s}{r}$, meaning weak selection acts on smaller scales
+% than strong selection. Our ability to see selection at small scales may be
+% inhibited by the fact that our current BGS theory only works for strong
+% selection.
 
-- We need to say briefly that we're using BGS to mean linked selection due to
-purifying selection, and thus the strong and weak regimes (classically it has
-just meant the strong regime).
+% - We need to say briefly that we're using BGS to mean linked selection due to
+% purifying selection, and thus the strong and weak regimes (classically it has
+% just meant the strong regime).
 
-\section*{Conclusion}
+% \section*{Conclusion}
 
-- care should be taken applying these methods to \emph{Drosophila}, since the
-$\delta_{LD}$ term could be much larger.
+% - care should be taken applying these methods to \emph{Drosophila}, since the
+% $\delta_{LD}$ term could be much larger.
 
-\section*{Results}
+% \section*{Results}
 
-\subsection*{Theory}
+% \subsection*{Theory}
 
-- overview of why BGS models fail?
-
-
-From an evolutionary perspective, linked selection is important because by
-modifying neighboring levels of genetic diversity, it is also directly altering
-the selection dynamics at these neighboring sites. 
+% - overview of why BGS models fail?
 
 
-The other use of these models is to understand how linked selection processes
-differentially alter the genetic variability, or equivalently, the genealogical
-trees, along the genome. 
-
-XXX how many sites are under selection at any moment? What's fitness variation?
+% From an evolutionary perspective, linked selection is important because by
+% modifying neighboring levels of genetic diversity, it is also directly altering
+% the selection dynamics at these neighboring sites. 
 
 
+% The other use of these models is to understand how linked selection processes
+% differentially alter the genetic variability, or equivalently, the genealogical
+% trees, along the genome. 
 
-Early on, some pointed out that evidence of strong selective sweeps in the
-human genome was not the full story 
-
-Generally, in organisms with large amounts of recombination, linked selection
-has 
+% XXX how many sites are under selection at any moment? What's fitness variation?
 
 
-Weak selection processes 
 
-distorts
-genome-wide 
+% Early on, some pointed out that evidence of strong selective sweeps in the
+% human genome was not the full story 
 
-diversity.
+% Generally, in organisms with large amounts of recombination, linked selection
+% has 
 
-The linked selection literature has primarily focused on developing theory for,
-and quantifying the effects of two linked selection processes: hitchhiking and
-background selection. Genome-wide models of the hitchhiking process consider
-how beneficial mutations that sporadically enter the population 
 
-- QGLS polygenic linked selection
+% Weak selection processes 
 
-- H and W
+% distorts
+% genome-wide 
 
-- inflation factor
+% diversity.
 
-\subsection*{Statistical Methods}
+% The linked selection literature has primarily focused on developing theory for,
+% and quantifying the effects of two linked selection processes: hitchhiking and
+% background selection. Genome-wide models of the hitchhiking process consider
+% how beneficial mutations that sporadically enter the population 
+
+% - QGLS polygenic linked selection
+
+% - H and W
+
+% - inflation factor
+
+% \subsection*{Statistical Methods}
 
 \section*{Appendix}
 
@@ -481,9 +481,12 @@ away from the neutral site is given by,
 Since the probability of coalesce (or, equivalently, identity by descent) is
 proportional to the variance in allele frequency change
 \parencite{Barton2000-zg}, this encodes the pairwise coalescent rate of the
-population through time under selection through the $N_{e,t}$ terms.  In the
-original derivation of \textcite{Santiago1995-hx}, they set each $N_{e,t}$ term
-to a single $N$ and solve this summation in the limit to infinity giving,
+population through time under selection through the $N_{e,t}$ terms. Others
+have found that the genealogies under purifying selection can be characterized
+by such a time-dependent effective population size
+\parencite{Nicolaisen2013-gv}. In the original derivation of
+\textcite{Santiago1995-hx}, they set each $N_{e,t}$ term to a single $N$ and
+solve this summation in the limit to infinity giving,
 
 \begin{align}
   \label{eq:var_asymp}
@@ -654,7 +657,7 @@ approximation strongly deviates from the full equation; thus, throughout, we
 use the unapproximated version,
 
 \begin{align}
-  N_{e,\infty}^* \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-L) Z)} \right).
+  N_{e,\infty} \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-L) Z)} \right).
 \end{align}
 
 \subsection*{The Variance Dynamics}
@@ -700,36 +703,38 @@ that $\kappa V_A = V_m$, and thus the rate of loss is $\kappa =
 
 Under strong background selection, multiple segregating deleterious sites
 contribute to fitness variation. BGS models assume a multiplicative fitness
-model, such that the fitness of an individual $i$ is
+model, such that the fitness of an individual is
 
 \begin{align}
-  w_i = (1-s)^{n_i}
+  w = (1-s)^{n}
 \end{align}
 
-where $n_i$ is the number of deleterious mutations this individual carries.
+where $n$ is the number of deleterious mutations this individual carries.
 
 Classic background selection theory assumes an infinite population size, such
 that mutation frequencies are at their mutation-selection equilibrium and the
-expected number of mutations across individuals is $\E_i(n_i) =
-\nicefrac{\mu}{s}L$ where $L$ is the total number of basepairs that can be
-mutated (the mutational target size).  Under a multiplicative fitness function
-in an infinite population, selection cannot generate linkage disequilibria
+expected number of mutations across individuals is $\E(n) = \nicefrac{\mu}{s}L$
+where $L$ is the total number of basepairs that can be mutated (the mutational
+target size).  Under a multiplicative fitness function in an infinite
+population, selection cannot generate linkage disequilibria
 \parencite{Turelli1990-kd}. Thus the classic strong background selection model
 assumes additive genetic fitness is equal to the additive genic fitness (which
 excludes the contribution of covariance between selected sites), 
 
 \begin{align}
-  V_\text{BGS} &:= \V_i(w_i) = 2 \sum_{l=1}^L p(1-p) s^2 \\
-            &= 2 L \frac{\mu}{s} \left( 1 - \frac{\mu}{s}\right) s^2 = U s + \mathcal{O}(\mu^2) \approx Us.
+  \label{eq:va_bgs}
+  V_\text{BGS} &:= \V(w) = 2 s^2 \sum_{l=1}^L p_l(1-p_l)  \\
+            &= 2 L s^2 \frac{\mu}{s} \left( 1 - \frac{\mu}{s}\right) = U s + \mathcal{O}(\mu^2) \approx Us.
 \end{align}
 
-where $U$ is defined $U := 2 L \mu$, the deleterious mutation rate per diploid
-genome, per generation. They then set $V_A = V_\text{BGS}$, and note that $V_m
-\approx Us^2$, since mutations have frequency of $\nicefrac{1}{2N}$ and each
-increase the variance by a factor of $s^2$. Note that because the classic BGS
-model assumes deterministic selection dynamics (i.e. an infinite population),
-the equilibrium $Z$ given by equation \eqref{eq:Z} excludes the reduction due
-to drift. The reduction factor under the strong BGS model is,
+since under mutation-selection balance $p_l = \nicefrac{\mu}{s}$ and $U$ is
+defined $U := 2 L \mu$, the deleterious mutation rate per diploid genome, per
+generation. They then set $V_A = V_\text{BGS}$, and note that $V_m \approx
+Us^2$, since mutations have frequency of $\nicefrac{1}{2N}$ and each increase
+the variance by a factor of $s^2$. Note that because the classic BGS model
+assumes deterministic selection dynamics (i.e. an infinite population), the
+equilibrium $Z$ given by equation \eqref{eq:Z} excludes the reduction due to
+drift. The reduction factor under the strong BGS model is,
 
 \begin{align}
   Z_\text{BGS} := 1 - \frac{Vm}{V_\text{BGS}} = 1 - \frac{Us^2}{Us} = 1 - s
@@ -742,7 +747,7 @@ dynamics.
 Using $Z_\text{BGS}$, $V_m$, and $V$ under the background selection model, and
 approximation $N_{e,\infty}^\text{SC98}$ (equation XXX), find an equation
 reminiscent of the classic background selection with recombination results. We
-find that by using the full equation XXX $N_{e,\infty}^*$ rather than the
+find that by using the full equation XXX $N_{e,\infty}$ rather than the
 approximation of Santiago and Caballero, the reduction due to background
 selection is
 
@@ -750,16 +755,111 @@ selection is
   N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + L - Ls} \right)
 \end{align}
 
-which matches equation 8 of \textcite{Hudson1995-xc} up to the $Ls$ term and
-equation 10 of \textcite{Nordborg1996-nq} up to the $2s$ term.
+which matches equation 8 of \textcite{Hudson1995-xc} except for the $Ls$ term
+and equation 10 of \textcite{Nordborg1996-nq} except for the $2s$ term.
 
-\subsection*{Weak Selection Dynamics}
+\subsection*{Effective Population Size Under Weak and Strong BGS}
 
 With the possibility of weak selection, deleterious alleles can drift up in
 frequency and fix. Consequently, the fitness distribution is no longer
 stationary, as the set of haplotypes without any deleterious mutations can be
-lost due to drift. The approach of \textcite{Santiago2016-mu} that we implement
-in our methods is to derive an equation for 
+lost due to drift. This changes the shape of the fitness distribution, and thus
+the variance parameter that our model relies upon
+\parencite{Gessler1995-hz,OFallon2010-my,Good2013-lp,Haigh1978-gt,Higgs1995-xc}.
+So far, finding an explicit equation for the variance has been difficult due to
+the ``moment-closure problem": the variance depends on higher moments such as
+the skew, which in turn depends on higher moments. While the weak selection
+regime is composed of an interaction of mutation, selection, drift, and linkage
+processes and the dynamics that differ qualitatively based on parameter
+combinations. In their approximation, \textcite{Santiago2016-mu} consider the
+modified additive genic variance due to the fixation of weakly deleterious
+mutations. This fixation process is related to the Muller's Ratchet, the rate
+$R$ of fixation of deleterious mutations per generation per region, since each
+fixation directly reduces the additive genic variance of the fitness
+distribution. However, in general, the rate of this ratchet is unknown since it
+depends on the fitness variance (and thus higher moments of the fitness
+distribution).
+
+In their 2016 paper, Santiago and Caballero derive a general equation for the
+fitness variance that accounts for the reduction due to the fixation of weakly
+deleterious alleles (i.e. the rate of Muller's ratchet). There derivation for
+the variance uses a heuristic approach based on Fisher's Fundamental Theorem of
+Natural Selection (equation 2, \cite{Santiago2016-mu}, equation 15A
+\cite{Garcia-Dorado2007-jj}). A more formal derivation follows from
+\textcite{Higgs1995-xc} (though they assume an asexual system, the result is
+the same). In their work, they derive equations for the change per generation
+for the moments and cross-moments of the fitness distribution under
+multiplicative selection in a haploid population. For a Poisson number of new
+mutations per gamete, per generation, they find (equation 13.3,
+\cite{Higgs1995-xc}) that the rate of the ratchet is 
+
+\begin{align}
+  R = U - s \V(n).
+\end{align}
+
+The rate of the ratchet for a diploid population is the same, as long as $U$ is
+the mutation rate per generation per diploid genome (as is assumed here).
+$\V(n)$ is the variance of the distribution of the \emph{number} of deleterious
+mutations (not the fitness distribution); as long as selection is not too
+strong, $V_A \approx -s^2\V(n)$. Then, the rate of the ratchet in terms of the
+fitness variance is,
+
+\begin{align}
+  %R &= U - s\V(n) \\
+  R &\approx U + \frac{V_A}{s} \\
+  V_A &\approx Us - Rs. 
+\end{align}
+
+This is identical to their equation 2, noting that the waiting time between
+fixations (i.e. ratchet clicks) is $T = \nicefrac{1}{R}$. Note that if selected
+sites are sufficiently deleterious that they cannot fix (or the population is
+infinite), $R=0$ and the additive fitness variance is identical to that under
+strong background selection, $V_A = Us = V_\text{BGS}$ (equation
+\eqref{eq:va_bgs}).
+
+Then, the fixation probability of a new deleterious mutation with additive
+effects ($1-s$ in the heterozygote, $1-2s$ in the homozygote) in a diploid
+population is,
+
+\begin{align}
+  p_\text{fix} = \frac{1-\exp(\nicefrac{2 N_e s}{N})}{1-\exp(4 N_e s)} \approx
+  \frac{2 N_e s}{N \left(\exp(4 N_e s)-1\right)}
+\end{align}
+
+(c.f. \cite{Durrett2008-ql}, equation 7.21; \cite{Kimura1957-rk}, equation
+5.6). Then, Santiago and Caballero argue that the rate of the ratchet is the
+inverse of the averaging waiting time until a fixation, $T \approx 1/(2UN
+p_\text{fix})$, so
+
+\begin{align}
+  T \approx \frac{\exp(4 N_e s)-1}{4 U s N_e}.
+\end{align}
+
+Since the ratchet rate depends on $N_e$, which in turn depends on the rate of
+the ratchet, we write the inverse as,
+
+\begin{align}
+  R(N_e) := \frac{4 U s N_e}{\exp(4 N_e s)-1}
+\end{align}
+
+Under weak and strong background selection the variance input of mutations
+$V_m$ is the same, and using the $V_A$ derived above, the decay in variance is
+
+\begin{align}
+  Z_\text{WS} = 1 - \frac{V_m}{V_A} = 1 - \frac{Us^2}{(U-R(N_e))s} = 1 - \frac{Us}{U-R(N_e)}.
+\end{align}
+
+At equilibrium, the $N_e$ that determines fixation probability is the
+asymptotic $N_{e,\infty}$. Consequently, Santiago and Caballero argue that the
+asymptotic reduction in effective population size is given by the following
+system of non-linear equations,
+
+\begin{align}
+  R(N_{e,\infty}) &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
+  N_{e,\infty} &= N \exp\left(-\frac{(U-R(N_{e,\infty}))s}{\left(1-\frac{Us}{U-R(N_{e,\infty})}\right) \left(2-(2-L) \frac{Us}{U-R(N_{e,\infty})}\right)} \right).
+\end{align}
+
+
 
 
 
@@ -1492,20 +1592,20 @@ in our methods is to derive an equation for
 
 
 
-\subsection*{The Rate of the Ratchet}
+% \subsection*{The Rate of the Ratchet}
 
 
-\section*{Methods}
+% \section*{Methods}
 
-\subsection*{Data Preprocessing}
+% \subsection*{Data Preprocessing}
 
-\subsection*{Human}
+% \subsection*{Human}
 
-Site-level neutral and accessibility masks
+% Site-level neutral and accessibility masks
 
-Bin-level masks based on fraction of accessible bases in a window (7\%).
+% Bin-level masks based on fraction of accessible bases in a window (7\%).
 
-Bin-level tail filtering.
+% Bin-level tail filtering.
 
 \printbibliography
 
