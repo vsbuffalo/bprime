@@ -429,14 +429,21 @@ $1$ can be written as,
 \begin{align}
   \label{eq:qterm}
   S_1 Q_t &= S_1 + S_2' + S_3' + \ldots + S_t' \\
-  Q_t &= 1 + \sum_{i=1}^t \left((1-r)\kappa\right)^i
+  Q_t &= 1 + \sum_{i=1}^t (1-r)^i(1-\kappa)^i
 \end{align}
 
-which converges to,
+or for continuous $t$, 
+
+\begin{align}
+  \label{eq:q_t}
+  Q_t &= 1+\frac{(1-\kappa) (1-r) \left(1-(1-\kappa)^T (1-r)^T\right)}{\kappa+(1-\kappa)r}
+\end{align}
+
+which as $T \to \infty$, converges to,
 
 \begin{align}
   \label{eq:Qinf}
-  Q_\infty &= \frac{1}{1-(1-r) \kappa}.
+  Q_\infty &= \frac{1}{\kappa + r(1-\kappa)}.
 \end{align}
 
 This shows the long reach of heritable fitness factors in altering allele
@@ -625,13 +632,12 @@ experienced from each half,
               &\approx N \exp\left(- \frac{V_{h}}{L} \int_0^{\nicefrac{L}{2}} Q_{\infty}(r)^2 dr \right) \\
 \end{align}
 
-where $L = n r_\text{BP}$ is the total segment length in Morgans. Let us define
-the total asymptotic effect of associations from all sites as $Q_\infty^2$.
-Then,
+where $L = n r_\text{BP}$ is the total segment length in Morgans. Then, the
+total asymptotic effect of associations from all sites as $Q_\infty^2$.  Then,
 
 \begin{align}
-  Q_\infty^2 &= \frac{2}{L}\int_0^{\nicefrac{n r_\text{BP}}{2}} Q_{\infty}(x)^2 dx  \\
-  &=  \frac{2}{L} \int_0^{\nicefrac{L}{2}} \left(\frac{1}{1 - (1-x)Z}\right)^2 dx  \\
+  Q_\infty^2 &= \frac{2}{L}\int_0^{\nicefrac{L}{2}} Q_{\infty}(r)^2 dr  \\
+  &=  \frac{2}{L} \int_0^{\nicefrac{L}{2}} \left(\frac{1}{1 - (1-r)Z}\right)^2 dr  \\
   &= \frac{2}{(1-Z) (2-(2-L) Z)}
 \end{align}
 
@@ -658,6 +664,16 @@ use the unapproximated version,
 
 \begin{align}
   N_{e,\infty} \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-L) Z)} \right).
+\end{align}
+
+For the reasons described earlier, a single asymptotic $N_{e,\infty}$ cannot
+fully characterize pairwise coalescent rates in all cases, and thus neutral
+diversity levels depend on the full $N_{e,t}$, for which we integrate equation
+\eqref{eq:q_t} to get,
+
+\begin{align}
+  \label{eq:net_integral}
+  N_{e,t} \approx N \exp\left(-\frac{V_h}{L} \int_0^{\nicefrac{L}{2}} \left(1+\frac{(1-k) (1-r) \left(1-(1-k)^t (1-r)^t\right)}{k+(1-k)r} \right) dr \right).
 \end{align}
 
 \subsection*{The Variance Dynamics}
@@ -858,6 +874,9 @@ system of non-linear equations,
   R(N_{e,\infty}) &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
   N_{e,\infty} &= N \exp\left(-\frac{(U-R(N_{e,\infty}))s}{\left(1-\frac{Us}{U-R(N_{e,\infty})}\right) \left(2-(2-L) \frac{Us}{U-R(N_{e,\infty})}\right)} \right).
 \end{align}
+
+An analogous system can be found for $N_{e,t}$ using equation
+\eqref{eq:net_integral}.
 
 
 
