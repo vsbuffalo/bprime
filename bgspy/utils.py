@@ -379,6 +379,12 @@ def bin_chroms(seqlens, width, dtype='uint32'):
         bins[chrom] = bin_chrom(seqlens[chrom], width, dtype=dtype)
     return bins
 
+def center_and_scale(x):
+    """
+    Center and scale.
+    """
+    return (x-np.nanmean(x))/np.nanstd(x)
+
 def mean_ratio(x):
     """
     Return the ratio x / mean(x), using NaN mean.

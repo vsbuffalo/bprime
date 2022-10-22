@@ -40,6 +40,51 @@ def bgs_segment(mu, sh, L, rbp, rf, log=False):
 def TRatchet(N, s, U, ploidy=2):
     return np.expm1(2*ploidy*N*s)*(np.cosh(s)/np.sinh(s) - 1)/(2*ploidy*N*U)
 
+def pfix(sh, Ne, N):
+    # deleterious sel coef.
+	return (1-np.exp((2*Ne*sh)/N))/(1-np.exp(4*Ne*sh))
+    #return 2*sh/(np.expm1(4*Ne*sh))
+
+def Tfix(Ne, sh, U):
+    #pf = pfix(-sh, Ne, N)
+    #if np.isfinite(pf):
+    #    return 1/(U*Ne*sh*pf)
+    return np.expm1(4*Ne*sh) / (4*U*sh*Ne)
+
+@np.vectorize
+def bgs_segment_full(mu, sh, G, rbp, N, full_output=False):
+    # assumes diploid
+    U = 2*G*mu
+    Vm = U*sh**2
+    start_T = Tfix(N, sh, U)
+    L = G*rbp
+
+    def func(x):
+        T, Ne = x
+        V = U*sh - sh/T
+        VmV = Vm/V
+        Z = 1-VmV
+        Q2 = 2 / ((1-Z)*(2-(2-L)*Z))
+        assert T > 0
+        return [log(Tfix(Ne, sh, U)) - np.log(T),
+                 np.log(N * np.exp(-V/2 * Q2)) - np.log(Ne)]
+    try:
+        out = fsolve(func, [start_T, N], full_output=True)
+        if full_output:
+            return out
+        if out[2]:
+            return out[0][1]/N
+        else:
+            raise ValueError()
+    except:
+        # fall back to classic BGS
+        print('falling back')
+        V = U*sh
+        VmV = Vm/V
+        Z = 1-VmV
+        Q2 = 2 / ((1-Z)*(2-(2-L)*Z))
+        return np.exp(-V/2 * Q2)
+
 def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=False):
     """
     Using a non-linear solver to solve the pair of S&C '16 equations and
@@ -63,24 +108,28 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
     Vm = U*sh**2
     try:
         start_T = (np.exp(2*sh*N) - 1)/(2*U*sh*N)
+        print(start_T)
     except FloatingPointError:
         # If there is an overflow, it's because sh N is too large -- implying
         # a fixation time that is impossibly large, e.g. the ratchet does not
         # click. This occurs in the case where strong BGS is occurring.
         # We also need to prevent sh/T from underflowing -- it should just be
         # a very small value.
+        warnings.warn("overflow in ratchet rate!")
         start_T = haploid_N * 4
     def func(x):
         T, Ne = x
         V = U*sh - sh/T
         VmV = Vm/V
         #Q2 = 1/(VmV * (VmV + L*rbp/2))
-        Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
+        #Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
+        Q2 = 2*V**2 / (Vm*(L*rbp*(V-Vm) + 2*Vm))
         return [np.log((np.exp(2*sh*Ne) - 1)/(2*U*sh*Ne)) - np.log(T),
                  np.log(N * np.exp(-V*Q2)) - np.log(Ne)]
     try:
         out = fsolve(func, [start_T, N], full_output=True)
     except FloatingPointError:
+        warnings.warn("overflow in ratchet rate!")
         # return the strong BGS theory case
         V = U*sh
         VmV = Vm/V
@@ -94,6 +143,7 @@ def bgs_segment_sc16(mu, sh, L, rbp, haploid_N, full_output=False, return_both=F
     T =  out[0][0]
     V = U*sh - sh/T
     VmV = Vm/V
+    print(f"V = {V}, T = {T}, Vm = {Vm}, Ne = {Ne}")
     #Q2 = 1/(VmV * (VmV + L*rbp/2))
     Q2 = 2*V**2 / (Vm * (L*(V-Vm) + 2*Vm))
     if full_output:
