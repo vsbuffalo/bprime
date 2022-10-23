@@ -1,6 +1,6 @@
 {
     "name": "hg38_merged",
-    "windows": [1000000],
+    "windows": [1000000, 100000],
     "blocksize": 10000000,
     "seqlens_file": "../data/annotation/hg38_seqlens.tsv",
     "recmap_file": "../data/annotation/hapmap_genetic_map.txt",

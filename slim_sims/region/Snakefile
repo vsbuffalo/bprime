@@ -25,6 +25,8 @@ run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, add_seed=False,
 run.generate(SIM_OUTPUTS)
 results = run.targets
 
+name = config['name']
+
 rule simulation:
   input: run.script
   output: 
@@ -32,7 +34,6 @@ rule simulation:
   shell:
     run.slim_call(slim_cmd=SLIM)
 
-
 rule all:
   input:
-    results
+    results 

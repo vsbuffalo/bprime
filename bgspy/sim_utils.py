@@ -12,7 +12,7 @@ import msprime
 import pyslim
 import tqdm
 import multiprocessing
-from bgspy.utils import get_files, random_seed, bin_chrom
+from bgspy.utils import get_files, random_seed, bin_chrom, readfile
 
 SIM_REGEX = re.compile(r'(?P<name>\w+)_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
 
@@ -210,3 +210,18 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     mu = np.fromiter(mu_lookup.keys(), dtype=float)
     sh = np.fromiter(sh_lookup.keys(), dtype=float)
     return mu, sh, pos, X, tree_files
+
+def read_subs(filename):
+    """
+    TODO in progress
+    Read the substitution TSV file.
+    """
+    md = None
+    with readfile(filename) as f:
+        for line in f:
+            if line.startswith('#'):
+                md = line[1:].strip().split(';')
+                md = dict([tuple(x.split('=')) for x in md])
+                continue
+            chrom, pos, sel, mtype, h = line.strip().split('\t')
+            pos, sel = int(pos), float(sel)

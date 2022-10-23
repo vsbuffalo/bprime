@@ -11,5 +11,18 @@
         "name" : "bprime_{rule}_{wildcards}",
         "output" : "logs/out/{rule}_{jobid}.out",
         "error" : "logs/error/{rule}_{jobid}.err"
+    },
+    "process" :
+    {
+        "time" : "2-00:00:00",
+        "n" : 1,
+        "account" : "kernlab",
+        "partition" : "kern,kerngpu,preempt",
+        "mem" : "50GB",
+        "cores" : "20",
+        "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/region/",
+        "name" : "bprime_{rule}_{wildcards}",
+        "output" : "logs/out/{rule}_{jobid}.out",
+        "error" : "logs/error/{rule}_{jobid}.err"
     }
 }

@@ -180,7 +180,7 @@ def generate(config, secs_per_job, max_jobs,  seed, split_dirs=3,
     print(f"{len(existing):,} result files have been found -- these are ignored.")
 
     # generate and batch all the sims
-    run.generate(suffix=suffix, ignore_files=existing, package_basename=True, package_rep=True)
+    run.generate(suffix=suffix, ignore_files=existing, package_basename=False, package_rep=True)
     total_size = len(run.runs)
     #import pdb;pdb.set_trace()
     if not total_size:

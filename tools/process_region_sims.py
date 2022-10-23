@@ -7,13 +7,19 @@ import sys
 import os
 import tqdm
 import statsmodels.api as sm
-from bgspy.utils import get_files
+from bgspy.utils import get_files, bin_chrom
 
 def force_infinite_sites(tr):
     bad_sites = np.array([int(x.id) for x in tr.sites() if len(x.mutations) > 1])
     if len(bad_sites) > 0:
         return tr.delete_sites(bad_sites)
     return tr
+
+def middle_element(x):
+    "get the middle element of an odd-lengthened array, average two if even"
+    if len(x) % 2 == 0:
+       return x[len(x)//2]
+    return x[int(len(x)//2 -1 ):int(len(x)//2 + 1)]
 
 
 def load_and_recap(treefile, burnin=2000):
@@ -39,6 +45,9 @@ def load_and_recap(treefile, burnin=2000):
 
     # B and log file stats
     B = ts.diversity(mode='branch') / (4*N)
+    bins = bin_chrom(ts.sequence_length, 1000) # 1kb windows
+    B_wins = ts.diversity(windows=bins, mode='branch') / (4*N)
+    B_middle = middle_element(B_wins).mean()
     logfile = treefile.replace('_treeseq.tree', '_log.tsv.gz')
     d = pd.read_csv(logfile, sep='\t', comment='#')
     last_gen = np.max(d.generation)
@@ -55,6 +64,8 @@ def load_and_recap(treefile, burnin=2000):
         R = fit.params[1]
     res['R'] = R
     res['B'] = B
+    #res['B_wins'] = B_wins
+    res['B_middle'] = B_middle
     res['ratchet'] = d.loc[:, ('generation', 's')].values
     # put in params
     res['sh'] = md['sh']
@@ -68,11 +79,14 @@ def load_and_recap(treefile, burnin=2000):
     return res
 
 if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        raise ValueError("usage: process_region_sims.py simdir/ ourfile.pkl")
     resdir = sys.argv[1]
     outfile = sys.argv[2]
     ncores = 20
     #ncores = 1
     all_files = get_files(resdir, "_treeseq.tree")
+    #import pdb;pdb.set_trace()
     if ncores == 1 or ncores is None:
         res = []
         for file in tqdm.tqdm(all_files):

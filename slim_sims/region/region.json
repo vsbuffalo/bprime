@@ -1,0 +1,13 @@
+{
+  "name": "region",
+  "runtype": "grid",
+  "slim": "region.slim",
+  "params":
+     {
+       "N": {"grid": [1000], "type": "int"},
+       "mu": {"grid":[1e-10, 3.16e-10, 1e-9, 3.16e-9, 1e-8], "type": "float"},
+       "sh": {"grid": [0.00001, 0.0000316, 0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316, 0.1], "type": "float"},
+       "rbp": {"grid":[1e-8], "type": "float"}
+     },
+   "nreps": 10000
+}

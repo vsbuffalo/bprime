@@ -1,7 +1,7 @@
 {
     "__default__" :
     {
-        "time" : "2-00:00:00",
+        "time" : "4-00:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu,preempt",
@@ -14,7 +14,7 @@
     },
     "fit" :
     {
-        "time" : "1-00:00:00",
+        "time" : "3-00:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu,preempt",

@@ -61,6 +61,8 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
     Many of the defaults are tailored for my human genetics data (sorry, use
     at your own caution for other organisms).
 
+    Note: when both B and B' are pickled as a tuple, it is always in this order.
+
     name: if None, inferred from seqlens file, e.g. '<name>_seqlens.tsv'
     """
     def vprint(*args, **kwargs):
