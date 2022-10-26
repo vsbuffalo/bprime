@@ -182,6 +182,9 @@
 
 % \subsection*{Statistical Methods}
 
+
+TODO we need to make appoint about how Ben G's paper found the V(n)->VA connectoin -- this is their patching model
+
 \section*{Appendix}
 
 \subsection*{Overview of Quantitative Genetic Models of Effective Population Size}
@@ -796,46 +799,48 @@ distribution. However, in general, the rate of this ratchet is unknown since it
 depends on the fitness variance (and thus higher moments of the fitness
 distribution).
 
+% NOTE: The S&C math using Fisher's FToNS argues fitness decreases
+% at a rate of -s/T each generation. However their model is haploid;
+% in a diploid model, fixation makes everyone  a homozygote with fitness
+% effect -2s; thus the rate must be -2s/T which agrees with sim
+
 In their 2016 paper, Santiago and Caballero derive a general equation for the
 fitness variance that accounts for the reduction due to the fixation of weakly
 deleterious alleles (i.e. the rate of Muller's ratchet). There derivation for
 the variance uses a heuristic approach based on Fisher's Fundamental Theorem of
 Natural Selection (equation 2, \cite{Santiago2016-mu}, equation 15A
 \cite{Garcia-Dorado2007-jj}). A more formal derivation follows from
-\textcite{Higgs1995-xc} (though they assume an asexual system, the result is
-the same). In their work, they derive equations for the change per generation
-for the moments and cross-moments of the fitness distribution under
-multiplicative selection in a haploid population. For a Poisson number of new
-mutations per gamete, per generation, they find (equation 13.3,
-\cite{Higgs1995-xc}) that the rate of the ratchet is 
+\textcite{Higgs1995-xc} (though they assume a haploid asexual system, the end
+result is the same up to a factor of two). In their work, they derive equations
+for the change per generation for the moments and cross-moments of the fitness
+distribution under multiplicative selection in a haploid model. They find, the
+haploid rate of the ratchet is $r = u - s v_n$ (equation 13.3,
+\cite{Higgs1995-xc}), where we use lowercase to distinguish between haploid and
+diploid models. Here, $v_n$ is the variance in the \emph{number} of deleterious
+mutations; as long as selection is not too strong, the haploid additive
+variance is $v_{A} \approx s^2 v_n$. Substituting this for $v_n$ and
+rearranging, the haploid fitness variance is related to the $v_A = us - rs$,
+which is identical to Santiago and Caballero's (\citeyear{Santiago2016-mu})
+equation 2, noting that the waiting time between fixations (i.e. ratchet
+clicks) is $T = \nicefrac{1}{r}$. Intuitively, the fitness variance $Us$ is
+reduced by the rate at which deleterious mutations fix and remove fitness
+variation from the population.
+
+Now, note that under a diploid model, the fitness variance is twice that as the
+haploid model, so $V_A = 2 v_A$. Then, the fitness variance is,
 
 \begin{align}
-  R = U - s \V(n).
+  V_{A} = Us - 2Rs. 
 \end{align}
 
-The rate of the ratchet for a diploid population is the same, as long as $U$ is
-the mutation rate per generation per diploid genome (as is assumed here).
-$\V(n)$ is the variance of the distribution of the \emph{number} of deleterious
-mutations (not the fitness distribution); as long as selection is not too
-strong, $V_A \approx -s^2\V(n)$. Then, the rate of the ratchet in terms of the
-fitness variance is,
-
-\begin{align}
-  %R &= U - s\V(n) \\
-  R &\approx U + \frac{V_A}{s} \\
-  V_A &\approx Us - Rs. 
-\end{align}
-
-This is identical to their equation 2, noting that the waiting time between
-fixations (i.e. ratchet clicks) is $T = \nicefrac{1}{R}$. Note that if selected
-sites are sufficiently deleterious that they cannot fix (or the population is
-infinite), $R=0$ and the additive fitness variance is identical to that under
-strong background selection, $V_A = Us = V_\text{BGS}$ (equation
-\eqref{eq:va_bgs}).
-
-Then, the fixation probability of a new deleterious mutation with additive
-effects ($1-s$ in the heterozygote, $1-2s$ in the homozygote) in a diploid
-population is,
+where $U = 2u$ and $R$ is the diploid rate of the ratchet, which depends on
+higher moments of the fitness distribution, but only differs from $r$ through a
+rescaling of the population size. Note that if selected sites are sufficiently
+deleterious that they cannot fix (or the population is infinite), $R=0$ and the
+additive fitness variance is identical to that under strong background
+selection, $V_A = Us = V_\text{BGS}$ (equation \eqref{eq:va_bgs}). Then, the
+fixation probability of a new deleterious mutation with additive effects ($1-s$
+in the heterozygote, $1-2s$ in the homozygote) in a diploid population is,
 
 \begin{align}
   p_\text{fix} = \frac{1-\exp(\nicefrac{2 N_e s}{N})}{1-\exp(4 N_e s)} \approx
@@ -844,18 +849,19 @@ population is,
 
 (c.f. \cite{Durrett2008-ql}, equation 7.21; \cite{Kimura1957-rk}, equation
 5.6). Then, Santiago and Caballero argue that the rate of the ratchet is the
-inverse of the averaging waiting time until a fixation, $T \approx 1/(2UN
-p_\text{fix})$, so
+inverse of the averaging waiting time until a fixation, $T \approx 1/(UN
+p_\text{fix})$ (note that since $U$ is the \emph{diploid} mutation rate, the
+total population mutation rate is $UN$ per generation), so
 
 \begin{align}
-  T \approx \frac{\exp(4 N_e s)-1}{4 U s N_e}.
+  T \approx \frac{\exp(4 N_e s)-1}{2 U s N_e}.
 \end{align}
 
 Since the ratchet rate depends on $N_e$, which in turn depends on the rate of
 the ratchet, we write the inverse as,
 
 \begin{align}
-  R(N_e) := \frac{4 U s N_e}{\exp(4 N_e s)-1}
+  R(N_e) := \frac{2 U s N_e}{\exp(4 N_e s)-1}
 \end{align}
 
 Under weak and strong background selection the variance input of mutations
@@ -872,6 +878,7 @@ system of non-linear equations,
 
 \begin{align}
   R(N_{e,\infty}) &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
+  N_{e,\infty} &\approx N \exp\left(-\frac{V_A}{(1-Z) (2-(2-L) Z)} \right) \\
   N_{e,\infty} &= N \exp\left(-\frac{(U-R(N_{e,\infty}))s}{\left(1-\frac{Us}{U-R(N_{e,\infty})}\right) \left(2-(2-L) \frac{Us}{U-R(N_{e,\infty})}\right)} \right).
 \end{align}
 
