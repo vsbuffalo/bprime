@@ -128,18 +128,20 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
     Ne = out[0][1]
     T = out[0][0]
 
+    classic_bgs = False
     if out[2] != 1:
         # don't use BGS, just return NaNs
         if dont_fallback:
             if return_parts:
-                return np.nan, np.nan, np.nan, np.nan, np.nan
+                return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, None
             return np.nan
         # A solution could not be found for the non-linear system of equations.
         # In this case, this is due to numeric overflow in T, the time
         # between ratchet clicks. The solution is to fall back to the R = 0
         # case, which is the classic BGS solution.
         #warnings.warn(f"no solution found!? mu={mu}, sh={sh}, L={L}, rbp={rbp}; T={T}, Ne={Ne}")
-        V = U*sh  # no ratchet term; this falls back to the BGS model
+        V = U*sh # no ratchet term; this falls back to the BGS model
+        classic_bgs = False
     else:
         # use the no-linear solution with a ratchet time
         assert np.isfinite(T), "T is not finite!"
@@ -163,7 +165,7 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
     if not return_parts:
         return B
 
-    return B, B_asymp, T, V, Vm, Q2
+    return B, B_asymp, T, V, Vm, Q2, classic_bgs
 
 
 @np.vectorize
