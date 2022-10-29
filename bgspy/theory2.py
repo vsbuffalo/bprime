@@ -67,6 +67,8 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=0.01):
     need for numeric integration used in Q2_sum_integral().
 
     This is imported directly from Mathematica (hence the function aliasing).
+
+    WARNING: this has a tendency to have NaN values in the strong BGS domain
     """
     assert Z < 1
     end_ts = np.arange(1, tmax+1)
@@ -121,8 +123,10 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
         Z = 1 - VmV
         Q2 = Q2_asymptotic(Z, M)
         new_T = ratchet_time(sh, Ne, U)  # NOTE: this must depend on Ne, not N!
+        #new_logNe = np.log(N * np.exp(-V/2 * Q2))
+        new_logNe = np.log(N) - V*Q2/2
         return [np.log(new_T) - np.log(T),
-                 np.log(N * np.exp(-V/2 * Q2)) - np.log(Ne)]
+                 new_logNe - np.log(Ne)]
     # try to solve the non-linear system of equations
     out = fsolve(func, [start_T, N], full_output=True)
     Ne = out[0][1]
@@ -141,7 +145,7 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
         # case, which is the classic BGS solution.
         #warnings.warn(f"no solution found!? mu={mu}, sh={sh}, L={L}, rbp={rbp}; T={T}, Ne={Ne}")
         V = U*sh # no ratchet term; this falls back to the BGS model
-        classic_bgs = False
+        classic_bgs = True
     else:
         # use the no-linear solution with a ratchet time
         assert np.isfinite(T), "T is not finite!"
@@ -158,7 +162,7 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
         return B_asymp
 
     # the full Q² series going back sum_n*N generations
-    Q2 = Q2_sum_integral2(Z, M, tmax=sum_n*N)
+    Q2 = Q2_sum_integral(Z, M, tmax=sum_n*N)
     Ne_t = N*np.exp(-V/2 * Q2)
     assert len(Ne_t) > 1, "Ne_t's length <= 1"
     B = ave_het(Ne_t)/(2*N)
