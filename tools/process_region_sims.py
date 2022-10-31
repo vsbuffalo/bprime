@@ -21,7 +21,7 @@ def load_and_recap(treefile, burnin=2000):
     md = {k: v[0] for k, v in ts.metadata['SLiM']['user_metadata'].items()}
     N = md['N']
     rbp = md['rbp']
-    rts = pyslim.recapitate(ts, recombination_rate=rbp, 
+    rts = pyslim.recapitate(ts, recombination_rate=rbp,
                             sequence_length=ts.sequence_length,
                             ancestral_Ne=N)
     # LD
@@ -36,8 +36,8 @@ def load_and_recap(treefile, burnin=2000):
         except TypeError:
             ld_sum = 0
         ldn = gm.shape[0]
-    
-    # B and log file stats 
+
+    # B and log file stats
     B = ts.diversity(mode='branch') / (4*N)
     logfile = treefile.replace('_treeseq.tree', '_log.tsv.gz')
     d = pd.read_csv(logfile, sep='\t', comment='#')
@@ -45,6 +45,9 @@ def load_and_recap(treefile, burnin=2000):
     res = list(d.loc[d.generation == last_gen, ].itertuples(index=False))[0]._asdict()
     R = 0
     if np.any(d['s'] == 0):
+        # WARNING: this estimate is deprecated. See the region sim notebook for
+        # a less biased estimator. This one is biased because the default
+        # burnin is too little
         x, y = d['generation'], d['s']
         x, y = x[x > burnin], y[x > burnin]
         X = sm.add_constant(x)
