@@ -39,9 +39,7 @@ from scipy.optimize import minimize_scalar
 import tensorflow as tf
 
 from bgspy.utils import Bdtype, BScores, BinnedStat
-from bgspy.classic import calc_B, calc_B_parallel, calc_BSC16_parallel
-from bgspy.parallel import MapPosChunkIterator
-
+from bgspy.theory2 import calc_B_parallel, calc_BSC16_parallel
 
 class BGSModel(object):
     """
@@ -138,6 +136,9 @@ class BGSModel(object):
 
     def calc_B(self, step=10_000, recalc_segments=False,
                ncores=None, nchunks=None):
+        """
+        Calculate classic B values across the genome.
+        """
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
@@ -156,11 +157,14 @@ class BGSModel(object):
 
     def calc_Bp(self, N, step=10_000, recalc_segments=False,
                 ncores=None, nchunks=None):
+        """
+        Calculate new B' values across the genome.
+        """
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
         if recalc_segments or self.genome.segments._segment_parts_sc16 is None:
-            self.genome.segments._calc_segparts(self.w, self.t, N)
+            self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}

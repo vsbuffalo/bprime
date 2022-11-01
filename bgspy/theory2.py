@@ -1,8 +1,76 @@
 import warnings
+import tqdm
+import functools
+import multiprocessing
 import numpy as np
 from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
+
+from bgspy.parallel import BChunkIterator, MapPosChunkIterator
+
+## Classic BGS
+def B_segment_lazy(rbp, L, t):
+    """
+    TODO check rbp = 0 case
+    rt/ (b*(-1 + t) - t) * (b*(-1 + t) + r*(-1 + t) - t)
+    """
+    r = rbp*L
+    a = -t*L # numerator -- ignores u
+    b = (1-t)**2  # rf^2 terms
+    c = 2*t*(1-t)+r*(1-t)**2 # rf terms
+    d = t**2 + r*t*(1-t) # constant terms
+    return a, b, c, d
+
+@np.vectorize
+def bgs_rec(mu, sh, L, rbp, log=False):
+    """
+    The BGS function of McVicker et al (2009) and Elyashiv et al. (2016).
+    """
+    val = -L * mu/(sh*(1+(1-sh)*rbp/sh)**2)
+    if log:
+        return val
+    return np.exp(val)
+
+# parallel stuff
+def calc_B_chunk_worker(args):
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid = args
+    a, b, c, d = segment_parts
+    Bs = []
+    # F is a features matrix -- eventually, we'll add support for
+    # different feature annotation class, but for now we just fix this
+    #F = np.ones(len(chrom_seg_mpos))[:, None]
+    for f in map_positions:
+        rf = dist_to_segment(f, chrom_seg_mpos)
+        #rf = np.abs(f - chrom_seg_mpos[:, 0])
+        if np.any(b + rf*(rf*c + d) == 0):
+            raise ValueError("divide by zero in calc_B_chunk_worker")
+        x = a/(b*rf**2 + c*rf + d)
+        assert(not np.any(np.isnan(x)))
+        B = np.einsum('ts,w,sf->wtf', x, mut_grid, F)
+        # the einsum below is for when a features dimension exists, e.g.
+        # there are feature-specific μ's and t's -- commented out now...
+        #B = np.einsum('ts,w,sf->wtf', x, mut_grid,
+        #              F, optimize=BCALC_EINSUM_PATH)
+        Bs.append(B)
+    return Bs
+
+def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
+    chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
+    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    not_parallel = ncores is None or ncores <= 1
+    if not_parallel:
+        res = []
+        for chunk in tqdm.tqdm(chunks, total=chunks.total):
+            res.append(calc_B_chunk_worker(chunk))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
+                                 total=chunks.total))
+    return chunks.collate(res)
+
+
+## New Theory
 
 def Q2_asymptotic(Z, M):
 	"""
@@ -183,13 +251,136 @@ def bgs_segment_sc16_parts(*args, **kwargs):
     return np.vectorize(bgs_segment_sc16, otypes=(tuple,))(*args, **kwargs, return_parts=True)
 
 
-@np.vectorize
-def bgs_rec(mu, sh, L, rbp, log=False):
+def bgs_segment_sc16_components(L_rbp, mu, sh, N):
     """
-    The BGS function of McVicker et al (2009) and Elyashiv et al. (2016).
+    A manually-vectorized version of bgs_segment_sc16_parts().
+    This mimics np.vectorize() but the vectorization is done manually.
+    This is because np.vectorize() creates a closure that cannot be
+    pickled for multiprocessing work, meaning the np.vectorize()
+    version is not parallelizable.
     """
-    val = -L * mu/(sh*(1+(1-sh)*rbp/sh)**2)
+    L, rbp = L_rbp
+    assert isinstance(L, (int, float))
+    assert isinstance(rbp, float)
+    assert isinstance(mu, np.ndarray)
+    assert isinstance(sh, np.ndarray)
+    mug, shg = np.meshgrid(mu, sh)
+    Bs, Bas, Ts, Vs, Vms, Q2s, cbs = [], [], [], [], [], [], []
+    for m, s in zip(mug.flat, shg.flat):
+        res = bgs_segment_sc16(m, s, L, rbp, N, return_parts=True)
+        B, B_asymp, T, V, Vm, Q2, classic_bgs = res
+        Bs.append(B)
+        Bas.append(B_asymp)
+        Ts.append(T)
+        Nes.append(Ne)
+        Q2s.append(Q2)
+        Vs.append(V)
+        Vms.append(Vm)
+        Us.append(U)
+
+    shape = sh.size, mu.size
+    Bs = np.array(Bs).reshape(shape).T
+    Bas = np.array(Bas).reshape(shape).T
+    Ts = np.array(Ts).reshape(shape).T
+    Vs = np.array(Vs).reshape(shape).T
+    Vms = np.array(Vms).reshape(shape).T
+    Q2s = np.array(Q2s).reshape(shape).T
+    cbs = np.array(cbs).reshape(shape).T
+
+    return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
+
+def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores):
+    """
+    Compute the fixation time, B, etc for each segment, using the
+    equation that integrates over the entire segment *in parallel*.
+
+    Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
+    the factor of two.
+    """
+    # stuff that's run on each core
+    mu = mu.squeeze()[:, None]
+    sh = sh.squeeze()[None, :]
+
+    # stuff that's shipped off to cores
+    rbp = rbp.squeeze().tolist()
+    L = L.squeeze().tolist()
+
+    # iterate over the segments, but each segments gets the full μ x sh.
+    func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
+
+    if ncores is None or ncores == 1:
+        res = list(tqdm.tqdm(map(func, zip(L, rbp)), total=len(L)))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(func, zip(L, rbp)), total=len(L)))
+
+    Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
+    return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
+
+
+def calc_BSC16_chunk_worker(args):
+    # ignore rbp, no need here yet under this approximation
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid = args
+    Bs = []
+    # F is a features matrix -- eventually, we'll add support for
+    # different feature annotation class, but for now we just fix this
+    #F = np.ones(len(chrom_seg_mpos))[:, None]
+    #mu = w_grid[:, None, None]
+    #sh = t_grid[None, :, None]
+    #max_dist = 0.1
+    for f in map_positions:
+        rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
+        # idx = rf <= max_dist
+        # rf = rf[idx]
+        # L = seg_L[idx]
+        x = bgs_segment_from_parts_sc16(segment_parts, rf, log=True)
+        # we allow Nans because the can be back filled later
+        try:
+            assert(not np.any(np.isnan(x)))
+        except AssertionError:
+            warnings.warn("NaNs encountered in calc_BSC16_chunk_worker!")
+        #B = np.sum(x, axis=2)
+        B = np.einsum('wts,sf->wtf', x, F)
+        # the einsum below is for when a features dimension exists, e.g.
+        # there are feature-specific μ's and t's -- commented out now...
+        #B = np.einsum('ts,w,sf->wtf', x, mut_grid,
+        #              F, optimize=BCALC_EINSUM_PATH)
+        Bs.append(B)
+    return Bs
+
+def calc_BSC16_parallel(genome, step, nchunks=1000, ncores=2):
+    # the None argument is because we do not need to pass in the mutations
+    # for the S&C calculation
+    chunks = BChunkIterator(genome, None, step, nchunks, use_SC16=True)
+    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    not_parallel = ncores is None or ncores <= 1
+    if not_parallel:
+        res = []
+        for chunk in tqdm.tqdm(chunks):
+            res.append(calc_BSC16_chunk_worker(chunk))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
+                                 total=chunks.total))
+    return chunks.collate(res)
+
+def bgs_segment_from_parts_sc16(parts, rf, N, sum_n=5, log=True):
+    """
+    Take the pre-computed components of the S&C '16 equation
+    and use them to compute Ne.
+    """
+    #T, Ne, _, V, Vm, U = parts
+    B, Ba, T, V, Vm, Q2, classic_bgs = parts
+    #assert T.shape[2] == rf.shape[2]
+    #Q2 = (1/(Vm/V + rf))**2
+    VmV = Vm/V
+    Z = 1-VmV
+    # The Q2 sequence for rf
+    Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+    Ne_t = N*np.exp(-V/2 * Q2)
+    B = ave_het(Ne_t)/(2*N)
     if log:
-        return val
-    return np.exp(val)
+        return np.log(B)
+    return B
+
 

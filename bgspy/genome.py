@@ -6,7 +6,7 @@ from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
 from bgspy.utils import load_seqlens, load_bed_annotation
 from bgspy.recmap import RecMap
-from bgspy.classic import B_segment_lazy, BSC16_segment_lazy
+from bgspy.theory2 import B_segment_lazy, BSC16_segment_lazy_parallel
 
 @dataclass
 class Segments:
@@ -69,19 +69,24 @@ class Segments:
         "Return a dict of number of segments per chrom"
         return {c: len(self.index[c]) for c in self.chroms}
 
-    def _calc_segparts(self, w, t, N=None):
+    def _calc_segparts(self, w, t, N=None, ncores=None):
         """
         Calculate the fixed components of the classic BGS theory
-        equation for each segment, to avoid unnecessary repeated calcs.
+        and the new BGS theory (if N is set).
+        These components are for for each segment, to avoid unnecessary repeated
+        calcs.
         """
         L = self.lengths
         rbp = self.rates
         if t.ndim == 1:
             t = t[:, None]
+        print(f"calculating classic B components...\t", end='', flush=True)
         self._segment_parts = B_segment_lazy(rbp, L, t)
+        print("done.")
         if N is not None:
-            print(f"calculating SC16 components...\t", end='', flush=True)
-            self._segment_parts_sc16 = BSC16_segment_lazy(w, t, self, N)
+            print(f"calculating B' components...\t", end='', flush=True)
+            parts = BSC16_segment_lazy_parallel(w, t, L, rbp, N, ncores=ncores)
+            self._segment_parts_sc16 = parts
             print("done.")
 
     def _calc_features(self):
