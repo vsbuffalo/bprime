@@ -112,5 +112,8 @@ maps = [
         "bmap_hg38_6x5grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
         ]
 
+rule test:
+  input: "bmap_hg38_6x5grid_10000step_10000N_cds_utrs_phastcons.pkl"
+
 rule all:
   input: maps

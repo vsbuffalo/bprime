@@ -156,7 +156,7 @@ class MapPosChunkIterator(object):
 
 
 class BChunkIterator(MapPosChunkIterator):
-    def __init__(self, genome, w_grid, step, nchunks, use_SC16=False):
+    def __init__(self, genome, w_grid, step, nchunks, N, use_SC16=False):
 
         """
         An iterator for chunk the components to calculate B' along the genome in
@@ -166,6 +166,7 @@ class BChunkIterator(MapPosChunkIterator):
         efficiency), which is why this is not necessary for this class.
         """
         super().__init__(genome, w_grid, None, step, nchunks)
+        self.N = N
         if not use_SC16:
             assert genome.segments._segment_parts is not None, "Genome.segments does not have segment parts"
             segment_parts = genome.segments._segment_parts
@@ -214,5 +215,5 @@ class BChunkIterator(MapPosChunkIterator):
                 self.chrom_seg_mpos[chrom],
                 self.chrom_features[chrom],
                 chrom_segparts,
-                self.w_grid)
+                self.w_grid, self.N)
 

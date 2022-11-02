@@ -8,7 +8,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from bgspy.models import BGSModel
 from bgspy.recmap import RecMap
 from bgspy.utils import sum_logliks_over_chroms
-from bgspy.plots import chrom_plot, ll_grid
+#from bgspy.plots import chrom_plot, ll_grid
 from bgspy.genome import Genome
 from bgspy.utils import Grid
 from bgspy.likelihood import fit_likelihood

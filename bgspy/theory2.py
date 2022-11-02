@@ -7,6 +7,7 @@ from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
 
+from bgspy.utils import dist_to_segment
 from bgspy.parallel import BChunkIterator, MapPosChunkIterator
 
 ## Classic BGS
@@ -80,7 +81,9 @@ def Q2_asymptotic(Z, M):
 	return -2/((-1 + Z)*(2 + (-2 + M)*Z))
 
 def ratchet_time(sh, Ne, U):
-	return (np.exp(4*sh*Ne) - 1)/(2*U*sh*Ne)
+    out = (np.exp(4*sh*Ne) - 1)/(2*U*sh*Ne)
+    assert out > 0, "negative ratchet waiting time"
+    return out
 
 def Q2_sum_integral(Z, M, tmax=1000, thresh=0.01, use_sum=False):
     """
@@ -92,7 +95,7 @@ def Q2_sum_integral(Z, M, tmax=1000, thresh=0.01, use_sum=False):
     is just repeated and not computed to save computation time.
 
     """
-    assert Z < 1
+    assert np.all(Z <= 1)
     end_ts = np.arange(tmax)
     last = None
     asymptoted = False
@@ -138,7 +141,7 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=0.01):
 
     WARNING: this has a tendency to have NaN values in the strong BGS domain
     """
-    assert Z < 1
+    assert np.all(Z < 1)
     end_ts = np.arange(1, tmax+1)
     Log = np.log
     Power = lambda x, y: x**y
@@ -183,22 +186,40 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
     U = 2*L*mu
     Vm = U*sh**2
     M = L*rbp
-    start_T = ratchet_time(sh, N, U)
+    try:
+        start_T = ratchet_time(sh, N, U)
+    except FloatingPointError:
+        # the sh is too high for there to be a possibility of fixation, hence
+        # the overflow
+        start_T = None
+
     def func(x):
         T, Ne = x
         V = U*sh - 2*sh/T
         VmV = Vm/V
         Z = 1 - VmV
         Q2 = Q2_asymptotic(Z, M)
+        try:
+            assert T > 0
+            assert Ne > 0
+        except:
+            return (np.inf, np.inf)
         new_T = ratchet_time(sh, Ne, U)  # NOTE: this must depend on Ne, not N!
         #new_logNe = np.log(N * np.exp(-V/2 * Q2))
         new_logNe = np.log(N) - V*Q2/2
         return [np.log(new_T) - np.log(T),
                  new_logNe - np.log(Ne)]
-    # try to solve the non-linear system of equations
-    out = fsolve(func, [start_T, N], full_output=True)
-    Ne = out[0][1]
-    T = out[0][0]
+
+    if start_T is not None:
+        # try to solve the non-linear system of equations
+        out = fsolve(func, [start_T, N], full_output=True)
+        Ne = out[0][1]
+        T = out[0][0]
+    else:
+        # mimic a failed convergence to solution
+        out = (None, None, -1)
+        Ne = None
+        T = np.inf
 
     classic_bgs = False
     if out[2] != 1:
@@ -228,6 +249,8 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
     B_asymp = Ne_asymp/N
     if not return_parts and asymptotic:
         return B_asymp
+    if return_parts and asymptotic:
+        return np.nan, B_asymp, T, V, Vm, Q2_asymp, classic_bgs
 
     # the full Q² series going back sum_n*N generations
     Q2 = Q2_sum_integral(Z, M, tmax=sum_n*N)
@@ -272,11 +295,10 @@ def bgs_segment_sc16_components(L_rbp, mu, sh, N):
         Bs.append(B)
         Bas.append(B_asymp)
         Ts.append(T)
-        Nes.append(Ne)
         Q2s.append(Q2)
         Vs.append(V)
         Vms.append(Vm)
-        Us.append(U)
+        cbs.append(classic_bgs)
 
     shape = sh.size, mu.size
     Bs = np.array(Bs).reshape(shape).T
@@ -314,13 +336,23 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores):
         with multiprocessing.Pool(ncores) as p:
             res = list(tqdm.tqdm(p.imap(func, zip(L, rbp)), total=len(L)))
 
-    Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
-    return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
+
+    # the current function spits out everything (for debugging and validating
+    # against the region sims
+    #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
+    _, _, _, Vs, Vms, _, _ = zip(*res)
+    # we only need to store V and Vm for each mu/sh (this is
+    # the mapping of parameters; this determines Z with rf)
+
+    # let's turn each of these into an array, nw x nt x nloci
+    V = np.moveaxis(np.stack(Vs), 0, 2)
+    Vm = np.moveaxis(np.stack(Vms), 0, 2)
+    return V, Vm
 
 
 def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation
-    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid = args
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N = args
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
     # different feature annotation class, but for now we just fix this
@@ -333,7 +365,8 @@ def calc_BSC16_chunk_worker(args):
         # idx = rf <= max_dist
         # rf = rf[idx]
         # L = seg_L[idx]
-        x = bgs_segment_from_parts_sc16(segment_parts, rf, log=True)
+        V, Vm = segment_parts
+        x = bgs_segment_from_parts_sc16(V, Vm, rf, N, log=True)
         # we allow Nans because the can be back filled later
         try:
             assert(not np.any(np.isnan(x)))
@@ -348,10 +381,10 @@ def calc_BSC16_chunk_worker(args):
         Bs.append(B)
     return Bs
 
-def calc_BSC16_parallel(genome, step, nchunks=1000, ncores=2):
+def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     # the None argument is because we do not need to pass in the mutations
     # for the S&C calculation
-    chunks = BChunkIterator(genome, None, step, nchunks, use_SC16=True)
+    chunks = BChunkIterator(genome, None, step, nchunks, N, use_SC16=True)
     print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     not_parallel = ncores is None or ncores <= 1
     if not_parallel:
@@ -364,13 +397,13 @@ def calc_BSC16_parallel(genome, step, nchunks=1000, ncores=2):
                                  total=chunks.total))
     return chunks.collate(res)
 
-def bgs_segment_from_parts_sc16(parts, rf, N, sum_n=5, log=True):
+@np.vectorize
+def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5, log=True):
     """
     Take the pre-computed components of the S&C '16 equation
     and use them to compute Ne.
     """
-    #T, Ne, _, V, Vm, U = parts
-    B, Ba, T, V, Vm, Q2, classic_bgs = parts
+    #B, Ba, T, V, Vm, Q2, classic_bgs = parts
     #assert T.shape[2] == rf.shape[2]
     #Q2 = (1/(Vm/V + rf))**2
     VmV = Vm/V

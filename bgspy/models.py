@@ -165,7 +165,7 @@ class BGSModel(object):
         self.step = step
         if recalc_segments or self.genome.segments._segment_parts_sc16 is None:
             self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
-        Bs, B_pos = calc_BSC16_parallel(self.genome, step=step,
+        Bs, B_pos = calc_BSC16_parallel(self.genome, step=step, N=N,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
         prop_nan = [np.isnan(s).mean() for s in stacked_Bs.values()]
