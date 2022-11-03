@@ -405,7 +405,7 @@ def calc_BSC16_chunk_worker(args):
         # rf = rf[idx]
         # L = seg_L[idx]
         V, Vm = segment_parts
-        x = bgs_segment_from_parts_sc16(V, Vm, rf, N, log=True)
+        x = np.log(B_BK2022(V, Vm, rf, N))
         # we allow Nans because the can be back filled later
         try:
             assert(not np.any(np.isnan(x)))
@@ -469,6 +469,7 @@ def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5,
         return np.log(B)
     return B
 
+@np.vectorize
 def B_BK2022(V, Vm, rf, N):
     """
     """

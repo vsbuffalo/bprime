@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <gsl/gsl_sf_expint.h>
+#include <gsl/gsl_errno.h>
+
+#define WARN 1
 
 #define EULER 0.57721566
 #define MAXIT 100
@@ -58,6 +61,11 @@ double ei(double x)
 		}
 }
 
+void check_status(int status) {
+  if (!status) return;
+	printf ("gsl error: %s\n", gsl_strerror(status));
+}
+
 double B_BK2022(double V, double Vm, double rf, int N) {
     // Our version of S&C '16's equation
     double Ne_t = 1;
@@ -70,22 +78,67 @@ double B_BK2022(double V, double Vm, double rf, int N) {
     assert(k < 1);
     assert(Vm > 0);
     assert(V > 0);
+    double a, b, c, d; // for the gsl_sf_expint_Ei_e results
+	  gsl_sf_result res_a, res_b, res_c, res_d;
+    int status_a, status_b, status_c, status_d;
+  	gsl_set_error_handler_off();
 
 	  /* printf("expi(-12.1)=%g\n", gsl_sf_expint_Ei(-12.1)); */
 	  /* printf("expi(12.1123)=%g\n", gsl_sf_expint_Ei(12.11123)); */
+    int bad = 0;
     for (int t=1; t <= T; t++) {
+        status_a = gsl_sf_expint_Ei_e(-2*k*t, &res_a);
+        status_b = gsl_sf_expint_Ei_e(-(k*t), &res_b);
+        status_c = gsl_sf_expint_Ei_e(((k*(-2 + M) - M)*t)/2., &res_c);
+        status_d = gsl_sf_expint_Ei_e((k*(-2 + M) - M)*t, &res_d);
+        //check_status(status_a);
+        //check_status(status_b);
+        //check_status(status_c);
+        //check_status(status_d);
+        a = res_a.val;
+        b = res_b.val;
+        c = res_c.val;
+        d = res_d.val;
+        int error = status_a || status_b || status_c || status_d;
+        if (WARN && error) {
+          printf("warning: gsl error (V=%g, Vm=%g, rf=%g, N=%d)\n", V, Vm, rf, N);   
+          printf("  a=%s, b=%s, c=%s, d=%s\t", gsl_strerror(status_a), 
+                                               gsl_strerror(status_b), 
+                                               gsl_strerror(status_c), 
+                                               gsl_strerror(status_d));
+ 
+          bad = 1;
+        }
+        // from tests, underflows in these values happen and they can be
+        // set to zero
+        if (error) {
+          if (GSL_EUNDRFLW == status_c) {
+            c = 0;
+					} else if (GSL_EUNDRFLW == status_d) {
+            d = 0;
+					} else {
+							printf("error: uncaught GSL error (V=%g, Vm=%g, rf=%g, N=%d)\n", V, Vm, rf, N);   
+							printf("  a=%s, b=%s, c=%s, d=%s\t", gsl_strerror(status_a), 
+                                                   gsl_strerror(status_b), 
+                                                   gsl_strerror(status_c), 
+                                                   gsl_strerror(status_d));
+              exit(1);
+					}
+        }
         Q2 = 2/M * (-((pow(-1 + exp(k*t),2)/(exp(2*k*t)*k) + 
-              2*t*gsl_sf_expint_Ei(-2*k*t) - 2*t* gsl_sf_expint_Ei(-(k*t)))/(-1 + k)) + 
+              2*t*a - 2*t*b )/(-1 + k)) + 
               ((-2*exp(k*(-2 + M)*t - M*t) * 
               pow(-1 + exp(((-(k*(-2 + M)) + M)*t)/2.),2))/ 
-                (k*(-2 + M) - M) - 2*t* gsl_sf_expint_Ei(((k*(-2 + M) - M)*t)/2.) + 
-              2*t* gsl_sf_expint_Ei((k*(-2 + M) - M)*t))/(-1 + k));
+                (k*(-2 + M) - M) - 2*t*c + 
+              2*t*d)/(-1 + k));
 
 				double Ne = N*exp(-V/2 * Q2);
         prod = prod * (1-0.5/Ne);
 	    	//printf("prod=%g, Ne=%g, Q2=%g\n", prod, Ne, Q2);
         Ne_t += prod;
     }
+    //if (bad)
+	  //  printf("Ne = %g\n", 0.5*Ne_t/N);
     return 0.5*Ne_t/N;
 }
 
