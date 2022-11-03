@@ -1,3 +1,4 @@
+import os
 import warnings
 import tqdm
 import functools
@@ -6,9 +7,17 @@ import numpy as np
 from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
+from numba import jit
+from ctypes import c_double, c_int
 
 from bgspy.utils import dist_to_segment
 from bgspy.parallel import BChunkIterator, MapPosChunkIterator
+
+# load the library (relative to this file in src/)
+LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
+Bclib = np.ctypeslib.load_library("Bclib", LIBRARY_PATH)
+
+
 
 ## Classic BGS
 def B_segment_lazy(rbp, L, t):
@@ -130,7 +139,8 @@ def Gamma(a, z):
         return -expi(-z)
     return gamma(a)*gammaincc(a, z)
 
-def Q2_sum_integral2(Z, M, tmax=1000, thresh=0.01):
+
+def Q2_sum_integral2(Z, M, tmax=1000, thresh=1e-5):
     """
     Like Q2_sum_integral() but approximates the geometric decay with an
     exponential. This allows for an easier closed-form analytic solution to the
@@ -143,22 +153,41 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=0.01):
     """
     assert np.all(Z < 1)
     end_ts = np.arange(1, tmax+1)
-    Log = np.log
-    Power = lambda x, y: x**y
-    E = np.exp(1)
-    ExpIntegralEi = expi
+    # Log = np.log
+    # Power = lambda x, y: x**y
+    # E = np.exp(1)
+    # ExpIntegralEi = expi
     vals = []
     k = 1-Z
+    last = None
+    asymptoted = False
     for T in end_ts:
         # From Mathematica:
-        integrand = (-((Power(-1 + Power(E,k*T),2)/(Power(E,2*k*T)*k) +
-                        2*T*ExpIntegralEi(-2*k*T) -
-                        2*T*ExpIntegralEi(-(k*T)))/(-1 + k)) +
-                     ((-2*Power(E,k*(-2 + M)*T - M*T) *
-                       Power(-1 + Power(E,((-(k*(-2 + M)) + M)*T)/2.),2))/
-                      (k*(-2 + M) - M) -
-                      2*T*ExpIntegralEi(((k*(-2 + M) - M)*T)/2.) +
-                      2*T*ExpIntegralEi((k*(-2 + M) - M)*T))/(-1 + k))
+        # integrand = (-((Power(-1 + Power(E,k*T),2)/(Power(E,2*k*T)*k) +
+        #                 2*T*ExpIntegralEi(-2*k*T) -
+        #                 2*T*ExpIntegralEi(-(k*T)))/(-1 + k)) +
+        #              ((-2*Power(E,k*(-2 + M)*T - M*T) *
+        #                Power(-1 + Power(E,((-(k*(-2 + M)) + M)*T)/2.),2))/
+        #               (k*(-2 + M) - M) -
+        #               2*T*ExpIntegralEi(((k*(-2 + M) - M)*T)/2.) +
+        #               2*T*ExpIntegralEi((k*(-2 + M) - M)*T))/(-1 + k))
+        integrand = (-(((np.expm1(k*T)**2)/(np.exp(2*k*T)*k) +
+                2*T*expi(-2*k*T) -
+                2*T*expi(-(k*T)))/(k-1)) +
+             ((-2*np.exp(k*(M-2)*T - M*T) *
+               (-1 + np.exp(((-(k*(M-2)) + M)*T)/2.))**2)/
+              (k*(M-2) - M) -
+              2*T*expi(((k*(M-2) - M)*T)/2.) +
+              2*T*expi((k*(M-2) - M)*T)) / (k-1))
+
+        if last is not None and last > 0:
+            if (integrand-last)/last < thresh:
+                asymptoted = True
+            else:
+                last = integrand
+        else:
+            integrand = last
+
         vals.append(integrand)
     #vals[0] = 0  # normally it's NaN, but the series value is 0, so we set it to that
     return (2/M)*np.array(vals)
@@ -171,6 +200,16 @@ def ave_het(Ne_t, return_parts=False):
     if return_parts:
         return x
     return x.sum()
+
+
+@jit
+def ave_het2(Ne_t):
+    """
+    Het x 2N. If return_parts is True, the series is returned, not the sum.
+    """
+    x = np.array([np.prod(1 - 1/(2*Ne_t[:i])) for i in np.arange(len(Ne_t))])
+    return x.sum()
+
 
 def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
                      dont_fallback=False, return_parts=False):
@@ -385,7 +424,8 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     # the None argument is because we do not need to pass in the mutations
     # for the S&C calculation
     chunks = BChunkIterator(genome, None, step, nchunks, N, use_SC16=True)
-    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    s = len(genome.segments)
+    print(f"Genome ({s:,} segments) divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     not_parallel = ncores is None or ncores <= 1
     if not_parallel:
         res = []
@@ -397,8 +437,11 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
                                  total=chunks.total))
     return chunks.collate(res)
 
+import time
+
 @np.vectorize
-def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5, log=True):
+def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5,
+                                log=True, min_rec=1e-12):
     """
     Take the pre-computed components of the S&C '16 equation
     and use them to compute Ne.
@@ -409,11 +452,29 @@ def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5, log=True):
     VmV = Vm/V
     Z = 1-VmV
     # The Q2 sequence for rf
-    Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+    # for closely linked stuff, the recombination fraction must be > 0
+    rf = max(min_rec, rf)
+    t0 = time.time()
+    Q2 = Q2_sum_integral2(Z, rf, tmax=sum_n*N)
+    t1 = time.time()
+    Q2a = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+    relerr = (np.abs(Q2 - Q2a)/Q2).mean()
+    print(f"Q2 time: {t1-t0}, rel error: {relerr}")
     Ne_t = N*np.exp(-V/2 * Q2)
-    B = ave_het(Ne_t)/(2*N)
+    t0 = time.time()
+    B = ave_het2(Ne_t)/(2*N)
+    t1 = time.time()
+    print(f"ave het time: {t1-t0}")
     if log:
         return np.log(B)
     return B
+
+def B_BK2022(V, Vm, rf, N):
+    """
+    """
+    Bclib.B_BK2022.argtypes = (c_double, c_double,
+                               c_double, c_int)
+    Bclib.B_BK2022.restype = c_double
+    return Bclib.B_BK2022(V, Vm, rf, N);
 
 

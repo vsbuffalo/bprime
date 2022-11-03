@@ -9,6 +9,14 @@ likclib_ext = Extension('likclib',
                               language='c',
                         sources = ['bgspy/src/likelihood.c'])
 
+
+Bclib_ext = Extension('Bclib',
+                        extra_compile_args=extra_compile_args,
+                              include_dirs=[np.get_include()],
+                              language='c',
+                              libraries = ['gsl'],
+                        sources = ['bgspy/src/theory.c'])
+
 setup(
     name='bgspy',
     version='0.1dev',
@@ -19,5 +27,5 @@ setup(
     entry_points = {
         'console_scripts': ['bgspy=bgspy.command_line:cli']
     },
-    ext_modules=[likclib_ext],
+    ext_modules=[likclib_ext, Bclib_ext],
 )
