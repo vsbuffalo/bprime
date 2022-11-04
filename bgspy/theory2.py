@@ -83,11 +83,11 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
 ## New Theory
 
 def Q2_asymptotic(Z, M):
-	"""
-	This is the asymptotic Q² term — up to the factor of two
-	that *cancels* with the V/2 in a diploid model.
-	"""
-	return -2/((-1 + Z)*(2 + (-2 + M)*Z))
+    """
+    This is the asymptotic Q² term — up to the factor of two
+    that *cancels* with the V/2 in a diploid model.
+    """
+    return -2/((-1 + Z)*(2 + (-2 + M)*Z))
 
 def ratchet_time(sh, Ne, U):
     out = (np.exp(4*sh*Ne) - 1)/(2*U*sh*Ne)
@@ -159,8 +159,6 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=1e-5):
     # ExpIntegralEi = expi
     vals = []
     k = 1-Z
-    last = None
-    asymptoted = False
     for T in end_ts:
         # From Mathematica:
         # integrand = (-((Power(-1 + Power(E,k*T),2)/(Power(E,2*k*T)*k) +
@@ -179,15 +177,6 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=1e-5):
               (k*(M-2) - M) -
               2*T*expi(((k*(M-2) - M)*T)/2.) +
               2*T*expi((k*(M-2) - M)*T)) / (k-1))
-
-        if last is not None and last > 0:
-            if (integrand-last)/last < thresh:
-                asymptoted = True
-            else:
-                last = integrand
-        else:
-            integrand = last
-
         vals.append(integrand)
     #vals[0] = 0  # normally it's NaN, but the series value is 0, so we set it to that
     return (2/M)*np.array(vals)
@@ -454,17 +443,17 @@ def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5,
     # The Q2 sequence for rf
     # for closely linked stuff, the recombination fraction must be > 0
     rf = max(min_rec, rf)
-    t0 = time.time()
-    Q2 = Q2_sum_integral2(Z, rf, tmax=sum_n*N)
-    t1 = time.time()
-    Q2a = Q2_sum_integral(Z, rf, tmax=sum_n*N)
-    relerr = (np.abs(Q2 - Q2a)/Q2).mean()
-    print(f"Q2 time: {t1-t0}, rel error: {relerr}")
+    # t0 = time.time()
+    Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+    # t1 = time.time()
+    #Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+    # relerr = (np.abs(Q2 - Q2a)/Q2).mean()
+    # print(f"Q2 time: {t1-t0}, rel error: {relerr}")
     Ne_t = N*np.exp(-V/2 * Q2)
-    t0 = time.time()
+    # t0 = time.time()
     B = ave_het2(Ne_t)/(2*N)
-    t1 = time.time()
-    print(f"ave het time: {t1-t0}")
+    # t1 = time.time()
+    # print(f"ave het time: {t1-t0}")
     if log:
         return np.log(B)
     return B
@@ -476,6 +465,9 @@ def B_BK2022(V, Vm, rf, N):
     Bclib.B_BK2022.argtypes = (c_double, c_double,
                                c_double, c_int)
     Bclib.B_BK2022.restype = c_double
-    return Bclib.B_BK2022(V, Vm, rf, N);
-
+    # t0 = time.time()
+    out = Bclib.B_BK2022(V, Vm, rf, N);
+    # t1 = time.time()
+    # print(f"C func time: {t1-t0}")
+    return out
 
