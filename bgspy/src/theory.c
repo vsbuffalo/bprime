@@ -17,13 +17,29 @@
 #define NFACTOR 20
 #define MIN_REC 1e-12
 
+double g(double Ne_t) {
+		double log_prod = 0;
+		double Ne_asymp;
+		for (int t=1; t < T; t++) {
+        /* Q_ta += pow(1-k, t) * pow(1-rf, t); */
+        Q_t = (1-pow(a, t+1)) / (1-a);
+				double Ne = N*exp(-V/2 * pow(Q_t, 2)); // factor of two needed?
+        log_prod = log_prod + log(1-0.5/Ne);
+				double f2 = 
+
+
+        /* prod *= (1-0.5/Ne); */
+        /* printf("Ne = %f, exp(log prod) = %f, Q_t = %f, Q_ta = %f\n", Ne, exp(log_prod), Q_t, Q_ta); */
+        Ne_t[t] = Ne_t[t-1] + exp(log_prod);
+ 
+}
+
 double B_BK2022(double V, double Vm, double rf, int N) {
     // Our version of S&C '16's equation
     double k = Vm/V;
     double Q2;
     int T = 10000;
     double Ne_t[T];
-    double log_prod = 0;
 		/* double prod = 1; */
     assert(k > 0);
     assert(k < 1);
@@ -40,18 +56,7 @@ double B_BK2022(double V, double Vm, double rf, int N) {
 		double last_f = 0;
     double a = (1-k) * (1-rf);
     int step = 10;
-    for (int t=1; t < T; t++) {
-        /* Q_ta += pow(1-k, t) * pow(1-rf, t); */
-        Q_t = (1-pow(a, t+1)) / (1-a);
-				double Ne = N*exp(-V/2 * pow(Q_t, 2)); // factor of two needed?
-        log_prod = log_prod + log(1-0.5/Ne);
-				double f2 = 
-
-
-        /* prod *= (1-0.5/Ne); */
-        /* printf("Ne = %f, exp(log prod) = %f, Q_t = %f, Q_ta = %f\n", Ne, exp(log_prod), Q_t, Q_ta); */
-        Ne_t[t] = Ne_t[t-1] + exp(log_prod);
-        /* printf("Ne(%d) = %f, diff = %g\n", t, Ne_t[t], Ne_t[t] - Ne_t[t-1]); */
+       /* printf("Ne(%d) = %f, diff = %g\n", t, Ne_t[t], Ne_t[t] - Ne_t[t-1]); */
         printf("%f,%g\n", Ne_t[t], Ne_t[t] - Ne_t[t-1]);
     }
     /* printf("==========================DONE\n"); */ 
