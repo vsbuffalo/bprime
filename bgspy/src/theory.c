@@ -43,21 +43,42 @@ double Ne_t(double a, double V, int N) {
  		return Ne_sum / 2;
 }
 
-double Ne_t_rescaled(double a, double V, int N) {
+double Ne_t_rescaled(double a, double V, int N, double scale) {
     double Q, res = 0;
     int niter = 0;
-    double step = 0.1;
     for (int z=0; z<=log(10*N+1); z++) {
-        double sum = 0;
-        for (double i=0; i<= (exp(z)-1)/N; i+=step) {
+        double sum = 0, last = 0;
+        for (double i=0; i<= (exp(z)-1)/N + scale; i+=scale) {
             if (niter > MAX_ITER) break;
             Q = (1-pow(a, (N*i)+1)) / (1-a);
-            sum += step*N*exp(0.5*V * pow(Q, 2));
-            /* printf("res: %g, inner upper: %g, z: %g, i: %d\n", res, exp(z)-1, z, i); */
+            double val = exp(0.5*V * pow(Q, 2));
+            if (i > 0)
+                sum += scale*N * 0.5*(val + last);
+            last = val;
+            niter++;
         }
         if (niter > MAX_ITER) break;
         res += exp(z - 0.5/N * sum);
-        printf("res: %g\n", res);
+    }
+    /* printf("niter: %d\n", niter); */
+    if (niter > MAX_ITER)
+        printf("WARNING: Ne_t_rescaled did not converge!");
+    return res/2;
+}
+
+double Ne_t_rescaled2(double a, double V, int N, double scale) {
+    double Q, res = 0;
+    int niter = 0;
+    double inner = 0;
+    int i=0;
+    double sum = 0;
+    for (int z=0; z<=log(10*N+1); z++) {
+        i += 1;
+        Q = (1-pow(a, exp(i))) / (1-a);
+        inner += exp(i + 0.5 * V * pow(Q, 2));
+        sum += exp(z - 0.5/N * inner);
+        niter++;
+        if (niter > MAX_ITER) break;
     }
     if (niter > MAX_ITER)
         printf("WARNING: Ne_t_rescaled did not converge!");
@@ -71,7 +92,8 @@ void B_BK2022(const double *a, const double *V,
 		assert(a > 0);
 		assert(a < 1);
     if (scaling < 0) {
-        // fall back on the asymptotic Ne results
+        printf("note: asymptotic Ne mode.\n");
+        // asymptotic Ne results
         for (ssize_t i=0; i<n; i++) {
             double Q = 1 / (1-a[i]);
             B[i] = exp(-V[i]/2 * pow(Q, 2));
@@ -79,13 +101,17 @@ void B_BK2022(const double *a, const double *V,
             /* printf("."); */
         }
     } else if (scaling == 0) {
+        printf("note: exact Ne mode.\n");
+        // exact
         for (ssize_t i=0; i<n; i++) {
             B[i] = Ne_t(a[i], V[i], N) / N; 
             /* printf("."); */
         }
     } else {
+        // rescaled
+        printf("note: exact Ne mode (rescaled).\n");
         for (ssize_t i=0; i<n; i++) {
-            B[i] = Ne_t_rescaled(a[i], V[i], N) / N; 
+            B[i] = Ne_t_rescaled(a[i], V[i], N, scaling) / N; 
             /* printf("."); */
         }
     }

@@ -398,17 +398,15 @@ def calc_BSC16_chunk_worker(args):
     #max_dist = 0.1
     V, Vm = segment_parts
     one_minus_k = 1 - Vm/V
+    B = np.empty(V.size, dtype=np.double)
 
     for f in map_positions:
         rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
         a = one_minus_k*(1-rf)
-        # idx = rf <= max_dist
-        # rf = rf[idx]
-        # L = seg_L[idx]
+
+        # interface directly with the c library function
         t0 = time.time()
-        # x = B_BK2022(a, V, N, scaling=-1)
-        B = np.empty(V.size, dtype=np.double)
-        Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), B, a.size, N, 1);
+        Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), B, a.size, N, 0.1);
         B = B.reshape(V.size)
         t1 = time.time()
         print(f"B_BK2022 time: {t1-t0}")
