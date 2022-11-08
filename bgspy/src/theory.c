@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_sum.h>
 
 #define WARN 1
 #define THRESH 1e-5
+#define MAX_ITER 10000
+#define STEP 0.1
 
 #define EULER 0.57721566
 #define MAXIT 100
@@ -17,55 +17,77 @@
 #define NFACTOR 20
 #define MIN_REC 1e-12
 
-double g(double Ne_t) {
-		double log_prod = 0;
-		double Ne_asymp;
-		for (int t=1; t < T; t++) {
+double Ne_t(double a, double V, int N) {
+    double prod_sum = 0, Ne_sum = 0;
+		double Qt;
+    int t=0, niter=0;
+    double reldiff = INFINITY, last=N;
+    while ((reldiff >= THRESH) & (niter < MAX_ITER)) {
         /* Q_ta += pow(1-k, t) * pow(1-rf, t); */
-        Q_t = (1-pow(a, t+1)) / (1-a);
-				double Ne = N*exp(-V/2 * pow(Q_t, 2)); // factor of two needed?
-        log_prod = log_prod + log(1-0.5/Ne);
-				double f2 = 
-
-
-        /* prod *= (1-0.5/Ne); */
-        /* printf("Ne = %f, exp(log prod) = %f, Q_t = %f, Q_ta = %f\n", Ne, exp(log_prod), Q_t, Q_ta); */
-        Ne_t[t] = Ne_t[t-1] + exp(log_prod);
- 
+        Qt = (1-pow(a, t+1)) / (1-a);
+				double Ne = N*exp(-V/2 * pow(Qt, 2));
+        prod_sum += log(1-0.5/Ne);
+        Ne_sum += exp(prod_sum); 
+        /* printf("Qt = %g\n", Qt); */
+        /* printf("%d Ne_sum = %g, Ne = %g, abs diff = %g\t", niter, Ne_sum, Ne, fabs(Ne_sum - last)); */
+        reldiff = fabs(Ne_sum - last) / Ne_sum;
+        last = Ne_sum;
+        /* printf("rel diff: %g, niter: %d\n", reldiff, niter); */
+        /* printf("cond = %d, thresh = %g\n", reldiff >= THRESH, THRESH); */
+        niter++;
+        t++;
+        /* printf("rel diff: %g, niter: %d\n", reldiff, niter); */
+		}
+    if (niter > MAX_ITER)
+        printf("WARNING: Ne_t did not converge!");
+ 		return Ne_sum / 2;
 }
 
-double B_BK2022(double V, double Vm, double rf, int N) {
-    // Our version of S&C '16's equation
-    double k = Vm/V;
-    double Q2;
-    int T = 10000;
-    double Ne_t[T];
-		/* double prod = 1; */
-    assert(k > 0);
-    assert(k < 1);
-    assert(Vm > 0);
-    assert(V > 0);
-
-		/* double sum_accel, err; */
-		/* gsl_sum_levin_u_workspace *w = gsl_sum_levin_u_alloc(T); */
-
-    double Q_t = 1;
-    double Q_ta = 1;
-		/* gsl_sum_levin_u_accel(Ne_t, T, w, &sum_accel, &err); */
-		Ne_t[0] = 0;
-		double last_f = 0;
-    double a = (1-k) * (1-rf);
-    int step = 10;
-       /* printf("Ne(%d) = %f, diff = %g\n", t, Ne_t[t], Ne_t[t] - Ne_t[t-1]); */
-        printf("%f,%g\n", Ne_t[t], Ne_t[t] - Ne_t[t-1]);
+double Ne_t_rescaled(double a, double V, int N) {
+    double Q, res = 0;
+    int niter = 0;
+    double step = 0.1;
+    for (int z=0; z<=log(10*N+1); z++) {
+        double sum = 0;
+        for (double i=0; i<= (exp(z)-1)/N; i+=step) {
+            if (niter > MAX_ITER) break;
+            Q = (1-pow(a, (N*i)+1)) / (1-a);
+            sum += step*N*exp(0.5*V * pow(Q, 2));
+            /* printf("res: %g, inner upper: %g, z: %g, i: %d\n", res, exp(z)-1, z, i); */
+        }
+        if (niter > MAX_ITER) break;
+        res += exp(z - 0.5/N * sum);
+        printf("res: %g\n", res);
     }
-    /* printf("==========================DONE\n"); */ 
-    /* gsl_sum_levin_u_accel(Ne_t, T, w, &sum_accel, &err); */
-    /* printf("Ne_[-1]=%g, sum accel = %g", Ne_t[T], sum_accel); */
-		/* printf("estimated error  = % .16f\n", err); */
-  	/* gsl_sum_levin_u_free(w); */
-    return 0.5*Ne_t[T-1]/N;
+    if (niter > MAX_ITER)
+        printf("WARNING: Ne_t_rescaled did not converge!");
+    return res/2;
 }
 
-
+void B_BK2022(const double *a, const double *V, 
+              double *B, ssize_t n, const int N, 
+              const double scaling) {
+    // Our version of S&C '16's equation
+		assert(a > 0);
+		assert(a < 1);
+    if (scaling < 0) {
+        // fall back on the asymptotic Ne results
+        for (ssize_t i=0; i<n; i++) {
+            double Q = 1 / (1-a[i]);
+            B[i] = exp(-V[i]/2 * pow(Q, 2));
+            /* printf("%g, ", B[i]); */
+            /* printf("."); */
+        }
+    } else if (scaling == 0) {
+        for (ssize_t i=0; i<n; i++) {
+            B[i] = Ne_t(a[i], V[i], N) / N; 
+            /* printf("."); */
+        }
+    } else {
+        for (ssize_t i=0; i<n; i++) {
+            B[i] = Ne_t_rescaled(a[i], V[i], N) / N; 
+            /* printf("."); */
+        }
+    }
+}
 

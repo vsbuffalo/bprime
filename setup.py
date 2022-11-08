@@ -14,7 +14,7 @@ Bclib_ext = Extension('Bclib',
                         extra_compile_args=extra_compile_args,
                               include_dirs=[np.get_include()],
                               language='c',
-                              libraries = ['gsl'],
+                              # libraries = ['gsl'],
                         sources = ['bgspy/src/theory.c'])
 
 setup(

@@ -1,3 +1,4 @@
+import time
 import os
 import warnings
 import tqdm
@@ -8,7 +9,7 @@ from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
 from numba import jit
-from ctypes import c_double, c_int
+from ctypes import c_double, c_int, POINTER, c_ssize_t, c_void_p
 
 from bgspy.utils import dist_to_segment
 from bgspy.parallel import BChunkIterator, MapPosChunkIterator
@@ -16,6 +17,13 @@ from bgspy.parallel import BChunkIterator, MapPosChunkIterator
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
 Bclib = np.ctypeslib.load_library("Bclib", LIBRARY_PATH)
+
+# define the types of the dynamic library functions
+Bclib.B_BK2022.argtypes = (np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C')),
+                            np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C')),
+                            np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C','W')),
+                            c_ssize_t, c_int, c_double)
+Bclib.B_BK2022.restype = None
 
 
 
@@ -200,7 +208,7 @@ def ave_het2(Ne_t):
     return x.sum()
 
 
-def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
+def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, T_factor=10,
                      dont_fallback=False, return_parts=False):
     """
     Using a non-linear solver to solve the pair of S&C '16 equations and
@@ -208,7 +216,7 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
 
     asymptotic: Return the B from the asymptotic Ne (which determines
                  selection processes).
-    sum_n: How many N generations to calculate the Q(t) series over, for the
+    T_factor: How many N generations to calculate the Q(t) series over, for the
             non-asymptotic Ne(t)
     """
     U = 2*L*mu
@@ -280,8 +288,8 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, sum_n=10,
     if return_parts and asymptotic:
         return np.nan, B_asymp, T, V, Vm, Q2_asymp, classic_bgs
 
-    # the full Q² series going back sum_n*N generations
-    Q2 = Q2_sum_integral(Z, M, tmax=sum_n*N)
+    # the full Q² series going back T_factor*N generations
+    Q2 = Q2_sum_integral(Z, M, tmax=T_factor*N)
     Ne_t = N*np.exp(-V/2 * Q2)
     assert len(Ne_t) > 1, "Ne_t's length <= 1"
     B = ave_het(Ne_t)/(2*N)
@@ -388,13 +396,29 @@ def calc_BSC16_chunk_worker(args):
     #mu = w_grid[:, None, None]
     #sh = t_grid[None, :, None]
     #max_dist = 0.1
+    V, Vm = segment_parts
+    one_minus_k = 1 - Vm/V
+
     for f in map_positions:
         rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
+        a = one_minus_k*(1-rf)
         # idx = rf <= max_dist
         # rf = rf[idx]
         # L = seg_L[idx]
-        V, Vm = segment_parts
-        x = np.log(B_BK2022(V, Vm, rf, N))
+        t0 = time.time()
+        # x = B_BK2022(a, V, N, scaling=-1)
+        B = np.empty(V.size, dtype=np.double)
+        Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), B, a.size, N, 1);
+        B = B.reshape(V.size)
+        t1 = time.time()
+        print(f"B_BK2022 time: {t1-t0}")
+
+        t0 = time.time()
+        x2 = np.exp(-V/2 * (1/(1-a))**2)
+        t1 = time.time()
+        print(f"numpy time: {t1-t0}")
+
+        __import__('pdb').set_trace()
         # we allow Nans because the can be back filled later
         try:
             assert(not np.any(np.isnan(x)))
@@ -426,10 +450,8 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
                                  total=chunks.total))
     return chunks.collate(res)
 
-import time
-
 @np.vectorize
-def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5,
+def bgs_segment_from_parts_sc16(V, Vm, rf, N, T_factor=5,
                                 log=True, min_rec=1e-12):
     """
     Take the pre-computed components of the S&C '16 equation
@@ -444,7 +466,7 @@ def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5,
     # for closely linked stuff, the recombination fraction must be > 0
     rf = max(min_rec, rf)
     # t0 = time.time()
-    Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+    Q2 = Q2_sum_integral(Z, rf, tmax=T_factor*N)
     # t1 = time.time()
     #Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
     # relerr = (np.abs(Q2 - Q2a)/Q2).mean()
@@ -458,16 +480,10 @@ def bgs_segment_from_parts_sc16(V, Vm, rf, N, sum_n=5,
         return np.log(B)
     return B
 
-@np.vectorize
-def B_BK2022(V, Vm, rf, N):
+def B_BK2022(a, V, N, scaling=0):
     """
     """
-    Bclib.B_BK2022.argtypes = (c_double, c_double,
-                               c_double, c_int)
-    Bclib.B_BK2022.restype = c_double
-    # t0 = time.time()
-    out = Bclib.B_BK2022(V, Vm, rf, N);
-    # t1 = time.time()
-    # print(f"C func time: {t1-t0}")
-    return out
+    B = np.empty(V.size, dtype=np.double)
+    Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), B, a.size, N, scaling);
+    return B.reshape(V.shape)
 
