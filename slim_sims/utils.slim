@@ -53,11 +53,6 @@ function (float) pop_fitness(object mut_type) {
   return sapply(inds, 'standard_fitness(applyValue, mut_type);');
 }
 
-function (float) pop_fitness(object mut_type) {
-  inds = sim.subpopulations.individuals;
-  return sapply(inds, 'standard_fitness(applyValue, mut_type);');
-}
-
 function (void)output_mutations(string chrom, string filename, object subpop) {
   counts = sim.mutationCounts(subpop, mutations=sim.mutations);
   for (i in seqAlong(sim.mutations)) {
