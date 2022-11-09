@@ -155,7 +155,7 @@ class BGSModel(object):
         self.B_pos = B_pos
         #self.xs = xs
 
-    def calc_Bp(self, N, step=10_000, recalc_segments=False,
+    def calc_Bp(self, N, step=100_000, recalc_segments=False,
                 ncores=None, nchunks=None):
         """
         Calculate new B' values across the genome.

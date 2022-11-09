@@ -12,7 +12,7 @@ NCORES_BP = 40
 # Note: for next sim run, just use grid-string params, perhaps 
 # non phastcons track.
 #
-CONFIG = '../../../slim_sims/chrombgs/chrombgs_chr10_thresh0.json'
+CONFIG = '../../../slim_sims/chrombgs/merged_utrs_cds_introns_phastcons.json'
 
 chr10_sim_config = json.load(open(CONFIG))
 print(chr10_sim_config)
@@ -113,7 +113,7 @@ maps = [
         ]
 
 rule test:
-  input: "bmap_hg38_6x5grid_10000step_10000N_cds_utrs_phastcons.pkl"
+  input: "bmap_hg38_sims_10000step_chr10.pkl"
 
 rule all:
   input: maps

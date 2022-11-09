@@ -156,7 +156,7 @@ class MapPosChunkIterator(object):
 
 
 class BChunkIterator(MapPosChunkIterator):
-    def __init__(self, genome, w_grid, step, nchunks, N, use_SC16=False):
+    def __init__(self, genome, w_grid, step, nchunks, N=None, use_SC16=False):
 
         """
         An iterator for chunk the components to calculate B' along the genome in

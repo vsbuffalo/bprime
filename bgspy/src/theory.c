@@ -49,11 +49,12 @@ double Ne_t_rescaled(double a, double V, int N, double scale) {
     for (int z=0; z<=log(10*N+1); z++) {
         double sum = 0, last = 0;
         for (double i=0; i<= (exp(z)-1)/N + scale; i+=scale) {
-            if (niter > MAX_ITER) break;
             Q = (1-pow(a, (N*i)+1)) / (1-a);
             double val = exp(0.5*V * pow(Q, 2));
-            if (i > 0)
+            if (i > 0) {
                 sum += scale*N * 0.5*(val + last);
+                /* printf("trap: %f - %f \n", val, last); */
+            }
             last = val;
             niter++;
         }
@@ -63,25 +64,35 @@ double Ne_t_rescaled(double a, double V, int N, double scale) {
     /* printf("niter: %d\n", niter); */
     if (niter > MAX_ITER)
         printf("WARNING: Ne_t_rescaled did not converge!");
+    /* printf("niter: %d, end: %f\n", niter, log(10*N+1)); */
     return res/2;
 }
 
 double Ne_t_rescaled2(double a, double V, int N, double scale) {
+    // In development
     double Q, res = 0;
     int niter = 0;
-    double inner = 0;
-    int i=0;
-    double sum = 0;
     for (int z=0; z<=log(10*N+1); z++) {
-        i += 1;
-        Q = (1-pow(a, exp(i))) / (1-a);
-        inner += exp(i + 0.5 * V * pow(Q, 2));
-        sum += exp(z - 0.5/N * inner);
-        niter++;
+        double sum = 0, last = 0;
+        double step;
+        for (double i=0; i<= log(exp(z)-1); i++) {
+            step = pow(2, i);
+            Q = (1-pow(a, exp(i)+1)) / (1-a);
+            double val = exp(0.5*V * pow(Q, 2));
+            if (i > 0) {
+                sum += (pow(2, i+1) - pow(2, i)) * 0.5*(val + last);
+                printf("i=%d, step=%f, trap: %f - %f \n", i, step, val, last);
+            }
+            last = val;
+            niter++;
+        }
         if (niter > MAX_ITER) break;
+        res += exp(z - 0.5/N * sum);
     }
+    /* printf("niter: %d\n", niter); */
     if (niter > MAX_ITER)
         printf("WARNING: Ne_t_rescaled did not converge!");
+    printf("niter: %d, end: %f\n", niter, log(10*N+1));
     return res/2;
 }
 
@@ -92,7 +103,7 @@ void B_BK2022(const double *a, const double *V,
 		assert(a > 0);
 		assert(a < 1);
     if (scaling < 0) {
-        printf("note: asymptotic Ne mode.\n");
+        /* printf("note: asymptotic Ne mode.\n"); */
         // asymptotic Ne results
         for (ssize_t i=0; i<n; i++) {
             double Q = 1 / (1-a[i]);
@@ -101,7 +112,7 @@ void B_BK2022(const double *a, const double *V,
             /* printf("."); */
         }
     } else if (scaling == 0) {
-        printf("note: exact Ne mode.\n");
+        /* printf("note: exact Ne mode.\n"); */
         // exact
         for (ssize_t i=0; i<n; i++) {
             B[i] = Ne_t(a[i], V[i], N) / N; 
@@ -109,7 +120,7 @@ void B_BK2022(const double *a, const double *V,
         }
     } else {
         // rescaled
-        printf("note: exact Ne mode (rescaled).\n");
+        /* printf("note: exact Ne mode (rescaled).\n"); */
         for (ssize_t i=0; i<n; i++) {
             B[i] = Ne_t_rescaled(a[i], V[i], N, scaling) / N; 
             /* printf("."); */

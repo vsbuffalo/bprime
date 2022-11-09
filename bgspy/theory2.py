@@ -52,7 +52,7 @@ def bgs_rec(mu, sh, L, rbp, log=False):
 
 # parallel stuff
 def calc_B_chunk_worker(args):
-    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid = args
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N = args
     a, b, c, d = segment_parts
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
@@ -398,26 +398,21 @@ def calc_BSC16_chunk_worker(args):
     #max_dist = 0.1
     V, Vm = segment_parts
     one_minus_k = 1 - Vm/V
-    B = np.empty(V.size, dtype=np.double)
+    X = np.empty(V.size, dtype=np.double)
 
     for f in map_positions:
-        rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
+        rf = dist_to_segment(f, chrom_seg_mpos, haldane=True)[None, None, :]
         a = one_minus_k*(1-rf)
 
         # interface directly with the c library function
-        t0 = time.time()
-        Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), B, a.size, N, 0.1);
-        B = B.reshape(V.size)
-        t1 = time.time()
-        print(f"B_BK2022 time: {t1-t0}")
+        # Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), X, a.size, N, -1);
+        # x = np.log(X.reshape(V.shape))
 
-        t0 = time.time()
-        x2 = np.exp(-V/2 * (1/(1-a))**2)
-        t1 = time.time()
-        print(f"numpy time: {t1-t0}")
+        # this is the asymptotic Ne version
+        x = -V/2 * (1/(1-a))**2
 
-        __import__('pdb').set_trace()
-        # we allow Nans because the can be back filled later
+        # __import__('pdb').set_trace()
+        # # we allow Nans because the can be back filled later
         try:
             assert(not np.any(np.isnan(x)))
         except AssertionError:
