@@ -12,7 +12,7 @@ NCORES_BP = 40
 # Note: for next sim run, just use grid-string params, perhaps 
 # non phastcons track.
 #
-CONFIG = '../../../slim_sims/chrombgs/merged_utrs_cds_introns_phastcons.json'
+CONFIG = '../../../slim_sims/chrombgs/chrombgs_chr10_cds_utrs_phastcons.json'
 
 chr10_sim_config = json.load(open(CONFIG))
 print(chr10_sim_config)
