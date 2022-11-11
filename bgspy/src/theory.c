@@ -4,8 +4,8 @@
 #include <math.h>
 
 #define WARN 1
-#define THRESH 1e-5
-#define MAX_ITER 10000
+#define THRESH 1e-8
+#define MAX_ITER 100000000
 #define STEP 0.1
 
 #define EULER 0.57721566
@@ -29,7 +29,7 @@ double Ne_t(double a, double V, int N) {
         prod_sum += log(1-0.5/Ne);
         Ne_sum += exp(prod_sum); 
         /* printf("Qt = %g\n", Qt); */
-        /* printf("%d Ne_sum = %g, Ne = %g, abs diff = %g\t", niter, Ne_sum, Ne, fabs(Ne_sum - last)); */
+        /* printf("%d Ne_sum = %g, Ne = %g, abs diff = %g\n", niter, Ne_sum, Ne, fabs(Ne_sum - last)); */
         reldiff = fabs(Ne_sum - last) / Ne_sum;
         last = Ne_sum;
         /* printf("rel diff: %g, niter: %d\n", reldiff, niter); */
@@ -38,7 +38,7 @@ double Ne_t(double a, double V, int N) {
         t++;
         /* printf("rel diff: %g, niter: %d\n", reldiff, niter); */
 		}
-    if (niter > MAX_ITER)
+    if (niter >= MAX_ITER)
         printf("WARNING: Ne_t did not converge!");
  		return Ne_sum / 2;
 }

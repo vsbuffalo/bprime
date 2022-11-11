@@ -174,6 +174,20 @@ class BChunkIterator(MapPosChunkIterator):
             # we're using the S&C '16 approach
             assert genome.segments._segment_parts_sc16 is not None, "Genome.segments does not have S&C '16 segment parts"
             segment_parts = genome.segments._segment_parts_sc16
+
+        self.interp_parts = None
+        if use_SC16:
+            # we need to build an Ne(t) vs Ne_asymp bias interpolator
+            # big grid
+            a_grid = np.sort(1-np.logspace(-8, -3, 100))
+            V_grid = np.logspace(-10, -7, 100)
+            interp_grid = np.meshgrid(a_grid, V_grid)
+            interp_asymp = Ne_asymp2(*interp_grid, N)/N
+            interp_real = Ne_t(*interp_grid, N)/N
+            interp_bias = interp_asymp - interp_real
+            #func = RegularGridInterpolator((a_grid, V_grid), interp_bias.T, method='linear')
+            self.interp_parts = (a_grid, V_grid, interp_bias)
+
         seqlens = genome.seqlens
         # Group the segement parts (these are the parts of the pre-computed
         # equation for calculating B quickly) into chromosomes by the indices
@@ -184,6 +198,7 @@ class BChunkIterator(MapPosChunkIterator):
             # (these should not be changed!)
             F = self.genome.segments.F[idx, :]
             if use_SC16:
+                assert N is not None
                 # these are all segment-specific
                 segparts = tuple(x[:, :, idx] for x in segment_parts)
             else:
@@ -215,5 +230,5 @@ class BChunkIterator(MapPosChunkIterator):
                 self.chrom_seg_mpos[chrom],
                 self.chrom_features[chrom],
                 chrom_segparts,
-                self.w_grid, self.N)
+                self.w_grid, self.N, self.interp_parts)
 

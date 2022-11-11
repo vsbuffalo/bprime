@@ -20,11 +20,13 @@ Bclib = np.ctypeslib.load_library("Bclib", LIBRARY_PATH)
 
 # define the types of the dynamic library functions
 Bclib.B_BK2022.argtypes = (np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C')),
-                            np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C')),
-                            np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C','W')),
-                            c_ssize_t, c_int, c_double)
+                           np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C')),
+                           np.ctypeslib.ndpointer(np.double, ndim=1, flags=('C','W')),
+                           c_ssize_t, c_int, c_double)
 Bclib.B_BK2022.restype = None
 
+Bclib.Ne_t.argtypes = (c_double, c_double, c_int);
+Bclib.Ne_t.restype = c_double
 
 
 ## Classic BGS
@@ -52,7 +54,7 @@ def bgs_rec(mu, sh, L, rbp, log=False):
 
 # parallel stuff
 def calc_B_chunk_worker(args):
-    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N = args
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N, _ = args
     a, b, c, d = segment_parts
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
@@ -88,12 +90,14 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     return chunks.collate(res)
 
 
-## New Theory
+###### New Theory
+
+## Map Version of Functions
 
 def Q2_asymptotic(Z, M):
     """
-    This is the asymptotic Q² term — up to the factor of two
-    that *cancels* with the V/2 in a diploid model.
+    This is the map-version asymptotic Q² term — up to the factor of two that
+    *cancels* with the V/2 in a diploid model.
     """
     return -2/((-1 + Z)*(2 + (-2 + M)*Z))
 
@@ -191,6 +195,7 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=1e-5):
 
 def ave_het(Ne_t, return_parts=False):
     """
+    DEPRECATED: Slow test function.
     Het x 2N. If return_parts is True, the series is returned, not the sum.
     """
     x = np.array([np.prod(1 - 1/(2*Ne_t[:i])) for i in np.arange(len(Ne_t))])
@@ -198,15 +203,82 @@ def ave_het(Ne_t, return_parts=False):
         return x
     return x.sum()
 
+### Recombination Functions
+# Functions that don't integrate over a map length
 
-@jit
-def ave_het2(Ne_t):
-    """
-    Het x 2N. If return_parts is True, the series is returned, not the sum.
-    """
-    x = np.array([np.prod(1 - 1/(2*Ne_t[:i])) for i in np.arange(len(Ne_t))])
-    return x.sum()
+@np.vectorize
+def Ne_asymp(V, Vm, rf, N):
+    return N * np.exp(-V/2 * Qr_asymp(V, Vm, rf)**2)
 
+def Qr_asymp2(a):
+    return 1/(1-a)
+
+@np.vectorize
+def Ne_asymp2(a, V, N):
+    return N * np.exp(-V/2 * Qr_asymp2(a)**2)
+
+def Qr_asymp(V, Vm, rf):
+    a = (1-Vm/V)*(1-rf)
+    return 1/(1-a)
+
+def Qr_asymp2(a):
+    return 1/(1-a)
+
+def Qr_fixed(t, V, Vm, rf):
+    a = (1-Vm/V)*(1-rf)
+    return (1-a**(t+1)) / (1-a)
+
+def Qr_fixed2(t, a):
+    return (1-a**(t+1)) / (1-a)
+
+
+@np.vectorize
+def Ne_t_full(T, N, V, Vm, rf, as_B=False, return_parts=False):
+    Q_sum = 0
+    Ne_sum = 0
+    prod = 1
+    prods = []
+    Ne_sums = []
+    for t in np.arange(T):
+        Q_sum += (1-rf)**t * (1-Vm/V)**t
+        Q2 = Q_sum**2
+        Ne = N*np.exp(-V/2 * Q2)
+        prod *= 1-0.5/Ne
+        prods.append(prod)
+        Ne_sum += prod
+        Ne_sums.append(Ne_sum)
+    #print(f"old product: {prods[-1]}")
+    if return_parts:
+        return prods, Ne_sums
+    if as_B:
+        return Ne_sum/(2*N)
+    return Ne_sum/2
+
+@np.vectorize
+def Ne_t_full2(N, V, a, as_B=False, return_parts=False):
+    Q_sum = 0
+    Ne_sum = 0
+    prod = 1
+    prods = []
+    Ne_sums = []
+    T = 50*N
+    for t in np.arange(T):
+        Q_sum = Qr_fixed2(t, a)
+        Q2 = Q_sum**2
+        Ne = N*np.exp(-V/2 * Q2)
+        prod *= 1-0.5/Ne
+        prods.append(prod)
+        Ne_sum += prod
+        Ne_sums.append(Ne_sum)
+    #print(f"old product: {prods[-1]}")
+    if return_parts:
+        return prods, Ne_sums
+    if as_B:
+        return Ne_sum/(2*N)
+    return Ne_sum/2
+
+#### Main compututional functions
+# stuff used for the business end of things
 
 def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, T_factor=10,
                      dont_fallback=False, return_parts=False):
@@ -298,7 +370,6 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, T_factor=10,
 
     return B, B_asymp, T, V, Vm, Q2, classic_bgs
 
-
 @np.vectorize
 def bgs_segment_sc16_vec(*args, **kwargs):
     return bgs_segment_sc16(*args, **kwargs)
@@ -388,7 +459,12 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores):
 
 def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation
-    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N = args
+    map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N, interp_parts = args
+
+    # build the bias-correction interplator
+    a_grid, V_grid, interp_bias = interp_parts
+    func = RegularGridInterpolator((a_grid, V_grid), interp_bias.T, method='linear')
+
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
     # different feature annotation class, but for now we just fix this
@@ -398,19 +474,41 @@ def calc_BSC16_chunk_worker(args):
     #max_dist = 0.1
     V, Vm = segment_parts
     one_minus_k = 1 - Vm/V
-    X = np.empty(V.size, dtype=np.double)
+    BOTH = False
+    HETSUM = True
+    if HETSUM:
+        X = np.empty(V.size, dtype=np.double)
 
     for f in map_positions:
-        rf = dist_to_segment(f, chrom_seg_mpos, haldane=True)[None, None, :]
+        rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
+        # NOTE: using haldane's function always leads to bias for unknown
+        # reasons. So instead, we take the rate to be linear with the map
+        # distance, which fits simulations much more closely. But this is odd
+        # and not in accordance with the probability of recombination in
+        # the model.
+        rf[rf > 1] = 1.
         a = one_minus_k*(1-rf)
 
-        # interface directly with the c library function
-        # Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), X, a.size, N, -1);
-        # x = np.log(X.reshape(V.shape))
+        BOTH = True
+        if HETSUM:
+            # NOTE: The code below is for the heterozygosity sum in the S&C paper.
+            # This is needed for large, regional simulations, but in simulations
+            # I don't see much of a difference. I would enable it, but it's
+            # incredibly slow.
+            # interface directly with the c library function
+            __import__('pdb').set_trace()
+            Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), X, a.size, N, 0);
+            #X = B_BK2022(a, V, N, scaling=0)
+            x = np.log(X.reshape(V.shape))
+        else:
+            x = -V/2 * (1/(1-a))**2
+        if not HETSUM or BOTH:
+            # this is the asymptotic Ne version
+            x_asymp = -V/2 * (1/(1-a))**2
 
-        # this is the asymptotic Ne version
-        x = -V/2 * (1/(1-a))**2
+        __import__('pdb').set_trace()
 
+        # print(f"max diff: {np.abs(x_asymp - x).mean()}")
         # __import__('pdb').set_trace()
         # # we allow Nans because the can be back filled later
         try:
@@ -466,12 +564,15 @@ def bgs_segment_from_parts_sc16(V, Vm, rf, N, T_factor=5,
     # print(f"Q2 time: {t1-t0}, rel error: {relerr}")
     Ne_t = N*np.exp(-V/2 * Q2)
     # t0 = time.time()
-    B = ave_het2(Ne_t)/(2*N)
+    B = ave_het(Ne_t)/(2*N)
     # t1 = time.time()
     # print(f"ave het time: {t1-t0}")
     if log:
         return np.log(B)
     return B
+
+#### C Wrappers
+
 
 def B_BK2022(a, V, N, scaling=0):
     """
@@ -479,4 +580,11 @@ def B_BK2022(a, V, N, scaling=0):
     B = np.empty(V.size, dtype=np.double)
     Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), B, a.size, N, scaling);
     return B.reshape(V.shape)
+
+@np.vectorize
+def Ne_t(a, V, N, scaling=0):
+    """
+    """
+    return Bclib.Ne_t(a, V, N, scaling);
+
 
