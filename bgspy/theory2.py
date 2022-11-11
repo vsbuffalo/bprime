@@ -8,11 +8,11 @@ import numpy as np
 from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
+from scipy.interpolate import RegularGridInterpolator
 from numba import jit
 from ctypes import c_double, c_int, POINTER, c_ssize_t, c_void_p
 
 from bgspy.utils import dist_to_segment
-from bgspy.parallel import BChunkIterator, MapPosChunkIterator
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -74,21 +74,6 @@ def calc_B_chunk_worker(args):
         #              F, optimize=BCALC_EINSUM_PATH)
         Bs.append(B)
     return Bs
-
-def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
-    chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
-    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
-    not_parallel = ncores is None or ncores <= 1
-    if not_parallel:
-        res = []
-        for chunk in tqdm.tqdm(chunks, total=chunks.total):
-            res.append(calc_B_chunk_worker(chunk))
-    else:
-        with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
-                                 total=chunks.total))
-    return chunks.collate(res)
-
 
 ###### New Theory
 
@@ -210,12 +195,13 @@ def ave_het(Ne_t, return_parts=False):
 def Ne_asymp(V, Vm, rf, N):
     return N * np.exp(-V/2 * Qr_asymp(V, Vm, rf)**2)
 
-def Qr_asymp2(a):
-    return 1/(1-a)
-
 @np.vectorize
 def Ne_asymp2(a, V, N):
-    return N * np.exp(-V/2 * Qr_asymp2(a)**2)
+    x = V/2 * Qr_asymp2(a)**2
+    if x >= 0.95*np.log(np.finfo(np.float64).max):
+        # prevent underflow
+        return 0
+    return N * np.exp(-x)
 
 def Qr_asymp(V, Vm, rf):
     a = (1-Vm/V)*(1-rf)
@@ -463,7 +449,10 @@ def calc_BSC16_chunk_worker(args):
 
     # build the bias-correction interplator
     a_grid, V_grid, interp_bias = interp_parts
-    func = RegularGridInterpolator((a_grid, V_grid), interp_bias.T, method='linear')
+    bias= RegularGridInterpolator((a_grid, V_grid),
+                                  interp_bias.T,
+                                  method='linear', bounds_error=False,
+                                  fill_value=0)
 
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
@@ -474,10 +463,6 @@ def calc_BSC16_chunk_worker(args):
     #max_dist = 0.1
     V, Vm = segment_parts
     one_minus_k = 1 - Vm/V
-    BOTH = False
-    HETSUM = True
-    if HETSUM:
-        X = np.empty(V.size, dtype=np.double)
 
     for f in map_positions:
         rf = dist_to_segment(f, chrom_seg_mpos)[None, None, :]
@@ -488,25 +473,10 @@ def calc_BSC16_chunk_worker(args):
         # the model.
         rf[rf > 1] = 1.
         a = one_minus_k*(1-rf)
+        x_asymp = -V/2 * (1/(1-a))**2
 
-        BOTH = True
-        if HETSUM:
-            # NOTE: The code below is for the heterozygosity sum in the S&C paper.
-            # This is needed for large, regional simulations, but in simulations
-            # I don't see much of a difference. I would enable it, but it's
-            # incredibly slow.
-            # interface directly with the c library function
-            __import__('pdb').set_trace()
-            Bclib.B_BK2022(a.reshape(-1), V.reshape(-1), X, a.size, N, 0);
-            #X = B_BK2022(a, V, N, scaling=0)
-            x = np.log(X.reshape(V.shape))
-        else:
-            x = -V/2 * (1/(1-a))**2
-        if not HETSUM or BOTH:
-            # this is the asymptotic Ne version
-            x_asymp = -V/2 * (1/(1-a))**2
-
-        __import__('pdb').set_trace()
+        # bias correct based on the interpolator
+        x = np.log(np.exp(x_asymp) - bias((a, V)))
 
         # print(f"max diff: {np.abs(x_asymp - x).mean()}")
         # __import__('pdb').set_trace()
@@ -523,23 +493,6 @@ def calc_BSC16_chunk_worker(args):
         #              F, optimize=BCALC_EINSUM_PATH)
         Bs.append(B)
     return Bs
-
-def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
-    # the None argument is because we do not need to pass in the mutations
-    # for the S&C calculation
-    chunks = BChunkIterator(genome, None, step, nchunks, N, use_SC16=True)
-    s = len(genome.segments)
-    print(f"Genome ({s:,} segments) divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
-    not_parallel = ncores is None or ncores <= 1
-    if not_parallel:
-        res = []
-        for chunk in tqdm.tqdm(chunks):
-            res.append(calc_BSC16_chunk_worker(chunk))
-    else:
-        with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
-                                 total=chunks.total))
-    return chunks.collate(res)
 
 @np.vectorize
 def bgs_segment_from_parts_sc16(V, Vm, rf, N, T_factor=5,

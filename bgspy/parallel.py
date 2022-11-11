@@ -5,6 +5,7 @@ import numpy as np
 import tqdm
 import multiprocessing
 from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
+from bgspy.theory2 import Ne_t, Ne_asymp2, calc_B_chunk_worker, calc_BSC16_chunk_worker
 
 # Some parallelized code lives in classic.py; this is stuff that's common to
 # both the classic and DNN code
@@ -179,12 +180,17 @@ class BChunkIterator(MapPosChunkIterator):
         if use_SC16:
             # we need to build an Ne(t) vs Ne_asymp bias interpolator
             # big grid
-            a_grid = np.sort(1-np.logspace(-8, -3, 100))
+            a_grid = np.sort(1-np.logspace(-7, -3, 100))
             V_grid = np.logspace(-10, -7, 100)
             interp_grid = np.meshgrid(a_grid, V_grid)
             interp_asymp = Ne_asymp2(*interp_grid, N)/N
             interp_real = Ne_t(*interp_grid, N)/N
-            interp_bias = interp_asymp - interp_real
+            bias = interp_asymp - interp_real
+            # It should be that Ne(t) > Ne_asymp. If bias > 0
+            # this is due to a small amount of error in evaluating the Ne(t)
+            # series so we truncate
+            bias[bias > 0] = 0
+            interp_bias = bias
             #func = RegularGridInterpolator((a_grid, V_grid), interp_bias.T, method='linear')
             self.interp_parts = (a_grid, V_grid, interp_bias)
 
@@ -231,4 +237,36 @@ class BChunkIterator(MapPosChunkIterator):
                 self.chrom_features[chrom],
                 chrom_segparts,
                 self.w_grid, self.N, self.interp_parts)
+
+def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
+    chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
+    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    not_parallel = ncores is None or ncores <= 1
+    if not_parallel:
+        res = []
+        for chunk in tqdm.tqdm(chunks, total=chunks.total):
+            res.append(calc_B_chunk_worker(chunk))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
+                                 total=chunks.total))
+    return chunks.collate(res)
+
+def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
+    # the None argument is because we do not need to pass in the mutations
+    # for the S&C calculation
+    chunks = BChunkIterator(genome, None, step, nchunks, N, use_SC16=True)
+    s = len(genome.segments)
+    print(f"Genome ({s:,} segments) divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    not_parallel = ncores is None or ncores <= 1
+    if not_parallel:
+        res = []
+        for chunk in tqdm.tqdm(chunks):
+            res.append(calc_BSC16_chunk_worker(chunk))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(tqdm.tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
+                                 total=chunks.total))
+    return chunks.collate(res)
+
 
