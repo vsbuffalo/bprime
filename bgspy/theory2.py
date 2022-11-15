@@ -28,6 +28,9 @@ Bclib.B_BK2022.restype = None
 Bclib.Ne_t.argtypes = (c_double, c_double, c_int);
 Bclib.Ne_t.restype = c_double
 
+Bclib.Ne_t_rescaled.argtypes = (c_double, c_double, c_int, c_double);
+Bclib.Ne_t_rescaled.restype = c_double
+
 
 ## Classic BGS
 def B_segment_lazy(rbp, L, t):
@@ -447,12 +450,14 @@ def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation
     map_positions, chrom_seg_mpos, F, segment_parts, mut_grid, N, interp_parts = args
 
+
+    # NOTE: this is slow, and turned out to not change much.
     # build the bias-correction interplator
-    a_grid, V_grid, interp_bias = interp_parts
-    bias= RegularGridInterpolator((a_grid, V_grid),
-                                  interp_bias.T,
-                                  method='linear', bounds_error=False,
-                                  fill_value=0)
+    # a_grid, V_grid, interp_bias = interp_parts
+    # bias = RegularGridInterpolator((a_grid, V_grid),
+    #                                 interp_bias.T,
+    #                                 method='linear', bounds_error=True,
+    #                                 fill_value=0)
 
     Bs = []
     # F is a features matrix -- eventually, we'll add support for
@@ -473,13 +478,14 @@ def calc_BSC16_chunk_worker(args):
         # the model.
         rf[rf > 1] = 1.
         a = one_minus_k*(1-rf)
-        x_asymp = -V/2 * (1/(1-a))**2
+        x = -V/2 * (1/(1-a))**2
 
-        # bias correct based on the interpolator
-        x = np.log(np.exp(x_asymp) - bias((a, V)))
+        # # bias correct based on the interpolator
+        # # x = np.log(zbias((a, V)))
+        # a[a == 0] = 1e-14
+        # x = np.log(np.exp(x) - bias((a, V)))
 
         # print(f"max diff: {np.abs(x_asymp - x).mean()}")
-        # __import__('pdb').set_trace()
         # # we allow Nans because the can be back filled later
         try:
             assert(not np.any(np.isnan(x)))
@@ -494,35 +500,35 @@ def calc_BSC16_chunk_worker(args):
         Bs.append(B)
     return Bs
 
-@np.vectorize
-def bgs_segment_from_parts_sc16(V, Vm, rf, N, T_factor=5,
-                                log=True, min_rec=1e-12):
-    """
-    Take the pre-computed components of the S&C '16 equation
-    and use them to compute Ne.
-    """
-    #B, Ba, T, V, Vm, Q2, classic_bgs = parts
-    #assert T.shape[2] == rf.shape[2]
-    #Q2 = (1/(Vm/V + rf))**2
-    VmV = Vm/V
-    Z = 1-VmV
-    # The Q2 sequence for rf
-    # for closely linked stuff, the recombination fraction must be > 0
-    rf = max(min_rec, rf)
-    # t0 = time.time()
-    Q2 = Q2_sum_integral(Z, rf, tmax=T_factor*N)
-    # t1 = time.time()
-    #Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
-    # relerr = (np.abs(Q2 - Q2a)/Q2).mean()
-    # print(f"Q2 time: {t1-t0}, rel error: {relerr}")
-    Ne_t = N*np.exp(-V/2 * Q2)
-    # t0 = time.time()
-    B = ave_het(Ne_t)/(2*N)
-    # t1 = time.time()
-    # print(f"ave het time: {t1-t0}")
-    if log:
-        return np.log(B)
-    return B
+#@np.vectorize
+#def bgs_segment_from_parts_sc16(V, Vm, rf, N, T_factor=5,
+#                                log=True, min_rec=1e-12):
+#    """
+#    Take the pre-computed components of the S&C '16 equation
+#    and use them to compute Ne.
+#    """
+#    #B, Ba, T, V, Vm, Q2, classic_bgs = parts
+#    #assert T.shape[2] == rf.shape[2]
+#    #Q2 = (1/(Vm/V + rf))**2
+#    VmV = Vm/V
+#    Z = 1-VmV
+#    # The Q2 sequence for rf
+#    # for closely linked stuff, the recombination fraction must be > 0
+#    rf = max(min_rec, rf)
+#    # t0 = time.time()
+#    Q2 = Q2_sum_integral(Z, rf, tmax=T_factor*N)
+#    # t1 = time.time()
+#    #Q2 = Q2_sum_integral(Z, rf, tmax=sum_n*N)
+#    # relerr = (np.abs(Q2 - Q2a)/Q2).mean()
+#    # print(f"Q2 time: {t1-t0}, rel error: {relerr}")
+#    Ne_t = N*np.exp(-V/2 * Q2)
+#    # t0 = time.time()
+#    B = ave_het(Ne_t)/(2*N)
+#    # t1 = time.time()
+#    # print(f"ave het time: {t1-t0}")
+#    if log:
+#        return np.log(B)
+#    return B
 
 #### C Wrappers
 
@@ -535,9 +541,16 @@ def B_BK2022(a, V, N, scaling=0):
     return B.reshape(V.shape)
 
 @np.vectorize
-def Ne_t(a, V, N, scaling=0):
+def Ne_t(a, V, N):
     """
     """
-    return Bclib.Ne_t(a, V, N, scaling);
+    np.seterr(under='ignore')
+    return Bclib.Ne_t(a, V, N);
+
+@np.vectorize
+def Ne_t_rescaled(a, V, N, scaling=0.1):
+    """
+    """
+    return Bclib.Ne_t_rescaled(a, V, N, scaling);
 
 

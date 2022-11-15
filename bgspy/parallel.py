@@ -177,22 +177,26 @@ class BChunkIterator(MapPosChunkIterator):
             segment_parts = genome.segments._segment_parts_sc16
 
         self.interp_parts = None
-        if use_SC16:
-            # we need to build an Ne(t) vs Ne_asymp bias interpolator
-            # big grid
-            a_grid = np.sort(1-np.logspace(-7, -3, 100))
-            V_grid = np.logspace(-10, -7, 100)
-            interp_grid = np.meshgrid(a_grid, V_grid)
-            interp_asymp = Ne_asymp2(*interp_grid, N)/N
-            interp_real = Ne_t(*interp_grid, N)/N
-            bias = interp_asymp - interp_real
-            # It should be that Ne(t) > Ne_asymp. If bias > 0
-            # this is due to a small amount of error in evaluating the Ne(t)
-            # series so we truncate
-            bias[bias > 0] = 0
-            interp_bias = bias
-            #func = RegularGridInterpolator((a_grid, V_grid), interp_bias.T, method='linear')
-            self.interp_parts = (a_grid, V_grid, interp_bias)
+        # NOTE: this is slow and turned out to not matter much
+        #if use_SC16:
+        #    # we need to build an Ne(t) vs Ne_asymp bias interpolator
+        #    # big grid
+        #    print(f"building Ne bias correction parts...\t", end="")
+        #    a_grid = np.sort(1-np.logspace(-8, np.log(1-1e-20), 50))
+        #    V_grid = np.logspace(-15, -6, 50)
+        #    interp_grid = np.meshgrid(a_grid, V_grid)
+        #    interp_asymp = Ne_asymp2(*interp_grid, N)/N
+        #    interp_real = Ne_t(*interp_grid, N)/N
+        #    bias = interp_asymp - interp_real
+        #    # It should be that Ne(t) > Ne_asymp. If bias > 0
+        #    # this is due to a small amount of error in evaluating the Ne(t)
+        #    # series so we truncate
+        #    bias[bias > 0] = 0
+        #    # __import__('pdb').set_trace()
+        #    interp_bias = bias
+        #    #func = RegularGridInterpolator((a_grid, V_grid), interp_bias.T, method='linear')
+        #    self.interp_parts = (a_grid, V_grid, interp_bias)
+        #    print(f"done.")
 
         seqlens = genome.seqlens
         # Group the segement parts (these are the parts of the pre-computed

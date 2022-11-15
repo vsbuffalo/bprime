@@ -84,7 +84,7 @@ class Segments:
         self._segment_parts = B_segment_lazy(rbp, L, t)
         print("done.")
         if N is not None:
-            print(f"calculating B' components...\t", end='', flush=True)
+            print(f"\ncalculating B' components...\t", end='', flush=True)
             parts = BSC16_segment_lazy_parallel(w, t, L, rbp, N, ncores=ncores)
             self._segment_parts_sc16 = parts
             print("done.")
