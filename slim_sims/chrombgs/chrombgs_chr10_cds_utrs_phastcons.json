@@ -1,5 +1,5 @@
 {
-  "name": "chrombgs_chr10_merged_phastcons",
+  "name": "conserved_cds_utrs_phastcons_merged",
   "runtype": "grid",
   "slim": "chrombgs.slim",
   "cons_track": "conserved_cds_utrs_phastcons_merged",
@@ -10,5 +10,5 @@
        "sh": {"grid": [1e-6, 3.16e-6, 0.00001, 0.0000316, 0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316, 0.1], "type": "float"},
        "chr": {"grid": ["10"], "type": "str"}
      },
-   "nreps": 50
+   "nreps": 200
 }
