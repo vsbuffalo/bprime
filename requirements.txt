@@ -1,5 +1,4 @@
 scikit-allel
-scikit-learn
 scipy
 seaborn
 snakemake
@@ -16,4 +15,5 @@ ipykernel
 click
 bedtools
 bioawk
+nlopt
 pytest
