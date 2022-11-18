@@ -83,7 +83,7 @@ rule bmap_hg38:
 # The following to rules merge all features into a single type 
 # (e.g. features are unlabelled)
 rule bmap_hg38_merged:
-  input: annot="../../annotation/conserved_cds_utrs_phastcons_merged.bed.gz", 
+  input: annot="../../annotation/merged_utrs_cds_introns_phastcons.bed.gz", 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/hapmap_genetic_map.txt"
   output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_cds_utrs_phastcons_merged.pkl"

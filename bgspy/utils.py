@@ -857,6 +857,7 @@ def genome_wide_quantiles(chromdict, alphas, subsample_chrom=None,
         cuts = np.nanquantile(samples, alphas)
     if return_samples:
         return cuts, samples
+    return cuts
 
 def quantize_track(chromdict, cuts, labels=None, bed_file=None, progress=True):
     """
