@@ -45,4 +45,4 @@ rule interpol:
     Bs.save(output.pkl)
 
 rule all:
-  input: "calc_bkgd_1000.pkl", "calc_bkgd.pkl", "calc_bkgd_100000.pkl"
+  input: "calc_bkgd_1000.pkl", "calc_bkgd.pkl", "calc_bkgd_100000.pkl", "calc_bkgd_10000.pkl"

@@ -117,7 +117,10 @@ class BScores:
         assert w in self.w, f"'{w}' is not in w array '{self.w}'"
         assert t in self.t, f"'{t}' is not in w array '{self.t}'"
         wi, ti = self.indices(w, t)
-        Bs = np.exp(self.B[chrom][:, wi, ti, ...].squeeze())
+        Bs = np.full(pos.shape[0], 0., dtype=np.float64)
+        logBs = self.B[chrom][:, wi, ti, ...].squeeze()
+        # where clause prevents underflow
+        Bs = np.exp(logBs, Bs, where=-logBs < np.log(np.finfo(logBs.dtype).max))
         return pos, Bs
 
     def pairs(self, chrom, w, t):
