@@ -800,6 +800,7 @@ class FreeMutationModel(BGSLikelihood):
 
         if isinstance(starts, int):
             starts = [self.random_start() for _ in range(starts)]
+        ncores = 1 if ncores is None else ncores
         ncores = min(len(starts), ncores) # don't request more cores than we need
 
         Y = self.Y

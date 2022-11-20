@@ -280,6 +280,12 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_cds_utrs.bed.gz",
         "conserved_cds_utrs_promoters2kb.bed.gz",
 
+        # simplified phastcons -- merged 100bp adjacent
+        "conserved_cds_utrs_phastcons_simplified.bed.gz",
+
+        # full-coverage feature tracks
+        "conserved_cds_utrs_phastcons_full.bed.gz",
+
         # with introns
         "conserved_cds_utrs_introns_phastcons.bed.gz",
         "conserved_cds_utrs_introns.bed.gz",
@@ -303,6 +309,14 @@ rule conserved_track:
         sort  --version-sort -k 1,1 -k2,2n | \
         bedtools merge | gzip > {output}
       """
+# this is used for sims with combined conserved regions (phastcons)
+rule phastcons_simplified:
+  input: "conserved_phastcons.bed.gz"
+  output: "conserved_phastcons_simplified.bed.gz"
+  shell: 
+      """
+      bedtools merge -d 100 -i {input} | gzip > {output}
+      """
 
 rule conserved_cds_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -324,6 +338,27 @@ rule conserved_cds_utrs_phastcons:
       --bed cds {input.cds} --bed utr {input.utrs} --bed phastcons {input.phastcons} | \
       gzip > {output}
     """
+
+rule conserved_cds_utrs_phastcons_simplified:
+  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_phastcons_simplified.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} --bed utr {input.utrs} --bed phastcons {input.phastcons} | \
+      gzip > {output}
+    """
+
+
+rule conserved_cds_utrs_phastcons_full:
+  input: cons="conserved_cds_utrs_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_utrs_phastcons_full.bed.gz"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > conserved_cds_utrs_phastcons_complement.bed
+    (cat conserved_cds_utrs_phastcons_complement.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
 
 rule conserved_cds_utrs:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", seqlens="hg38_seqlens.tsv"
