@@ -27,7 +27,7 @@ from scipy.optimize import minimize
 from numba import jit
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
-from bgspy.utils import signif, load_seqlens
+from bgspy.utils import signif, load_seqlens, get_figax
 from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
@@ -97,6 +97,9 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         vprint("-- loading Bs --")
         gm = BGSModel.load(bs_file)
 
+        # features -- load for labels
+        gm.features = list(gm.segments.features_map.keys())
+
         # bin Bs
         vprint("-- binning Bs --")
         b = bgs_bins.bin_Bs(gm.BScores)
@@ -105,21 +108,16 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         # get the diversity data
         Y = bgs_bins.Y()
 
-        # features -- for labels
-        features = list(gm.segments.features.key())
-
         # fit the simplex model
         vprint("-- fitting B simplex model --")
-        sm_b = SimplexModel(w=gm.w, t=gm.t,
-                            logB=b, Y=Y, bins=bgs_bins,
-                            features=features)
+        sm_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                            bins=bgs_bins, features=features)
         sm_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
         # now to the B'
         vprint("-- fitting B' simplex model --")
         sm_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
-                             bins=bgs_bins,
-                            features=features)
+                             bins=bgs_bins, features=features)
         sm_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
         with open(outfile, 'wb') as f:
@@ -695,6 +693,12 @@ class BGSLikelihood:
     def predict_plot(self, chrom, ratio=True, label='prediction', figax=None):
         return predict_chrom_plot(self, chrom, ratio=ratio,
                                   label=label, figax=figax)
+
+    def scatter_plot(self, figax=None, **scatter_kwargs):
+        fig, ax = get_figax(figax)
+        pred_pi = self.predict()
+        pi = pi_from_pairwise_summaries(self.Y)
+        ax.scatter(pi, pred_pi)
 
     @property
     def mle_pi0(self):
