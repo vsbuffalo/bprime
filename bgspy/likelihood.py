@@ -105,14 +105,21 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         # get the diversity data
         Y = bgs_bins.Y()
 
+        # features -- for labels
+        features = list(gm.segments.features.key())
+
         # fit the simplex model
         vprint("-- fitting B simplex model --")
-        sm_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y, bins=bgs_bins)
+        sm_b = SimplexModel(w=gm.w, t=gm.t,
+                            logB=b, Y=Y, bins=bgs_bins,
+                            features=features)
         sm_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
         # now to the B'
         vprint("-- fitting B' simplex model --")
-        sm_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y, bins=bgs_bins)
+        sm_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
+                             bins=bgs_bins,
+                            features=features)
         sm_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
         with open(outfile, 'wb') as f:
@@ -871,11 +878,16 @@ class FreeMutationModel(BGSLikelihood):
             base_rows += "\n\nFree-mutation model ML estimates:\n"
             base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
+            base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
             W = self.mle_W.reshape((self.nt, self.nf))
             Wc = W / W.sum(axis=0)
             tab = np.concatenate((self.t[:, None], np.round(Wc, 3)), axis=1)
-            base_rows += "W = \n" + tabulate(tab) + "\n"
-            base_rows += "μ = \n" + tabulate(W.sum(axis=0)[None, :])
+            header = ()
+            if self.features is not None:
+                header = [''] + self.features
+
+            base_rows += "W = \n" + tabulate(tab, headers=header) + "\n"
+            base_rows += "μ = \n" + tabulate(W.sum(axis=0)[None, :], headers=header[1:])
         return base_rows
 
 class SimplexModel(BGSLikelihood):
@@ -961,9 +973,14 @@ class SimplexModel(BGSLikelihood):
             base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
             base_rows += f"μ = {self.mle_mu}\n"
+            base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
+            header = ()
+            if self.features is not None:
+                header = [''] + self.features
+
             W = self.mle_W.reshape((self.nt, self.nf))
             tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
-            base_rows += "W = \n" + tabulate(tab)
+            base_rows += "W = \n" + tabulate(tab, headers=header)
         return base_rows
 
     def predict(self, optim=None, theta=None):

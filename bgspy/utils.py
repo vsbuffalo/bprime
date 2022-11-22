@@ -791,8 +791,10 @@ def combine_features(feature_ranges, priority, seqlens):
         for i, feature in enumerate(priority, start=1):
             if feature not in features:
                 continue
+            # only fill unfilled (zero) entries!
             idx = features[feature][chrom] & (merged == 0)
-            merged[idx] = i
+            if idx.sum():
+                merged[idx] = i
         masks[chrom] = merged
     return masks
 
