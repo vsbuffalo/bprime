@@ -27,7 +27,7 @@ from scipy.optimize import minimize
 from numba import jit
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
-from bgspy.utils import signif, load_seqlens, get_figax
+from bgspy.utils import signif, load_seqlens
 from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
@@ -493,7 +493,7 @@ def normal_ll_c(theta, Y, logB, w):
     return likclib.normal_loglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                                  logB.ctypes.shape, logB.ctypes.strides)
 
-def predict_simplex(theta, logB, w, mu=None):
+def predict_simplex(theta, logB, w, mu=None, B=False):
     """
     Prediction function for SimplexModel and FixedMutationModel.
     """
@@ -511,9 +511,11 @@ def predict_simplex(theta, logB, w, mu=None):
         for j in range(nt):
             for k in range(nf):
                 logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-    return pi0*np.exp(logBw)
+    if not B:
+        return pi0*np.exp(logBw)
+    return np.exp(logBw)
 
-def predict_freemutation(theta, logB, w):
+def predict_freemutation(theta, logB, w, B=False):
     """
     """
     nx, nw, nt, nf = logB.shape
@@ -526,7 +528,9 @@ def predict_freemutation(theta, logB, w):
         for j in range(nt):
             for k in range(nf):
                 logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    return pi0*np.exp(logBw)
+    if not B:
+        return pi0*np.exp(logBw)
+    return np.exp(logBw)
 
 
 def rescale_freemutation_thetas(thetas):
@@ -856,7 +860,7 @@ class FreeMutationModel(BGSLikelihood):
     def nll(self):
         return self.nll_
 
-    def predict(self, optim=None, theta=None):
+    def predict(self, optim=None, theta=None, B=False):
         """
         Predicted π from the best fit (if optim = None). If optim is 'random', a
         random MLE optimization is chosen (e.g. to get a senes of how much
@@ -865,7 +869,7 @@ class FreeMutationModel(BGSLikelihood):
         best MLE).
         """
         if theta is not None:
-            return predict_freemutation(theta, self.logB, self.w)
+            return predict_freemutation(theta, self.logB, self.w, B=B)
         if optim is None:
             theta = self.theta_
         else:
@@ -874,7 +878,7 @@ class FreeMutationModel(BGSLikelihood):
                 theta = thetas[np.random.randint(0, thetas.shape[0]), :]
             else:
                 theta = thetas[optim]
-        return predict_freemutation(theta, self.logB, self.w)
+        return predict_freemutation(theta, self.logB, self.w, B=B)
 
     def __repr__(self):
         base_rows = super().__repr__()
@@ -987,7 +991,7 @@ class SimplexModel(BGSLikelihood):
             base_rows += "W = \n" + tabulate(tab, headers=header)
         return base_rows
 
-    def predict(self, optim=None, theta=None):
+    def predict(self, optim=None, theta=None, B=False):
         """
         Predicted π from the best fit (if optim = None). If optim is 'random', a
         random MLE optimization is chosen (e.g. to get a senes of how much
@@ -996,7 +1000,7 @@ class SimplexModel(BGSLikelihood):
         best MLE).
         """
         if theta is not None:
-            return predict_simplex(theta, self.logB, self.w)
+            return predict_simplex(theta, self.logB, self.w, B=B)
         if optim is None:
             theta = self.theta_
         else:
@@ -1005,7 +1009,7 @@ class SimplexModel(BGSLikelihood):
                 theta = thetas[np.random.randint(0, thetas.shape[0]), :]
             else:
                 theta = thetas[optim]
-        return predict_simplex(theta, self.logB, self.w)
+        return predict_simplex(theta, self.logB, self.w, B=B)
 
 class FixedMutationModel(BGSLikelihood):
     def __init__(self, Y, w, t, logB, bins=None,

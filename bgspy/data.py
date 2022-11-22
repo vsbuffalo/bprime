@@ -545,11 +545,8 @@ class GenomicBins:
         return msg
 
     def iter_(self):
-        for chrom, bins in self.bins.items():
-            for i, end in enumerate(bins):
-                if i == 0:
-                    continue
-                start = bins[i-1]
+        for chrom, bins in self.bins().items():
+            for i, (start, end) in enumerate(bins):
                 yield chrom, start, end
 
     @property
@@ -608,13 +605,38 @@ class GenomicBins:
                 chroms.append(chrom)
         return np.array(chroms)
 
-    def cumm_midpoints(self, filter_masked=True):
+    def chrom_ints(self, filter_masked=True):
+        chroms = []
+        chrom_map = {c: i for i, c in enumerate(self.seqlens.keys())}
+        for chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for _ in bins:
+                chroms.append(chrom_map[chrom])
+        return np.array(chroms)
+
+    def cumm_midpoints(self, pad = 0, filter_masked=True):
         mids = []
+        offset = 0
         for chrom, bins in self.bins(filter_masked=filter_masked).items():
             for start, end in bins:
-                offset = mids[-1] if len(mids) else 0
+                last_start = start
                 mids.append((start+end)/2 + offset)
+            offset += self.seqlens[chrom] + pad
         return np.array(mids)
+
+    def chrom_frac(self, filter_masked=True):
+        chroms = []
+        for chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for start, end in bins:
+                chroms.append(0.5*(start+end) / self.seqlens[chrom])
+        return np.array(chroms)
+
+    def rec_rate(self, recmap, filter_masked=True):
+        rates = []
+        for chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for start, end in bins:
+                rate = recmap.lookup(chrom, end) - recmap.lookup(chrom, start)
+                rates.append(rate)
+        return np.array(rates)
 
     def __getitem__(self, chrom):
         """

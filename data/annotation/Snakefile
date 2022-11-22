@@ -56,6 +56,7 @@ rule centro:
     curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" | grep -v "chrY" | sort --version-sort -k1,1 -k2,2n > {output}
     """
 
+
 rule centro_slop:
   output: "hg38_centro_slop.bed"
   input: centro="hg38_centro.bed", seqlens="hg38_seqlens.tsv"
@@ -287,6 +288,14 @@ rule download_hapmap:
     find HapMapII_GRCh37_liftedOverTo_Hg38 -name "*.txt" | sort --version-sort | xargs -n1 cat  | sed '2,${{/^Chr/d}}' > {output}
     rm -f HapMapII_GRCh38.tar.gz
     """
+
+rule chrom_maplens:
+  output: "hapmap_chrom_maplens.bed"
+  input: genmap="hapmap_genetic_map.txt", seqlens="hg38_seqlens.tsv"
+  run:
+    from bgspy.recmap import RecMap
+    map = RecMap(input[0])
+ 
 
 ## === Conservation Tracks
 cons = ["conserved_phastcons.bed.gz",
