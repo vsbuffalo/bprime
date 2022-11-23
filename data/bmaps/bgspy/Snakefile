@@ -4,7 +4,7 @@ import numpy as np
 from bgspy.models import BGSModel 
 from bgspy.genome import Genome
 
-NCORES = 70
+NCORES = 40
 NCORES_BP = 30
 
 # ===== For Simulations =====
@@ -29,7 +29,7 @@ w = ','.join(map(str, chr10_sim_config['params']['mu']['grid']))
 rule bmap_chr10:
   input: annot=join("../../annotation/",  cons_track),
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
-         recmap="../../annotation/HapMapII_GRCh38/genetic_map_Hg38_chr10.txt"
+         recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
   output: pkl_b_file="bmap_hg38_sims_{step}step_chr10.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=sims_N, t=t, w=w
   shell:
@@ -47,7 +47,7 @@ rule bmap_chr10:
 rule bmap_chr10_dense:
   input: annot=join("../../annotation/",  cons_track),
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
-         recmap="../../annotation/HapMapII_GRCh38/genetic_map_Hg38_chr10.txt"
+         recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
   output: pkl_b_file="bmap_hg38_sims_{grid_str}grid_{step}step_chr10.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP
   shell:
