@@ -9,7 +9,8 @@ from bgspy.utils import masks_to_ranges, readfile
 # lower priority labels are filled first
 # stuff like phastcons is sort of a catch-all - we care about
 # finer-grained labels
-PRIORITY = ['CTCF_binding_site', 'TF_binding_site',
+PRIORITY = [#'CTCF_binding_site', 'TF_binding_site',
+            'binding_site',
             'utr', 'promoter', 'enhancer', 'cds', 'intron',
             'phastcons', 'open_chromatin_region']
 @click.command()

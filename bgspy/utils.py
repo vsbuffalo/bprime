@@ -119,7 +119,7 @@ class BScores:
         wi, ti = self.indices(w, t)
         Bs = np.full(pos.shape[0], 0., dtype=np.float64)
         logBs = self.B[chrom][:, wi, ti, ...].squeeze()
-        # where clause prevents underflow
+        # where clause prevents underflow, which are set to zero.
         Bs = np.exp(logBs, Bs, where=-logBs < np.log(np.finfo(logBs.dtype).max))
         return pos, Bs
 

@@ -630,6 +630,17 @@ class GenomicBins:
                 chroms.append(0.5*(start+end) / self.seqlens[chrom])
         return np.array(chroms)
 
+    def lookup(self, chrom, pos, filter_masked=True):
+        """
+        Get the index of chrom:pos.
+        """
+        idx = 0
+        for this_chrom, bins in self.bins(filter_masked=filter_masked).items():
+            for start, end in bins:
+                if chrom == this_chrom and pos >= start and pos < end:
+                    return idx
+                idx += 1
+
     def rec_rate(self, recmap, filter_masked=True):
         rates = []
         for chrom, bins in self.bins(filter_masked=filter_masked).items():

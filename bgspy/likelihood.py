@@ -98,7 +98,7 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         gm = BGSModel.load(bs_file)
 
         # features -- load for labels
-        gm.features = list(gm.segments.features_map.keys())
+        features = list(gm.segments.feature_map.keys())
 
         # bin Bs
         vprint("-- binning Bs --")
@@ -493,7 +493,7 @@ def normal_ll_c(theta, Y, logB, w):
     return likclib.normal_loglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
                                  logB.ctypes.shape, logB.ctypes.strides)
 
-def predict_simplex(theta, logB, w, mu=None, B=False):
+def predict_simplex(theta, logB, w, mu=None):
     """
     Prediction function for SimplexModel and FixedMutationModel.
     """
@@ -511,11 +511,9 @@ def predict_simplex(theta, logB, w, mu=None, B=False):
         for j in range(nt):
             for k in range(nf):
                 logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-    if not B:
-        return pi0*np.exp(logBw)
-    return np.exp(logBw)
+    return pi0*np.exp(logBw)
 
-def predict_freemutation(theta, logB, w, B=False):
+def predict_freemutation(theta, logB, w):
     """
     """
     nx, nw, nt, nf = logB.shape
@@ -528,9 +526,7 @@ def predict_freemutation(theta, logB, w, B=False):
         for j in range(nt):
             for k in range(nf):
                 logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    if not B:
-        return pi0*np.exp(logBw)
-    return np.exp(logBw)
+    return pi0*np.exp(logBw)
 
 
 def rescale_freemutation_thetas(thetas):
@@ -860,7 +856,7 @@ class FreeMutationModel(BGSLikelihood):
     def nll(self):
         return self.nll_
 
-    def predict(self, optim=None, theta=None, B=False):
+    def predict(self, optim=None, theta=None):
         """
         Predicted π from the best fit (if optim = None). If optim is 'random', a
         random MLE optimization is chosen (e.g. to get a senes of how much
@@ -869,7 +865,7 @@ class FreeMutationModel(BGSLikelihood):
         best MLE).
         """
         if theta is not None:
-            return predict_freemutation(theta, self.logB, self.w, B=B)
+            return predict_freemutation(theta, self.logB, self.w)
         if optim is None:
             theta = self.theta_
         else:
@@ -878,7 +874,7 @@ class FreeMutationModel(BGSLikelihood):
                 theta = thetas[np.random.randint(0, thetas.shape[0]), :]
             else:
                 theta = thetas[optim]
-        return predict_freemutation(theta, self.logB, self.w, B=B)
+        return predict_freemutation(theta, self.logB, self.w)
 
     def __repr__(self):
         base_rows = super().__repr__()
@@ -991,7 +987,7 @@ class SimplexModel(BGSLikelihood):
             base_rows += "W = \n" + tabulate(tab, headers=header)
         return base_rows
 
-    def predict(self, optim=None, theta=None, B=False):
+    def predict(self, optim=None, theta=None):
         """
         Predicted π from the best fit (if optim = None). If optim is 'random', a
         random MLE optimization is chosen (e.g. to get a senes of how much
@@ -1000,7 +996,7 @@ class SimplexModel(BGSLikelihood):
         best MLE).
         """
         if theta is not None:
-            return predict_simplex(theta, self.logB, self.w, B=B)
+            return predict_simplex(theta, self.logB, self.w)
         if optim is None:
             theta = self.theta_
         else:
@@ -1009,7 +1005,7 @@ class SimplexModel(BGSLikelihood):
                 theta = thetas[np.random.randint(0, thetas.shape[0]), :]
             else:
                 theta = thetas[optim]
-        return predict_simplex(theta, self.logB, self.w, B=B)
+        return predict_simplex(theta, self.logB, self.w)
 
 class FixedMutationModel(BGSLikelihood):
     def __init__(self, Y, w, t, logB, bins=None,
@@ -1069,9 +1065,15 @@ class FixedMutationModel(BGSLikelihood):
             base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
             base_rows += f"μ = {self.mu} (fixed)\n"
+            base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
+            header = ()
+            if self.features is not None:
+                header = [''] + self.features
             W = self.mle_W.reshape((self.nt, self.nf))
             tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
-            base_rows += "W = \n" + tabulate(tab)
+            base_rows += "W = \n" + tabulate(tab, headers=header)
+        return base_rows
+
 
         return base_rows
 
