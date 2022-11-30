@@ -43,7 +43,10 @@ AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 def fit_likelihood(seqlens_file, recmap_file, counts_dir,
                    neut_file, access_file, fasta_file,
-                   bs_file, outfile=None,
+                   bs_file,
+                   model='free',
+                   mu=None,
+                   outfile=None,
                    ncores=70,
                    nstarts=200,
                    window=1_000_000, outliers=(0.0, 0.995),
@@ -108,38 +111,65 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
         # get the diversity data
         Y = bgs_bins.Y()
 
-        # fit the simplex model
-        vprint("-- fitting B simplex model --")
-        sm_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                            bins=bgs_bins, features=features)
-        sm_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+        if model == 'simplex':
+            # fit the simplex model
+            vprint("-- fitting B simplex model --")
+            m_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                                bins=bgs_bins, features=features)
+            m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
-        # now to the B'
-        vprint("-- fitting B' simplex model --")
-        sm_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
-                             bins=bgs_bins, features=features)
-        sm_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+            # now to the B'
+            vprint("-- fitting B' simplex model --")
+            m_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
+                                bins=bgs_bins, features=features)
+            m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+        elif model == 'fixed':
+            assert isinstance(mu, float), "mu must be a float if model='fixed'"
+            # fit the simplex model
+            vprint("-- fitting B fixed model --")
+            m_b = FixedMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                                     bins=bgs_bins, features=features)
+            m_b.fit(starts=nstarts, mu=mu, ncores=ncores, algo='ISRES')
+
+            # now to the B'
+            vprint("-- fitting B' fixed model --")
+            m_bp = FixedMutationModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
+                                      bins=bgs_bins, features=features)
+            m_bp.fit(starts=nstarts, mu=mu, ncores=ncores, algo='ISRES')
+        else:
+            # free mutation / default
+            # fit the simplex model
+            vprint("-- fitting B free model --")
+            m_b = FreeMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                                    bins=bgs_bins, features=features)
+            m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+
+            # now to the B'
+            vprint("-- fitting B' free model --")
+            m_bp = FreeMutationModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
+                                     bins=bgs_bins, features=features)
+            m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+
 
         with open(outfile, 'wb') as f:
-            pickle.dump((sm_b, sm_bp), f)
+            pickle.dump((m_b, m_bp), f)
         vprint("-- model saved --")
 
     else:
+        # model already fit!
         with open(fit_file, 'rb') as f:
-            sm_b, sm_bp = pickle.load(f)
+            m_b, m_bp = pickle.load(f)
 
     # bootstrap if needed
     bootstrap = B is not None
     if bootstrap:
         starts = nstarts if not recycle_mle else [sm.theta_] * nstarts
         print("-- bootstrapping B --")
-        nlls_b, thetas_b = sm_b.bootstrap(nboot=B, blocksize=blocksize,
-                                          starts=starts, ncores=ncores,
-                                          algo='ISRES')
+        nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
+                                         starts=starts, ncores=ncores)
         print("-- bootstrapping B' --")
-        nlls_bp, thetas_bp = sm_bp.bootstrap(nboot=B, blocksize=blocksize,
-                                             starts=starts, ncores=ncores,
-                                             algo='ISRES')
+        nlls_bp, thetas_bp = m_bp.bootstrap(nboot=B, blocksize=blocksize,
+                                            starts=starts, ncores=ncores)
         if boots_outfile is not None:
             np.savez(boots_outfile, nlls_b=nlls_b, thetas_b=thetas_b,
                                 nlls_bp=nlls_bp, thetas_bp=thetas_bp)
@@ -619,6 +649,25 @@ class BGSLikelihood:
         self.boot_thetas_ = thetas
         return nlls, thetas
 
+    def loo_bootstrap(self, nboot, blocksize, **kwargs):
+        """
+        Resample bin indices, leaving one out, and and fit each time.
+        TODO!
+        """
+        assert False
+        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
+        res = []
+        for b in tqdm.trange(nboot):
+            idx = self.bins.resample_blocks(blocksize=blocksize,
+                                            filter_masked=True)
+            res.append(self.fit(**kwargs, _indices=idx))
+        nlls, thetas = process_bootstraps(res)
+        self.boot_nlls_ = nlls
+        self.boot_thetas_ = thetas
+        return nlls, thetas
+
+
+
     def ci(self):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
         lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
@@ -820,7 +869,6 @@ class FreeMutationModel(BGSLikelihood):
         if bootstrap:
             Y = Y[_indices, ...]
             logB = logB[_indices, ...]
-
 
         if engine == 'scipy':
             nll = partial(negll_freemut_full, grad=None, Y=Y,

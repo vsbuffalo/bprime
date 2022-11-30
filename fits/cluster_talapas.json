@@ -1,12 +1,12 @@
 {
     "__default__" :
     {
-        "time" : "4-00:00:00",
+        "time" : "5-00:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu,preempt",
         "mem" : "5GB",
-        "cores" : "20",
+        "cores" : "40",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/fits/",
         "name" : "mle_{rule}_{wildcards}",
         "output" : "logs/out/{rule}_{jobid}.out",
@@ -14,12 +14,12 @@
     },
     "fit" :
     {
-        "time" : "3-00:00:00",
+        "time" : "5-00:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu,preempt",
-        "mem" : "20GB",
-        "cores" : "20",
+        "mem" : "2GB",
+        "cores" : "40",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/fits/",
         "name" : "mle_{rule}_{wildcards}",
         "output" : "logs/out/{rule}_{jobid}.out",

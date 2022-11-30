@@ -73,6 +73,10 @@ def process_bootstraps(optim_results):
     thetas = np.stack(thetas).T
     return nlls, thetas
 
+def percentile_ci(boot_thetas, theta, alpha=0.05, log=True):
+    eps = np.quantile(boot_thetas, (alpha/2, 1-alpha/2), axis=1)
+    return eps
+
 def pivot_ci(boot_thetas, theta, alpha=0.05, log=True):
     if log:
         boot_thetas = np.log10(boot_thetas)
