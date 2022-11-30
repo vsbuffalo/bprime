@@ -178,7 +178,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--counts-dir', required=True, type=click.Path(exists=True),
               help='directory to Numpy .npy per-basepair counts')
 @click.option('--model', required=False, default='free', help='model type',
-              type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False)
+              type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
 @click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
 @click.option('--neutral', required=True, type=click.Path(exists=True),
               help='neutral region BED file')
@@ -207,6 +207,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
            bs_file, outfile, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
+    mu = None if mu == 'None' else mu # sterialize CL input
     fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
                    access_file=access, fasta_file=fasta,

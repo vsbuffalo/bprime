@@ -25,7 +25,6 @@ def resample_blocks(bins, blocksize, nsamples=None):
     # number of samples
     nsamples = int(n/blocksize) if nsamples is None else nsamples
 
-
     # sample chromosomes for each block first, weighted by their number of
     # blocks
     chrom_samples = np.random.choice(chroms, size=nsamples,

@@ -8,6 +8,8 @@ NSTARTS_BOOT = 100
 
 # from config
 name = config["name"]
+model = config["model"]
+mu = config.get("model", None)
 seqlens_file = config["seqlens_file"]
 recmap_file = config["recmap_file"]
 access_file = config["access_file"]
@@ -25,10 +27,11 @@ rule fit:
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
   output: f'{name}/window_{{window}}/mle.pkl'
-  params: ncores=NCORES, nstarts=NSTARTS
+  params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu
   shell:
     """
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --model {params.model} --mu {params.mu} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
       --fasta {input.fasta_file} \
