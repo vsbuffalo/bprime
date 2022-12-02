@@ -302,7 +302,7 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
 def R2(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
-       bs_file, r2_file, ncores, nstarts, window, outliers)
+       bs_file, r2_file, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
     fit_likelihood(fit_file=fit,
                    seqlens_file=seqlens, recmap_file=recmap,

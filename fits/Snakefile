@@ -1,10 +1,13 @@
 # main annotation files
 
 # other params
-NCORES = 20
-NCORES_BOOT = 20
+NCORES = 40
+NCORES_BOOT = 40
 NSTARTS = 1000
 NSTARTS_BOOT = 100
+
+NCORES_LOO = NCORES
+NSTARTS_LOO = 50
 
 # from config
 name = config["name"]
@@ -61,11 +64,35 @@ rule bootstrap:
       --outfile {output[0]}
     """
 
+rule loo:
+  input: fit=f'{name}/window_{{window}}/mle.pkl', 
+         seqlens=seqlens_file, recmap_file=recmap_file,
+         access_file=access_file, fasta_file=fasta_file,
+         neut_file=neut_file, counts_dir=counts_dir,
+         bs_file=Bs_file
+  output: f'{name}/window_{{window}}/loo_r2.npz'
+  params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
+  shell:
+    """
+    bgspy r2 --fit {input.fit} \
+      --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
+      --access {input.access_file} --bs-file {input.bs_file} \
+      --fasta {input.fasta_file} \
+      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --window {wildcards.window} \
+      --r2-file {output[0]}
+    """
+
+
+
 all_results = []
 for window in windows:
   all_results.append(f'{name}/window_{window}/mle.pkl')
   boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for b in range(100)]
   all_results.extend(boots)
+  loo_r2 = f"{name}/window_{window}/loo_r2.npz"
+  all_results.append(loo_r2)
 
 rule all:
   input: all_results
