@@ -49,6 +49,8 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
                    outfile=None,
                    ncores=70,
                    nstarts=200,
+                   loo_nstarts=100,
+                   loo_chrom=False,
                    window=1_000_000, outliers=(0.0, 0.995),
                    recycle_mle=False,
                    only_autos=True,
@@ -175,7 +177,20 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
                                 nlls_bp=nlls_bp, thetas_bp=thetas_bp)
             print("-- bootstrapping results saved --")
             return
+    if loo_chrom:
+        starts = nstarts if not recycle_mle else [sm.theta_] * loo_nstarts
+        print("-- leave-one-out R2 estimation for B --")
+        b_r2 = m_b.loo_chrom_R2(starts=starts, ncores=ncores)
+        print("-- leave-one-out R2 estimation for B' --")
+        bp_r2 = m_bp.loo_chrom_R2(starts=starts, ncores=ncores)
+        r2 = np.stack((b_r2, bp_r2)).T
+        np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
 
+def get_out_sample(idx, n):
+    """
+    Get the bootstrap indices that randomly weren't sampled.
+    """
+    return np.array(list(set(np.arange(n)).difference(idx)))
 
 
 def access(B, i, l, j, k):
@@ -649,23 +664,62 @@ class BGSLikelihood:
         self.boot_thetas_ = thetas
         return nlls, thetas
 
-    def loo_bootstrap(self, nboot, blocksize, **kwargs):
+    def loo_chrom_bootstrap(self, nboot, blocksize, exclude_chrom, **kwargs):
         """
-        Resample bin indices, leaving one out, and and fit each time.
-        TODO!
+        Resample bin indices with bootstrapping but leave out a chromosome.
         """
-        assert False
         assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
         res = []
+        r2s = []
+        r2ns = []
+        n = self.bins.nbins(filter_masked=True)
         for b in tqdm.trange(nboot):
             idx = self.bins.resample_blocks(blocksize=blocksize,
-                                            filter_masked=True)
-            res.append(self.fit(**kwargs, _indices=idx))
+                                            filter_masked=True,
+                                            exclude_chrom=exclude_chrom)
+            fit_optim = self.fit(**kwargs, _indices=idx)
+            theta = fit_optim.theta
+            res.append(fit_optim)
+            out_sample_idx = self.bins.chrom_indices(exclude_chrom)
+            r2s.append(self.R2(_idx=out_sample_idx, theta=theta))
+            r2ns.append(len(out_sample_idx))
         nlls, thetas = process_bootstraps(res)
         self.boot_nlls_ = nlls
         self.boot_thetas_ = thetas
+        self.boot_r2s_ = np.array(r2s)
+        self.boot_r2ns_ = np.array(r2ns)
         return nlls, thetas
 
+    def loo_bootstrap(self, nboot, blocksize, **kwargs):
+        """
+        Resample bin indices, leaving one out, and and fit each time.
+        """
+        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
+        res = []
+        r2s = []
+        r2ns = []
+        n = self.bins.nbins(filter_masked=True)
+        for b in tqdm.trange(nboot):
+            idx = self.bins.resample_blocks(blocksize=blocksize,
+                                            filter_masked=True)
+            out_sample_idx = get_out_sample(idx, n)
+            fit_optim = self.fit(_indices=idx, **kwargs)
+            theta = fit_optim.theta
+            res.append(fit_optim)
+            if len(out_sample_idx):
+                r2s.append(self.R2(_idx=out_sample_idx, theta=theta))
+                r2ns.append(len(out_sample_idx))
+        nlls, thetas = process_bootstraps(res)
+        self.boot_nlls_ = nlls
+        self.boot_thetas_ = thetas
+        self.boot_r2s_ = np.array(r2s)
+        self.boot_r2ns_ = np.array(r2ns)
+        return nlls, thetas
+
+    def ci(self):
+        assert self.boot_thetas_ is not None, "bootstrap() has not been run"
+        lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
+        return np.stack((lower, self.theta_, upper)).T
 
 
     def ci(self):
@@ -720,13 +774,27 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-    def R2(self):
+    def loo_chrom_R2(self, **fit_kwargs):
+        r2s = []
+        for chrom in self.bins.bins().keys():
+            in_sample = self.bins.chrom_indices(chrom, exclude=True)
+            out_sample = self.bins.chrom_indices(chrom, exclude=False)
+            fit_optim = self.fit(**fit_kwargs, _indices=in_sample)
+            r2s.append(self.R2(_idx=out_sample))
+        return np.array(r2s)
+
+    def R2(self, _idx=None, **kwargs):
         """
         The R² value of the predictions against actual results.
+
+        _idx: the indices of values to use, e.g. for cross-validation or LOO
+              boostrapping.
         """
-        pred_pi = self.predict()
+        pred_pi = self.predict(**kwargs)
         pi = pi_from_pairwise_summaries(self.Y)
-        return R2(pred_pi, pi)
+        if _idx is None:
+            return R2(pred_pi, pi)
+        return R2(pred_pi[_idx], pi[_idx])
 
     def resid(self):
         pred_pi = self.predict()

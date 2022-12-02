@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 
 
-def resample_blocks(bins, blocksize, nsamples=None):
+def resample_blocks(bins, blocksize, nsamples=None, exclude_chroms=None):
     """
     """
     # we need chromosome weights -- we sample a chromosome, then
@@ -24,6 +24,11 @@ def resample_blocks(bins, blocksize, nsamples=None):
 
     # number of samples
     nsamples = int(n/blocksize) if nsamples is None else nsamples
+
+    # exclude chromosomes if necessary for out-sample prediction
+    if exclude_chroms is not None:
+        chroms = [c for c in chroms if c not in exclude_chroms]
+        weights = np.array([w for w, c in zip(weights, chroms) if c not in exclude_chroms])
 
     # sample chromosomes for each block first, weighted by their number of
     # blocks

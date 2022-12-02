@@ -720,12 +720,30 @@ class GenomicBinnedData(GenomicBins):
             out[chrom] = dat
         return out
 
-    def resample_blocks(self, blocksize, nsamples=None, filter_masked=True):
+    def resample_blocks(self, blocksize, nsamples=None,
+                        exclude_chrom=None, filter_masked=True):
         """
         Generate resampling indices of blocksize consecutive bins.
         """
         bins = self.bins(filter_masked=filter_masked)
-        return resample_blocks(bins, blocksize, nsamples)
+        exclude_chrom = [exclude_chrom] if exclude_chrom is not None else None
+        return resample_blocks(bins, blocksize, nsamples, exclude_chroms=exclude_chrom)
+
+    def chrom_indices(self, chrom, exclude=False, filter_masked=True):
+        """
+        Get the indices of a chromosome, e.g. for out-of-sample chrom prediction.
+        """
+        fbins = self.flat_bins(filter_masked=filter_masked)
+        idx = []
+        for i, (this_chrom, start, end) in enumerate(fbins):
+            if not exclude:
+                match = chrom == this_chrom
+            else:
+                match = chrom != this_chrom
+            if match:
+                idx.append(i)
+        return np.array(idx)
+
 
     def pairs(self, chrom, ratio=False):
         """
