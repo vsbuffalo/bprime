@@ -34,7 +34,6 @@ initialize() {
     defineConstant("datadir", '../../data/slim_sims/'+name+'/sims/'+subdir_);
   }
   defineConstant("recmap_file", "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr"+chr+".txt");
-  defineConstant("annot_file", "../../data/annotation/conserved_by_chrom/chr"+chr+".bed");
 
   // We fix h = 0.5 and calculate the proper homozygous selection
   // coefficient.
@@ -50,8 +49,8 @@ initialize() {
   SELS = c(1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1);
   for (line in readFile(dfe_file)) {
     parts = strsplit(line, "\t");
-    feature = parts[1];
-    dist = asFloat(strsplit(parts[2], ","));
+    feature = parts[0];
+    dist = asFloat(strsplit(parts[1], ","));
     dfe.setValue(feature, dist);
   };
 
@@ -65,7 +64,7 @@ initialize() {
   metadata.setValue("dfe_file", dfe_file);
 
   // == File Output
-  filestr = filename_str(c('N', 'mu', 'sh', 'chr', 'seed', 'rep'));
+  filestr = filename_str(c('N', 'mu', 'chr', 'seed', 'rep'));
   defineConstant("basename", name + "_" + filestr);
   defineConstant("treeseq_file", datadir + basename + "treeseq.tree");
   defineConstant("dac_file", datadir + basename + "seldac.tsv.gz");
@@ -77,14 +76,20 @@ initialize() {
 
   // == Genome
   // selected features
+  initializeMutationType("m1", h, "f", -1e-1);
+  initializeMutationType("m2", h, "f", -1e-2);
+  initializeMutationType("m3", h, "f", -1e-3);
+  initializeMutationType("m4", h, "f", -1e-4);
+  initializeMutationType("m5", h, "f", -1e-5);
+  initializeMutationType("m6", h, "f", -1e-6);
   gene_els = Dictionary();
   for (i in seqAlong(dfe.allKeys)) {
     key = dfe.allKeys[i];
     gx = paste0("g", i);
-    gene_els[key] = gx;
+    gene_els.setValue(key, gx);
     initializeGenomicElementType(gx, 
                                  c(m6, m5, m4, m3, m2, m1),
-                                 dfe[key]);
+                                 dfe.getValue(key));
   }
   metadata.setValue("dfe", dfe);
 
@@ -93,11 +98,14 @@ initialize() {
   ngenes = 0;
   for (line in readFile(annot_file)) {
     parts = strsplit(line, "\t");
-    // chrom is element 1
+    chrom = parts[0];
+    if (chrom != paste0("chr", chr)) {
+      next;
+    }
     start = asInteger(parts[1]);
     end = asInteger(parts[2]);
     key = parts[3];
-    initializeGenomicElement(gene_els[key], start, end-1);
+    initializeGenomicElement(executeLambda(gene_els.getValue(key) + ';'), start, end-1);
     ngenes = ngenes + 1;
   }
   print("number of genes: " + ngenes);
