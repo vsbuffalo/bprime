@@ -135,7 +135,7 @@ initialize() {
   //print(rec_bins);
   initializeRecombinationRate(rec_rates, rec_bins);
 
-  pd = param_dict(c('rep', 'N', 's', 'h', 'mu',
+  pd = param_dict(c('rep', 'N', 'h', 'mu',
                     'recmap_file', 'annot_file'));
   writeFile(dac_file, "#" + pd.serialize(), compress=T);
   writeFile(sub_file, "#" + pd.serialize(), compress=T);

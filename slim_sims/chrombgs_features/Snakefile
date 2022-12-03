@@ -1,0 +1,88 @@
+import itertools 
+import numpy as np
+np.random.seed(1)
+from collections import defaultdict, namedtuple
+import pickle
+import pyslim
+import tskit
+from bgspy.slim import SlimRuns, read_params
+from bgspy.sim_utils import load_b_chrom_sims
+from bgspy.samplers import ParamGrid
+
+if not len(config):
+    raise ValueError("config file not specified on command line, use --configfile config.json")
+
+# ------- Shared Parameters -------
+DATADIR = "../../data/slim_sims/chrombgs_features_chr10/"
+SLIM = '~/src/SLiM_build/slim'
+
+# the output of one BGS slim sim (chrombgs_features.slim)
+#SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
+SIM_OUTPUTS = ["treeseq.tree"]
+SEQLENS = "../../data/annotation/hg38_seqlens.tsv" 
+
+RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
+ANNOT_FILES = [SEQLENS, RECMAP]
+
+
+# ------- Simple BGS for B Maps -------
+bgs_run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, sims_subdir=True)
+bgs_run.generate(SIM_OUTPUTS)
+
+# to get param order for SLiM file
+#print(bgs_run.param_order)
+
+bgs_results = bgs_run.targets
+
+#print(bgs_results)
+bgs_dac = [f.replace('treeseq.tree', 'dac.tsv.gz') for f in itertools.chain(*bgs_run.targets)]
+
+# look at first slim runs
+#print(list(itertools.islice(bgs_run.slim_commands(), 5)))
+
+print(bgs_run.slim_call(slim_cmd=SLIM, manual={'annot_file': config['annot_file'], 
+                                             'dfe_file': config['dfe']}))
+
+
+
+rule bgs_map:
+  # note: ANNOT_FILES are just requirements, not passed to script  -- those are hardcoded
+  input: bgs_run.script, *ANNOT_FILES
+  output: 
+    bgs_run.wildcard_output(suffix=SIM_OUTPUTS)
+  shell:
+    bgs_run.slim_call(slim_cmd=SLIM, manual={'annot_file': config['annot_file'], 
+                                             'dfe_file': config['dfe']})
+
+SIM_NP = os.path.join(DATADIR, bgs_run.name, f"{bgs_run.name}.npz")
+
+rule process:
+  input: sims=bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name, 'sims')
+  output: np=SIM_NP
+  shell:
+    """
+    python ../../tools/process_sims.py {input.dir} {output.np}
+    """
+
+rule bgs_dac:
+  """
+  Mutation rate is x10 larger since N = 1000.
+  """
+  input:
+    bgs_run.wildcard_output("treeseq.tree"), recmap=RECMAP, seqlens=SEQLENS
+  output: 
+    bgs_run.wildcard_output("dac.tsv.gz")
+  shell:
+      """
+      python ../../tools/treeseq2dac.py \
+        --recmap {input.recmap} \
+        --chrom chr10 --mu 1.5e-7 {input[0]}
+      """
+ 
+
+rule all:
+  input:
+    #sim_results, lls_results, fig_results, bgstrees_results
+    bgs_results, bgs_dac, #SIM_NP#, 
+
+
