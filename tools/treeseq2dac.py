@@ -1,3 +1,4 @@
+# DEPRECATED: use GenomeData.load_counts_from_ts()
 import sys
 import gzip
 import os
