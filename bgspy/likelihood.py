@@ -981,9 +981,10 @@ class FreeMutationModel(BGSLikelihood):
 
     def dfe_table(self):
         rows = []
-        Wc = self.mle_W_norm()
+        Wc = self.mle_W_norm
         for i, feature in enumerate(self.features):
-            rows.append("\t".join([features, ]))
+            rows.append("\t".join([feature, ','.join([str(round(x, 3)) for x in Wc[:, i].tolist()])]))
+        return "\n".join(rows)
 
     @property
     def nll(self):
