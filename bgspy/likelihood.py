@@ -971,6 +971,21 @@ class FreeMutationModel(BGSLikelihood):
         return self.theta_[1:].reshape((self.nt, self.nf))
 
     @property
+    def mle_W_norm(self):
+        """
+        Normalized W matrix (e.g. a DFE)
+        """
+        W = self.mle_W.reshape((self.nt, self.nf))
+        Wc = W / W.sum(axis=0)
+        return Wc
+
+    def dfe_table(self):
+        rows = []
+        Wc = self.mle_W_norm()
+        for i, feature in enumerate(self.features):
+            rows.append("\t".join([features, ]))
+
+    @property
     def nll(self):
         return self.nll_
 
