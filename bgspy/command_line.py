@@ -272,45 +272,16 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),
               help='pickle file of fitted results')
-@click.option('--seqlens', required=True, type=click.Path(exists=True),
-              help='tab-delimited file of chromosome names and their length')
-@click.option('--recmap', required=True, type=click.Path(exists=True),
-              help='HapMap formatted recombination map')
-@click.option('--counts-dir', required=True, type=click.Path(exists=True),
-              help='directory to Numpy .npy per-basepair counts')
-@click.option('--neutral', required=True, type=click.Path(exists=True),
-              help='neutral region BED file')
-@click.option('--access', required=True, type=click.Path(exists=True),
-              help='accessible regions BED file (e.g. no centromeres)')
-@click.option('--fasta', required=True, type=click.Path(exists=True),
-              help='FASTA reference file (e.g. to mask Ns and lowercase'+
-                   '/soft-masked bases')
-@click.option('--bs-file', required=True, type=click.Path(exists=True),
-              help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--r2-file', required=True, type=click.Path(exists=True),
+@click.option('--r2-file', required=True, type=click.Path(writable=True),
               help='R2 .npz output file')
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
-              type=int, default=None)
+              type=int, default=1)
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
-              type=int, default=None)
-@click.option('--window',
-              help='size (in basepairs) of the window',
-              type=int, default=1_000_000)
-@click.option('--outliers',
-              help='quantiles for trimming bin π',
-              type=str, default='0.0,0.995')
-def R2(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
-       bs_file, r2_file, ncores, nstarts, window, outliers):
-    outliers = tuple([float(x) for x in outliers.split(',')])
-    fit_likelihood(fit_file=fit,
-                   seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, neut_file=neutral,
-                   access_file=access, fasta_file=fasta,
-                   bs_file=bs_file, loo_chrom=True,
-                   r2_file=r2_file, ncores=ncores,
-                   nstarts=nstarts, window=window, outliers=outliers)
+              type=int, default=1)
+def R2(fit, r2_file, ncores, nstarts):
+    fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores, nstarts=nstarts, recycle_mle=True, loo_chrom=True)
 
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),

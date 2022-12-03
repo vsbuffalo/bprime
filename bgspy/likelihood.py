@@ -41,9 +41,9 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
-def fit_likelihood(seqlens_file, recmap_file, counts_dir,
-                   neut_file, access_file, fasta_file,
-                   bs_file,
+def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
+                   neut_file=None, access_file=None, fasta_file=None,
+                   bs_file=None,
                    model='free',
                    mu=None,
                    outfile=None,
@@ -55,6 +55,7 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
                    recycle_mle=False,
                    only_autos=True,
                    B=None, blocksize=20,
+                   r2_file=None,
                    boots_outfile=None,
                    name=None,
                    fit_file=None,
@@ -165,25 +166,26 @@ def fit_likelihood(seqlens_file, recmap_file, counts_dir,
     # bootstrap if needed
     bootstrap = B is not None
     if bootstrap:
-        starts = nstarts if not recycle_mle else [sm.theta_] * nstarts
+        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
+        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
         print("-- bootstrapping B --")
         nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
-                                         starts=starts, ncores=ncores)
+                                         starts=starts_b, ncores=ncores)
         print("-- bootstrapping B' --")
         nlls_bp, thetas_bp = m_bp.bootstrap(nboot=B, blocksize=blocksize,
-                                            starts=starts, ncores=ncores)
+                                            starts=starts_bp, ncores=ncores)
         if boots_outfile is not None:
             np.savez(boots_outfile, nlls_b=nlls_b, thetas_b=thetas_b,
                                 nlls_bp=nlls_bp, thetas_bp=thetas_bp)
             print("-- bootstrapping results saved --")
             return
     if loo_chrom:
-        starts = nstarts if not recycle_mle else [sm.theta_] * loo_nstarts
+        starts_b = [m_b.theta_] * nstarts
+        starts_bp = [m_bp.theta_] * nstarts
         print("-- leave-one-out R2 estimation for B --")
-        b_r2 = m_b.loo_chrom_R2(starts=starts, ncores=ncores)
+        b_r2 = m_b.loo_chrom_R2(starts=starts_b, ncores=ncores)
         print("-- leave-one-out R2 estimation for B' --")
-        bp_r2 = m_bp.loo_chrom_R2(starts=starts, ncores=ncores)
-        r2 = np.stack((b_r2, bp_r2)).T
+        bp_r2 = m_bp.loo_chrom_R2(starts=starts_bp, ncores=ncores)
         np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
 
 def get_out_sample(idx, n):
