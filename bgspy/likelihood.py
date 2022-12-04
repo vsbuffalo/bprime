@@ -587,6 +587,7 @@ class BGSLikelihood:
     Y ~ π0 B(w)
 
     (note Bs are stored in log-space.)
+    bins
     """
     def __init__(self,
                  Y, w, t, logB, bins=None, features=None,
@@ -596,7 +597,7 @@ class BGSLikelihood:
         if bins is not None:
             # TODO: this is disabled for now because it throws an error with
             # notebooks that's uncessary (even when bins really is GenomicBinnedData)
-            #assert isinstance(bins, GenomicBinnedData)
+            assert isinstance(bins, GenomicBinnedData)
             assert bins.nbins() == Y.shape[0]
         self.bins = bins
         self.log10_pi0_bounds = log10_pi0_bounds
