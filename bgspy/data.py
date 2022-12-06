@@ -157,6 +157,7 @@ def trimmed_pi_bounds(Y, alpha):
     else:
         lower, upper = alpha
     pi = pi_from_pairwise_summaries(Y)
+    m
     q1, q2 = np.nanquantile(pi, lower), np.nanquantile(pi, upper)
     return q1, q2
 
