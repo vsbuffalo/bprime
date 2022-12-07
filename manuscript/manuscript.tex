@@ -25,6 +25,12 @@
 \usepackage{color}
 \usepackage{nicefrac}
 
+
+% line numbers:
+\RequirePackage{lineno}
+%\modulolinenumbers[5]
+\renewcommand\linenumberfont{\normalfont\tiny\sffamily\color{black}}
+
 \renewcommand{\P}{\mathbb{P}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\V}{\text{V}}
@@ -40,7 +46,19 @@
 \begin{document}
 \maketitle
 
-% \section*{Introduction}
+\section*{Introduction}
+\section*{Results}
+
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics{figures/experimental_1.pdf}
+  \caption{}
+  \label{fig:figure-1}
+\end{figure}
+
+
+
 
 % As genomes are transmitted through the generations, lifetime events selectively
 % alter what is passed to the next generation. While selection directly acts on
@@ -184,6 +202,8 @@
 
 
 TODO we need to make appoint about how Ben G's paper found the V(n)->VA connectoin -- this is their patching model
+
+TODO we need to give some intuition for what Vm and V are in humans, e.g. back of envelope type stuff
 
 \section*{Appendix}
 
@@ -439,10 +459,10 @@ or for continuous $t$,
 
 \begin{align}
   \label{eq:q_t}
-  Q_t &= 1+\frac{(1-\kappa) (1-r) \left(1-(1-\kappa)^T (1-r)^T\right)}{\kappa+(1-\kappa)r}
+  Q_t &= 1+\frac{(1-\kappa) (1-r) \left(1-(1-\kappa)^t (1-r)^t\right)}{\kappa+(1-\kappa)r}
 \end{align}
 
-which as $T \to \infty$, converges to,
+which as $t \to \infty$, converges to,
 
 \begin{align}
   \label{eq:Qinf}
@@ -631,17 +651,17 @@ reduction experienced in the middle of a chromosome is twice the reduction
 experienced from each half, 
 
 \begin{align}
-      N_{e,\infty} &\approx N \exp\left(- \frac{V_{h}}{2n} \sum_{l=1}^n Q_{\infty,l}^2\right) \\
-              &\approx N \exp\left(- \frac{V_{h}}{L} \int_0^{\nicefrac{L}{2}} Q_{\infty}(r)^2 dr \right) \\
+      N_{e,\infty} &\approx N \exp\left(- \frac{V_{h}}{2L} \sum_{l=1}^L Q_{\infty,l}^2\right) \\
+              &\approx N \exp\left(- \frac{V_{h}}{M} \int_0^{\nicefrac{M}{2}} Q_{\infty}(r)^2 dr \right) \\
 \end{align}
 
-where $L = n r_\text{BP}$ is the total segment length in Morgans. Then, the
+where $M = n r_\text{BP}$ is the total segment length in Morgans. Then, the
 total asymptotic effect of associations from all sites as $Q_\infty^2$.  Then,
 
 \begin{align}
-  Q_\infty^2 &= \frac{2}{L}\int_0^{\nicefrac{L}{2}} Q_{\infty}(r)^2 dr  \\
-  &=  \frac{2}{L} \int_0^{\nicefrac{L}{2}} \left(\frac{1}{1 - (1-r)Z}\right)^2 dr  \\
-  &= \frac{2}{(1-Z) (2-(2-L) Z)}
+  Q_\infty^2 &= \frac{2}{M}\int_0^{\nicefrac{M}{2}} Q_{\infty}(r)^2 dr  \\
+  &=  \frac{2}{M} \int_0^{\nicefrac{M}{2}} \left(\frac{1}{1 - (1-r)Z}\right)^2 dr  \\
+  &= \frac{2}{(1-Z) (2-(2-M) Z)}
 \end{align}
 
 Santiago and Caballero further approximate this; we can derive their
@@ -650,23 +670,23 @@ expansion around $\kappa$ (since the loss in variance is presumed to be small).
 Then,
 
 \begin{align}
-  Q_\infty^2 = \frac{2}{L (1-Z)} + \frac{2 (L-2)}{L^2}+\frac{2 \left(L^2-4 L+4\right) (1-Z)}{L^3} + \mathcal{O}(\kappa^2)
+  Q_\infty^2 = \frac{2}{M (1-Z)} + \frac{2 (M-2)}{M^2}+\frac{2 \left(M^2-4 M+4\right) (1-Z)}{M^3} + \mathcal{O}(\kappa^2)
 \end{align}
 
 Santiago and Caballero's approximation only keeps this first term, e.g. their
-$Q_\infty^2 \approx 2/(L(1-Z))$, which is only accurate in the domain $L >
+$Q_\infty^2 \approx 2/(M(1-Z))$, which is only accurate in the domain $M >
 0.2$. 
 
 \begin{align}
-  N_{e,\infty}^{\text(SC98)} \approx N \exp\left(-\frac{V_h}{(1-Z)L}\right) 
+  N_{e,\infty}^{\text(SC98)} \approx N \exp\left(-\frac{V_h}{(1-Z)M}\right) 
 \end{align}
 
-(c.f. \cite{Santiago1998-bs} equation 8). For small $L$, the small $\kappa$
+(c.f. \cite{Santiago1998-bs} equation 8). For small $M$, the small $\kappa$
 approximation strongly deviates from the full equation; thus, throughout, we
 use the unapproximated version,
 
 \begin{align}
-  N_{e,\infty} \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-L) Z)} \right).
+  N_{e,\infty} \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-M) Z)} \right).
 \end{align}
 
 For the reasons described earlier, a single asymptotic $N_{e,\infty}$ cannot
@@ -676,7 +696,7 @@ diversity levels depend on the full $N_{e,t}$, for which we integrate equation
 
 \begin{align}
   \label{eq:net_integral}
-  N_{e,t} \approx N \exp\left(-\frac{V_h}{L} \int_0^{\nicefrac{L}{2}} \left(1+\frac{(1-k) (1-r) \left(1-(1-k)^t (1-r)^t\right)}{k+(1-k)r} \right) dr \right).
+  N_{e,t} \approx N \exp\left(-\frac{V_h}{M} \int_0^{\nicefrac{M}{2}} \left(1+\frac{(1-k) (1-r) \left(1-(1-k)^t (1-r)^t\right)}{k+(1-k)r} \right) dr \right).
 \end{align}
 
 \subsection*{The Variance Dynamics}
@@ -771,7 +791,7 @@ approximation of Santiago and Caballero, the reduction due to background
 selection is
 
 \begin{align}
-  N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + L - Ls} \right)
+  N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + M - Ms} \right)
 \end{align}
 
 which matches equation 8 of \textcite{Hudson1995-xc} except for the $Ls$ term
@@ -873,20 +893,62 @@ $V_m$ is the same, and using the $V_A$ derived above, the decay in variance is
 
 At equilibrium, the $N_e$ that determines fixation probability is the
 asymptotic $N_{e,\infty}$. Consequently, Santiago and Caballero argue that the
-asymptotic reduction in effective population size is given by the following
-system of non-linear equations,
+asymptotic reduction in effective population size uses the $Q_\infty^2$ and is
+given by the following system of non-linear equations,
 
 \begin{align}
   R(N_{e,\infty}) &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
-  N_{e,\infty} &\approx N \exp\left(-\frac{V_A}{(1-Z) (2-(2-L) Z)} \right) \\
-  N_{e,\infty} &= N \exp\left(-\frac{(U-R(N_{e,\infty}))s}{\left(1-\frac{Us}{U-R(N_{e,\infty})}\right) \left(2-(2-L) \frac{Us}{U-R(N_{e,\infty})}\right)} \right).
+  N_{e,\infty} &\approx N \exp\left(-\frac{V_A}{(1-Z) (2-(2-M) Z)} \right)
 \end{align}
 
-An analogous system can be found for $N_{e,t}$ using equation
-\eqref{eq:net_integral}.
+The solution to these equations is the asymptotic equilibrium $\widetilde{N}_e$ and
+equilibrium ratchet rate $\widetilde{R}$. This set the equilibrium variance,
+$\widetilde{V} = Us - 2\widetilde{R}s$.
+
+\subsection*{Heterozygosity and $B$ values Under Weak and Strong Selection}
+
+While the selection dynamics are set by the asymptotic $Q_\infty^2$ that
+determines the equilibrium $\widetilde{N}_e$ and $\widetilde{R}$,
+heterozygosity is determined by the sequence $\widetilde{N}_{e,t}$, where each
+term is 
+
+XXX
 
 
+\subsection*{Numeric methods for calculating $B$}
 
+Our $B$ is,
+
+\begin{align}
+  B = \frac{1}{2N} \sum_{t=0}^\infty \prod_{i=0}^t \left(1 - \frac{1}{2N_e(i)}\right).
+\end{align}
+
+This sum takes many terms to converge, which makes calculating the $B$ between
+each focal neutral site and segment intractably slow (even when the equilibrium
+$\widetilde{V}$ for the segment pre-calculated). We approximate this in the
+following way for faster numerical calculations. Let $g(t) = \prod_{i=0}^t (1 -
+\nicefrac{1}{2N_e(i)})$. Then, taking the first-order series expansion around
+the logarithm of the terms and approximating the sum with an integral,
+
+\begin{align}
+  g(t) &\approx \exp\left(- \frac{1}{2N} \int_0^t \exp\left(\frac{V}{2} Q(x)^2 \right) dx \right) 
+       %&\approx \exp\left(- \int_0^t \frac{\exp\left(\frac{V}{2} Q(i)^2\right)}{2N}  dx \right)
+\end{align}
+
+$B$ is the case of $\lim b \to \infty$ for $B(b)$. Approximating the sum in
+$B(b)$ with an integral,
+
+\begin{align}
+  B(b) &= \int_0^b \exp\left(- \frac{1}{2N} \int_0^t \exp\left(\frac{V}{2} Q(x)^2 \right) dx \right) dt \\
+       %&\approx \exp\left(- \int_0^t \frac{\exp\left(\frac{V}{2} Q(i)^2\right)}{2N}  dx \right)
+\end{align}
+
+Now, let $z = \log(t)$, then
+
+\begin{align}
+  B(w) &= \int_0^w \exp\left(- \frac{1}{2N} \int_0^{\log(z)} \exp\left(\frac{V}{2} Q(x)^2 \right) dx \right) \exp(t) dz \\
+       %&\approx \exp\left(- \int_0^t \frac{\exp\left(\frac{V}{2} Q(i)^2\right)}{2N}  dx \right)
+\end{align}
 
 
 % The $N_{e,t}$ terms are analogous to an instantaneous coalesce rate at

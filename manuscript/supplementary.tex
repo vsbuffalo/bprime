@@ -1,0 +1,146 @@
+\documentclass[11pt]{article}
+\RequirePackage{fullpage}
+%\RequirePackage[font=small,labelfont=bf]{caption}
+\RequirePackage{amsmath,amssymb,amsthm}
+\RequirePackage{graphicx}
+\RequirePackage[hidelinks]{hyperref}
+\RequirePackage{subcaption}
+\RequirePackage{wasysym}
+\RequirePackage{authblk}
+\RequirePackage{bm}
+\RequirePackage{bbm}
+%\RequirePackage[osf]{mathpazo}
+\let\temp\rmdefault
+\RequirePackage{mathpazo}
+\let\rmdefault\temp
+
+\RequirePackage[bibstyle=authoryear,citestyle=authoryear-comp,
+                date=year,
+                maxbibnames=9,maxnames=5,maxcitenames=2,
+                backend=biber,uniquelist=false,uniquename=false,
+                % style=apa,
+                sorting=nyt,
+                % sorting=,
+                hyperref=true]{biblatex}
+\usepackage{color}
+\usepackage{nicefrac}
+
+
+% line numbers:
+\RequirePackage{lineno}
+%\modulolinenumbers[5]
+\renewcommand\linenumberfont{\normalfont\tiny\sffamily\color{black}}
+
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\text{V}}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\cov}{cov}
+
+\addbibresource{biblio.bib}
+
+\title{Supplementary Materials}
+
+\author{Vince Buffalo and Andrew Kern}
+
+\begin{document}
+\maketitle
+
+\section{Human Genomic Data}
+
+\subsection{YRI Samples}
+
+In order to try to ensure accurate estimation of pairwise diversity, which is a
+ratio estimator that is sensitivity to its denominator, we use the complete
+per-basepair genotype calls (gVCF) produced by Illumina's DRAGEN pipeline
+\parencite{Illumina_Inc2020-dk}. The original samples were from 178 Yoruban
+individuals sequenced to 30x by the New York Genome Center
+\parencite{Byrska-Bishop2022-tn}. This allows for filtering to be applied to
+the entire genome at once, rather than just variants, so the denominator does
+not need to be estimated separately.
+
+The full list of samples is available in TSV format in the GitHub repository
+(\path{data/h1kg/yri_samples.tsv}).
+
+\subsection{Filtering gVCFs}
+
+gVCFs were filtered using a custom Python tool, \texttt{gvcf2counts.py} (in
+\path{tools/gvcf2counts.py}), which reads the gVCFs, filters them according to
+the criteria below, and outputs a Numpy \path{.npy} file of reference and
+alternative allele counts for each chromosome (hereafter, ``allele counts
+matrices").
+
+Genotypes are included in the allele count if and only if:
+
+\begin{enumerate}
+  \item The variant call is set to \texttt{PASS} in the VCF.
+  \item The \texttt{QUAL > 50}.
+  \item The \texttt{GQ > 30} (or \texttt{RGQ > 30} for invariant sites).
+\end{enumerate}
+
+Because the data underlying the counts files are per-basepair resolution gVCFs,
+each chromosome's allele counts matrix is of size $l \times 2$, where $l$ is
+the total chromosome length. Basepairs that fail these filtering requirements
+lead to a row of zero counts, e.g. no observed reference and alternative allele
+counts, and thus do not effect the data that goes into the binomial likelihood
+or $\pi$ estimates used in figures.
+
+\subsection{Site-based Filtering of Counts}
+
+The allele counts matrices include many basepairs that may have allele counts
+that pass the genotype call filters, but are still need to be filtered out
+because the region of the genome may produce unreliable estimates. The
+following filters are applied based on masking regions:
+
+\begin{enumerate}
+  \item \textbf{Non-accessible regions}: masks out centromeres (\texttt{acen} entries in
+    \texttt{cytoBand.txt}), with 5Mbp padding on either side. The file of
+    passing masks is \path{data/annotation/no_centro.bed}. 
+
+  \item \textbf{Reference masking}: soft and hard-masked regions in the human GRCh38
+    reference genome are also masked.
+
+  \item \textbf{Non-``putatively" neutral regions}: Additionally, for fitting our
+    likelihood and estimating observed pairwise diversity, we only consider .
+    This masks out phastCons regions (from
+    \path{phastConsElements100way.bed.gz}) and Ensembl gene regions (from
+    annotation file \path{Homo_sapiens.GRCh38.107.chr.gff3.gz}).  While introns
+    are possibly under some weak selection, they collectively make up nearly
+    40\% of the human genome and are included so genome-wide diversity can be
+    estimated more precisely (possibly at the expense of some bias).
+\end{enumerate}
+
+These files are all produced by the Snakemake file \path{data/annotation/Snakefile}.
+
+\subsection{Estimates of Pairwise Diversity}
+
+\subsection{Window-based Summaries and filtering}
+
+The likelihood method is fit to non-overlapping binned summaries of the allele
+counts matrix. 
+
+
+Based on exploratory data analyses, some bins were outliers and
+excluded (XXX).
+
+\begin{enumerate}
+  \item \textbf{Fraction of inaccessible sites per window}.  \path{mask_inaccessible_bins_frac}
+  % \item \textbf{Edge truncation}
+
+  \item \textbf{Outliers}: Based on exploratory analysis, there were some
+    regions with very high diversity. The 0.05\% right tail was excluded.
+
+\end{enumerate}
+
+
+% supp data
+% - npy files
+% - edge trunation
+
+  
+
+\section{}
+
+\printbibliography
+
+\end{document}
