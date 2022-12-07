@@ -187,6 +187,9 @@ class CountsDirectory:
             self.counts = {c: np.load(f) for c, f in self.npy_files.items()}
             self.lazy = False
 
+    def keys(self):
+        return self.npy_files.keys()
+
     def __getitem__(self, key):
         if self.lazy:
             return np.load(self.npy_files[key])
@@ -194,6 +197,11 @@ class CountsDirectory:
 
 def filter_sites(counts, chrom, filter_neutral, filter_accessible,
                  neutral_masks=None, accesssible_masks=None):
+    """
+    We zero out the allele counts for masked sites. Note that this is
+    allowable (versus marking with NaNs) because we work with the allele
+    count matrix; it's akin to not observing any genotype information at a site.
+    """
     ac = counts[chrom]
     if filter_neutral or neutral_masks is not None:
         msg = "GenomeData.neutral_masks not set!"
@@ -421,6 +429,10 @@ class GenomeData:
         mask_inaccessible_bins_frac, that bin is masked.
 
         Returns: a GenomicBins object with the resulting data in GenomicBins.data.
+
+        NOTE: There's a slight difference here between the π
+        from GenomeData.pi()  across chromosomes, and a weighted average of
+        binned π calculated for a chromosome.
         """
         bins = GenomicBinnedData(self.genome.seqlens, width)
 
@@ -433,6 +445,9 @@ class GenomeData:
             # the combinatoric step -- turn site allele counts into
             # same/diff comparisons
             Y = pairwise_summary(site_ac)
+            # NOTE: this should match pi_chroms[0]['chr1']
+            # np.nanmean(pi_from_pairwise_summaries(Y))
+            #
             # number of combinations summed into bins per chrom
             Y_binstat = aggregate_site_array(Y, bins[chrom], np.sum, axis=0)
             bins.data_[chrom] = Y_binstat.stat
@@ -447,21 +462,25 @@ class GenomeData:
         for chrom in self.genome.chroms:
             site_ac = filter_sites(self.counts, chrom,
                                    filter_neutral, filter_accessible,
-                                   self.neut_masks, self.accesssible_masks)
+                                   self.neutral_masks, self.accesssible_masks)
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
 
-    def pi(self):
+    def pi(self, filter_neutral=None, filter_accessible=None):
         pi = dict()
         n = dict()
         for chrom in self.genome.chroms:
-            ac = self.counts[chrom]
+            # ac = self.counts[chrom]
+            ac = filter_sites(self.counts, chrom,
+                              filter_neutral, filter_accessible,
+                              self.neutral_masks, self.accesssible_masks)
             pi[chrom] = np.nanmean(pi_from_pairwise_summaries(pairwise_summary(ac)))
             n[chrom] = np.sum(ac.sum(axis=1) > 0)
         return pi, n
 
-    def gwpi(self):
-        pis, ns = self.pi()
+    def gwpi(self, filter_neutral=None, filter_accessible=None):
+        pis, ns = self.pi(filter_neutral=filter_neutral,
+                          filter_accessible=filter_accessible)
         pis = np.fromiter(pis.values(), dtype=float)
         ns = np.fromiter(ns.values(), dtype=float)
         return np.average(pis, weights=ns)

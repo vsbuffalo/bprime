@@ -412,6 +412,8 @@ def aggregate_site_array(x, bins, func, **kwargs):
         # the results length is len(bins)-1
         vals[i-1, ...] = func(data_in_bin, **kwargs)
         #assert not np.any(np.isnan(data_in_bin)) # otherwise this changes n
+        # NOTE: "missingness" here are allele counts that are
+        # equal to zero. This is the total number of complete cases
         n[i-1] = np.sum(np.sum(data_in_bin, axis=1) > 0)
     return BinnedStat(vals, bins, n)
 
