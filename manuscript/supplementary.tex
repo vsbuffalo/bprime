@@ -112,6 +112,21 @@ following filters are applied based on masking regions:
 
 These files are all produced by the Snakemake file \path{data/annotation/Snakefile}.
 
+\begin{figure}[!htb]
+  \centering
+  \includegraphics{figures/supplementary/chr1_diversity_filtering.pdf}
+
+  \caption{Estimates of chromosome 1 YRI diversity in non-overlapping megabase
+    windows, under different filtering criteria. The filtering criteria are,
+    (1) ``neutral, accessible" which includes only putatively neutral sites, and
+    ignores regions masked as inaccessible, (2) ``accessible" which is only ignores
+  sites masked as inaccessible, and (3) ``no filtering" which uses all available
+data. Note that filtering changes the absolute level of diversity, but has more
+minor effects on regional patterns of diversity at the megabase scale.}
+
+  \label{suppfig:chr1-diversity}
+\end{figure}
+
 \begin{table}
 \centering
 \begin{tabular}{lrrr}
@@ -201,6 +216,15 @@ inequality $\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$ for random
 variables $x$ and $y$.
 
 \subsection{Window-based Summaries and filtering}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics{figures/supplementary/diversity_trimming_dist.pdf}
+  \caption{}
+  \label{suppfig:trimming}
+\end{figure}
+
+
 
 The likelihood method is fit to non-overlapping binned summaries of the allele
 counts matrix. 
