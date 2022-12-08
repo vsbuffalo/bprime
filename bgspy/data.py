@@ -151,13 +151,13 @@ def pi_from_pairwise_summaries(x):
 
 def trimmed_pi_bounds(Y, alpha):
     """
+    Get the quantile cutoffs for trimming off outliers by alpha (lower, upper).
     """
     if isinstance(alpha, float):
         lower, upper = alpha/2, 1-alpha/2
     else:
         lower, upper = alpha
     pi = pi_from_pairwise_summaries(Y)
-    m
     q1, q2 = np.nanquantile(pi, lower), np.nanquantile(pi, upper)
     return q1, q2
 
@@ -201,19 +201,26 @@ def filter_sites(counts, chrom, filter_neutral, filter_accessible,
     We zero out the allele counts for masked sites. Note that this is
     allowable (versus marking with NaNs) because we work with the allele
     count matrix; it's akin to not observing any genotype information at a site.
+
+    Note: the masking tracks have True values for keep and False values
+    for discard.
     """
     ac = counts[chrom]
-    if filter_neutral or neutral_masks is not None:
-        msg = "GenomeData.neutral_masks not set!"
-        assert neutral_masks is not None, msg
-        #print("using neutral masks...")
-        ac = ac * neutral_masks[chrom][:, None]
+    if neutral_masks is not None:
+        # if filters are set, use them unless explicitly told not to
+        if filter_neutral is not False:
+            msg = "GenomeData.neutral_masks not set!"
+            assert neutral_masks is not None, msg
+            #print("using neutral masks...")
+            ac = ac * neutral_masks[chrom][:, None]
 
-    if filter_accessible or accesssible_masks is not None:
-        msg = "GenomeData.accesssible_masks not set!"
-        assert accesssible_masks is not None, msg
-        # print("using accessibility masks...")
-        ac = ac * accesssible_masks[chrom][:, None]
+    if accesssible_masks is not None:
+        # if filters are set, use them unless explicitly told not to
+        if filter_accessible is not False:
+            msg = "GenomeData.accesssible_masks not set!"
+            assert accesssible_masks is not None, msg
+            # print("using accessibility masks...")
+            ac = ac * accesssible_masks[chrom][:, None]
     return ac
 
 def trim_map_ends(recmap, thresh_cM):
@@ -466,16 +473,36 @@ class GenomeData:
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
 
-    def pi(self, filter_neutral=None, filter_accessible=None):
+    def pi(self, filter_neutral=None, filter_accessible=None, progress=True):
         pi = dict()
         n = dict()
-        for chrom in self.genome.chroms:
+        chroms = self.genome.chroms
+        chroms = chroms if not progress else tqdm.tqdm(chroms)
+        for chrom in chroms:
             # ac = self.counts[chrom]
             ac = filter_sites(self.counts, chrom,
                               filter_neutral, filter_accessible,
                               self.neutral_masks, self.accesssible_masks)
-            pi[chrom] = np.nanmean(pi_from_pairwise_summaries(pairwise_summary(ac)))
-            n[chrom] = np.sum(ac.sum(axis=1) > 0)
+            # NOTE: there is a very subtle right and wrong way to do this
+            # We can calculate the pairwise summary for each site, then pi from
+            # that, and then average. But this average is not weighted by total
+            # counts at a site! The right way to do it is to sum across all
+            # sites
+            # WRONG WAY: unweighted average
+            # pi[chrom] = np.nanmean(pi_from_pairwise_summaries(pairwise_summary(ac)))
+            # RIGHT WAY (slow)
+            nn = ac.sum(axis=1)
+            P = pairwise_summary(ac).sum(axis=0)[None, :]
+            pi[chrom] = pi_from_pairwise_summaries(P)
+            n[chrom] = np.sum(nn > 0)
+            # RIGHT WAY (alternate)
+            #denom = nn*(nn-1)
+            #pi_est = np.full(denom.shape[0], np.nan)
+            #num = 2*np.prod(ac, axis=1)
+            #np.divide(num, denom, out=pi_est, where=denom>0)
+            #__import__('pdb').set_trace()
+            #pi[chrom] = np.average(pi_est, weights=nn)
+            #n[chrom] = np.sum(nn > 0)
         return pi, n
 
     def gwpi(self, filter_neutral=None, filter_accessible=None):
@@ -485,7 +512,7 @@ class GenomeData:
         ns = np.fromiter(ns.values(), dtype=float)
         return np.average(pis, weights=ns)
 
-    def mask_stats(self):
+    def mask_stats(self, ndigits=3):
         stats = {}
         for chrom in self.genome.chroms:
             seq_len = self.genome.seqlens[chrom]
@@ -500,9 +527,9 @@ class GenomeData:
                 neut_mask = self.neutral_masks[chrom]
                 neut = neut_mask.mean()
                 both = both & neut_mask
-            stats[chrom] = (np.round(acces, 2),
-                            np.round(neut, 2),
-                            np.round(both.mean(), 2))
+            stats[chrom] = (np.round(acces, ndigits),
+                            np.round(neut, ndigits),
+                            np.round(both.mean(), ndigits))
         return stats
 
     def __repr__(self):
@@ -740,6 +767,12 @@ class GenomicBinnedData(GenomicBins):
             out[chrom] = dat
         return out
 
+    def mask_array(self):
+        array = []
+        for chrom in self.data_.keys():
+            array.extend(self.masks_[chrom].tolist())
+        return np.array(array)
+
     def resample_blocks(self, blocksize, nsamples=None,
                         exclude_chrom=None, filter_masked=True):
         """
@@ -803,11 +836,14 @@ class GenomicBinnedData(GenomicBins):
         # get the bounds for the trimmed means -- these are chromosome-wide
         # so on the full Y matrix
         Y = self.Y(filter_masked=False)
-        cutoff = trimmed_pi_bounds(Y, alpha)
+        lower, upper = trimmed_pi_bounds(Y, alpha)
+        assert(Y.shape[0] == len(self.chrom_ints(filter_masked=False)))
         for chrom, Y_chrom in self.data_.items():
-            trim_mask = trimmed_pi_mask(Y_chrom, cutoff)
-            self.masks_[chrom] = trim_mask & self.masks_[chrom]
-        self.outlier_quantiles = cutoff
+            idx = self.chrom_indices(chrom)
+            pi = pi_from_pairwise_summaries(Y_chrom)
+            passed = (pi > lower) & (pi < upper)
+            self.masks_[chrom] = passed
+        self.outlier_quantiles = (lower, upper)
 
     def Y(self, filter_masked=True):
         """
