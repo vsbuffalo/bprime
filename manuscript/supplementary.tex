@@ -163,16 +163,17 @@ combinations with differing alleles $n_D$ are respectively,
   n_D &= n_T - n_S
 \end{align*}
 
-Thus $\mathbf{P}_l = [n_S, n_D]$, and the pairwise diversity is calculated as
+Thus $\mathbf{P}_l = [n_S, n_D]$, and the pairwise diversity across the $n$
+sampled chromosomes is calculated as
 
 \begin{align}
-  \bar{\pi}(l) = \frac{n_D}{n_T}
+  \pi(l) = \frac{n_D}{n_T}
 \end{align}
 
 which is identical to the more common expression of this estimator, 
 
 \begin{align}
-  \bar{\pi}(l) = \frac{2}{n(n-1)} \sum_{i < j}^n k_{i,j}
+  \pi(l) = \frac{2}{n(n-1)} \sum_{i < j}^n k_{i,j}
 \end{align}
 
 where $k_{i,j}$ is 1 if the alleles at this site differ, and 0 otherwise. Note
@@ -186,18 +187,18 @@ genome-wide or window estimate of diversity of accessible bases in the set
 $\mathcal{A}$,
 
 \begin{align*}
-  \bar{\pi}(\mathcal{A}) = \frac{\sum_{l \in \mathcal{A}} \bar{\pi}(l)}{L_\mathcal{A}}.
+  \bar{\pi}(\mathcal{A}) = \frac{\sum_{l \in \mathcal{A}} \pi(l)}{L_\mathcal{A}}.
 \end{align*}
 
 where $L_\mathcal{A} = |\mathcal{A}|$ is the number of accessible bases. Note
-that both $L_\mathcal{A}$ and the sum are random variables in genomic data.
-The denominator varies along the genome, based on the number of
-reliably-genotyped and accessible bases in the reference genome. This is a
-ratio estimator, and is thus biased, since by Jensen's inequality
-$\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$.
-
-We explore this with block-bootstrap bias correction. TODO
-
+that the sum in the numerator is random over the sample of chromosomes sampled
+from the population. Estimates of pairwise diversity often condition on the
+accessible bases, and thus treat this as fixed. However, the number of
+accessible bases varies across the chromosome; this can lead to a source of
+apparent bias during block-bootstrap estimates of uncertainty.  In this case,
+pairwise diversity is a ratio estimator, and is thus biased, since by Jensen's
+inequality $\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$ for random
+variables $x$ and $y$.
 
 \subsection{Window-based Summaries and filtering}
 
