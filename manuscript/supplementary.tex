@@ -145,6 +145,43 @@ chr22 &        26.9 &     75.0 &  16.4 \\
 
 \subsection{Estimates of Pairwise Diversity}
 
+Our underlying data for all likelihood and pairwise diversity estimates is the
+allele count matrix $\mathbf{C}$ with dimensions $l \times 2$, where $l$ is the
+chromosome length. This is converted to a pairwise summary matrix with
+identical dimensions, $\mathbf{P}$. The first column of $\mathbf{P}$ is the
+number of pairwise comparisons between chromosomes that are identical, and the
+second column is the number that are different. Both of these columns are
+combinatoric summaries of the allele counts matrix. Let $[c_1, c_2]$ be a row
+of $\mathbf{C}$ for basepair $i$, and $n = c_1 + c_2$. Then, the (1) total
+number of pairwise combinations of chromosomes $n_T$, (2) the number of
+pairwise with identical alleles $n_S$, and (3) the number of pairwise
+combinations with differing alleles $n_D$ are respectively,
+
+\begin{align*}
+  n_T &= \frac{n(n-1)}{2} \\
+  n_S &= {c_1 \choose 2} + {c_2 \choose 2} \\
+  n_D &= n_T - n_S
+\end{align*}
+
+Thus $\mathbf{P}_i = [n_S, n_D]$, and the pairwise diversity is calculated as
+
+\begin{align}
+  \bar{\pi}(i) = \frac{n_D}{n_T}
+\end{align}
+
+which is identical to the more common expression of this estimator, 
+
+\begin{align}
+  \bar{\pi}(i) = \frac{2}{n(n-1)} \sum_{i < j}^n k_{i,j}
+\end{align}
+
+where $k_{i,j}$ is 1 if the alleles at this site differ, and 0 otherwise. Note
+that for sites with missing data, $c_1 = c_2 = 0$ and thus $n_T = 0$ and the
+division is invalid. Such cases were marked as missing with floating point
+values \texttt{NaN}s. Binned summaries of data are weighed by the number of
+complete cases, e.g. rows with $c_1 + c_2 > 0$.
+
+
 \subsection{Window-based Summaries and filtering}
 
 The likelihood method is fit to non-overlapping binned summaries of the allele
