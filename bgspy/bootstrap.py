@@ -81,10 +81,13 @@ def percentile_ci(boot_thetas, theta, alpha=0.05, log=True):
     eps = np.quantile(boot_thetas, (alpha/2, 1-alpha/2), axis=1)
     return eps
 
-def pivot_ci(boot_thetas, theta, alpha=0.05, log=True):
+def pivot_ci(boot_thetas, theta, alpha=0.05, log=True, axis=1):
+    """
+    Default axis is 1 for MLE thetas.
+    """
     if log:
         boot_thetas = np.log10(boot_thetas)
         theta = np.log10(theta)
-    eps = np.quantile(boot_thetas, (alpha/2, 1-alpha/2), axis=1)
+    eps = np.quantile(boot_thetas, (alpha/2, 1-alpha/2), axis=axis)
     return 10**(2*theta - eps[1]), 10**(2*theta - eps[0])
 

@@ -138,11 +138,21 @@ def pi_from_pairwise_summaries(x):
         pair_data = x.stat
     else:
         pair_data = x
+
+    # if we have a single row of data, e.g. for genome-wide,
+    # let's add another dimension so stuff works
+    if pair_data.shape == (2, ):
+        pair_data = pair_data[None, :]
+
+    # total number of pairwise comparisons is denom
     denom = pair_data.sum(axis=1)
     out = np.divide(pair_data[:, 1], denom,
                     out=np.full(denom.shape[0], np.nan),
                     where=denom > 0)
     if not is_binstat:
+        if len(out) == 1:
+            # don't return an array if we don't have to
+            return out[0]
         return out
     n = x.n
     n[denom == 0] = 0
@@ -492,7 +502,7 @@ class GenomeData:
             # pi[chrom] = np.nanmean(pi_from_pairwise_summaries(pairwise_summary(ac)))
             # RIGHT WAY (slow)
             nn = ac.sum(axis=1)
-            P = pairwise_summary(ac).sum(axis=0)[None, :]
+            P = pairwise_summary(ac).sum(axis=0)
             pi[chrom] = pi_from_pairwise_summaries(P)
             n[chrom] = np.sum(nn > 0)
             # RIGHT WAY (alternate)
@@ -777,6 +787,8 @@ class GenomicBinnedData(GenomicBins):
                         exclude_chrom=None, filter_masked=True):
         """
         Generate resampling indices of blocksize consecutive bins.
+
+        blocksize: is number of consecutive windows.
         """
         bins = self.bins(filter_masked=filter_masked)
         exclude_chrom = [exclude_chrom] if exclude_chrom is not None else None
@@ -797,6 +809,25 @@ class GenomicBinnedData(GenomicBins):
                 idx.append(i)
         return np.array(idx)
 
+    def bootstrap_pi(self, B, nblocks, filter_masked=True):
+        """
+        """
+        Y = self.Y(filter_masked=filter_masked)
+        straps = []
+        for b in np.arange(B):
+            Y_boot = Y[self.resample_blocks(nblocks), :].sum(axis=0)
+            straps.append(pi_from_pairwise_summaries(Y_boot))
+        straps = np.array(straps)
+        return straps
+
+    def estimate_pi_bias(self, B, nblocks, filter_masked=True):
+        """
+        Estimate bias(π) from block bootstrapping with nblocks.
+        """
+        est = pi_from_pairwise_summaries(self.Y(filter_masked=filter_masked).sum(axis=0))
+        straps = self.bootstrap_pi(B=B, nblocks=nblocks, filter_masked=filter_masked)
+        boot_bias = np.mean(straps) - est
+        return boot_bias
 
     def pairs(self, chrom, ratio=False):
         """
