@@ -158,28 +158,33 @@ chr22 &        26.9 &     75.0 &  16.4 \\
 \end{tabular}
 \end{table}
 
-\subsection{Estimates of Pairwise Diversity}
+\subsection{Data Summary Matrices}
 
 Our underlying data for all likelihood and pairwise diversity estimates is the
 allele count matrix $\mathbf{C}$ with dimensions $L \times 2$, where $L$ is the
-chromosome length. This is converted to a pairwise summary matrix with
-identical dimensions, $\mathbf{P}$. The first column of $\mathbf{P}$ is the
+chromosome length. This is transformed to a pairwise summary matrix with
+identical dimensions, $\mathbf{Y}$. The first column of $\mathbf{Y}$ is the
 number of pairwise comparisons between chromosomes that are identical, and the
 second column is the number that are different. Both of these columns are
-combinatoric summaries of the allele counts matrix. Let $[c_1, c_2]$ be a row
-of $\mathbf{C}$ for basepair $l$, and $n = c_1 + c_2$. Then, the (1) total
-number of pairwise combinations of chromosomes $n_T$, (2) the number of
-pairwise with identical alleles $n_S$, and (3) the number of pairwise
-combinations with differing alleles $n_D$ are respectively,
+combinatoric summaries of the raw allele counts matrix needed for the binomial
+likelihood and pairwise diversity estimates. Let $[c_1, c_2]$ be a row of
+$\mathbf{C}$ for basepair $l$ (the $l$ index is omitted for clarity), and $n =
+c_1 + c_2$. Then, the (1) total number of pairwise combinations of chromosomes
+$n_T$, (2) the number of pairwise with identical alleles $n_S$, and (3) the
+number of pairwise combinations with differing alleles $n_D$ are respectively,
 
 \begin{align*}
   n_T &= \frac{n(n-1)}{2} \\
   n_S &= {c_1 \choose 2} + {c_2 \choose 2} \\
   n_D &= n_T - n_S
 \end{align*}
+%
+which would be stored in row $\mathbf{Y}_l = [n_S, n_D]$.
 
-Thus $\mathbf{P}_l = [n_S, n_D]$, and the pairwise diversity across the $n$
-sampled chromosomes is calculated as
+\subsection{Pairwise Diversity Estimates}
+
+The pairwise diversity at site $l$ across the $n$ sampled chromosomes can be
+calculated from the $\mathbf{Y}$ matrix as follows,
 
 \begin{align}
   \pi(l) = \frac{n_D}{n_T}
@@ -215,12 +220,20 @@ pairwise diversity is a ratio estimator, and is thus biased, since by Jensen's
 inequality $\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$ for random
 variables $x$ and $y$.
 
+The genome-wide $\bar{\pi}$ can also be estimated by summing the columns of
+$\mathbf{Y}$, and calculating $\nicefrac{n_D}{n_T}$.
+
 \subsection{Window-based Summaries and filtering}
 
 \begin{figure}[!htb]
   \centering
   \includegraphics{figures/supplementary/diversity_trimming_dist.pdf}
-  \caption{}
+
+  \caption{The distribution of diversity across the genome at the megabase
+  scale, with outliers trimmed. The blue line is the normal CDF, fit with MLE
+parameters XXX. The inset figure is the untrimmed data, with trimmed points
+shown in red.}
+
   \label{suppfig:trimming}
 \end{figure}
 
