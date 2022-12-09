@@ -1,3 +1,10 @@
+import os
+import numpy as np
+import tqdm
+import tskit as tsk
+from bgspy.utils import bin_chrom
+
+samples = [f"YRI_178_{i}.ts" for i in range(100)]
 
 rule YRI_neutral:
   output: "YRI_178_{rep}.ts"
@@ -6,5 +13,21 @@ rule YRI_neutral:
     stdpopsim HomSap -s {wildcards.rep} -g HapMapII_GRCh38 -c chr1 -o {output[0]} -d OutOfAfrica_3G09 YRI:178
     """
 
+rule summary:
+  input: samples
+  output: "YRI_178_1Mbp.npz"
+  run:
+    trees = [f for f in os.listdir() if f.endswith('.ts')]
+    width = 1_000_000
+    bins = bin_chrom(tsk.load(trees[0]).sequence_length, width)
+    pi = []
+    for file in tqdm.tqdm(trees):
+      # divided by 4 since μ=1 under branch mode
+      t = tsk.load(file)
+      pi.append(t.diversity(windows=bins))
+
+    pi = np.array(pi)
+    np.savez(output[0], bins=bins, pi=pi)
+
 rule all:
-  input: [f"YRI_178_{i}.ts" for i in range(100)]
+  input: "YRI_178_1Mbp.npz"

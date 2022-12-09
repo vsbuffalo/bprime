@@ -864,22 +864,30 @@ class GenomicBinnedData(GenomicBins):
 
     def bootstrap_pi(self, B, nblocks, filter_masked=True):
         """
+        Resample contigious blocks (nblocks in length) of the Y
+        matrix, sum across rows to end up with
+        (# same comparisons, # different comparisons)
+        and compute π from this. The total number of comparisons
+        is saved for weighting the bootstrap sample.
         """
         Y = self.Y(filter_masked=filter_masked)
         straps = []
+        weights = []
         for b in np.arange(B):
             Y_boot = Y[self.resample_blocks(nblocks), :].sum(axis=0)
             straps.append(pi_from_pairwise_summaries(Y_boot))
+            weights.append(Y_boot.sum())
         straps = np.array(straps)
-        return straps
+        weights = np.array(weights)
+        return straps, weights
 
     def estimate_pi_bias(self, B, nblocks, filter_masked=True):
         """
         Estimate bias(π) from block bootstrapping with nblocks.
         """
         est = self.gwpi(filter_masked)
-        straps = self.bootstrap_pi(B=B, nblocks=nblocks, filter_masked=filter_masked)
-        boot_bias = np.mean(straps) - est
+        straps, weights = self.bootstrap_pi(B=B, nblocks=nblocks, filter_masked=filter_masked)
+        boot_bias = np.average(straps, weights=weights) - est
         return boot_bias
 
     def gwpi(self, filter_masked=True):
