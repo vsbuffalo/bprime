@@ -1,83 +1,10 @@
-if not len(config):
-    raise ValueError("config file not specified on command line, use --configfile config.json")
 
-# config file should have filename pattern mprime_bgs_{name}.json, 
-# as it's loaded elsewhere here
-name = config['name']
-model = config['model']
-
-# network architectures to try
-#archs = [dict(n128=0, n64=0, n32=0, n8=1, nI=0),
-#         dict(n128=0, n64=0, n32=0, n8=2, nI=0),
-#         dict(n128=0, n64=0, n32=0, n8=4, nI=0),
-#         dict(n128=0, n64=0, n32=1, n8=0, nI=0),
-#         dict(n128=0, n64=0, n32=2, n8=0, nI=0),
-#         dict(n128=0, n64=0, n32=4, n8=0, nI=0),
-#         dict(n128=0, n64=0, n32=0, n8=0, nI=2),
-#         dict(n128=0, n64=0, n32=0, n8=0, nI=4),
-#         ]
-
-archs = [dict(n128=0, n64=0, n32=4, n8=2, nx=0),
-         dict(n128=0, n64=0, n32=0, n8=0, nx=2),
-         dict(n128=0, n64=0, n32=0, n8=0, nx=4),
-         ]
-
-
-
-#activations = ['elu', 'relu', 'tanh']
-activations = ['elu']
-
-sim_file = f"../data/msprime_sims/{name}.npz", 
-
-# the learned func, pickled
-data_file = f"../data/msprime_sims/{name}_data.pkl"
-
-MODEL_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep.pkl"
-KERAS_FILE = f"../data/msprime_sims/fits/{name}/{name}_{{n128}}n128_{{n64}}n64_{{n32}}n32_{{n8}}n8_{{nx}}nx_{{activ}}activ_fit_{{rep}}rep.h5"
-
-NREPS = 2
-dnn_files = []
-for arch in archs:
-    for activ in activations:
-        for rep in range(NREPS):
-            kwargs = {**arch, 'rep': rep, 'activ': activ}
-            dnn_files.append(MODEL_FILE.format(**kwargs))
-            dnn_files.append(KERAS_FILE.format(**kwargs))
-
-rule msprime:
-  input: f"{name}.json" # same as config file
-  output: f"../data/msprime_sims/{name}.npz"
-  params: ncores=30
+rule YRI_neutral:
+  output: "YRI_178_{rep}.ts"
   shell:
     """
-    # --nsamples not set; gets from config files
-    python ../tools/msprime_bgs.py --ncores {params.ncores} --outfile {output} --model {model} {input}
+    stdpopsim HomSap -s {wildcards.rep} -g HapMapII_GRCh38 -c chr1 -o {output[0]} -d OutOfAfrica_3G09 YRI:178
     """
 
-rule process_data:
-  input: json=f"{name}.json", npz=f"../data/msprime_sims/{name}.npz"
-  output: f"../data/msprime_sims/{name}_data.pkl"
-  shell:
-     """
-     python ../tools/fit_sims.py data --outfile {output} {input.json} {input.npz}
-     """
-
-rule fit_dnn:
-  input: f"../data/msprime_sims/{name}_data.pkl"
-  output: model=MODEL_FILE, keras=KERAS_FILE
-  shell:
-     """
-     python ../tools/fit_sims.py fit --outfile {output.model} --batch-size 128 --n128 {wildcards.n128} \
-      --n64 {wildcards.n64} --n32 {wildcards.n32} --n8 {wildcards.n8} --nx {wildcards.nx} \
-      --activation {activ} {input} 
-     """
-
-rule sims:
-  input: sim_file 
-
-rule data:
-  input: data_file
-
-rule train:
-  input: dnn_files 
-
+rule all:
+  input: [f"YRI_178_{i}.ts" for i in range(100)]
