@@ -502,8 +502,8 @@ class GenomeData:
             # pi[chrom] = np.nanmean(pi_from_pairwise_summaries(pairwise_summary(ac)))
             # RIGHT WAY (slow)
             nn = ac.sum(axis=1)
-            P = pairwise_summary(ac).sum(axis=0)
-            pi[chrom] = pi_from_pairwise_summaries(P)
+            Y = pairwise_summary(ac).sum(axis=0)
+            pi[chrom] = pi_from_pairwise_summaries(Y)
             n[chrom] = np.sum(nn > 0)
             # RIGHT WAY (alternate)
             #denom = nn*(nn-1)
@@ -516,6 +516,15 @@ class GenomeData:
         return pi, n
 
     def gwpi(self, filter_neutral=None, filter_accessible=None):
+        """
+        Compute genome-wide π from the counts data; this is done
+        per-chromosome, and then chromosomes values are averaged using
+        weights from their number of complete cases.
+
+        NOTE: this presently differs from methods of calulating genome-wide π
+        from binned data by a relative error of 0.01%. The cause is unknown but
+        is likely how weighting occurs.
+        """
         pis, ns = self.pi(filter_neutral=filter_neutral,
                           filter_accessible=filter_accessible)
         pis = np.fromiter(pis.values(), dtype=float)
@@ -644,6 +653,14 @@ class GenomicBins:
                 if not filter_masked or self.masks_[chrom][i-1]:
                     out[chrom].append((start, end))
         return out
+
+    def flat_midpoints(self, filter_masked=True):
+        out = []
+        for chrom, bins in self.bins(filter_masked).items():
+            for start, end in bins:
+                out.append((chrom, 0.5*(start+end)))
+        return out
+
 
     def flat_bins(self, filter_masked=True):
         out = []
@@ -783,6 +800,42 @@ class GenomicBinnedData(GenomicBins):
             array.extend(self.masks_[chrom].tolist())
         return np.array(array)
 
+    def binned_funcgram(self, recmap=None, filter_masked=True,
+                        func=lambda x, y: np.nanmean((x-y)**2)):
+
+        max_lag = int(max(self.seqlens.values()) / self.width)
+
+        all_lags = list(range(1, max_lag-1))
+
+        M = np.full((len(self.seqlens.keys()), max_lag-1), np.nan)
+        R = np.full((len(self.seqlens.keys()), max_lag-1), np.nan)
+        N = np.full((len(self.seqlens.keys()), max_lag-1), np.nan)
+
+        for i, (chrom, Y) in enumerate(self.data(filter_masked).items()):
+            pi = pi_from_pairwise_summaries(Y)
+            bins = self.flat_midpoints(filter_masked)
+            mbins = np.array([float(recmap.lookup(c, p, cummulative=True)) for c, p in bins])
+            for j, lag in enumerate(all_lags):
+                y1, y2 = pi[:-lag], pi[lag:]
+                if not len(y1) or not len(y2):
+                    continue
+                M[i, j] = func(y1, y2)
+                dist = np.abs(mbins[:-lag] - mbins[lag:])
+                R[i, j] = np.nanmean(dist)
+                keep = ~np.isnan(y1) & ~np.isnan(y2)
+                N[i, j] = keep.sum()
+
+        if recmap is not None:
+            # we need to sort the bins because the recmap may not be monotonic
+            # increasing
+            for i in np.arange(M.shape[0]):
+                idx = np.argsort(R[i, :])
+                R[i, :] = R[i, idx]
+                M[i, :] = M[i, idx]
+                N[i, :] = N[i, idx]
+
+        return R.T, M.T, N.T
+
     def resample_blocks(self, blocksize, nsamples=None,
                         exclude_chrom=None, filter_masked=True):
         """
@@ -824,10 +877,28 @@ class GenomicBinnedData(GenomicBins):
         """
         Estimate bias(π) from block bootstrapping with nblocks.
         """
-        est = pi_from_pairwise_summaries(self.Y(filter_masked=filter_masked).sum(axis=0))
+        est = self.gwpi(filter_masked)
         straps = self.bootstrap_pi(B=B, nblocks=nblocks, filter_masked=filter_masked)
         boot_bias = np.mean(straps) - est
         return boot_bias
+
+    def gwpi(self, filter_masked=True):
+        """
+        Genome-wide π from the binned data; this is calculated by
+        taking the sum of the Y matrix (of pairwise combination counts).
+        """
+        est = pi_from_pairwise_summaries(self.Y(filter_masked=filter_masked).sum(axis=0))
+        return est
+
+    def bias_corrected_gwpi(self, B, nblocks, filter_masked=True):
+        """
+
+        Estimate the bias-corrected pairwise diversity
+        from bootstrap-biased estimate of the bias.
+
+        """
+        bias = self.estimate_pi_bias(B, nblocks, filter_masked)
+        return self.gwpi(filter_masked=filter_masked) - bias
 
     def pairs(self, chrom, ratio=False):
         """

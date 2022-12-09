@@ -4,6 +4,9 @@ import numpy as np
 
 def resample_blocks(bins, blocksize, nsamples=None, exclude_chroms=None):
     """
+    Note that because mask filters can block out large regions of chromosome,
+    e.g. chr22, the number of possible blocks may not reflect the chromosome
+    length. Blocks are always created from the first complete position.
     """
     # we need chromosome weights -- we sample a chromosome, then
     # create blocks on those
