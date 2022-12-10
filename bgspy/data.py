@@ -483,10 +483,11 @@ class GenomeData:
             out[chrom] = (site_ac > 0).sum(axis=1).sum()
         return out
 
-    def pi(self, filter_neutral=None, filter_accessible=None, progress=True):
+    def pi(self, filter_neutral=None, filter_accessible=None,
+           chroms=None, progress=True):
         pi = dict()
         n = dict()
-        chroms = self.genome.chroms
+        chroms = self.genome.chroms if chroms is None else chroms
         chroms = chroms if not progress else tqdm.tqdm(chroms)
         for chrom in chroms:
             # ac = self.counts[chrom]
