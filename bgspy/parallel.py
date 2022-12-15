@@ -210,7 +210,9 @@ class BChunkIterator(MapPosChunkIterator):
             if use_SC16:
                 assert N is not None
                 # these are all segment-specific
-                segparts = tuple(x[:, :, idx] for x in segment_parts)
+                # segment_parts for SC16 has V, Vm, and T. We only need the first two
+                segparts = (segment_parts[0][:, :, idx],
+                            segment_parts[1][:, :, idx])
             else:
                 # the b element is not segment specific
                 segparts = (segment_parts[0][:, idx], segment_parts[1],

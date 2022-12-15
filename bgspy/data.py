@@ -484,7 +484,7 @@ class GenomeData:
         return out
 
     def pi(self, filter_neutral=None, filter_accessible=None,
-           chroms=None, progress=True):
+           chroms=None, progress=True, weight_pairwise=True):
         pi = dict()
         n = dict()
         chroms = self.genome.chroms if chroms is None else chroms
@@ -505,7 +505,10 @@ class GenomeData:
             nn = ac.sum(axis=1)
             Y = pairwise_summary(ac).sum(axis=0)
             pi[chrom] = pi_from_pairwise_summaries(Y)
-            n[chrom] = np.sum(nn > 0)
+            if weight_pairwise:
+                n[chrom] = Y.sum()
+            else:
+                n[chrom] = np.sum(nn > 0)
             # RIGHT WAY (alternate)
             #denom = nn*(nn-1)
             #pi_est = np.full(denom.shape[0], np.nan)
@@ -516,7 +519,8 @@ class GenomeData:
             #n[chrom] = np.sum(nn > 0)
         return pi, n
 
-    def gwpi(self, filter_neutral=None, filter_accessible=None):
+    def gwpi(self, filter_neutral=None, filter_accessible=None,
+             weight_pairwise=True):
         """
         Compute genome-wide π from the counts data; this is done
         per-chromosome, and then chromosomes values are averaged using
@@ -527,7 +531,8 @@ class GenomeData:
         is likely how weighting occurs.
         """
         pis, ns = self.pi(filter_neutral=filter_neutral,
-                          filter_accessible=filter_accessible)
+                          filter_accessible=filter_accessible,
+                          weight_pairwise=weight_pairwise)
         pis = np.fromiter(pis.values(), dtype=float)
         ns = np.fromiter(ns.values(), dtype=float)
         return np.average(pis, weights=ns)

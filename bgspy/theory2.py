@@ -436,14 +436,15 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores):
     # the current function spits out everything (for debugging and validating
     # against the region sims
     #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
-    _, _, _, Vs, Vms, _, _ = zip(*res)
+    _, _, Ts, Vs, Vms, _, _ = zip(*res)
     # we only need to store V and Vm for each mu/sh (this is
     # the mapping of parameters; this determines Z with rf)
 
     # let's turn each of these into an array, nw x nt x nloci
     V = np.moveaxis(np.stack(Vs), 0, 2)
     Vm = np.moveaxis(np.stack(Vms), 0, 2)
-    return V, Vm
+    Ts = np.moveaxis(np.stack(Ts), 0, 2)
+    return V, Vm, Ts
 
 
 def calc_BSC16_chunk_worker(args):

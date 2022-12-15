@@ -175,12 +175,19 @@ class BGSModel(object):
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
 
+    def predict_R(self, theta):
+        """
+        """
+        segments = self.genome._segment_parts_sc16
+
     def fill_Bp_nan(self):
         """
         Sometimes the B' calculations fail, e.g. due to T = Inf; these
         can be backfilled with B since they're the same in this domain.
         This isn't done manually as we should check there isn't some
         other pathology.
+
+        TODO: Deprecated?
         """
         assert self.Bps is not None, "B' not calculated!"
         assert self.Bs is not None, "B not calculated!"
