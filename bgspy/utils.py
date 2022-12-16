@@ -18,6 +18,9 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import numpy as np
 import pandas as pd
+import newick
+
+
 
 SEED_MAX = 2**32-1
 
@@ -1053,5 +1056,42 @@ def index_cols(cols):
     def get(*args):
         return tuple(index[c] for c in args)
     return get
+
+def read_phylofit(filename):
+    """
+    Read output from PhyloFit.
+    """
+    data = dict()
+    with open(filename) as f:
+        for line in f:
+            if line.startswith("RATE_MAT"):
+                line = next(f).strip()
+                rates = list()
+                while len(line) and not line.startswith("TREE"):
+                    row = [float(x) for x in re.split(' +', line.strip())]
+                    rates.append(row)
+                    line = next(f).strip()
+                assert(line.startswith("TREE"))
+                data['tree'] = line.strip().split(': ', 1)[1]
+            else:
+                key, val = line.strip().split(': ', 1)
+                key = key.lower().replace(': ', '')
+                data[key]= val
+    return data
+
+
+def get_human_branch_length(tree_str, min_tips=10, lab='homo_sapiens'):
+    """
+    Sort of a specialty function: take output from PhyloFit and
+    get the human branch length. min_tips sets the number of tips,
+    otherwise NaN will be returned.
+    """
+    tree = newick.loads(tree_str)
+    assert(isinstance(tree, list))
+    assert(len(tree) == 1)
+    if len(tree[0].get_leaf_names()) < min_tips:
+        print( tree[0].get_leaf_names())
+        return np.nan
+    return [x.length for x in tree[0].walk() if x.name == lab][0]
 
 

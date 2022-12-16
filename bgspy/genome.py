@@ -100,6 +100,22 @@ class Segments:
         np.put_along_axis(F, self.features[:, None], 1, axis=1)
         self.F = F
 
+    def get_fixation_times(self, chrom, wi, ti, width=None):
+        """
+        Get the pre-computed fixation times. Bin in width bins
+        if width is not None.
+        """
+        idx = annot_m.segments.index[chrom]
+        midpoints = self.ranges[idx].mean(axis=1)
+        # elements are V, Vm, T
+        T = self._segment_parts_sc16[2][wi, ti, idx]
+        # TODO HERE
+        bins = bin_chrom(g.seqlens[chrom], width)
+        stats.binned_statistic(pos, R,
+                               statistic=np.nanmean,
+                               bins=bins)
+
+
 def process_annotation(features, recmap, split_length=None):
     """
     Split the annotation dictionary (values are a list of range tuples and feature
