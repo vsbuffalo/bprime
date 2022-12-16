@@ -36,9 +36,9 @@ import time
 import numpy as np
 import allel
 from scipy.optimize import minimize_scalar
-import tensorflow as tf
+import scipy.stats as stats
 
-from bgspy.utils import Bdtype, BScores, BinnedStat
+from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
 
 class BGSModel(object):
@@ -175,10 +175,28 @@ class BGSModel(object):
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
 
-    def predict_R(self, theta):
+    def get_ratchet_rates(self, chrom, wi, ti, as_times=False, width=None):
         """
+        Get the pre-computed fixation times. Bin in width bins
+        if width is not None.
         """
-        segments = self.genome._segment_parts_sc16
+        segments = self.genome.segments
+        idx = segments.index[chrom]
+        midpoints = segments.ranges[idx].mean(axis=1)
+        # elements are V, Vm, T -- we call T = x here
+        x = segments._segment_parts_sc16[2][wi, ti, idx]
+        if not as_times:
+            # convert to ratchet rate
+            x = 1/x
+        if width is not None:
+            bins = bin_chrom(self.seqlens[chrom], width)
+            binstats = stats.binned_statistic(midpoints, x,
+                                              statistic=np.nanmean,
+                                              bins=bins)
+            return binstats
+        else:
+            return midpoints, x
+
 
     def fill_Bp_nan(self):
         """
