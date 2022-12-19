@@ -104,7 +104,9 @@ class BGSModel(object):
 
     @property
     def BpScores(self):
-        return BScores(self.Bps, self.Bp_pos, self.w, self.t, self.features, self.step)
+        return BScores(self.Bps, self.Bp_pos,
+                       self.w, self.t, self.features,
+                       self.step)
 
     def save_B(self, filename):
         """
@@ -175,16 +177,24 @@ class BGSModel(object):
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
 
-    def get_ratchet_rates(self, chrom, wi, ti, as_times=False, width=None):
+    def get_ratchet_rates(self, wi, ti, chrom=None, as_times=False,
+                          use_midpoints=True, width=None):
         """
         Get the pre-computed fixation times. Bin in width bins
         if width is not None.
         """
         segments = self.genome.segments
-        idx = segments.index[chrom]
+        if chrom is not None:
+            # get the ratchet rate for one chromosome
+            idx = segments.index[chrom]
+        else:
+            idx = slice(None)
         midpoints = segments.ranges[idx].mean(axis=1)
+        seglens = np.diff(segments.ranges[idx], axis=1).squeeze()
         # elements are V, Vm, T -- we call T = x here
         x = segments._segment_parts_sc16[2][wi, ti, idx]
+        features = segments.features[idx]
+        x /= seglens
         if not as_times:
             # convert to ratchet rate
             x = 1/x
@@ -195,7 +205,9 @@ class BGSModel(object):
                                               bins=bins)
             return binstats
         else:
-            return midpoints, x
+            if not use_midpoints:
+                midpoints = segments.ranges[idx]
+            return midpoints, x, features
 
 
     def fill_Bp_nan(self):

@@ -1011,6 +1011,23 @@ class FreeMutationModel(BGSLikelihood):
                 theta = thetas[optim]
         return predict_freemutation(theta, self.logB, self.w)
 
+    def predict_R(self, R, optim=None, theta=None):
+        """
+        """
+        if theta is not None:
+            return predict_freemutation(theta, self.logB, self.w)
+        if optim is None:
+            theta = self.theta_
+        else:
+            thetas = self.optim.thetas_
+            if optim == 'random':
+                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
+            else:
+                theta = thetas[optim]
+        return predict_freemutation(theta, self.logB, self.w)
+
+
+
     def __repr__(self):
         base_rows = super().__repr__()
         if self.theta_ is not None:
