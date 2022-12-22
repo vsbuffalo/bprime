@@ -194,10 +194,11 @@ class BGSModel(object):
         # elements are V, Vm, T -- we call T = x here
         x = segments._segment_parts_sc16[2][wi, ti, idx]
         features = segments.features[idx]
-        x /= seglens
         if not as_times:
             # convert to ratchet rate
             x = 1/x
+
+        x = x/seglens
         if width is not None:
             bins = bin_chrom(self.seqlens[chrom], width)
             binstats = stats.binned_statistic(midpoints, x,
@@ -207,7 +208,7 @@ class BGSModel(object):
         else:
             if not use_midpoints:
                 midpoints = segments.ranges[idx]
-            return midpoints, x, features
+            return midpoints, x, features, seglens
 
 
     def fill_Bp_nan(self):
