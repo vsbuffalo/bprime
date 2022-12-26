@@ -10,7 +10,7 @@ from tabulate import tabulate
 from functools import partial
 from collections import Counter, defaultdict
 import numpy as np
-from ctypes import POINTER, c_double, c_ssize_t
+from ctypes import POINTER, c_double, c_ssize_t, c_int
 
 # no longer needed
 # HAS_JAX = False
@@ -493,7 +493,7 @@ def negll_mutation_numba(theta, Y, logB, w):
 def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
-def negll_c(theta, Y, logB, w):
+def negll_c(theta, Y, logB, w, two_alleles=True):
     """
     θ is [π0, μ, w11, w12, ...] and should
     have dimension (nt x nf) + 2
@@ -515,30 +515,11 @@ def negll_c(theta, Y, logB, w):
                               POINTER(c_double),
                               # weird type for dims/strides
                               POINTER(np.ctypeslib.c_intp),
-                              POINTER(np.ctypeslib.c_intp))
+                              POINTER(np.ctypeslib.c_intp),
+                              c_int)
     likclib.negloglik.restype = c_double
     return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
-                             logB.ctypes.shape, logB.ctypes.strides)
-
-def normal_ll_c(theta, Y, logB, w):
-    nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
-    nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
-    theta = np.require(theta, np.float64, ['ALIGNED'])
-    logB = np.require(logB, np.float64, ['ALIGNED'])
-    nS_ptr = nS.ctypes.data_as(POINTER(c_double))
-    nD_ptr = nD.ctypes.data_as(POINTER(c_double))
-    theta_ptr = theta.ctypes.data_as(POINTER(c_double))
-    logB_ptr = logB.ctypes.data_as(POINTER(c_double))
-    w_ptr = w.ctypes.data_as(POINTER(c_double))
-    likclib.negloglik.argtypes = (POINTER(c_double), POINTER(c_double),
-                              POINTER(c_double), POINTER(c_double),
-                              POINTER(c_double),
-                              # weird type for dims/strides
-                              POINTER(np.ctypeslib.c_intp),
-                              POINTER(np.ctypeslib.c_intp))
-    likclib.normal_loglik.restype = c_double
-    return likclib.normal_loglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
-                                 logB.ctypes.shape, logB.ctypes.strides)
+                             logB.ctypes.shape, logB.ctypes.strides, int(two_alleles))
 
 def predict_simplex(theta, logB, w, mu=None):
     """
@@ -842,7 +823,7 @@ class BGSLikelihood:
         rows.append(f"  t grid: {signif(self.t)}")
         return "\n".join(rows)
 
-def negll_freemut(Y, B, w):
+def negll_freemut(Y, B, w, two_alleles=True):
     """
     This is a closure around data; returns a negative log- likelihood
     function around the data and a few fixed parameters (B and w).
@@ -857,10 +838,10 @@ def negll_freemut(Y, B, w):
         new_theta[1] = 1.
         new_theta[2:] = theta[1:] # times mutation rates
         #print("-->", theta, new_theta)
-        return negll_c(new_theta, Y, B, w)
+        return negll_c(new_theta, Y, B, w, two_alleles)
     return func
 
-def negll_freemut_full(theta, grad, Y, B, w):
+def negll_freemut_full(theta, grad, Y, B, w, two_alleles=True):
     """
     Like negll_freemut() but not a closure.
 
@@ -872,7 +853,7 @@ def negll_freemut_full(theta, grad, Y, B, w):
     new_theta[1] = 1.
     new_theta[2:] = theta[1:] # times mutation rates
     #print("-->", theta, new_theta)
-    return negll_c(new_theta, Y, B, w)
+    return negll_c(new_theta, Y, B, w, two_alleles)
 
 def negll_simplex_full(theta, grad, Y, B, w):
     """
@@ -915,13 +896,15 @@ class FreeMutationModel(BGSLikelihood):
                                self.log10_pi0_bounds,
                                self.log10_mu_bounds, paired=paired)
 
-    def fit(self, starts=1, ncores=None, algo='ISRES', _indices=None):
+    def fit(self, starts=1, ncores=None, algo='ISRES', two_alleles=True,
+            _indices=None):
         """
         Fit likelihood models with mumeric optimization (either scipy or nlopt).
 
         starts: either an integer number of random starts or a list of starts.
         ncores: number of cores to use for multiprocessing.
-        engine: either 'scipy' or 'nlopt'.
+        algo: the algorithm to use
+        two_alleles: do the two alleles correction (i.e. not infinite sites)
         """
         algo = algo.upper()
         algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt',
@@ -943,12 +926,12 @@ class FreeMutationModel(BGSLikelihood):
 
         if engine == 'scipy':
             nll = partial(negll_freemut_full, grad=None, Y=Y,
-                          B=logB, w=self.w)
+                          B=logB, w=self.w, two_alleles=two_alleles)
             worker = partial(minimize, nll, bounds=self.bounds(paired=True),
                              method=algo, options={'eps':1e-9})
         elif engine == 'nlopt':
             nll = partial(negll_freemut_full, Y=Y,
-                          B=logB, w=self.w)
+                          B=logB, w=self.w, two_alleles=two_alleles)
             worker = partial(nlopt_mutation_worker,
                              func=nll, nt=self.nt, nf=self.nf,
                              bounds=self.bounds(), algo=algo)

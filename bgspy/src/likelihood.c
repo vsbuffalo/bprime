@@ -7,6 +7,9 @@
 // if you're a bit over the max boundary, we just truncate
 #define MUTMAX_THRESH 1e-10
 
+// whether to use the two-alleles model or infinite sites
+#define TWO_ALLELES 1
+
 #define LOGBW_GET(B, ii, ll, jj, kk, s) B[(ii)*s[0] + (ll)*s[1] + (jj)*s[2] + (kk)*s[3]]
 #define W_GET(WW, jj, kk, col) WW[col*(jj) + kk]
 
@@ -124,7 +127,8 @@ double negloglik(const double *theta,
                  const double *logB, 
                  const double *w,
                  const ssize_t *logB_dim, 
-                 const ssize_t *logB_strides) {
+                 const ssize_t *logB_strides,
+                 const int two_alleles) {
 
     ssize_t nx = logB_dim[0]; 
     ssize_t nw = logB_dim[1];
@@ -181,7 +185,14 @@ double negloglik(const double *theta,
             }
         }
         //printf("%g, ", logBw[i]);
-        double log_pi = log(pi0) + logBw_i;
+        double log_pi;
+        if (two_alleles) {
+            double pi = pi0 * exp(logBw_i);
+            log_pi = log(pi / (1 + 2*pi));
+            /* printf("pi = %f, pi_2a =  %f\n", pi, exp(log_pi)); */
+        } else {
+            log_pi = log(pi0) + logBw_i;
+        }
         //printf("c log(pi0): %g\n", log(pi0));
         //printf("c nD[%d]=%g, nS[%d]=%g\n", i, nD[i], i, nS[i]);
         //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
