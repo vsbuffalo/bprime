@@ -271,7 +271,7 @@ function. This is the form used by \textcite{Elyashiv2016-vt} and
 nucleotide differences in genomic windows to the expected pairwise diversity
 under some evolutionary model. We only consider BGS models here, so the mean
 function for position $x$ is the product of the proportion by which BGS reduces
-diversity at $x$, $B(x)$, and genome-wide neutral diversity $\pi_0$,
+diversity at position $x$, $B(x)$, and genome-wide neutral diversity $\pi_0$,
 
 \begin{align}
   \pi(x) = B(x, \Phi) \pi_0
@@ -279,19 +279,36 @@ diversity at $x$, $B(x)$, and genome-wide neutral diversity $\pi_0$,
 
 $\Phi$ is the set of BGS parameters (i.e. the DFE for each feature type and
 mutation rate), and $\pi_0$ is determined by the drift-effective population
-size, set by only reproductive and reproductive processes. Then the ob
+size, set by only reproductive and demographic processes. 
+
+Our statistical models use a binomial likelihood for the observed data
+summarized at some physical genomic scale. The evolutionary processes that
+impact $\pi(x)$ do so on different spatial scales, and genomic evolutionary
+model selection also includes determining the scale at which data fits best.
+The likelihood considers the probability of observing $n_{D,i}$ pairwise
+differences in window $i$ given $n_{T,i}$ total possible pairwise comparison,
+and that the probability of observing a pairwise difference is given by $\pi_i$
+
+\begin{align}
+  n_{D,i} \sim \text{Binom}(\pi_i, n_{T,i}).
+\end{align}
+
+This assumes infinite sites, since $\pi_i$ is assumed to be the probability of
+
+Note that this makes the approximation that the average number of pairwise
+differences $\pi_x$ is small, such that the probability of heterozygosity
+is equal to the 
 
 
 
-fit a nonlinear theoretic equation to
-observed count data summarized at some pre-specified scale. 
+
+, which links the mean function
+above with the probability of observing 
+
+sampling process by which individuals are sampled from the population
 
 putatively neutral site, the observed number of pairwise differences at site
 $i$ is modeled as,
-
-\begin{align}
-  n_{D,i} \sim \text{Binom}(\pi_i, n_{T,i})
-\end{align}
 
 use observed count data summarized at
 some pre-specified scale 
