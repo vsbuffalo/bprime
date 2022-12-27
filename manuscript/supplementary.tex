@@ -373,9 +373,45 @@ functions, so we opted for the simpler identity link function.
 Under the background selection model, the diversity in window $b$ is $\pi(b,
 \Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b | \Psi)$ is the predicted
 reduction in diversity due to BGS in window $b$, given background selection
-parameters $\Psi$. In practice, we pre-calculate $\bar{B}(b | \Psi)$ at fixed
-sites across the genome, and take the average of the fixed sites $B$ values
-within a widow.
+parameters $\Psi$. In practice, we pre-calculate $\bar{B}(x | \Psi)$ at fixed
+sites $x$ across the genome, and take the average of the fixed sites $B$ values
+within widow $b$ for the average $\bar{B}(b | \Psi)$. 
+
+There are two ways to parameterize background selection models. Both models use
+a fixed $q$-grid of selection coefficients ranging $s \in \{10^{-6}, 10^{-5},
+10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}\}$ (here, $q=6$) and interpolate over a grid
+of mutation rates. First, for the \emph{free-mutation} parameterization, each
+annotation feature class has a free mutation rate parameter for each of these
+selection coefficients. That is, the distribution of fitness effect (DFE) is
+implied by the total mutation rate across selection coefficients for an
+annotation class.  We can normalize by the total mutation rate estimate to get
+the estimated DFE, giving us the DFE weight for annotation class $k$ and
+selection coefficient with index $i$,
+
+\begin{align}
+  \widehat{w}_{i,k} = \frac{\widehat{\mu}_{i,k}}{\sum_i \widehat{\mu}_{i,k}}.
+\end{align}
+
+With this parameterization, there are $1 + K \times q$ for $\pi_0$ and the free
+DFE parameters, where $K$ is the number of annotation features. The MLE
+optimization for this approach is unconstrained, though $\pi_0$ is bounded to
+be within $10^{-5} \le \pi_0 \le 10^{-1}$. 
+
+\begin{align}
+  W = \begin{bmatrix}
+    \mu_{10^{-6},\text{CDS}} & \mu_{10^{-6},\text{UTR}} & w_{10^{-6},\text{phastcons}} \\
+    \mu_{10^{-5},\text{CDS}} & \mu_{10^{-5},\text{UTR}} & w_{10^{-5},\text{phastcons}} \\
+    \vdots & \vdots & \vdots \\
+    \mu_{10^{-1},\text{CDS}} & \mu_{10^{-1},\text{UTR}} & w_{10^{-1},\text{phastcons}} \\
+  \end{bmatrix}
+\end{align}
+
+The second parametrization is the \emph{simplex} parametrization, which has a
+single mutation rate across all features, and the DFE is parameterized by a
+matrix $W$
+
+which has $2
++ K \times (q-1)$ free parameters.
 
 In practice, this is site-specific. We can write the
 reduction at any neutral site $v$ in the genome as the product of $B$s across
