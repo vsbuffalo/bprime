@@ -185,46 +185,60 @@ Non-polymorphic sites have $n_S = {n \choose 2}$ and $n_D = 0$, and missing
 data has $n_S = n_D = 0$.
 
 \subsection{Pairwise Diversity Estimates}
+\label{supsec:diversity}
 
 The pairwise diversity at site $l$ across the $n$ sampled chromosomes can be
-calculated from the $\mathbf{Y}$ matrix as follows,
+calculated from row $l$ of the $\mathbf{Y}$ matrix as follows,
 
 \begin{align}
-  \pi(l) = \frac{n_D}{n_T}
+  \pi_l = \frac{n_D}{n_T}
 \end{align}
 
 which is identical to the more common expression of this estimator, 
 
 \begin{align}
-  \pi(l) = \frac{2}{n(n-1)} \sum_{i < j}^n k_{i,j}
+  \pi_l = \frac{2}{n(n-1)} \sum_{i < j}^n k_{i,j}
 \end{align}
 
-where $k_{i,j}$ is 1 if the alleles at this site differ, and 0 otherwise. Note
-that for sites with missing data, $c_1 = c_2 = 0$ and thus $n_T = 0$ and the
-division is invalid. Such cases were marked as missing with floating point
-values \texttt{NaN}s. Binned summaries of data are weighed by the number of
-complete cases, e.g. rows with $c_1 + c_2 > 0$.
+where $k_{i,j}$ is 1 if the alleles at this site differ at site $l$, and 0
+otherwise.
 
-This per-basepair diversity is then averaged over all callable bases, to give a
-genome-wide or window estimate of diversity of accessible bases in the set
-$\mathcal{A}$,
+There are three ways to aggregate $\pi_l$ across all sites. The first is,
 
-\begin{align*}
-  \bar{\pi}(\mathcal{A}) = \frac{\sum_{l \in \mathcal{A}} \pi(l)}{L_\mathcal{A}}.
-\end{align*}
+\begin{align}
+  \label{eq:}
+  \pi^{(1)} = \frac{1}{L} \sum_{i=1}^L \frac{n_{D,i}}{n_{T,i}}
+\end{align}
 
-where $L_\mathcal{A} = |\mathcal{A}|$ is the number of accessible bases. Note
-that the sum in the numerator is random over the sample of chromosomes sampled
-from the population. Estimates of pairwise diversity often condition on the
+which if the number of samples across loci is constant, simplifies to an
+unweighted average across sites. Second, one can take a weighted average, with
+weights determined by the total number of samples present at a site,
+
+\begin{align}
+  \label{eq:}
+  \pi^{(2)} = \frac{1}{\sum_{i=1}^L n_i} \sum_{i=1}^L n_i \frac{n_{D,i}}{n_{T,i}}
+\end{align}
+
+Third, one can weight by the number of pairwise comparisons at a site,
+$n_{T,i}$, rather than total number of samples, $n_i$, which leads to a ratio
+of sums,
+
+\begin{align}
+  \label{eq:}
+  \pi^{(3)} = \frac{\sum_{i=1}^L n_{D,i}}{\sum_{i=1}^L n_{T,i}}.
+\end{align}
+
+We predominantly use the estimator $\pi^{(3)}$, as it corresponds to how we
+summarize the matrix $\mathbf{Y}$ across windows for our likelihood. All
+methods have mean squared errors and biases very close to one another (TODO).
+
+Note, however, that estimates of pairwise diversity often condition on the
 accessible bases, and thus treat this as fixed. However, the number of
 accessible bases varies across the chromosome; this can lead to a source of
 apparent bias during block-bootstrap estimates of uncertainty.  In this case,
 pairwise diversity is a ratio estimator, and is thus biased, since by Jensen's
 inequality $\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$ for random
-variables $x$ and $y$.
-
-The genome-wide $\bar{\pi}$ can also be estimated by summing the columns of
-$\mathbf{Y}$, and calculating $\nicefrac{n_D}{n_T}$.
+variables $x$ and $y$. 
 
 \subsection{Window-based Summaries and filtering}
 
@@ -278,146 +292,94 @@ diversity at position $x$, $B(x)$, and genome-wide neutral diversity $\pi_0$,
 \end{align}
 
 $\Phi$ is the set of BGS parameters (i.e. the DFE for each feature type and
-mutation rate), and $\pi_0$ is determined by the drift-effective population
-size, set by only reproductive and demographic processes. 
+mutation rate), and $\pi_0 = 4 N_e \mu$ is determined by the genome-wide
+drift-effective population size $N_e$, set by only reproductive and demographic
+processes. Regional mutation rate heterogeneity can be accounted for with a
+regional mutation rate scaling function $m(x)$, $\pi(x) = B(x, \Phi) m(x)
+\pi_0$, but we do not explore mutation-rate heterogeneity, as it is unclear how
+to differentiate variance in mutation rate from the substitution rate
+heterogeneity we find across the genome.
 
-Our statistical models use a binomial likelihood for the observed data
-summarized at some physical genomic scale. The evolutionary processes that
-impact $\pi(x)$ do so on different spatial scales, and genomic evolutionary
-model selection also includes determining the scale at which data fits best.
-The likelihood considers the probability of observing $n_{D,i}$ pairwise
-differences in window $i$ given $n_{T,i}$ total possible pairwise comparison,
-and that the probability of observing a pairwise difference is given by $\pi_i$
+The likelihood of the set of parameters $\Psi = \{\pi_0, \Phi\}$ can be written
+in the form of, 
 
 \begin{align}
-  n_{D,i} \sim \text{Binom}(\pi_i, n_{T,i}).
+  \log\mathcal{L}(\Psi) = \sum_{v \in \mathcal{V}} \sum_{i \ne j \in \mathcal{S}} \log(P(O_{i,j}(v) | \Psi))
 \end{align}
 
-This assumes infinite sites, since $\pi_i$ is assumed to be the probability of
-
-Note that this makes the approximation that the average number of pairwise
-differences $\pi_x$ is small, such that the probability of heterozygosity
-is equal to the 
-
-
-
-
-, which links the mean function
-above with the probability of observing 
-
-sampling process by which individuals are sampled from the population
-
-putatively neutral site, the observed number of pairwise differences at site
-$i$ is modeled as,
-
-use observed count data summarized at
-some pre-specified scale 
+(c.f. \cite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj}) where $\mathcal{V}$
+is the set of putatively neutral sites, $\mathcal{S}$ is the set of samples,
+and $\Psi$ are the BGS parameters. The indicator variable $O_{i,j}(v)$ is 1 if
+samples $i$ and $j$ are different at putatively neutral site $v$, and zero
+otherwise. While the theoretic $\pi(v)$ gives the average number of pairwise
+differences, for small values, this is approximately the heterozygosity
+probability, so we can write
 
 \begin{align}
-  \log\mathcal{L}(\theta) = \sum_{v \in \mathcal{V}} \sum_{i \ne j \in \mathcal{S}} \log(P(O_{i,j}(v) | \theta))
-\end{align}
-
-where $\mathcal{V}$ is the set of putatively neutral sites, $\mathcal{S}$ is
-the set of samples, and $\theta$ are the BGS parameters. The indicator variable
-$O_{i,j}(v)$ is 1 if samples $i$ and $j$ are different at site $v$, and zero
-otherwise. Thus as they specify in the paper, 
-
-\begin{align}
-  P(O_{i,j}(v) | \theta) = 
+  P(O_{i,j}(v) | \Psi) = 
     \begin{cases}
-      \pi(v | \theta), & O_{i,j}(v) = 1 \\
-      1-\pi(v | \theta), & O_{i,j}(v) = 0 \\
+      \pi(v), & O_{i,j}(v, \Psi) = 1 \\
+      1-\pi(v), & O_{i,j}(v, \Psi) = 0 \\
     \end{cases}.
 \end{align}
 
-The total size of the set of samples $\mathcal{S}$ is $n_\mathcal{S} =
-|\mathcal{S}|$. Assuming all sites are biallelic, we can simplify the inner
-summation by counting the number of possible same and different pairwise
-combinations. If a site $v$'s vector of allele counts is $[c_1, c_2]$, the
-total number of pairwise combinations with the same alleles is
+(c.f. \cite{Elyashiv2016-vt}). 
+
+As in Section \ref{supsec:diversity}, the number of pairwise differences and
+the total number of pairwise comparison at a site are sufficient statistics for
+the likelihood. Then, the binomial log-likelihood for the data at site $v$ is,
 
 \begin{align}
-  n_s(v) = {c_1 \choose 2} + {c_2 \choose 2}
+  \ell_v(\Psi) &= \log(\pi(v, \Psi)) n_{\text{D},v} + \log(1-\pi(v, \Psi)) n_{\text{S},{v}}
 \end{align}
 
-and the number of different pairwise combinations is 
+\subsection{The scale of processes}
+
+We can observe $\widehat{\pi}(x)$ at a per-basepair resolution. However, for a
+variety of reasons, we do not want to fit the composite likelihood model to the
+per-basepair scale of data. First, this would be computationally infeasible.
+Second, the mean function $\pi(x)$ varies on a natural scale that is itself a
+free parameter of the model. Our model can be written as, 
 
 \begin{align}
-  n_d(v) = n_T - n_s(v)
+  \ell(\Psi, h) &= \sum_{b} \sum_{v \in \mathcal{V}_b} \ell_v(\Psi) \\
+             &= \sum_{b} \left[\log(\bar{\pi}(b, \Psi)) \sum_{v \in \mathcal{V}_b} n_{\text{D},v} + \log(1-\bar{\pi}(b, \Psi)) \sum_{v \in \mathcal{V}_b} n_{\text{S},{v}}\right] \\
+             &= \sum_{b} \left[\log(\bar{\pi}(b, \Psi)) Y_{\text{D},b} + \log(1-\bar{\pi}(b, \Psi)) Y_{\text{S},{b}}\right] \\
 \end{align}
 
-where $n_T = n_\mathcal{S} (n_\mathcal{S} - 1) / 2$  is the total number of
-pairwise combinations across the sample set $\mathcal{S}$. Note that these
-site-specific counts allow us to use allelic counts directly, and can vary
-across sites. Our log-likelihood is then,
+where $h$ is the bandwidth or window size, $b$ are physical-scale window
+indices, $\bar{\pi}(b | \Psi)$ are the average diversity in bin $b$, and
+$Y_{\text{S},b}$ and $Y_{\text{S},b}$ are the sums across putatively neutral
+sites within a bin. We fit $h$ using out-sample cross validation.
+
+This corresponds to a binomial likelihood for the observed data summarized at
+genomic scale $h$. Thus an alternative way to express this model is as, 
 
 \begin{align}
-  \ell(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right].
+  Y_{\text{D},b} \sim \text{Binom}(\bar{\pi}(b, \Psi), Y_{\text{D},b} + Y_{\text{S},b}).
 \end{align}
 
-In practice, we calculate these values across bins. For each bin, we treat
-$\pi(v | \theta)$ as fixed, assuming that at this scale, the variation in
-expected diversity across sites is minimal. For a particular chromosome, we
-have two classes of sites: those included in the diversity calculation and
-those ignored. The former sites are all putatively neutral and have reliably
-called genotypes, and the other sites are possibly non-neutral or do have
-reliably called genotypes. The total log-likelihood is the sum of bin likelihoods,
-$\ell(b)$
+Here, $\bar{\pi}(b, \Psi)$ is assumed to be the \emph{probability} of sampling
+two different alleles, rather than the average \emph{number} of pairwise
+differences; these are approximately equal when $\pi$ is small. This
+corresponds to an identity link function; one could alternatively use a
+two-alleles finite sites model link function of the form, $\pi/(1 + 2 \pi)$. We
+experimented with this and found there was little difference between these link
+functions, so we opted for the simpler identity link function.
 
-\begin{align}
-   \ell(\theta) =  \sum_b \ell(b | \theta)
-\end{align}
 
-The likelihood within a bin is then,
+\subsection{The Background Selection Reduction Factor}
 
-\begin{align}
-  \ell(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_D(v) + \log(1-\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{V}_b} n_S(v)  \\
-                               &= \log(\bar{\pi}(b | \theta)) Y_D(b) + \log(1-\bar{\pi}(b | \theta)) Y_S(b)
-\end{align}
-%
-where the two sum terms as $Y_D(b)$ and $Y_S(b)$ are data reductions at the bin
-level.
+Under the background selection model, the diversity in window $b$ is $\pi(b,
+\Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b | \Psi)$ is the predicted
+reduction in diversity due to BGS in window $b$, given background selection
+parameters $\Psi$. In practice, we pre-calculate $\bar{B}(b | \Psi)$ at fixed
+sites across the genome, and take the average of the fixed sites $B$ values
+within a widow.
 
-If the data are such that only polymorphic sites are considered, we can adapt
-this by partitioning the set $\mathcal{V}$ of neutral sites into polymorphic
-($\mathcal{P}$) and fixed sites ($\mathcal{F}$), i.e. $\mathcal{V} =
-\mathcal{P} \cup \mathcal{F}$ and $\mathcal{P} \cap \mathcal{F} = \varnothing$.
-For all $v \in \mathcal{F}$, $n_d(v) = 0$ and $n_s(v) = n_T$.
-
-Then, 
-
-\begin{align}
-  \ell(\theta) &= \sum_{v \in \mathcal{V}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] \\
-                  &= \sum_{v \in \mathcal{P}} \left[\log(\pi(v | \theta)) n_\text{D}(v) + \log(1-\pi(v | \theta)) n_\text{S}(v)\right] + \sum_{v \in \mathcal{F}} \log(1-\pi(v | \theta)) n_T(v)  \\
-\end{align}
-
-\begin{align}
-  \ell(b | \theta)  &= \log(\bar{\pi}(b | \theta)) \sum_{v \in \mathcal{P}_b} n_\text{D}(v) + \log(1-\bar{\pi}(b | \theta)) \left(\sum_{v \in \mathcal{P}_b} n_\text{S}(v) +  \sum_{v \in \mathcal{F}_b} n_T(v)  \right).
-\end{align}
-
-Note that if we assume that the total number of combinations at each fixed site
-is constant, e.g. $n_T = n_T(v)$ for all $v$, then we can use $\sum_v n_T(v) =
-n_T |\mathcal{F}_b|$.
-
-\
-\section*{The }
-
-The core parts of our likelihood are,
-
-\begin{align}
-  \ell(\theta) &=  \sum_b [\log(\bar{\pi}(b | \theta)) Y_D(b) + \log(1-\bar{\pi}(b | \theta)) Y_S(b)]
-\end{align}
-
-where,
-
-\begin{align}
-  \bar{\pi}(b |\theta) = \pi_0(b) \bar{B}(b | \theta).
-\end{align}
-
-Here, $\bar{B}(b | \theta)$ is the predicted reduction in diversity due to BGS
-in window $b$, given background selection parameters $\theta$. In practice,
-this is site-specific. We can write the reduction at any neutral site $v$ in
-the genome as the product of $B$s across all segments, 
+In practice, this is site-specific. We can write the
+reduction at any neutral site $v$ in the genome as the product of $B$s across
+all segments, 
 
 \begin{align}
   B(v | \theta) = \exp\left(- \sum_g \int f(\mu(\mathcal{A}(g)), s, S_g) w(s|\mathcal{A}(g)) ds \right)
