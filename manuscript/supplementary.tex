@@ -375,16 +375,17 @@ experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
 
 
-\section{The Background Selection Models}
+\section{The Generalized Background Selection Models}
 
-Under the background selection model, the diversity in window $b$ is $\bar{\pi}(b,
-\Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b | \Psi)$ is the predicted
-reduction in diversity due to BGS in window $b$, given background selection
-parameters $\Psi$. In practice, we pre-calculate $\bar{B}(x | \Psi)$ at fixed
-sites $x$ across the genome, and take the average of the fixed sites $B$ values
-within widow $b$ for the average $\bar{B}(b | \Psi)$. 
+Under the generalized background selection models used in our likelihood, the
+diversity in window $b$ is $\bar{\pi}(b, \Psi) = \bar{B}(b, \Psi) \pi_0$. Here,
+$\bar{B}(b | \Psi)$ is the predicted reduction in diversity due to BGS in
+window $b$, given background selection parameters $\Psi$. In practice, we
+pre-calculate $B(x | \Psi)$ at fixed sites $x$ across the genome, and take the
+average of the fixed sites $B$ values within widow $b$ for the average
+$\bar{B}(b | \Psi)$. 
 
-BGS models assume multiplicative fitness effects across sites. Thus, the total
+GBGS models assume multiplicative fitness effects across sites. Thus, the total
 reduction due to segments across the genome is the product of the individual
 reductions, 
 
@@ -401,6 +402,76 @@ segment $g$, and the recombination distance between focal site $x$ and segment
 $g$ is $d(x, g)$. The functional form of $b$ varies depending on whether the
 classic BGS model is used, or our form of Santiago and Caballero's
 (\citeyear{Santiago2016-mu}) equations (see Section XXX).
+
+\subsection{Reductions Under the Classic BGS Model}
+
+The classic BGS model, which assumes deleterious mutations cannot fix,
+expresses the reduction for a focal site in the middle of a segment
+\parencite{Hudson1995-xc,Hudson1994-oh,Nordborg1996-nq}; here we consider a
+focal site directly to an arbitrary side of a segment under a deleterious
+mutations, and extend the model to handle a focal segment arbitrarily far from
+the segment. Using our notation from equation \eqref{suppeqn:b}, the classic
+mutation-selection-balance BGS model is,
+
+\begin{align}
+  b(\mu, s, L, r, 0) &= \exp \left( - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl \right) 
+\end{align}
+
+(c.f. \cite{Hudson1995-xc} equation 5), where $\mu(l)$ is the \emph{haploid}
+per-basepair mutation rate at $l$ and $r(l)$ is the recombination fraction
+between the focal site (at position 0) and basepair $l$. Assuming constant
+per-basepair recombination and mutation rates, $r(l) = r_\text{BP}l$ and
+$\mu(l) = \mu$, and
+
+\begin{align}
+  b(\mu, s, L, r_\text{BP}, 0) &= \exp \left( - \frac{2\mu L}{s + (1-s) r_\text{BP} L} \right)
+\end{align}
+
+(c.f. \cite{Hudson1995-xc} equation 8, where the factor of two difference is
+due to the position of the focal site). Often per-region rates are defined $U =
+2 \mu L$ and $R = r_\text{BP} L$ are the segment-wide mutation diploid mutation
+rates (mutations per diploid segment per generation) and recombination length
+(Morgans). 
+
+For computational efficiency, we adjust this model by setting $r(l) = d +
+r_\text{BP} l$, where $d$ is the recombination fraction between the focal site
+$x$ and the start of segment $g$. This allows us to pre-compute the local
+effects of the segment, and substitute in $b$ as the focal site changes. This
+integral substitution has a closed form,
+
+\begin{align}
+  b(\mu, s, L, r_\text{BP}, d) &= \exp \left( \frac{-2\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))} \right)
+\end{align}
+
+and terms can be collected in powers of $d$ and pre-computed for all segments
+for the grid of $\mu$ and $s$. Our implementation pre-computes these segment
+components, and computes the final $b$ value for an $x$ and $g$ by calculating
+the distance $d(x,g) = |M(x) - M(g)|$, where $M(x)$ is the cumulative
+recombination map length at position $x$ in Morgans. Since $r(l)$ could vary by
+position, segments with differing recombination rates are split into segments
+of the same annotation class by their recombination rate. This has no effect on
+the calculation due to the multiplicative fitness, but ensures more accurate
+estimates of the reduction factor $B$.
+
+% Each B map is determined by the annotation track of putatively conserved
+% segments, which includes (1) the segment positions and lengths, (2) the type of
+% feature of each segment (e.g.  exons, UTRs, phastcons conserved elements,
+% etc.), as well as (3) the recombination map, and (3) the deleterious selection
+% coefficient $s(i)$ and mutation rate at which these deleterious enter the
+% population for feature type $i$.
+
+\subsection{Reduction Under the Modified Santiago and Caballero Model}
+
+When weak deleterious mutations can fix, causing substitutions, the classic
+background selection models break down. We find that the generalized background
+selection model of \textcite{Santiago2016-mu} works well (see Section XXX for
+our derivation). We describe how we use the models here.
+
+
+
+
+
+\subsection{Discretization of Parameters}
 
 In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
 $s$. Our models use a fixed $q$-element grid of selection coefficients, and
@@ -456,62 +527,6 @@ the mutation rate $\mu$,
 which has $2 + K \times (q-1)$ free parameters, since each column must sum to
 one. This imposes the constraint that $\sum_i w_{i,k} = 1$, requiring
 constrained MLE optimization. 
-
-\subsection{Calculation of the classic BGS B Maps}
-
-The classic BGS model expresses the reduction for a focal site in the middle of
-a segment \parencite{Hudson1995-xc,Hudson1994-oh,Nordborg1996-nq}; here we
-consider a focal site directly to an arbitrary side of a segment under a
-deleterious mutations, and extend the model to handle a focal segment
-arbitrarily far from the segment. Using our notation from equation
-\eqref{suppeqn:b}, the classic mutation-selection-balance BGS model is,
-
-\begin{align}
-  b(\mu, s, L, r, 0) &= \exp \left( - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl \right) 
-\end{align}
-
-(c.f. \cite{Hudson1995-xc} equation 5), where $\mu(l)$ is the \emph{haploid}
-per-basepair mutation rate at $l$ and $r(l)$ is the recombination fraction
-between the focal site (at position 0) and basepair $l$. Assuming constant
-per-basepair recombination and mutation rates, $r(l) = r_\text{BP}l$ and
-$\mu(l) = \mu$, and
-
-\begin{align}
-  b(\mu, s, L, r_\text{BP}, 0) &= \exp \left( - \frac{2\mu L}{s + (1-s) r_\text{BP} L} \right)
-\end{align}
-
-(c.f. \cite{Hudson1995-xc} equation 8, where the factor of two difference is
-due to the position of the focal site). Often per-region rates are defined $U =
-2 \mu L$ and $R = r_\text{BP} L$ are the segment-wide mutation diploid mutation
-rates (mutations per diploid segment per generation) and recombination length
-(Morgans). 
-
-For computational efficiency, we adjust this model by setting $r(l) = d +
-r_\text{BP} l$, where $d$ is the recombination fraction between the focal site
-$x$ and the start of segment $g$. This allows us to pre-compute the local
-effects of the segment, and substitute in $b$ as the focal site changes. This
-integral substitution has a closed form,
-
-\begin{align}
-  b(\mu, s, L, r_\text{BP}, d) &= \exp \left( \frac{-2\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))} \right)
-\end{align}
-
-and terms can be collected in powers of $d$ and pre-computed for all segments
-for the grid of $\mu$ and $s$. Our implementation pre-computes these segment
-components, and computes the final $b$ value for an $x$ and $g$ by calculating
-the distance $d(x,g) = |M(x) - M(g)|$, where $M(x)$ is the cumulative
-recombination map length at position $x$ in Morgans. Since $r(l)$ could vary by
-position, segments with differing recombination rates are split into segments
-of the same annotation class by their recombination rate. This has no effect on
-the calculation due to the multiplicative fitness, but ensures more accurate
-estimates of the reduction factor $B$.
-
-% Each B map is determined by the annotation track of putatively conserved
-% segments, which includes (1) the segment positions and lengths, (2) the type of
-% feature of each segment (e.g.  exons, UTRs, phastcons conserved elements,
-% etc.), as well as (3) the recombination map, and (3) the deleterious selection
-% coefficient $s(i)$ and mutation rate at which these deleterious enter the
-% population for feature type $i$.
 
 \section{Ratchet Rate Prediction}
 
