@@ -204,12 +204,24 @@ class BGSModel(object):
             binstats = stats.binned_statistic(midpoints, x,
                                               statistic=np.nanmean,
                                               bins=bins)
-            return binstats
+            return midpoints, binstats
         else:
             if not use_midpoints:
                 midpoints = segments.ranges[idx]
             return midpoints, x, features, seglens
 
+    def get_ratchet_array(self, chrom, width):
+        nbins = len(bin_chrom(self.seqlens[chrom], width)) - 1
+        R = np.full((nbins, len(self.w), len(self.t)), np.nan)
+        pos = None
+        for wi, w in enumerate(self.w):
+            for ti, t in enumerate(self.t):
+                mps, bins = self.get_ratchet_rates(wi, ti, chrom, width=width)
+                if pos is not None:
+                    assert np.all(mps == pos)
+                R[:, wi, ti] = bins.statistic
+                pos = mps
+        return pos, R
 
     def fill_Bp_nan(self):
         """

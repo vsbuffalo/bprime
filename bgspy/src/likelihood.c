@@ -7,9 +7,6 @@
 // if you're a bit over the max boundary, we just truncate
 #define MUTMAX_THRESH 1e-10
 
-// whether to use the two-alleles model or infinite sites
-#define TWO_ALLELES 1
-
 #define LOGBW_GET(B, ii, ll, jj, kk, s) B[(ii)*s[0] + (ll)*s[1] + (jj)*s[2] + (kk)*s[3]]
 #define W_GET(WW, jj, kk, col) WW[col*(jj) + kk]
 

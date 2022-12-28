@@ -35,8 +35,10 @@ Bclib.Ne_t_rescaled.restype = c_double
 ## Classic BGS
 def B_segment_lazy(rbp, L, t):
     """
-    TODO check rbp = 0 case
-    rt/ (b*(-1 + t) - t) * (b*(-1 + t) + r*(-1 + t) - t)
+    rt/ (rf*(-1 + t) - t) * (rf*(-1 + t) + r*(-1 + t) - t)
+
+    together:
+      x = a/(b*rf**2 + c*rf + d)
     """
     r = rbp*L
     a = -t*L # numerator -- ignores u
@@ -84,8 +86,8 @@ def calc_B_chunk_worker(args):
 
 def Q2_asymptotic(Z, M):
     """
-    This is the map-version asymptotic Q² term — up to the factor of two that
-    *cancels* with the V/2 in a diploid model.
+    This is the map-version asymptotic Q² term — including the factor of two
+    that *cancels* with the V/2 in a diploid model.
     """
     return -2/((-1 + Z)*(2 + (-2 + M)*Z))
 

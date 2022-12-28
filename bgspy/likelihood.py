@@ -493,7 +493,7 @@ def negll_mutation_numba(theta, Y, logB, w):
 def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
-def negll_c(theta, Y, logB, w, two_alleles=True):
+def negll_c(theta, Y, logB, w, two_alleles=False):
     """
     θ is [π0, μ, w11, w12, ...] and should
     have dimension (nt x nf) + 2
@@ -823,7 +823,7 @@ class BGSLikelihood:
         rows.append(f"  t grid: {signif(self.t)}")
         return "\n".join(rows)
 
-def negll_freemut(Y, B, w, two_alleles=True):
+def negll_freemut(Y, B, w, two_alleles=False):
     """
     This is a closure around data; returns a negative log- likelihood
     function around the data and a few fixed parameters (B and w).
@@ -841,7 +841,7 @@ def negll_freemut(Y, B, w, two_alleles=True):
         return negll_c(new_theta, Y, B, w, two_alleles)
     return func
 
-def negll_freemut_full(theta, grad, Y, B, w, two_alleles=True):
+def negll_freemut_full(theta, grad, Y, B, w, two_alleles=False):
     """
     Like negll_freemut() but not a closure.
 
@@ -896,7 +896,7 @@ class FreeMutationModel(BGSLikelihood):
                                self.log10_pi0_bounds,
                                self.log10_mu_bounds, paired=paired)
 
-    def fit(self, starts=1, ncores=None, algo='ISRES', two_alleles=True,
+    def fit(self, starts=1, ncores=None, algo='ISRES', two_alleles=False,
             _indices=None):
         """
         Fit likelihood models with mumeric optimization (either scipy or nlopt).
