@@ -375,19 +375,11 @@ experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
 
 
-\section{The Generalized Background Selection Models}
+\section{Background Selection Models}
 
-Under the generalized background selection models used in our likelihood, the
-diversity in window $b$ is $\bar{\pi}(b, \Psi) = \bar{B}(b, \Psi) \pi_0$. Here,
-$\bar{B}(b | \Psi)$ is the predicted reduction in diversity due to BGS in
-window $b$, given background selection parameters $\Psi$. In practice, we
-pre-calculate $B(x | \Psi)$ at fixed sites $x$ across the genome, and take the
-average of the fixed sites $B$ values within widow $b$ for the average
-$\bar{B}(b | \Psi)$. 
-
-GBGS models assume multiplicative fitness effects across sites. Thus, the total
-reduction due to segments across the genome is the product of the individual
-reductions, 
+The BGS models considered here both assume multiplicative fitness effects
+across sites. Thus, the total reduction due to segments across the genome is
+the product of the individual reductions, 
 
 \begin{align}
   \label{suppeqn:b}
@@ -403,6 +395,13 @@ $g$ is $d(x, g)$. The functional form of $b$ varies depending on whether the
 classic BGS model is used, or our form of Santiago and Caballero's
 (\citeyear{Santiago2016-mu}) equations (see Section XXX).
 
+Under both background selection models used in our likelihood, the diversity in
+window $b$ is $\bar{\pi}(b, \Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b |
+\Psi)$ is the predicted reduction in diversity due to BGS in window $b$, given
+background selection parameters $\Psi$. In practice, we pre-calculate $B(x |
+\Psi)$ at fixed sites $x$ across the genome, and take the average of the fixed
+sites $B$ values within widow $b$ for the average $\bar{B}(b | \Psi)$. 
+
 \subsection{Reductions Under the Classic BGS Model}
 
 The classic BGS model, which assumes deleterious mutations cannot fix,
@@ -410,8 +409,9 @@ expresses the reduction for a focal site in the middle of a segment
 \parencite{Hudson1995-xc,Hudson1994-oh,Nordborg1996-nq}; here we consider a
 focal site directly to an arbitrary side of a segment under a deleterious
 mutations, and extend the model to handle a focal segment arbitrarily far from
-the segment. Using our notation from equation \eqref{suppeqn:b}, the classic
-mutation-selection-balance BGS model is,
+the segment. To simplify notation, we will only consider a single feature class
+in this and the next section. Using our notation from equation
+\eqref{suppeqn:b}, the classic mutation-selection-balance BGS model is,
 
 \begin{align}
   b(\mu, s, L, r, 0) &= \exp \left( - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl \right) 
@@ -429,7 +429,7 @@ $\mu(l) = \mu$, and
 
 (c.f. \cite{Hudson1995-xc} equation 8, where the factor of two difference is
 due to the position of the focal site). Often per-region rates are defined $U =
-2 \mu L$ and $R = r_\text{BP} L$ are the segment-wide mutation diploid mutation
+2 \mu L$ and $M = r_\text{BP} L$ are the segment-wide mutation diploid mutation
 rates (mutations per diploid segment per generation) and recombination length
 (Morgans). 
 
@@ -465,23 +465,85 @@ estimates of the reduction factor $B$.
 When weak deleterious mutations can fix, causing substitutions, the classic
 background selection models break down. We find that the generalized background
 selection model of \textcite{Santiago2016-mu} works well (see Section XXX for
-our derivation). We describe how we use the models here.
+our derivation). Unlike the classic BGS models which only produce B maps, that
+only estimate the reduction in effective population size, The generalized BGS
+model of \textcite{Santiago2016-mu} also predicts the deleterious substitution
+rate per generation per segment (the ``ratchet" rate), which we call the R map.
+We describe how these are calculated substitution rates per segment, for each
+mutation rate and selection coefficient combination in the grids. We describe
+how these are calculated here.
+
+First, the reduction factor experienced by a focal site within the segment $g$
+(and thus is similar to what selected alleles in $g$ experience) under
+generalized background selection is calculated as
+
+\begin{align}
+  \widetilde{b}'(\mu, s, L, r_\text{BP}) = \frac{\widetilde{N}_{e,\infty}}{N}
+\end{align}
+
+where $\widetilde{N}_{e,\infty}$ is the asymptotic effective population size,
+which is the solution to the following system of two equations (see XXX for
+derivation),
+
+\begin{align}
+  {N}_{e,\infty} &= \exp \left( -\frac{V}{2} Q_\infty^2 \right) \\
+  {R} &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
+\end{align}
+
+where 
+
+\begin{align}
+  V &= U s - 2 {R} s \\
+  Q_\infty^2 &= \frac{2}{(1-Z)(2-(2-M)Z)} \\
+  Z &= 1 - \frac{Us}{U-{R}}
+\end{align}
+
+and $U = 2\mu L$ and $M = r_\text{BP} L$ as above. Solving this system of two
+equations for each segment also gives the total substitution or ``ratchet" rate
+per generation per segment ($\widetilde{R}$). The per-basepair substitution
+rate of the segment is $\lambda = \nicefrac{\widetilde{R}}{L}$
+
+Under Santiago and Caballero's model, the correct effective population size to
+gauge reduction in heterozygosity or coalescent times is given by equation XXX.
+This is because selective processes can lead to non-constant pairwise
+coalescent rates, which impact pairwise coalescent rates and thus the reduction
+factor. We experimented with the corrections described in Section XXX, and
+found (1) they had little effect on the accuracy of the B maps, and (2) they
+were incredibly costly to calculate, even with the approximations described in
+equations XXX. Overall, we solve for the asymptotic $\widetilde{N}_{e,\infty}$
+for each segment, and use that to calculate $b'$.
+
+Note that the asymptotic model above determines the reduction in effective
+population size experienced by a focal site in the middle of a $L$-basepair
+segment, but B maps require the reduction $b'$ experienced by a focal site $x$
+at an arbitrary recombination distance apart. For each segment, we pre-compute
+the solution to the system of two equations, giving us $V$ and $Q_\infty^2$,
+and then use these values in the equation,
+
+\begin{align}
+  b'(\mu, s, L, r, d) = \exp\left( -\frac{V}{2} \left(\frac{1}{(1-(1-d)Z}\right)^2 \right) 
+\end{align}
+
+where $Z = 1 - Us / (U-\widetilde{R})$ and $V = Us - 2\widetilde{R}s$.
 
 
+\subsection{Discretization of Parameters and Annotation Feature Classes}
 
-
-
-\subsection{Discretization of Parameters}
+\begin{align}
+  \label{suppeqn:b}
+  B(x, \Psi) = \prod_g \sum_{i} b(\mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g))
+\end{align}
 
 In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
 $s$. Our models use a fixed $q$-element grid of selection coefficients, and
-mutation rates are on a fixed $z$-element grid, which is interpolated over
-during ML optimization. The number of annotation features $K$ is variable and
-set by the annotation data specified. There are two ways to parameterize the
-mutation rates and DFE for all annotation classes in background selection
-models. First, for the \emph{free-mutation} parameterization, each annotation
-feature class has a free mutation rate parameter for each of these selection
-coefficients (as in equation \eqref{suppeqn:b}).
+mutation rates are on a fixed $z$-element grid, which is later interpolated
+over during the maximum likelihood optimization. The number of annotation
+features $K$ is variable and set by the annotation data specified. There are
+two ways to parameterize the mutation rates and DFE for all annotation classes
+in background selection models. First, for the \emph{free-mutation}
+parameterization, each annotation feature class has a free mutation rate
+parameter for each of these selection coefficients (as in equation
+\eqref{suppeqn:b}).
 
 In the free-mutation parameterization, there are $1 + K \times q$ for $\pi_0$
 and the free mutation rate parameters, where $K$ is the number of annotation
