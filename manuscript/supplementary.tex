@@ -185,7 +185,7 @@ Non-polymorphic sites have $n_S = {n \choose 2}$ and $n_D = 0$, and missing
 data has $n_S = n_D = 0$.
 
 \subsection{Pairwise Diversity Estimates}
-\label{supsec:diversity}
+\label{suppsec:diversity}
 
 The pairwise diversity at site $l$ across the $n$ sampled chromosomes can be
 calculated from row $l$ of the $\mathbf{Y}$ matrix as follows,
@@ -325,7 +325,7 @@ probability, so we can write
 
 (c.f. \cite{Elyashiv2016-vt}). 
 
-As in Section \ref{supsec:diversity}, the number of pairwise differences and
+As in Section \ref{suppsec:diversity}, the number of pairwise differences and
 the total number of pairwise comparison at a site are sufficient statistics for
 the likelihood. Then, the binomial log-likelihood for the data at site $v$ is,
 
@@ -347,13 +347,20 @@ free parameter of the model. Our model can be written as,
              &= \sum_{b} \left[\log(\bar{\pi}(b, \Psi)) Y_{\text{D},b} + \log(1-\bar{\pi}(b, \Psi)) Y_{\text{S},{b}}\right] \\
 \end{align}
 
-where $h$ is the bandwidth or window size, $b$ are physical-scale window
-indices, $\bar{\pi}(b | \Psi)$ are the average diversity in bin $b$, and
+where $h$ is the bandwidth or window size, $b$ the bin index for windows of
+width $h$, $\mathcal{V}_b$ is the set of putatively neutral sites in bin $b$,
+$\bar{\pi}(b | \Psi)$ are the average diversity in bin $b$, and
 $Y_{\text{S},b}$ and $Y_{\text{S},b}$ are the sums across putatively neutral
-sites within a bin. We fit $h$ using out-sample cross validation.
+sites within a bin. Note that by binning, we sum the pairwise summaries of the
+data $\mathbf{Y}$ across sites, so the likelihood across bins is naturally
+weighted by the quantity of observed data. We estimate $h$ by fitting the model
+for a variety of window sizes $h$ and select the best using out-sample cross
+validation, as is standard in non-parametric regression (XXX, Wasserman, p.
+70).
 
-This corresponds to a binomial likelihood for the observed data summarized at
-genomic scale $h$. Thus an alternative way to express this model is as, 
+This model corresponds to a binomial likelihood for the observed data
+summarized at genomic scale $h$. Thus an alternative way to express this model
+is as, 
 
 \begin{align}
   Y_{\text{D},b} \sim \text{Binom}(\bar{\pi}(b, \Psi), Y_{\text{D},b} + Y_{\text{S},b}).
@@ -368,110 +375,143 @@ experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
 
 
-\subsection{The Background Selection Reduction Factor}
+\section{The Background Selection Models}
 
-Under the background selection model, the diversity in window $b$ is $\pi(b,
+Under the background selection model, the diversity in window $b$ is $\bar{\pi}(b,
 \Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b | \Psi)$ is the predicted
 reduction in diversity due to BGS in window $b$, given background selection
 parameters $\Psi$. In practice, we pre-calculate $\bar{B}(x | \Psi)$ at fixed
 sites $x$ across the genome, and take the average of the fixed sites $B$ values
 within widow $b$ for the average $\bar{B}(b | \Psi)$. 
 
-There are two ways to parameterize background selection models. Both models use
-a fixed $q$-grid of selection coefficients ranging $s \in \{10^{-6}, 10^{-5},
-10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}\}$ (here, $q=6$) and interpolate over a grid
-of mutation rates. First, for the \emph{free-mutation} parameterization, each
-annotation feature class has a free mutation rate parameter for each of these
-selection coefficients. That is, the distribution of fitness effect (DFE) is
-implied by the total mutation rate across selection coefficients for an
-annotation class.  We can normalize by the total mutation rate estimate to get
-the estimated DFE, giving us the DFE weight for annotation class $k$ and
-selection coefficient with index $i$,
+BGS models assume multiplicative fitness effects across sites. Thus, the total
+reduction due to segments across the genome is the product of the individual
+reductions, 
+
+\begin{align}
+  \label{suppeqn:b}
+  B(x, \Psi) = \prod_g \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds
+\end{align}
+
+where, $b(\mu(s, k(g)), s, L_g, r_g, d(x,g))$ is the reduction due to segment
+$g$. Here, $\mu(s, k(g))$ is the per-basepair per-genome rate that mutations
+with selection coefficient $s$ enter segments with feature class $k(g)$, $L_g$
+and $r_g$ are the length in basepairs and recombination rate per basepair of
+segment $g$, and the recombination distance between focal site $x$ and segment
+$g$ is $d(x, g)$. The functional form of $b$ varies depending on whether the
+classic BGS model is used, or our form of Santiago and Caballero's
+(\citeyear{Santiago2016-mu}) equations (see Section XXX).
+
+In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
+$s$. Our models use a fixed $q$-element grid of selection coefficients, and
+mutation rates are on a fixed $z$-element grid, which is interpolated over
+during ML optimization. The number of annotation features $K$ is variable and
+set by the annotation data specified. There are two ways to parameterize the
+mutation rates and DFE for all annotation classes in background selection
+models. First, for the \emph{free-mutation} parameterization, each annotation
+feature class has a free mutation rate parameter for each of these selection
+coefficients (as in equation \eqref{suppeqn:b}).
+
+In the free-mutation parameterization, there are $1 + K \times q$ for $\pi_0$
+and the free mutation rate parameters, where $K$ is the number of annotation
+features. The MLE optimization for this approach is unconstrained, though
+$\pi_0$ is bounded to be within $10^{-5} \le \pi_0 \le 10^{-1}$ and mutation
+rates are bounded within $10^{-11} \le \mu \le 10^{-7}$. The BGS model requires
+a mutation rate for each selection coefficient in the grid, for each annotation
+class (here, as an example, CDS, UTRs, and phastcons), which are stored in the
+$q \times K$ matrix $\mathbf{M}_\text{F}$,
+
+\begin{align}
+  \mathbf{M}_\text{F} = \begin{bmatrix}
+    \mu_{10^{-6},\text{CDS}} & \mu_{10^{-6},\text{UTR}} & \mu_{10^{-6},\text{PC}} \\
+    \mu_{10^{-5},\text{CDS}} & \mu_{10^{-5},\text{UTR}} & \mu_{10^{-5},\text{PC}} \\
+    \vdots & \vdots & \vdots \\
+    \mu_{10^{-1},\text{CDS}} & \mu_{10^{-1},\text{UTR}} & \mu_{10^{-1},\text{PC}} \\
+  \end{bmatrix}
+\end{align}
+
+That is, the distribution of fitness effect (DFE) is implied by
+the total mutation rate across selection coefficients for an annotation class.
+We can normalize by the total mutation rate estimate to get the estimated DFE,
+giving us the DFE weight for annotation class $k$ and selection coefficient
+with index $i$,
 
 \begin{align}
   \widehat{w}_{i,k} = \frac{\widehat{\mu}_{i,k}}{\sum_i \widehat{\mu}_{i,k}}.
 \end{align}
 
-With this parameterization, there are $1 + K \times q$ for $\pi_0$ and the free
-DFE parameters, where $K$ is the number of annotation features. The MLE
-optimization for this approach is unconstrained, though $\pi_0$ is bounded to
-be within $10^{-5} \le \pi_0 \le 10^{-1}$. 
+The second parametrization is the \emph{simplex} parametrization, which has a
+single mutation rate across all features, so it is a DFE weight matrix times
+the mutation rate $\mu$, 
 
 \begin{align}
-  W = \begin{bmatrix}
-    \mu_{10^{-6},\text{CDS}} & \mu_{10^{-6},\text{UTR}} & w_{10^{-6},\text{phastcons}} \\
-    \mu_{10^{-5},\text{CDS}} & \mu_{10^{-5},\text{UTR}} & w_{10^{-5},\text{phastcons}} \\
+  \mathbf{M}_\text{S} = \mu \begin{bmatrix}
+    w_{10^{-6},\text{CDS}} & w_{10^{-6},\text{UTR}} & w_{10^{-6},\text{PC}} \\
+    w_{10^{-5},\text{CDS}} & w_{10^{-5},\text{UTR}} & w_{10^{-5},\text{PC}} \\
     \vdots & \vdots & \vdots \\
-    \mu_{10^{-1},\text{CDS}} & \mu_{10^{-1},\text{UTR}} & w_{10^{-1},\text{phastcons}} \\
+    w_{10^{-1},\text{CDS}} & w_{10^{-1},\text{UTR}} & w_{10^{-1},\text{PC}} \\
   \end{bmatrix}
 \end{align}
 
-The second parametrization is the \emph{simplex} parametrization, which has a
-single mutation rate across all features, and the DFE is parameterized by a
-matrix $W$
+which has $2 + K \times (q-1)$ free parameters, since each column must sum to
+one. This imposes the constraint that $\sum_i w_{i,k} = 1$, requiring
+constrained MLE optimization. 
 
-which has $2
-+ K \times (q-1)$ free parameters.
+\subsection{Calculation of the classic BGS B Maps}
 
-In practice, this is site-specific. We can write the
-reduction at any neutral site $v$ in the genome as the product of $B$s across
-all segments, 
-
-\begin{align}
-  B(v | \theta) = \exp\left(- \sum_g \int f(\mu(\mathcal{A}(g)), s, S_g) w(s|\mathcal{A}(g)) ds \right)
-\end{align}
-
-where $S_g$ is exogenous genomic data about the segment, $S_g = \{L_g, r_g,
-\rho(|v-p_g|)\}$, where $L_g$ is the segment's length, $r_g$ is the
-recombination rate per basepair in the segment, and $\rho(|v-p_g|)$ is the
-recombination distance between the focal site $v$ and the segment position
-$p_g$ (we approximate, and use the nearest end position to the neutral site).
-Additionally, $w(s|\mathcal{A}(g))$ is the distribution of selection
-coefficients for segment $g$, if segment $g$ is a member of annotation class
-$\mathcal{A}(g)$.
-
-We can think about the DFE as the conditional distribution of a particular
-selection coefficient given a mutation occurs, for a particular annotation
-class. The BGS function $f(\cdot)$ only depends on $\mu$ through the
-introduction of deleterious alleles with selection coefficient $s$ at rate
-$\omega(s|\mathcal{A}(g)) = \mu(\mathcal{A}(g)) w(s | \mathcal{A}(g))$. Thus,
-we can write, 
+The classic BGS model expresses the reduction for a focal site in the middle of
+a segment \parencite{Hudson1995-xc,Hudson1994-oh,Nordborg1996-nq}; here we
+consider a focal site directly to an arbitrary side of a segment under a
+deleterious mutations, and extend the model to handle a focal segment
+arbitrarily far from the segment. Using our notation from equation
+\eqref{suppeqn:b}, the classic mutation-selection-balance BGS model is,
 
 \begin{align}
-  B(v | \theta) = \exp\left(- \sum_g \int f(\omega(s|\mathcal{A}(g)), s, S_g) ds \right)
+  b(\mu, s, L, r, 0) &= \exp \left( - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl \right) 
 \end{align}
 
-
-which we can discretize as,
+(c.f. \cite{Hudson1995-xc} equation 5), where $\mu(l)$ is the \emph{haploid}
+per-basepair mutation rate at $l$ and $r(l)$ is the recombination fraction
+between the focal site (at position 0) and basepair $l$. Assuming constant
+per-basepair recombination and mutation rates, $r(l) = r_\text{BP}l$ and
+$\mu(l) = \mu$, and
 
 \begin{align}
-  B(v | \theta) = \exp\left(- \sum_g \sum_s f(\omega(s|\mathcal{A}(g)), s, S_g) \right).
+  b(\mu, s, L, r_\text{BP}, 0) &= \exp \left( - \frac{2\mu L}{s + (1-s) r_\text{BP} L} \right)
 \end{align}
 
-Next, note that there are a finite number of annotation classes, $\mathcal{A}
-\to \{a_1, a_2, \ldots, a_k\}$, so we can further partition this as
+(c.f. \cite{Hudson1995-xc} equation 8, where the factor of two difference is
+due to the position of the focal site). Often per-region rates are defined $U =
+2 \mu L$ and $R = r_\text{BP} L$ are the segment-wide mutation diploid mutation
+rates (mutations per diploid segment per generation) and recombination length
+(Morgans). 
+
+For computational efficiency, we adjust this model by setting $r(l) = d +
+r_\text{BP} l$, where $d$ is the recombination fraction between the focal site
+$x$ and the start of segment $g$. This allows us to pre-compute the local
+effects of the segment, and substitute in $b$ as the focal site changes. This
+integral substitution has a closed form,
 
 \begin{align}
-  B(v | \theta) = \exp\left(- \sum_{\{g \;:\; \mathcal{A}(g) = a_1\}} \sum_s f(\omega(s| a_1), s, S_g) + \sum_{\{g \;:\; \mathcal{A}(g) = a_2\}} \sum_s f(\omega(s| a_2), s, S_g) + \ldots  \right)
+  b(\mu, s, L, r_\text{BP}, d) &= \exp \left( \frac{-2\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))} \right)
 \end{align}
 
-Let us define the $d_\omega \times d_s \times d_g$ multidimensional array
-$\mathbf{F}$, and the $d_g \times d_a$ feature classification matrix
-$\mathbf{A}$.
+and terms can be collected in powers of $d$ and pre-computed for all segments
+for the grid of $\mu$ and $s$. Our implementation pre-computes these segment
+components, and computes the final $b$ value for an $x$ and $g$ by calculating
+the distance $d(x,g) = |M(x) - M(g)|$, where $M(x)$ is the cumulative
+recombination map length at position $x$ in Morgans. Since $r(l)$ could vary by
+position, segments with differing recombination rates are split into segments
+of the same annotation class by their recombination rate. This has no effect on
+the calculation due to the multiplicative fitness, but ensures more accurate
+estimates of the reduction factor $B$.
 
-
-
-  
-\section{Calculation of B Maps}
-
-Each B map is determined by the annotation track of putatively conserved
-segments, which includes (1) the segment positions and lengths, (2) the type of
-feature of each segment (e.g.  exons, UTRs, phastcons conserved elements,
-etc.), as well as (3) the recombination map, and (3) the deleterious selection
-coefficient $s(i)$ and mutation rate at which these deleterious enter the
-population for feature type $i$.
-
-The B maps are computed at fixed, evenly spaced sites.
+% Each B map is determined by the annotation track of putatively conserved
+% segments, which includes (1) the segment positions and lengths, (2) the type of
+% feature of each segment (e.g.  exons, UTRs, phastcons conserved elements,
+% etc.), as well as (3) the recombination map, and (3) the deleterious selection
+% coefficient $s(i)$ and mutation rate at which these deleterious enter the
+% population for feature type $i$.
 
 \section{Ratchet Rate Prediction}
 
