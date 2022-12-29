@@ -40,6 +40,8 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl.gff3.gz",
          "hg38.ensembl_cds.bed.gz", 
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
+
+         "hg38.cds_lengths.tsv",
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
          "hg38.ensembl_promoters_2kb.bed.gz",
@@ -144,6 +146,14 @@ rule ensembl_gff:
        gzip > {output}
      """
 
+rule ensembl_exon_lens:
+  input: "Homo_sapiens.GRCh38.cds.all.fa.gz"
+  output: "hg38.cds_lengths.tsv"
+  shell:
+    """
+    python ../../tools/cds_lengths.py {input[0]} gene_cds_lengths.pkl > {output}
+    """
+  
 rule ensembl_promoters:
    input: gff="hg38.ensembl.gff3.gz", seqlens="hg38_seqlens.tsv"
    output: "hg38.ensembl_promoters_2kb.bed.gz"

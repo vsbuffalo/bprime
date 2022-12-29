@@ -34,8 +34,8 @@ for line in gff_file:
         transcripts[key].add(end-start)
         continue
 
-   
-        
+
+
 
 with open('gene_coords.pkl', 'wb') as f:
     pickle.dump(genes, f)

@@ -328,7 +328,7 @@ def facet_wrap(nitems, ncols, **kwargs):
     return fig, [ax[i[0], i[1]] for i in
                  itertools.product(range(nrows), range(ncols))]
 
-def readfq(fp): # this is a generator function
+def readfq(fp, name_only=True): # this is a generator function
     """
     Thanks to Heng Li! https://github.com/lh3/readfq/blob/master/readfq.py
     """
@@ -340,7 +340,10 @@ def readfq(fp): # this is a generator function
                     last = l[:-1] # save this line
                     break
         if not last: break
-        name, seqs, last = last[1:].partition(" ")[0], [], None
+        if name_only:
+            name, seqs, last = last[1:].partition(" ")[0], [], None
+        else:
+            name, seqs, last = last[1:], [], None
         for l in fp: # read the sequence
             if l[0] in '@+>':
                 last = l[:-1]

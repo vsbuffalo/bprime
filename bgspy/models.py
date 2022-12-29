@@ -37,6 +37,7 @@ import numpy as np
 import allel
 from scipy.optimize import minimize_scalar
 import scipy.stats as stats
+import pandas as pd
 
 from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
@@ -204,23 +205,56 @@ class BGSModel(object):
             binstats = stats.binned_statistic(midpoints, x,
                                               statistic=np.nanmean,
                                               bins=bins)
-            return midpoints, binstats
+            bin_midpoints = 0.5*(bins[:-1] + bins[1:])
+            return bin_midpoints, binstats
         else:
             if not use_midpoints:
                 midpoints = segments.ranges[idx]
             return midpoints, x, features, seglens
 
-    def get_ratchet_array(self, chrom, width):
-        nbins = len(bin_chrom(self.seqlens[chrom], width)) - 1
+    def get_ratchet_segment_array(self):
+        segments = self.genome.segments
+        midpoints = segments.ranges.mean(axis=1)
+        seglens = np.diff(segments.ranges, axis=1).squeeze()
+        # elements are V, Vm, T -- we call T = x here
+        T = segments._segment_parts_sc16[2]
+        R = 1/T
+        r = R/seglens
+        return midpoints, r, segments.ranges, seglens
+
+    def ratchet_df(self, W=None):
+        """
+        Output a combined ratchet.
+        """
+        segments = self.genome.segments
+        ranges = segments.ranges
+        seglens = np.diff(segments.ranges, axis=1).squeeze()
+        chroms = []
+        for chrom, indices in segments.index.items():
+            chroms.extend([chrom] * len(indices))
+        chroms = np.array(chroms)
+        # elements are V, Vm, T -- we call T = x here
+        T = segments._segment_parts_sc16[2]
+        R = 1/T
+        r = R/seglens
+        if W is None:
+            W = np.full(r.shape[:2], 1)
+        r = np.einsum('wtl,wt->l', r, W)
+        return pd.DataFrame({'chrom': chroms, 'r': r, 'seglen': seglens,
+                             'start':ranges[:, 0], 'end':ranges[:, 1]})
+
+
+    def get_ratchet_bined_array(self, chrom, width):
+        bins = bin_chrom(self.seqlens[chrom], width)
+        nbins = len(bins) - 1
         R = np.full((nbins, len(self.w), len(self.t)), np.nan)
-        pos = None
+        pos = 0.5*(bins[:-1] + bins[1:])
         for wi, w in enumerate(self.w):
             for ti, t in enumerate(self.t):
                 mps, bins = self.get_ratchet_rates(wi, ti, chrom, width=width)
                 if pos is not None:
                     assert np.all(mps == pos)
                 R[:, wi, ti] = bins.statistic
-                pos = mps
         return pos, R
 
     def fill_Bp_nan(self):
