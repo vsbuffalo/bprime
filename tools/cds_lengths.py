@@ -124,14 +124,22 @@ for aa, i in sorted(AA_idx.items(), key=lambda x: x[0]):
 major_codons = {aa: max(c, key=c.get) for aa, c in codon_table_alt.items()}
 
 # calculate the CAIs
-
+cai = dict()
 for gene_id, codons in obs_cds_codon_counts.items():
-    # put in order
-    counts = np.array([codons[c] for c in AA_CODON_idx.keys()])
-    fi = counts/counts.sum()
+    total = sum(codons.values())
+    gene_sum = 0
+    for codon, counts in codons.items():
+        f = counts / total
+        aa = CODON_TBL[codon]
+        best_codon = major_codons[aa]
+        best_codon_freq = codon_table_alt[aa][best_codon]
+        gene_sum += np.log(f/best_codon_freq)
+    n = len(codons)
+    cai[gene_id] = np.exp(1/n * gene_sum)
 
-    # get the AAs
-    aas = [CODON_TBL[c] for c in codons]
+
+
+    # aas = [CODON_TBL[c] for c in codons]
 
 
 
