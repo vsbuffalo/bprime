@@ -147,7 +147,7 @@ rule ensembl_gff:
      """
 
 rule ensembl_exon_lens:
-  input: "Homo_sapiens.GRCh38.cds.all.fa.gz"
+  input: "ensembl_cds_canonical_protein_coding.fa.gz" # downloaded manually, see README.md
   output: "hg38.cds_lengths.tsv"
   shell:
     """
