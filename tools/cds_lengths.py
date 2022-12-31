@@ -3,6 +3,7 @@ import pickle
 from collections import Counter, defaultdict
 import numpy as np
 from bgspy.utils import readfq, readfile
+import Bio.Data.CodonTable as CT
 from CAI import CAI, relative_adaptiveness
 
 START = 'ATG'
@@ -16,6 +17,8 @@ invalid = 0
 
 cleaned_codons = dict()
 locs = dict()
+gc3 = dict()
+
 
 fp = readfile(sys.argv[1])
 for name, seq, _ in readfq(fp, name_only=False):
@@ -52,6 +55,11 @@ for name, seq, _ in readfq(fp, name_only=False):
     # reinsert the start codon (CAI examples have this!)
     codons.insert(0, 'ATG')
 
+    # get the gc3
+    gc3[gene_id] = sum([c[2] in 'GC' for c in codons]) / len(codons)
+
+    #
+
     assert all([len(x)==3 for x in codons])
     assert '_' not in codons
     cleaned_codons[gene_id] = ''.join(codons)
@@ -63,10 +71,12 @@ ref = list(cleaned_codons.values())
 
 weights = relative_adaptiveness(sequences=ref)
 
+print('\t'.join(['chrom', 'start', 'end', 'gene_id', 'cai', 'gc', 'gc3', 'len']))
 for gene_id, seq in cleaned_codons.items():
     chrom, start, end = locs[gene_id]
     cai = CAI(seq, weights=weights)
     gc = sum(x in 'GC' for x in seq) / len(seq)
-    print('\t'.join(map(str, ['chr'+chrom, start, end, gene_id, cai, gc, len(seq)])))
+    data = ['chr'+chrom, start, end, gene_id, cai, gc, gc3[gene_id], len(seq)]
+    print('\t'.join(map(str, data)))
 
 
