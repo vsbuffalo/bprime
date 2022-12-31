@@ -1,0 +1,62 @@
+import os
+import re
+import pandas as pd
+from bgspy.utils import read_phylofit, get_human_branch_length
+
+PF_DIR = 'phylofit_estimates/'
+
+primate10 = """\
+10_primates.epo.1_1.maf.gz
+10_primates.epo.1_2.maf.gz
+10_primates.epo.1_3.maf.gz
+10_primates.epo.1_4.maf.gz
+10_primates.epo.1_5.maf.gz
+10_primates.epo.1_6.maf.gz
+10_primates.epo.1_7.maf.gz
+10_primates.epo.1_8.maf.gz
+10_primates.epo.1_9.maf.gz
+"""
+
+
+phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
+
+rule merge_phylofit:
+  input: phylo_fits
+  output: "phylofit_rates.bed"
+  run:
+    chroms, starts, ends = [], [], []
+    rates = []
+    for file in os.listdir(PF_DIR):
+        loc = re.match('(?P<chrom>chr[0-9X]+):(?P<start>\d+)-(?P<end>\d+).mod', file)
+        if loc is None:
+            continue
+        chrom, start, end = loc.groups()
+        rate = get_human_branch_length(read_phylofit(os.path.join(PF_DIR, file))['tree'])
+        chroms.append(chrom)
+        starts.append(int(start))
+        ends.append(int(end))
+        rates.append(rate)
+
+        pf = pd.DataFrame(dict(chrom=chroms, start=starts, end=ends, rate=rates))
+        pf = pf.sort_values(by=['chrom', 'start', 'end'])
+        pf.to_csv(output[0], sep='\t', header=False, index=False)
+
+
+rule windows:
+  input: annot="../annotation/hg38_seqlens.tsv"
+  output: "hg38_windows_{width}.bed"
+  shell:
+    """
+    bedtools makewindows -g {input.annot} -w {wildcards.width} | bedtools sort > {output[0]}
+    """
+
+rule subs:
+  input: pf="phylofit_rates.bed", win="hg38_windows_{width}.bed"
+  output: "phylofit_rates_binned_{width}.bed"
+  shell:
+    """
+    bedtools map -a {input.win} -b {input.pf} -c 4 -o mean > {output}
+    """
+
+rule all:
+  input: "phylofit_rates.bed", "phylofit_rates_binned_1000000.bed", "phylofit_rates_binned_10000.bed", "phylofit_rates_binned_100000.bed"
