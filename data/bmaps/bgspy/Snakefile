@@ -108,16 +108,16 @@ maps = [
 
         ## merged genomic features with phastcons as a catch all + all other bp as 'other'
         # note: this uses the simplified phastcons track, merging all ranges 100bp within each other
-        "bmap_hg38_6x6grid_10000step_10000N_cds_utrs_phastcons_full.pkl",
+        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl",
 
         ## merged genomic features with phastcons as a catch all
-        "bmap_hg38_6x6grid_10000step_10000N_cds_utrs_phastcons.pkl",
+        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
         
         # with regulatory elements (and simplified phastcons)
-        "bmap_hg38_6x6grid_10000step_10000N_cds_utrs_regulatory_phastcons.pkl",
+        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_regulatory_phastcons.pkl",
 
         ## unlabelled types -- currently only N=10k
-        "bmap_hg38_6x6grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
+        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
 
         ## for checking empirical ratchet convergence
 	"bmap_hg37_ratchet_10000step_10000N_cds_utrs_phastcons.pkl"

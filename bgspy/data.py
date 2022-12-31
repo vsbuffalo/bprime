@@ -800,6 +800,7 @@ class GenomicBinnedData(GenomicBins):
             out[chrom] = dat
         return out
 
+    @property
     def mask_array(self):
         array = []
         for chrom in self.data_.keys():
