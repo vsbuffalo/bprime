@@ -2,6 +2,7 @@ import os
 import re
 import pandas as pd
 from bgspy.utils import read_phylofit, get_human_branch_length
+from bgspy.models import BGSModel
 
 PF_DIR = 'phylofit_estimates/'
 
@@ -58,5 +59,67 @@ rule subs:
     bedtools map -a {input.win} -b {input.pf} -c 4 -o mean > {output}
     """
 
+rule test_ratchet_data:
+  # this is the full phastcons raw segment ratchet data, calculated alongside 
+  # the B scores.
+  input: full_pkl = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
+  output: "cds_utrs_phastcons_full_ratchet.bed"
+  run:
+    full_m = BGSModel.load(input.full_pkl)
+    rdf = full_m.ratchet_df()
+    rdf = rdf.sort_values(['chrom', 'start', 'end'])
+    rdf.to_csv(output[0], sep='\t', header=False, index=False)
+
+rule urrichio_data:
+  input: data="41559_2019_890_MOESM3_ESM.txt"
+  output: "urrichio_data.bed"
+  run: 
+    cols = ('gene_id', 'n_nonsyn', 'nonsyn_daf', 'n_syn', 
+        'syn_daf', 'fixed_nonsyn', 'fixed_syn')
+
+    gr = pd.read_csv('../data/41559_2019_890_MOESM3_ESM.txt', 
+                     sep='\t', names=cols, comment='#')
+    gr['dnDs'] = gr['fixed_nonsyn'] / gr['fixed_syn']
+    gr = gr.merge(cd, on='gene_id')
+    gr['total_fixed'] = gr['fixed_nonsyn']+gr['fixed_syn']
+    gr['syn_prop'] = gr['fixed_syn'] / gr['len']
+    gr['nonsyn_prop'] = gr['fixed_nonsyn'] / gr['len']
+    gr['total_prop'] = gr['total_fixed'] / gr['len']
+    gr['dNdS'] = gr['fixed_nonsyn']/gr['fixed_syn']
+    gr = gr[~gr['chrom'].isin(['chrX', None])]
+
+
+    #new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
+    #            'fixed_nonsyn', 'fixed_syn', 'dnDs', 
+    #            'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
+    #            'nonsyn_prop', 'total_prop', 'dNdS']
+
+    #gr = gr.sort_values(['chrom', 'start', 'end'])
+    #gr = gr[new_cols]
+    #gr = gr.rename(columns={'chrom': '#chrom'})
+    gr.to_csv(output[0], sep='\t', index=False)
+
+
+rule phylofit_to_test_ratchet:
+  input: ratchet="cds_utrs_phastcons_full_ratchet.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  output: r2pf="ratchet_full_merged.bed", pf2r="full_ratchet_merged.bed"
+  shell: 
+    """
+    bedtools map -a {input.ratchet} -b {input.pf} -c 4 -o mean | bedtools subtract -a - -b {input.exclude} > {output.r2pf}
+    bedtools map -a {input.pf} -b {input.ratchet} -c 4,5 -o mean | bedtools subtract -a - -b {input.exclude}  > {output.pf2r}
+    """
+
+rule ratchet_cds:
+  # ratchet to phylofit, but cds only
+  input: r2pf="ratchet_full_merged.bed", cds="../annotation/hg38.ensembl_cds.bed.gz"
+  output: "ratchet_full_merged_cds.bed"
+  shell:
+    """
+    bedtools intersect -a {input.r2pf} -b {input.cds} > {output[0]}
+    """
+
+window_phylofit = "phylofit_rates_binned_1000000.bed", "phylofit_rates_binned_10000.bed", "phylofit_rates_binned_100000.bed", "phylofit_rates_binned_10000000.bed"
+
 rule all:
-  input: "phylofit_rates.bed", "phylofit_rates_binned_1000000.bed", "phylofit_rates_binned_10000.bed", "phylofit_rates_binned_100000.bed"
+  input: "phylofit_rates.bed", *window_phylofit, "cds_utrs_phastcons_full_ratchet.bed", "full_ratchet_merged.bed", "ratchet_full_merged.bed",  "ratchet_full_merged_cds.bed"
+

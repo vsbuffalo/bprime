@@ -224,7 +224,11 @@ class BGSModel(object):
 
     def ratchet_df(self, W=None):
         """
-        Output a combined ratchet.
+        Output a combined ratchet, for all segments.
+
+        W is the MLE estimate of the DFE weights.
+        If this is not specified, then all classes
+        are given equal weight.
         """
         segments = self.genome.segments
         ranges = segments.ranges
@@ -240,11 +244,14 @@ class BGSModel(object):
         if W is None:
             W = np.full(r.shape[:2], 1)
         r = np.einsum('wtl,wt->l', r, W)
-        return pd.DataFrame({'chrom': chroms, 'r': r, 'seglen': seglens,
-                             'start':ranges[:, 0], 'end':ranges[:, 1]})
+        R = np.einsum('wtl,wt->l', R, W)
+        return pd.DataFrame({'chrom': chroms,
+                             'start':ranges[:, 0],
+                             'end':ranges[:, 1], 'R': R,
+                             'r': r, 'seglen': seglens })
 
 
-    def get_ratchet_bined_array(self, chrom, width):
+    def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)
         nbins = len(bins) - 1
         R = np.full((nbins, len(self.w), len(self.t)), np.nan)
