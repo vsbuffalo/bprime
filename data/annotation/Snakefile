@@ -40,8 +40,7 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl.gff3.gz",
          "hg38.ensembl_cds.bed.gz", 
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
-
-         "hg38.cds_lengths.tsv",
+         
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
          "hg38.ensembl_promoters_2kb.bed.gz",
@@ -49,7 +48,10 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          #"cadd_whole_genome_SNVs.bed.gz",
          #"cadd_whole_genome_SNVs.npz",
          #"cadd_whole_genome_SNVs_binned.bed.gz",
-         "hg38.phyloP30way.npz"
+         "hg38.phyloP30way.npz",
+
+         # summary stats table 
+         "ensembl_cds_canonical_protein_coding_stats.tsv",
          ]
 
 rule centro:
@@ -148,10 +150,10 @@ rule ensembl_gff:
 
 rule ensembl_exon_lens:
   input: "ensembl_cds_canonical_protein_coding.fa.gz" # downloaded manually, see README.md
-  output: "hg38.cds_lengths.tsv"
+  output: "ensembl_cds_canonical_protein_coding_stats.tsv"
   shell:
     """
-    python ../../tools/cds_lengths.py {input[0]} gene_cds_lengths.pkl > {output}
+    python ../../tools/cds_lengths.py {input[0]} {output[0]}
     """
   
 rule ensembl_promoters:

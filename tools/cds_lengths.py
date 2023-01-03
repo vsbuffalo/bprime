@@ -1,4 +1,10 @@
+"""
+Summarize the CDS (i.e. canonical ensembl), gettin GC, GC3, and lengths. For a
+join to Urrichio et al data.
+
+"""
 import sys
+import pandas as pd
 import pickle
 from collections import Counter, defaultdict
 import numpy as np
@@ -71,12 +77,16 @@ ref = list(cleaned_codons.values())
 
 weights = relative_adaptiveness(sequences=ref)
 
-print('\t'.join(['chrom', 'start', 'end', 'gene_id', 'cai', 'gc', 'gc3', 'len']))
+rows = []
 for gene_id, seq in cleaned_codons.items():
     chrom, start, end = locs[gene_id]
     cai = CAI(seq, weights=weights)
     gc = sum(x in 'GC' for x in seq) / len(seq)
-    data = ['chr'+chrom, start, end, gene_id, cai, gc, gc3[gene_id], len(seq)]
-    print('\t'.join(map(str, data)))
+    data = dict(chrom='chr'+chrom, start=start, end=end,
+                gene_id=gene_id, cai=cai, gc=gc, gc3=gc3[gene_id],
+                len=len(seq))
+    rows.append(data)
+
+pd.DataFrame(rows).to_csv(sys.argv[2], sep='\t', index=False)
 
 
