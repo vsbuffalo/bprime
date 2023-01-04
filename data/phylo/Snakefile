@@ -46,7 +46,8 @@ rule merge_phylofit:
         rates.append(rate)
         lens.append(seqlen)
 
-    pf = pd.DataFrame(dict(chrom=chroms, start=starts, end=ends, rate=rates, len=lens))
+    pf = pd.DataFrame(dict(chrom=chroms, start=starts, end=ends, 
+                           rate=rates, len=lens))
     pf = pf.sort_values(by=['chrom', 'start', 'end'])
     pf.to_csv(output[0], sep='\t', header=False, index=False)
 
@@ -111,6 +112,10 @@ rule urrichio_data:
     gr.to_csv(output[0], sep='\t', index=False)
 
 rule urrichio_merged:
+  """
+  Merge in the raw ratchet data and the phylofit substitution rates for
+  the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
+  """
   input: data="urrichio_data.bed", ratchet="ratchet_data.bed", pf="phylofit_rates.bed"
   output: "urrichio_data_merged.bed"
   shell:
