@@ -1126,7 +1126,7 @@ def logbins(x, nbins, density=True, remove_nan=True):
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
     return x, logbins
 
-def cutbins(x, nbins, method='interval'):
+def cutbins(x, nbins, method='interval', xrange=None, end_expansion=1.00001):
     """
     Bin data into nbins based on the method.
      - interval: create nbins equally-spaced bins
@@ -1136,7 +1136,11 @@ def cutbins(x, nbins, method='interval'):
     All have different advantages and disadvantages.
     """
     if method == 'interval':
-        bins = np.linspace(x.min(), x.max(), nbins)
+        if xrange is None:
+            xmin, xmax = np.nanmin(x), end_expansion*np.nanmax(x)
+        else:
+            xmin, xmax = xrange
+        bins = np.linspace(xmin, xmax, nbins)
         return bins
     elif method == 'number':
         npt = len(x)
