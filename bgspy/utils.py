@@ -328,7 +328,7 @@ def facet_wrap(nitems, ncols, **kwargs):
     return fig, [ax[i[0], i[1]] for i in
                  itertools.product(range(nrows), range(ncols))]
 
-def readfq(fp): # this is a generator function
+def readfq(fp, name_only=True): # this is a generator function
     """
     Thanks to Heng Li! https://github.com/lh3/readfq/blob/master/readfq.py
     """
@@ -340,7 +340,10 @@ def readfq(fp): # this is a generator function
                     last = l[:-1] # save this line
                     break
         if not last: break
-        name, seqs, last = last[1:].partition(" ")[0], [], None
+        if name_only:
+            name, seqs, last = last[1:].partition(" ")[0], [], None
+        else:
+            name, seqs, last = last[1:], [], None
         for l in fp: # read the sequence
             if l[0] in '@+>':
                 last = l[:-1]
@@ -1094,4 +1097,71 @@ def get_human_branch_length(tree_str, min_tips=10, lab='homo_sapiens'):
         return np.nan
     return [x.length for x in tree[0].walk() if x.name == lab][0]
 
+def bin2midpoints(x):
+    """
+    Convenience function to take a BinnedStatistics object and return the
+    binned midpoints
+    """
+    return 0.5*(x.bin_edges[1:] + x.bin_edges[:-1])
+
+
+def bin2pairs(x):
+    """
+    Convenience function to take a BinnedStatistics object and return the
+    binned midpoints and statistic together as a pair.
+    """
+    return bin2midpoints(x), x.statistic
+
+def logbins(x, nbins, density=True, remove_nan=True):
+    """
+    Make log10 bins for a matplotlib histogram.
+    Use like:
+        plt.hist(*logbins(x, 100))
+        plt.semilogx()
+
+    """
+    if remove_nan:
+        x = x[~np.isnan(x)]
+    hist, bins = np.histogram(x, bins=nbins, density=density)
+    logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
+    return x, logbins
+
+def cutbins(x, nbins, method='interval'):
+    """
+    Bin data into nbins based on the method.
+     - interval: create nbins equally-spaced bins
+     - number: try to put approximately equal observations in nbins
+     - quantile: estimate empirical quantiles and use those as bin edges.
+
+    All have different advantages and disadvantages.
+    """
+    if method == 'interval':
+        bins = np.linspace(x.min(), x.max(), nbins)
+        return bins
+    elif method == 'number':
+        npt = len(x)
+        bins = np.interp(np.linspace(0, npt, nbin + 1),
+                         np.arange(npt),
+                         np.sort(x))
+        return bins[~np.isnan(bins)]
+    elif method == 'quantile':
+        return np.nanquantile(x, np.linspace(0, 1, nbins))
+    else:
+        raise ValueError("method must be 'interval', 'number', or 'quantile'")
+
+def binned_summaries(x, y, nbins, method='interval',
+                     funs={'mean': np.nanmean,
+                           'sd': np.nanstd,
+                           'n': lambda x: np.sum(np.isfinite(x))}):
+    """
+    """
+    bins = cutbins(x, nbins, method)
+    cols = defaultdict(list)
+    cols['start'] = bins[1:]
+    cols['end'] = bins[:-1]
+    cols['midpoint'] = 0.5*(bins[1:] + bins[:-1])
+    for name, fun in funs.items():
+        binstats = binned_statistic(x, y, fun, bins)
+        cols[name] = binstats.statistic
+    return pd.DataFrame(cols)
 

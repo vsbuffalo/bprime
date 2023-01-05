@@ -1,0 +1,187 @@
+import os
+import pickle
+import re
+import pandas as pd
+from bgspy.utils import read_phylofit, get_human_branch_length, readfq, readfile
+from bgspy.models import BGSModel
+
+PF_DIR = 'phylofit_estimates/'
+# MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
+MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
+FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
+
+
+phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
+
+rule merge_phylofit:
+  input: phylo_fits
+  output: "phylofit_rates.bed"
+  run:
+    chroms, starts, ends = [], [], []
+    rates, lens = [], []
+    for file in os.listdir(PF_DIR):
+        loc = re.match('(?P<chrom>chr[0-9X]+):(?P<start>\d+)-(?P<end>\d+).mod', file)
+
+        fasta_file = './fasta_alns/' + file.replace('.mod', '.fa')
+        name, seq, _ = next(readfq(readfile(fasta_file)))
+        seqlen = len(seq)
+
+        if loc is None:
+            continue
+        chrom, start, end = loc.groups()
+        rate = get_human_branch_length(read_phylofit(os.path.join(PF_DIR, file))['tree'])
+        chroms.append(chrom)
+        starts.append(int(start))
+        ends.append(int(end))
+        rates.append(rate)
+        lens.append(seqlen)
+
+    pf = pd.DataFrame(dict(chrom=chroms, start=starts, end=ends, 
+                           rate=rates, len=lens))
+    pf = pf.sort_values(by=['chrom', 'start', 'end'])
+    pf.to_csv(output[0], sep='\t', header=False, index=False)
+
+
+rule windows:
+  input: annot="../annotation/hg38_seqlens.tsv"
+  output: "hg38_windows_{width}.bed"
+  shell:
+    """
+    bedtools makewindows -g {input.annot} -w {wildcards.width} | bedtools sort > {output[0]}
+    """
+
+rule phylofit_binned:
+  input: pf="phylofit_rates.bed", win="hg38_windows_{width}.bed"
+  output: "phylofit_rates_binned_{width}.bed"
+  shell:
+    """
+    bedtools map -a {input.win} -b {input.pf} -c 4,5 -o mean,sum > {output}
+    """
+
+rule ratchet_data:
+  # this is the full phastcons raw segment ratchet data, calculated alongside 
+  # the B scores.
+  input: model = MODEL_FILE, fit = FIT_FILE
+  output: "ratchet_data.bed"
+  shell: 
+     """
+     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
+     """
+
+rule ratchet_data_cds:
+  input: model = MODEL_FILE, fit = FIT_FILE
+  output: "ratchet_data_cds.bed", "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"
+  shell: 
+     """
+     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "ratchet_data"
+     """
+
+rule urrichio_data:
+  input: data="41559_2019_890_MOESM3_ESM.txt", cds_stats="../annotation/ensembl_cds_canonical_protein_coding_stats.tsv"
+  output: "urrichio_data.tsv"
+  run: 
+    cols = ('gene_id', 'n_nonsyn', 'nonsyn_daf', 'n_syn', 
+        'syn_daf', 'fixed_nonsyn', 'fixed_syn')
+
+    gr = pd.read_csv(input.data,
+                     sep='\t', names=cols, comment='#')
+    gr['dnDs'] = gr['fixed_nonsyn'] / gr['fixed_syn']
+
+    cd = pd.read_csv(input.cds_stats, sep='\t')
+
+    gr = gr.merge(cd, on='gene_id')
+    gr['total_fixed'] = gr['fixed_nonsyn']+gr['fixed_syn']
+    gr['syn_prop'] = gr['fixed_syn'] / gr['len']
+    gr['nonsyn_prop'] = gr['fixed_nonsyn'] / gr['len']
+    gr['total_prop'] = gr['total_fixed'] / gr['len']
+    gr['dNdS'] = gr['fixed_nonsyn']/gr['fixed_syn']
+    gr = gr[~gr['chrom'].isin(['chrX', None])]
+
+
+    new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
+                'fixed_nonsyn', 'fixed_syn', 'dnDs', 
+                'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
+                'nonsyn_prop', 'total_prop', 'dNdS']
+
+    gr = gr.sort_values(['chrom', 'start', 'end'])
+    gr = gr[new_cols]
+    gr = gr.rename(columns={'chrom': '#chrom'})
+    gr.to_csv(output[0], sep='\t', index=False)
+
+rule urrichio_merged:
+  """
+  Merge in the raw ratchet data and the phylofit substitution rates for
+  the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
+  """
+  input: data="urrichio_data.bed", ratchet="ratchet_data.bed", pf="phylofit_rates.bed"
+  output: "urrichio_data_merged.bed"
+  shell:
+      """
+      bedtools map -a {input.data} -b {input.ratchet} -c 6,7 -o mean,sum > tmp.bed
+      bedtools map -a tmp.bed -b {input.pf} -c 4,5 -o mean,sum > {output[0]}
+      """
+
+rule phylofit_to_ratchet:
+  # This takes the estimated substitution rates from phylofit, and finds 
+  # overlaps to the predicted ratchet ranges (these can be quite narrow ranges, 
+  # since they vary a lot!). Usually bedtools maps would average the features in A 
+  # (here the ratchet rate) and average multiple features that overlap B (here
+  # the sub rates). Because the predicted ratchet rate varies a lot, usually only 
+  # a single rate is "joined" on a with a substitution rate
+  input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  output: r2pf="phylofit_to_ratchet.bed"
+  shell: 
+    """
+    bedtools map -a {input.ratchet} -b {input.pf} -c 4 -o mean | bedtools subtract -a - -b {input.exclude} > {output.r2pf}
+    """
+
+rule ratchet_to_phylofit:
+  # This averages the predicted ratchet rates (with vary on a small spatial
+  # scale, with the overlaps to the predicted ratchet ranges (these can be
+  # quite narrow ranges, since they vary a lot!)
+  input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  output: pf2r="ratchet_to_phylofit.bed"
+  shell: 
+    """
+    bedtools map -a {input.pf} -b {input.ratchet} -c 6,7 -o mean,sum | bedtools subtract -a - -b {input.exclude}  > {output.pf2r}
+    """
+
+rule ratchet_cds:
+  # ratchet to phylofit, but cds only
+  input: r2pf="ratchet_to_phylofit.bed", cds="../annotation/hg38.ensembl_cds.bed.gz"
+  output: "ratchet_to_phylofit_cds.bed"
+  shell:
+    """
+    bedtools intersect -a {input.r2pf} -b {input.cds} > {output[0]}
+    """
+
+rule ratchet_windows:
+  input: ratchet="ratchet_data.bed", win="hg38_windows_{width}.bed"
+  output: "ratchet_rates_binned_{width}"
+  shell:
+    """
+    bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
+    """
+
+
+window_phylofit = ["phylofit_rates_binned_1000000.bed", 
+                   "phylofit_rates_binned_10000.bed", 
+                   "phylofit_rates_binned_100000.bed", 
+                   "phylofit_rates_binned_10000000.bed",
+                   "phylofit_rates_binned_5000000.bed"]
+
+window_ratchet = ["ratchet_rates_binned_1000000.bed", 
+                  "ratchet_rates_binned_100000.bed",
+                  "ratchet_rates_binned_5000000.bed"]
+
+
+ALL_FILES = ["phylofit_rates.bed", *window_phylofit, 
+             "ratchet_data.bed", "phylofit_to_ratchet.bed", 
+             "ratchet_to_phylofit.bed",  "ratchet_to_phylofit_cds.bed", 
+             "urrichio_data.tsv", *window_ratchet,  
+             "urrichio_data_merged.bed",  "ratchet_data_cds.bed", 
+             "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"]
+
+rule all:
+  input: ALL_FILES
+
