@@ -217,6 +217,23 @@ def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
                    nstarts=nstarts, window=window, outliers=outliers)
 
 @cli.command()
+@click.option('--bs-file', required=True, type=click.Path(exists=True),
+              help="BGSModel genome model pickle file (contains B' and B)")
+@click.option('--fit', required=True, type=click.Path(exists=True),
+              help='pickle file of fitted results')
+@click.option('--outfile', required=True,
+              type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for results")
+def subrate(bs_file, fit, outfile):
+    """
+    """
+    m = BGSModel.load(bs_file)
+    bfit, bpfit = pickle.load(open(fit, 'rb'))
+    rdf = m.ratchet_df(W=bpfit.mle_W_norm)
+    rdf = rdf.sort_values(['chrom', 'start', 'end'])
+    rdf.to_csv(outfile, sep='\t', header=False, index=False)
+
+@cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),
               help='pickle file of fitted results')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),

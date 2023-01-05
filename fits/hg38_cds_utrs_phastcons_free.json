@@ -9,5 +9,5 @@
     "fasta_file": "../../data/annotation/hg38.fa.gz",
     "neut_file": "../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz",
     "counts_dir": "../../data/h1kg/hg1k_counts/",
-    "Bs_file": "../../data/bmaps/bgspy/bmap_hg38_6x6grid_10000step_10000N_cds_utrs_phastcons.pkl"
+    "Bs_file": "../../data/bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl"
 }

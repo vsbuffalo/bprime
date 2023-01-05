@@ -243,12 +243,20 @@ class BGSModel(object):
         r = R/seglens
         if W is None:
             W = np.full(r.shape[:2], 1)
-        r = np.einsum('wtl,wt->l', r, W)
-        R = np.einsum('wtl,wt->l', R, W)
+
+        F = self.genome.segments.F
+        fidx = self.genome.segments.features
+        idx = np.stack((np.arange(len(fidx)), fidx))
+        summed_r = np.einsum('wtl,lf,tf->lf', r, F, W)
+        summed_R = np.einsum('wtl,lf,tf->lf', R, F, W)
+        fmap = self.genome.segments.inverse_feature_map
+        features = [fmap[f] for f in self.genome.segments.features]
         return pd.DataFrame({'chrom': chroms,
                              'start':ranges[:, 0],
-                             'end':ranges[:, 1], 'R': R,
-                             'r': r, 'seglen': seglens })
+                             'end':ranges[:, 1],
+                             'feature': features,
+                             'R': summed_R[idx[0, :], idx[1, :]],
+                             'r': summed_r[idx[0, :], idx[1, :]], 'seglen': seglens })
 
 
     def get_ratchet_binned_array(self, chrom, width):

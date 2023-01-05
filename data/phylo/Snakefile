@@ -1,24 +1,14 @@
 import os
+import pickle
 import re
 import pandas as pd
 from bgspy.utils import read_phylofit, get_human_branch_length, readfq, readfile
 from bgspy.models import BGSModel
 
 PF_DIR = 'phylofit_estimates/'
-RATCHET_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
-RATCHET_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
-
-primate10 = """\
-10_primates.epo.1_1.maf.gz
-10_primates.epo.1_2.maf.gz
-10_primates.epo.1_3.maf.gz
-10_primates.epo.1_4.maf.gz
-10_primates.epo.1_5.maf.gz
-10_primates.epo.1_6.maf.gz
-10_primates.epo.1_7.maf.gz
-10_primates.epo.1_8.maf.gz
-10_primates.epo.1_9.maf.gz
-"""
+# MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
+MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
+FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
 
 
 phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
@@ -71,11 +61,12 @@ rule phylofit_binned:
 rule test_ratchet_data:
   # this is the full phastcons raw segment ratchet data, calculated alongside 
   # the B scores.
-  input: full_pkl = RATCHET_FILE
+  input: full_pkl = MODEL_FILE, fit_file = FIT_FILE
   output: "ratchet_data.bed"
   run:
     full_m = BGSModel.load(input.full_pkl)
-    rdf = full_m.ratchet_df()
+    bfit, bpfit = pickle.load(open(input.fit_file, 'rb'))
+    rdf = full_m.ratchet_df(W=bpfit.mle_W_norm)
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
     rdf.to_csv(output[0], sep='\t', header=False, index=False)
 

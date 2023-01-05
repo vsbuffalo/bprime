@@ -33,3 +33,9 @@ Finally, we do the substitution rate estimates under the REV model using
     TREE="(((((((pan_troglodytes,pan_paniscus),homo_sapiens),gorilla_gorilla),pongo_abelii),nomascus_leucogenys),((macaca_mulatta,macaca_fascicularis),chlorocebus_sabaeus)),microcebus_murinus);"
     ls fasta_alns | paste  | xargs -n1 -I {} basename {} .fa | \
       xargs -n1 -I{} -P 60 phyloFit --tree $TREE --subst-mod REV --out-root phylofit_estimates/{} fasta_alns/{}.fa
+
+
+### Indexing
+
+The ranges here are 0-based according to
+https://ftp.ensembl.org/pub/current_maf/ensembl-compara/multiple_alignments/10_primates.epo/README.maf
