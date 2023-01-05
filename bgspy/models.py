@@ -251,13 +251,13 @@ class BGSModel(object):
         summed_R = np.einsum('wtl,lf,tf->lf', R, F, W)
         fmap = self.genome.segments.inverse_feature_map
         features = [fmap[f] for f in self.genome.segments.features]
-        return pd.DataFrame({'chrom': chroms,
-                             'start':ranges[:, 0],
-                             'end':ranges[:, 1],
-                             'feature': features,
-                             'R': summed_R[idx[0, :], idx[1, :]],
-                             'r': summed_r[idx[0, :], idx[1, :]], 'seglen': seglens })
-
+        d = pd.DataFrame({'chrom': chroms,
+                          'start':ranges[:, 0],
+                          'end':ranges[:, 1],
+                          'feature': features,
+                          'R': summed_R[idx[0, :], idx[1, :]],
+                          'r': summed_r[idx[0, :], idx[1, :]], 'seglen': seglens })
+        return d
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)

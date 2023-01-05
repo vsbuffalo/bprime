@@ -58,17 +58,23 @@ rule phylofit_binned:
     bedtools map -a {input.win} -b {input.pf} -c 4,5 -o mean,sum > {output}
     """
 
-rule test_ratchet_data:
+rule ratchet_data:
   # this is the full phastcons raw segment ratchet data, calculated alongside 
   # the B scores.
-  input: full_pkl = MODEL_FILE, fit_file = FIT_FILE
+  input: model = MODEL_FILE, fit = FIT_FILE
   output: "ratchet_data.bed"
-  run:
-    full_m = BGSModel.load(input.full_pkl)
-    bfit, bpfit = pickle.load(open(input.fit_file, 'rb'))
-    rdf = full_m.ratchet_df(W=bpfit.mle_W_norm)
-    rdf = rdf.sort_values(['chrom', 'start', 'end'])
-    rdf.to_csv(output[0], sep='\t', header=False, index=False)
+  shell: 
+     """
+     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
+     """
+
+rule ratchet_data_cds:
+  input: model = MODEL_FILE, fit = FIT_FILE
+  output: "ratchet_data_cds.bed", "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"
+  shell: 
+     """
+     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "ratchet_data"
+     """
 
 rule urrichio_data:
   input: data="41559_2019_890_MOESM3_ESM.txt", cds_stats="../annotation/ensembl_cds_canonical_protein_coding_stats.tsv"
@@ -111,7 +117,7 @@ rule urrichio_merged:
   output: "urrichio_data_merged.bed"
   shell:
       """
-      bedtools map -a {input.data} -b {input.ratchet} -c 5,6 -o mean,sum > tmp.bed
+      bedtools map -a {input.data} -b {input.ratchet} -c 6,7 -o mean,sum > tmp.bed
       bedtools map -a tmp.bed -b {input.pf} -c 4,5 -o mean,sum > {output[0]}
       """
 
@@ -137,7 +143,7 @@ rule ratchet_to_phylofit:
   output: pf2r="ratchet_to_phylofit.bed"
   shell: 
     """
-    bedtools map -a {input.pf} -b {input.ratchet} -c 4,5 -o mean | bedtools subtract -a - -b {input.exclude}  > {output.pf2r}
+    bedtools map -a {input.pf} -b {input.ratchet} -c 6,7 -o mean,sum | bedtools subtract -a - -b {input.exclude}  > {output.pf2r}
     """
 
 rule ratchet_cds:
@@ -154,7 +160,7 @@ rule ratchet_windows:
   output: "ratchet_rates_binned_{width}"
   shell:
     """
-    bedtools map -a {input.win} -b {input.ratchet} -c 4,5,6 -o mean,mean,sum > {output}
+    bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
     """
 
 
@@ -169,6 +175,13 @@ window_ratchet = ["ratchet_rates_binned_1000000.bed",
                   "ratchet_rates_binned_5000000.bed"]
 
 
+ALL_FILES = ["phylofit_rates.bed", *window_phylofit, 
+             "ratchet_data.bed", "phylofit_to_ratchet.bed", 
+             "ratchet_to_phylofit.bed",  "ratchet_to_phylofit_cds.bed", 
+             "urrichio_data.tsv", *window_ratchet,  
+             "urrichio_data_merged.bed",  "ratchet_data_cds.bed", 
+             "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"]
+
 rule all:
-  input: "phylofit_rates.bed", *window_phylofit, "ratchet_data.bed", "phylofit_to_ratchet.bed", "ratchet_to_phylofit.bed",  "ratchet_to_phylofit_cds.bed", "urrichio_data.tsv", *window_ratchet,  "urrichio_data_merged.bed"
+  input: ALL_FILES
 

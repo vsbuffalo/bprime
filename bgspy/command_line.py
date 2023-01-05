@@ -224,14 +224,27 @@ def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
 @click.option('--outfile', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
-def subrate(bs_file, fit, outfile):
+@click.option('--split', default=False, is_flag=True,
+              help="split into different files for each feature "
+                   "(uses '<outfile>_<feature_a>.bed', etc)")
+def subrate(bs_file, fit, outfile, split):
     """
     """
     m = BGSModel.load(bs_file)
     bfit, bpfit = pickle.load(open(fit, 'rb'))
     rdf = m.ratchet_df(W=bpfit.mle_W_norm)
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
-    rdf.to_csv(outfile, sep='\t', header=False, index=False)
+    if not split:
+        rdf.to_csv(outfile, sep='\t', header=False, index=False)
+        return
+    for feature in m.genome.segments.feature_map:
+        if outfile.endswith('.bed'):
+            filename = outfile.replace('.bed', f'_{feature}.bed')
+        else:
+            filename = f'{outfile}_{feature}.bed'
+        rdfx = rdf.loc[rdf['feature'] == feature]
+        rdfx.to_csv(filename, sep='\t', header=False, index=False)
+
 
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),
