@@ -130,6 +130,8 @@ rule phastcons:
     """
 
 rule phastcons_bed:
+  # VALIDATION: unclear from UCSC doc whether the .txt.gz is 0 or 1-indexed. 
+  # Using table browser BED output produced a version that aligns with ours
   input: "phastConsElements100way.txt.gz"
   output: "phastConsElements100way.bed.gz"
   shell:
@@ -209,6 +211,7 @@ rule cds:
   shell:
     """
       bioawk -cgff ' $feature ~ /^CDS$/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
+      bedtools merge -i -i | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
@@ -218,6 +221,7 @@ rule utrs:
   shell:
     """
       bioawk -cgff ' $feature ~ /five_prime_UTR|three_prime_UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
+      bedtools merge -i -i | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
