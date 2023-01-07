@@ -129,21 +129,33 @@ rule phylofit_to_ratchet:
   # the sub rates). Because the predicted ratchet rate varies a lot, usually only 
   # a single rate is "joined" on a with a substitution rate
   input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
-  output: r2pf="phylofit_to_ratchet.bed"
+  output: pf2r="phylofit_to_ratchet.bed"
   shell: 
     """
-    bedtools map -a {input.ratchet} -b {input.pf} -c 4 -o mean | bedtools subtract -a - -b {input.exclude} > {output.r2pf}
+    bedtools map -a {input.ratchet} -b {input.pf} -c 4 -o mean | bedtools subtract -a - -b {input.exclude} > {output.pf2r}
     """
+
+rule ratchet_to_phylofit_weighted:
+  # This averages the predicted ratchet rates (with vary on a small spatial
+  # scale, with the overlaps to the predicted ratchet ranges (these can be
+  # quite narrow ranges, since they vary a lot!)
+  input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  output: r2pf="ratchet_to_phylofit.bed"
+  shell: 
+    """
+    bedmap -a {input.pf} -b {input.ratchet} -c 6,7 -o mean,sum | bedtools subtract -a - -b {input.exclude}  > {output.r2pf}
+    """
+
 
 rule ratchet_to_phylofit:
   # This averages the predicted ratchet rates (with vary on a small spatial
   # scale, with the overlaps to the predicted ratchet ranges (these can be
   # quite narrow ranges, since they vary a lot!)
   input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
-  output: pf2r="ratchet_to_phylofit.bed"
+  output: r2pf="ratchet_to_phylofit.bed"
   shell: 
     """
-    bedtools map -a {input.pf} -b {input.ratchet} -c 6,7 -o mean,sum | bedtools subtract -a - -b {input.exclude}  > {output.pf2r}
+    bedtools map -a {input.pf} -b {input.ratchet} -c 6,7 -o mean,sum | bedtools subtract -a - -b {input.exclude}  > {output.r2pf}
     """
 
 rule ratchet_cds:

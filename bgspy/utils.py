@@ -794,7 +794,6 @@ def combine_features(feature_ranges, priority, seqlens):
     features = {feat: ranges_to_masks(r, seqlens) for feat, r in feature_ranges.items()}
     assert len(set(features.keys()).difference(set(priority))) == 0, "some features keys are not in priority"
     masks = dict()
-    __import__('pdb').set_trace()
     for chrom in seqlens:
         merged = np.zeros(seqlens[chrom], dtype='int')
         for i, feature in enumerate(priority, start=1):
@@ -802,7 +801,6 @@ def combine_features(feature_ranges, priority, seqlens):
                 continue
             # only fill unfilled (zero) entries!
             idx = features[feature][chrom] & (merged == 0)
-            __import__('pdb').set_trace()
             if idx.sum():
                 merged[idx] = i
         masks[chrom] = merged
