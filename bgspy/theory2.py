@@ -372,7 +372,7 @@ def bgs_segment_sc16_parts(*args, **kwargs):
     return np.vectorize(bgs_segment_sc16, otypes=(tuple,))(*args, **kwargs, return_parts=True)
 
 
-def bgs_segment_sc16_components(L_rbp, mu, sh, N):
+def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N):
     """
     A manually-vectorized version of bgs_segment_sc16_parts().
     This mimics np.vectorize() but the vectorization is done manually.
@@ -380,15 +380,19 @@ def bgs_segment_sc16_components(L_rbp, mu, sh, N):
     pickled for multiprocessing work, meaning the np.vectorize()
     version is not parallelizable.
     """
-    L, rbp = L_rbp
+    L, rbp, rescaling = L_rbp_rescaling
     assert isinstance(L, (int, float))
     assert isinstance(rbp, float)
+    if rescaling is not None:
+        assert isinstance(rescaling, float)
+    else:
+        rescaling = 1.
     assert isinstance(mu, np.ndarray)
     assert isinstance(sh, np.ndarray)
     mug, shg = np.meshgrid(mu, sh)
     Bs, Bas, Ts, Vs, Vms, Q2s, cbs = [], [], [], [], [], [], []
     for m, s in zip(mug.flat, shg.flat):
-        res = bgs_segment_sc16(m, s, L, rbp, N, return_parts=True)
+        res = bgs_segment_sc16(m, s, L, rbp, rescaling*N, return_parts=True)
         B, B_asymp, T, V, Vm, Q2, classic_bgs = res
         Bs.append(B)
         Bas.append(B_asymp)
@@ -409,7 +413,7 @@ def bgs_segment_sc16_components(L_rbp, mu, sh, N):
 
     return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
 
-def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores):
+def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     """
     Compute the fixation time, B, etc for each segment, using the
     equation that integrates over the entire segment *in parallel*.
@@ -429,11 +433,10 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores):
     func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
 
     if ncores is None or ncores == 1:
-        res = list(tqdm.tqdm(map(func, zip(L, rbp)), total=len(L)))
+        res = list(tqdm.tqdm(map(func, zip(L, rbp, rescaling)), total=len(L)))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(func, zip(L, rbp)), total=len(L)))
-
+            res = list(tqdm.tqdm(p.imap(func, zip(L, rbp, rescaling)), total=len(L)))
 
     # the current function spits out everything (for debugging and validating
     # against the region sims

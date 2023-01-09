@@ -1,10 +1,11 @@
 import pickle
+import warnings
 from dataclasses import dataclass
 from collections import defaultdict, Counter
 import numpy as np
 from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
-from bgspy.utils import load_seqlens, load_bed_annotation
+from bgspy.utils import load_seqlens, load_bed_annotation, BScores
 from bgspy.recmap import RecMap
 from bgspy.theory2 import B_segment_lazy, BSC16_segment_lazy_parallel
 
@@ -32,6 +33,7 @@ class Segments:
         self._segment_parts = None
         self._segment_parts_sc16 = None
         self.F = None
+        self.rescaling = None
         self._calc_features()
 
     def __repr__(self):
@@ -40,6 +42,11 @@ class Segments:
 
     def __len__(self):
         return self.ranges.shape[0]
+
+    @property
+    def midpoints(self):
+        mids = np.mean(self.ranges, axis=1).squeeze()
+        return {c: mids[idx] for c, idx in self.index.items()}
 
     @property
     def lengths(self):
@@ -85,7 +92,10 @@ class Segments:
         print("done.")
         if N is not None:
             print(f"\ncalculating B' components...\t", end='', flush=True)
-            parts = BSC16_segment_lazy_parallel(w, t, L, rbp, N, ncores=ncores)
+            rescaling = self.rescaling
+            parts = BSC16_segment_lazy_parallel(w, t, L, rbp, N,
+                                                ncores=ncores,
+                                                rescaling=rescaling)
             self._segment_parts_sc16 = parts
             print("done.")
 
@@ -100,6 +110,38 @@ class Segments:
         np.put_along_axis(F, self.features[:, None], 1, axis=1)
         self.F = F
 
+    def load_rescaling_from_fit(self, fit):
+        """
+        Take a fit and run predict_B to get the rescaling factor.
+        """
+        predicted_B = fit.predict(B=True)
+        bins = fit.bins
+
+        bin_mids = fit.bins.midpoints()
+        bdict = dict()
+        posdict = dict()
+        for chrom in fit.bins.keys():
+            idx = fit.bins.chrom_indices(chrom)
+            bdict[chrom] = predicted_B[idx, None, None]
+            posdict[chrom] = np.array(bin_mids[chrom])
+
+        # dummy w/t
+        w = np.array([0])
+        t = np.array([0])
+        predicted_bscores = BScores(bdict, posdict, w=w, t=t)
+        predicted_bscores._build_interpolators()
+
+        rescaling = list()
+        for chrom, mids in self.midpoints.items():
+            if chrom not in predicted_bscores._interpolators:
+                # we don't have an interpolator for this chrom (usually X)
+                warnings.warn(f"skipping chromosome {chrom}!")
+                continue
+            b = predicted_bscores.B_at_pos(chrom, mids)
+            #rescaling[chrom] = b
+            rescaling.extend(b.squeeze())
+        self.rescaling = np.array(rescaling)
+        #return rescaling
 
 def process_annotation(features, recmap, split_length=None):
     """

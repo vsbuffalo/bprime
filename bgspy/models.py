@@ -159,15 +159,28 @@ class BGSModel(object):
         #self.xs = xs
 
     def calc_Bp(self, N, step=100_000, recalc_segments=False,
-                ncores=None, nchunks=None):
+                ncores=None, nchunks=None, fit=None):
         """
         Calculate new B' values across the genome.
+
+
+        If fit is not None this is a B' fit that is used for local
+        reductions mode.
         """
+        use_rescaling = False
+        if fit is not None:
+            # load the rescaling factors from a model fit
+            # NOTE: this only effects the segment parts! nothing past that
+            # in the B' calc
+            self.genome.load_rescaling_from_fit(fit)
+            use_rescaling = True # require segments to be re-calc'd
+
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
-        if recalc_segments or self.genome.segments._segment_parts_sc16 is None:
+        if use_rescaling or recalc_segments or self.genome.segments._segment_parts_sc16 is None:
             self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
+
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step, N=N,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}

@@ -13,7 +13,7 @@ import math
 import itertools
 from math import floor, log10
 from scipy import interpolate
-from scipy.stats import binned_statistic
+from scipy.stats import binned_statistic, spearmanr, pearsonr
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import numpy as np
@@ -77,8 +77,6 @@ class BinnedStat:
         return (self.midpoints, self.stat)
 
 class BScores:
-    # TODO uncomment before next B calc
-    #__slots__ = ('B', 'pos', 'w', 't', 'step', '_interpolators')
     def __init__(self, B, pos, w, t, features=None, step=None):
         self.B = B
         self.pos = pos
@@ -190,10 +188,12 @@ class BScores:
 
     def _build_w_interpolators(self, jax=True, **kwargs):
         """
+        DEPRECATED: done in C code
         Build interpolators at each position for each selection coefficient
         across all mutation weights.
 
         """
+        raise ValueError()
         defaults = {'kind': 'quadratic',
                     'assume_sorted': True,
                     'bounds_error': True,
@@ -257,6 +257,9 @@ class BScores:
             self._build_interpolators()
             print("done.")
         X = np.full((self.w.size, self.t.size, pos.size), np.nan)
+        w = 0
+        t = 0
+        # __import__('pdb').set_trace()
         for i, w in enumerate(self.w):
             for j, t in enumerate(self.t):
                 X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
@@ -1126,7 +1129,7 @@ def logbins(x, nbins, density=True, remove_nan=True):
     logbins = np.logspace(np.log10(bins[0]), np.log10(bins[-1]), len(bins))
     return x, logbins
 
-def cutbins(x, nbins, method='interval'):
+def cutbins(x, nbins, method='interval', xrange=None, end_expansion=1.00001):
     """
     Bin data into nbins based on the method.
      - interval: create nbins equally-spaced bins
@@ -1136,11 +1139,15 @@ def cutbins(x, nbins, method='interval'):
     All have different advantages and disadvantages.
     """
     if method == 'interval':
-        bins = np.linspace(x.min(), x.max(), nbins)
+        if xrange is None:
+            xmin, xmax = np.nanmin(x), end_expansion*np.nanmax(x)
+        else:
+            xmin, xmax = xrange
+        bins = np.linspace(xmin, xmax, nbins)
         return bins
     elif method == 'number':
         npt = len(x)
-        bins = np.interp(np.linspace(0, npt, nbin + 1),
+        bins = np.interp(np.linspace(0, npt, nbins + 1),
                          np.arange(npt),
                          np.sort(x))
         return bins[~np.isnan(bins)]
@@ -1164,4 +1171,11 @@ def binned_summaries(x, y, nbins, method='interval',
         binstats = binned_statistic(x, y, fun, bins)
         cols[name] = binstats.statistic
     return pd.DataFrame(cols)
+
+def corr(x, y):
+    """
+    Compute Pearson and Spearman correlations, handles NaN.
+    """
+    keep = np.isfinite(x) & np.isfinite(y)
+    return pearsonr(x[keep], y[keep]), spearmanr(x[keep], y[keep])
 
