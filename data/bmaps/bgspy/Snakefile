@@ -97,6 +97,43 @@ rule bmap_hg38_weaksel:
       --step {wildcards.step}
     """
 
+rule bmap_hg38_full:
+  input: 
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/hapmap_genetic_map.txt"
+  output: pkl_b_file="bmap_hg37_fullsel_{step}step_{popsize}N_{track}.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot "../../annotation/conserved_{wildcards.track}.bed.gz" \
+      --seqlens {input.seqlens_file} \
+      --t 1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1,0.8 --w 1e-11,1e-10,1e-9,1e-8,1e-7 \
+      --output {output} --popsize {wildcards.popsize} \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step}
+    """
+
+### Rescaled Bs
+
+rule bmap_hg38_rescaled:
+  input: 
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/hapmap_genetic_map.txt", 
+         fit="../../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl"
+  output: pkl_b_file="bmap_rescaled_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot "../../annotation/conserved_{wildcards.track}.bed.gz" \
+      --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.popsize} \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --fit {input.fit} \
+      --step {wildcards.step}
+    """
+
 
 
 
@@ -110,9 +147,9 @@ maps = [
         # note: this uses the simplified phastcons track, merging all ranges 100bp within each other
         "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl",
 
-        ## merged genomic features with phastcons as a catch all
+        ## genomic features with phastcons as a catch all
         "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
-        
+       
         # with regulatory elements (and simplified phastcons)
         "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_regulatory_phastcons.pkl",
 
@@ -120,11 +157,22 @@ maps = [
         "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
 
         ## for checking empirical ratchet convergence
-	"bmap_hg37_ratchet_10000step_10000N_cds_utrs_phastcons.pkl"
+	"bmap_hg37_ratchet_10000step_10000N_cds_utrs_phastcons.pkl",
+
+        ## this includes a strong selection class -- full spectrum
+	"bmap_hg37_fullsel_10000step_10000N_cds_utrs_phastcons.pkl"
         ]
+
+
+rescaled = [ ## cds/utrs/phastcons fit (1Mbp)
+             "bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
+           ]
+        
+ 
+ 
 
 rule test:
   input: "bmap_hg38_sims_10000step_chr10.pkl"
 
 rule all:
-  input: maps
+  input: maps + rescaled
