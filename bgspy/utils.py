@@ -13,7 +13,7 @@ import math
 import itertools
 from math import floor, log10
 from scipy import interpolate
-from scipy.stats import binned_statistic
+from scipy.stats import binned_statistic, spearmanr, pearsonr
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import numpy as np
@@ -1144,7 +1144,7 @@ def cutbins(x, nbins, method='interval', xrange=None, end_expansion=1.00001):
         return bins
     elif method == 'number':
         npt = len(x)
-        bins = np.interp(np.linspace(0, npt, nbin + 1),
+        bins = np.interp(np.linspace(0, npt, nbins + 1),
                          np.arange(npt),
                          np.sort(x))
         return bins[~np.isnan(bins)]
@@ -1168,4 +1168,11 @@ def binned_summaries(x, y, nbins, method='interval',
         binstats = binned_statistic(x, y, fun, bins)
         cols[name] = binstats.statistic
     return pd.DataFrame(cols)
+
+def corr(x, y):
+    """
+    Compute Pearson and Spearman correlations, handles NaN.
+    """
+    keep = np.isfinite(x) & np.isfinite(y)
+    return pearsonr(x[keep], y[keep]), spearmanr(x[keep], y[keep])
 
