@@ -72,6 +72,7 @@ class MapPosChunkIterator(object):
         # group by chrom and share segment rec rates
         chrom_seg_rbp = {c: share_array(segments.rates[idx]) for c, idx
                           in chrom_idx.items()}
+
         # group by chrom and share segment lengths
         L = segments.lengths
         chrom_seg_L = {c: share_array(L[idx]) for c, idx in chrom_idx.items()}
@@ -124,12 +125,12 @@ class MapPosChunkIterator(object):
         chrom, mpos_chunk = next_chunk
         chrom_seg_L = self.chrom_seg_L.get(chrom, None)
         chrom_seg_rbp = self.chrom_seg_rbp.get(chrom, None)
+
         return (mpos_chunk,
                 self.chrom_seg_mpos[chrom],
                 chrom_seg_L,
                 chrom_seg_rbp,
                 self.w_grid, self.t_grid)
-
 
     def collate(self, results):
         """
@@ -238,11 +239,13 @@ class BChunkIterator(MapPosChunkIterator):
         next_chunk = next(self.mpos_iter)
         chrom, mpos_chunk = next_chunk
         chrom_segparts = self.chrom_segparts.get(chrom, None)
+
         return (mpos_chunk,
                 self.chrom_seg_mpos[chrom],
                 self.chrom_features[chrom],
                 chrom_segparts,
                 self.w_grid, self.N, self.interp_parts)
+
 
 def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     chunks = BChunkIterator(genome,  mut_grid, step, nchunks)

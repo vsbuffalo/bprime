@@ -77,8 +77,6 @@ class BinnedStat:
         return (self.midpoints, self.stat)
 
 class BScores:
-    # TODO uncomment before next B calc
-    #__slots__ = ('B', 'pos', 'w', 't', 'step', '_interpolators')
     def __init__(self, B, pos, w, t, features=None, step=None):
         self.B = B
         self.pos = pos
@@ -190,10 +188,12 @@ class BScores:
 
     def _build_w_interpolators(self, jax=True, **kwargs):
         """
+        DEPRECATED: done in C code
         Build interpolators at each position for each selection coefficient
         across all mutation weights.
 
         """
+        raise ValueError()
         defaults = {'kind': 'quadratic',
                     'assume_sorted': True,
                     'bounds_error': True,
@@ -257,6 +257,9 @@ class BScores:
             self._build_interpolators()
             print("done.")
         X = np.full((self.w.size, self.t.size, pos.size), np.nan)
+        w = 0
+        t = 0
+        # __import__('pdb').set_trace()
         for i, w in enumerate(self.w):
             for j, t in enumerate(self.t):
                 X[i, j, :] = self._interpolators[chrom][(w, t)](pos)
