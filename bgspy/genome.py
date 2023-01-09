@@ -34,6 +34,10 @@ class Segments:
         self._segment_parts_sc16 = None
         self.F = None
         self.rescaling = None
+        # model fits often exclude chrX, etc so this is a hack
+        # so when rescaling is set, BChunkIterator, etc can know
+        # to exclude certain chroms
+        self._rescaling_excluded = set()
         self._calc_features()
 
     def __repr__(self):
@@ -136,6 +140,7 @@ class Segments:
             if chrom not in predicted_bscores._interpolators:
                 # we don't have an interpolator for this chrom (usually X)
                 warnings.warn(f"skipping chromosome {chrom}!")
+                self._rescaling_excluded.add(chrom)
                 continue
             b = predicted_bscores.B_at_pos(chrom, mids)
             #rescaling[chrom] = b

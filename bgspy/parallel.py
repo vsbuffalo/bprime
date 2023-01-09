@@ -204,6 +204,11 @@ class BChunkIterator(MapPosChunkIterator):
         # equation for calculating B quickly) into chromosomes by the indices
         chrom_segparts = {}
         for chrom in seqlens:
+            if self.genome.segments.rescaling is not None:
+                # this is a hack -- fits often exclude chrX, so if rescaling is being
+                # used, ignore this chrom
+                if chrom in self.genome.segments._rescaling_excluded:
+                    continue
             idx = self.chrom_idx[chrom]
             # share the following arrays across processes, to save memory
             # (these should not be changed!)

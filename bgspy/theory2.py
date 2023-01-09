@@ -350,7 +350,10 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, T_factor=10,
     Z = 1-VmV
     # use the single asymptotic Q2
     Q2_asymp = Q2_asymptotic(Z, M)
-    Ne_asymp = N*np.exp(-V/2 * Q2_asymp)
+    try:
+        Ne_asymp = max(N*np.exp(-V/2 * Q2_asymp), 1)
+    except FloatingPointError:
+        Ne_asymp = 1
     B_asymp = Ne_asymp/N
     if not return_parts and asymptotic:
         return B_asymp
