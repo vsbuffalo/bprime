@@ -311,9 +311,15 @@ def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, T_factor=10,
 
     if start_T is not None:
         # try to solve the non-linear system of equations
-        out = fsolve(func, [start_T, N], full_output=True)
-        Ne = out[0][1]
-        T = out[0][0]
+        try:
+            out = fsolve(func, [start_T, N], full_output=True)
+            Ne = out[0][1]
+            T = out[0][0]
+        except:
+            # mimic a failed convergence to solution
+            out = (None, None, -1)
+            Ne = None
+            T = np.inf
     else:
         # mimic a failed convergence to solution
         out = (None, None, -1)

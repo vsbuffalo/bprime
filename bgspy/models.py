@@ -172,7 +172,7 @@ class BGSModel(object):
             # load the rescaling factors from a model fit
             # NOTE: this only effects the segment parts! nothing past that
             # in the B' calc
-            self.genome.load_rescaling_from_fit(fit)
+            self.genome.segments.load_rescaling_from_fit(fit)
             use_rescaling = True # require segments to be re-calc'd
 
         if ncores is not None and nchunks is None:

@@ -130,7 +130,7 @@ rule bmap_hg38_rescaled:
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.popsize} \
       --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
-      --fit {input.fit} \
+      --fit {input.fit} --only-Bp \
       --step {wildcards.step}
     """
 

@@ -132,13 +132,17 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
 
     # load the fits if they exist
     if fit is not None:
-        bfit, bpfit = pickle.load(open(fit, 'rb'))
+        fits = pickle.load(open(fit, 'rb'))
+        if len(fits) == 2:
+            bfit, bpfit = fits
+        else:
+            bpfit = fits
 
     if not only_bp:
         m.calc_B(step=step, ncores=ncores, nchunks=nchunks)
     if not only_b:
         assert N is not None, "--popsize is not set and B' calculated!"
-        m.calc_Bp(N=N, step=step, ncores=ncores_bp, nchunks=nchunks, fit=fit)
+        m.calc_Bp(N=N, step=step, ncores=ncores_bp, nchunks=nchunks, fit=bpfit)
     if not only_b and fill_nan:
         assert m.Bps is not None, "B' not set!"
         print(f"filling in B' NaNs with B...\t", end='', flush=True)
