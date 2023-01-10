@@ -285,20 +285,20 @@ class BGSModel(object):
                 R[:, wi, ti] = bins.statistic
         return pos, R
 
-    def fill_Bp_nan(self):
-        """
-        Sometimes the B' calculations fail, e.g. due to T = Inf; these
-        can be backfilled with B since they're the same in this domain.
-        This isn't done manually as we should check there isn't some
-        other pathology.
+    #def fill_Bp_nan(self):
+    #    """
+    #    Sometimes the B' calculations fail, e.g. due to T = Inf; these
+    #    can be backfilled with B since they're the same in this domain.
+    #    This isn't done manually as we should check there isn't some
+    #    other pathology.
 
-        TODO: Deprecated?
-        """
-        assert self.Bps is not None, "B' not calculated!"
-        assert self.Bs is not None, "B not calculated!"
-        for chrom, Bp in self.Bps.items():
-            B = self.Bs[chrom]
-            assert Bp.shape == B.shape, "incompatible dimensions!"
-            # back fill the values
-            Bp[np.isnan(Bp)] = B[np.isnan(Bp)]
+    #    TODO: Deprecated?
+    #    """
+    #    assert self.Bps is not None, "B' not calculated!"
+    #    assert self.Bs is not None, "B not calculated!"
+    #    for chrom, Bp in self.Bps.items():
+    #        B = self.Bs[chrom]
+    #        assert Bp.shape == B.shape, "incompatible dimensions!"
+    #        # back fill the values
+    #        Bp[np.isnan(Bp)] = B[np.isnan(Bp)]
 

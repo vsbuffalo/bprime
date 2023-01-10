@@ -114,21 +114,16 @@ def cli():
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--ncores-Bp', help="number of cores to use for calculating B' (more memory intensive)",
               type=int, default=None)
-@click.option('--fill-nan', default=True, is_flag=True,
-              help="fill NANs from B' with B values")
+#@click.option('--fill-nan', default=True, is_flag=True,
+#              help="fill NANs from B' with B values")
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
 def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
           chrom, popsize, split_length, step, only_bp, only_b,
-          fit, nchunks, ncores, ncores_bp, fill_nan, output):
+          fit, nchunks, ncores, ncores_bp, output):
 
     if ncores_bp is None and ncores is not None:
         ncores_bp = ncores
-    N = popsize
-    chrom = [chrom] if chrom is not None else None
-    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
-                       w, t, g, chroms=chrom, name=name,
-                       split_length=split_length)
 
     # load the fits if they exist
     if fit is not None:
@@ -138,16 +133,27 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         else:
             bpfit = fits
 
+    N = popsize
+    if fit is None:
+        # use specified chromosome or set to None to use all in seqlens file
+        chrom = [chrom] if chrom is not None else None
+    else:
+        # match what's in the fit object.
+        chrom = list(bpfit.bins.keys())
+    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
+                       w, t, g, chroms=chrom, name=name,
+                       split_length=split_length)
+
     if not only_bp:
         m.calc_B(step=step, ncores=ncores, nchunks=nchunks)
     if not only_b:
         assert N is not None, "--popsize is not set and B' calculated!"
         m.calc_Bp(N=N, step=step, ncores=ncores_bp, nchunks=nchunks, fit=bpfit)
-    if not only_b and fill_nan:
-        assert m.Bps is not None, "B' not set!"
-        print(f"filling in B' NaNs with B...\t", end='', flush=True)
-        m.fill_Bp_nan()
-        print(f"done.")
+    #if not only_b and fill_nan:
+    #    assert m.Bps is not None, "B' not set!"
+    #    print(f"filling in B' NaNs with B...\t", end='', flush=True)
+    #    m.fill_Bp_nan()
+    #    print(f"done.")
     m.save(output)
 
 @cli.command()
