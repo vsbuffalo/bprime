@@ -253,7 +253,9 @@ class BGSModel(object):
         # elements are V, Vm, T -- we call T = x here
         T = segments._segment_parts_sc16[2]
         R = 1/T
-        r = R/seglens
+        #r = R/seglens ## this underflows
+        r = np.zeros_like(R)
+        np.divide(R, seglens, out=r, where=R > np.finfo(np.float64).tiny * seglens.max())
         if W is None:
             W = np.full(r.shape[:2], 1)
 

@@ -8,6 +8,7 @@ from bgspy.models import BGSModel
 PF_DIR = 'phylofit_estimates/'
 # MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
 MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
+RESCALE_MODEL_FILE = '../bmaps/bgspy/test.pkl'
 FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
 
 
@@ -68,6 +69,15 @@ rule ratchet_data:
      bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
      """
 
+
+rule ratchet_recale_data:
+  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
+  output: "ratchet_rescaled_data.bed"
+  shell: 
+     """
+     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
+     """
+
 rule ratchet_data_cds:
   input: model = MODEL_FILE, fit = FIT_FILE
   output: "ratchet_data_cds.bed", "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"
@@ -113,12 +123,15 @@ rule urrichio_merged:
   Merge in the raw ratchet data and the phylofit substitution rates for
   the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
   """
-  input: data="urrichio_data.bed", ratchet="ratchet_data.bed", pf="phylofit_rates.bed"
+  input: data="urrichio_data.bed", ratchet="ratchet_data.bed", 
+         pf="phylofit_rates.bed", rescaled_ratchet="ratchet_rescaled_data.bed"
   output: "urrichio_data_merged.bed"
   shell:
       """
       bedtools map -a {input.data} -b {input.ratchet} -c 6,7 -o mean,sum > tmp.bed
-      bedtools map -a tmp.bed -b {input.pf} -c 4,5 -o mean,sum > {output[0]}
+      bedtools map -a tmp.bed -b {input.rescaled_ratchet} -c 6,7 -o mean,sum > tmp2.bed
+      bedtools map -a tmp2.bed -b {input.pf} -c 4,5 -o mean,sum > {output[0]}
+      rm -f tmp.bed tmp2.bed
       """
 
 rule phylofit_to_ratchet:
@@ -128,7 +141,7 @@ rule phylofit_to_ratchet:
   # (here the ratchet rate) and average multiple features that overlap B (here
   # the sub rates). Because the predicted ratchet rate varies a lot, usually only 
   # a single rate is "joined" on a with a substitution rate
-  input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  input: ratchet="ratchet_rescaled_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
   output: pf2r="phylofit_to_ratchet.bed"
   shell: 
     """
@@ -139,7 +152,7 @@ rule phylofit_to_ratchet:
 #  # This averages the predicted ratchet rates (with vary on a small spatial
 #  # scale, with the overlaps to the predicted ratchet ranges (these can be
 #  # quite narrow ranges, since they vary a lot!)
-#  input: ratchet="ratchet_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+#  input: ratchet="ratchet_rescaled_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
 #  output: r2pf="ratchet_to_phylofit.bed"
 #  shell: 
 #    """
@@ -175,6 +188,14 @@ rule ratchet_windows:
     bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
     """
 
+rule ratchet_recale_windows:
+  input: ratchet="ratchet_rescaled_data.bed", win="hg38_windows_{width}.bed"
+  output: "ratchet_rescaled_rates_binned_{width}"
+  shell:
+    """
+    bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
+    """
+
 
 window_phylofit = ["phylofit_rates_binned_1000000.bed", 
                    "phylofit_rates_binned_10000.bed", 
@@ -186,12 +207,18 @@ window_ratchet = ["ratchet_rates_binned_1000000.bed",
                   "ratchet_rates_binned_100000.bed",
                   "ratchet_rates_binned_5000000.bed"]
 
+rescale_window_ratchet = ["ratchet_rescaled_rates_binned_1000000.bed", 
+                          "ratchet_rescaled_rates_binned_100000.bed",
+                          "ratchet_rescaled_rates_binned_5000000.bed"]
+
 
 ALL_FILES = ["phylofit_rates.bed", *window_phylofit, 
              "ratchet_data.bed", "phylofit_to_ratchet.bed", 
              "ratchet_to_phylofit.bed",  "ratchet_to_phylofit_cds.bed", 
              "urrichio_data.tsv", *window_ratchet,  
              "urrichio_data_merged.bed",  "ratchet_data_cds.bed", 
+             "ratchet_rescaled_data.bed", 
+             *rescale_window_ratchet,
              "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"]
 
 rule all:
