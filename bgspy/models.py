@@ -235,7 +235,7 @@ class BGSModel(object):
         r = R/seglens
         return midpoints, r, segments.ranges, seglens
 
-    def ratchet_df(self, W=None):
+    def ratchet_df(self, fit):
         """
         Output a combined ratchet, for all segments.
 
@@ -243,35 +243,65 @@ class BGSModel(object):
         If this is not specified, then all classes
         are given equal weight.
         """
+        W = fit.mle_W_norm
+        mus = fit.mle_mu_norm
+        F = self.genome.segments.F
         segments = self.genome.segments
         ranges = segments.ranges
         seglens = np.diff(segments.ranges, axis=1).squeeze()
+        fmaps = segments.inverse_feature_map
+
+        # get chroms
         chroms = []
         for chrom, indices in segments.index.items():
             chroms.extend([chrom] * len(indices))
         chroms = np.array(chroms)
-        # elements are V, Vm, T -- we call T = x here
+
         T = segments._segment_parts_sc16[2]
         R = 1/T
         #r = R/seglens ## this underflows
         r = np.zeros_like(R)
-        np.divide(R, seglens, out=r, where=R > np.finfo(np.float64).tiny * seglens.max())
-        if W is None:
-            W = np.full(r.shape[:2], 1)
+        np.divide(R, seglens[None, None, :], out=r, where=R > np.finfo(np.float64).tiny * seglens.max())
 
-        F = self.genome.segments.F
-        fidx = self.genome.segments.features
-        idx = np.stack((np.arange(len(fidx)), fidx))
-        summed_r = np.einsum('wtl,lf,tf->lf', r, F, W)
-        summed_R = np.einsum('wtl,lf,tf->lf', R, F, W)
-        fmap = self.genome.segments.inverse_feature_map
-        features = [fmap[f] for f in self.genome.segments.features]
-        d = pd.DataFrame({'chrom': chroms,
-                          'start':ranges[:, 0],
-                          'end':ranges[:, 1],
-                          'feature': features,
-                          'R': summed_R[idx[0, :], idx[1, :]],
-                          'r': summed_r[idx[0, :], idx[1, :]], 'seglen': seglens })
+        pred_rs = []
+        pred_Rs = []
+        chrom_col = []
+        start_col, end_col = [], []
+        seglen_col = []
+        feature_col = []
+        for i in range(F.shape[1]):
+            fidx = F[:, i]
+            rs = r[..., fidx]
+            Rs = R[..., fidx]
+            mu = max(min(mus[i], self.w[-1]), self.w[0])
+
+            j = np.searchsorted(self.w, mu)
+            l, u = self.w[j-1], self.w[j]
+            assert l < u
+            weight = ((mu-l)/(u - l))
+            assert 0 <= weight <= 1
+            r_interp = weight*rs[j-1, :, :] + (1-weight)*rs[j, :, :]
+            pred_r = (W[:, i][:, None] * r_interp).sum(axis=0)
+            pred_rs.extend(pred_r)
+
+            R_interp = weight*Rs[j-1, :, :] + (1-weight)*Rs[j, :, :]
+            pred_R = (W[:, i][:, None] * R_interp).sum(axis=0)
+            pred_Rs.extend(pred_R)
+
+            chrom_col.extend(chroms[fidx])
+            start_col.extend(ranges[fidx, 0])
+            end_col.extend(ranges[fidx, 1])
+            seglen_col.extend(seglens[fidx])
+            fs = [fmaps[f] for f in np.where(F[fidx, :])[1]]
+            feature_col.extend(fs)
+
+        d = pd.DataFrame({'chrom': chrom_col,
+                          'start': start_col,
+                          'end': end_col,
+                          'feature': feature_col,
+                          'R': pred_Rs,
+                          'r': pred_rs,
+                          'seglen': seglen_col })
         return d
 
     def get_ratchet_binned_array(self, chrom, width):

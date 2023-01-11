@@ -248,7 +248,10 @@ def subrate(bs_file, fit, outfile, split):
     """
     m = BGSModel.load(bs_file)
     bfit, bpfit = pickle.load(open(fit, 'rb'))
-    rdf = m.ratchet_df(W=bpfit.mle_W_norm)
+    rdf = m.ratchet_df(bpfit)
+    msg = "feature mismatch between BGSModel and fit!"
+    assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
+
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
     if not split:
         rdf.to_csv(outfile, sep='\t', header=False, index=False)

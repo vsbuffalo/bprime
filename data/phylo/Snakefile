@@ -8,7 +8,7 @@ from bgspy.models import BGSModel
 PF_DIR = 'phylofit_estimates/'
 # MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
 MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
-RESCALE_MODEL_FILE = '../bmaps/bgspy/test.pkl'
+RESCALE_MODEL_FILE = '../bmaps/bgspy/bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
 FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
 
 

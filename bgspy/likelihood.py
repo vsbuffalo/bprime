@@ -955,6 +955,14 @@ class FreeMutationModel(BGSLikelihood):
         return self.theta_[1:].reshape((self.nt, self.nf))
 
     @property
+    def mle_mu_norm(self):
+        """
+        Get the mutation rates from the normalized DFE.
+        """
+        W = self.mle_W.reshape((self.nt, self.nf))
+        return W.sum(axis=0)
+
+    @property
     def mle_W_norm(self):
         """
         Normalized W matrix (e.g. a DFE)
@@ -997,6 +1005,21 @@ class FreeMutationModel(BGSLikelihood):
             # rescale so B is returned, π0 = 1
             theta[0] = 1.
         return predict_freemutation(theta, self.logB, self.w)
+
+    def predict_B_at_pos(self, chrom, pos, **kwargs):
+        defaults = {'kind': 'quadratic',
+                    'assume_sorted': True,
+                    'bounds_error': False,
+                    'copy': False}
+        kwargs = {**defaults, **kwargs}
+        mids = self.bins.midpoints()
+        idx = self.bins.chrom_indices(chrom)
+        y = self.predict(B=True)
+        func = interpolate.interp1d(mids[chrom], y[idx],
+                                    fill_value=(y[0], y[-1]),
+                                    **kwargs)
+        return func(pos)
+
 
     def predict_R(self, R, optim=None, theta=None):
         """

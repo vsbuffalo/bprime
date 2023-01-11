@@ -141,13 +141,15 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     ax.set_ylabel(ylabel)
     return fig, ax
 
-def binned_means_plot(df, min_n=None, c='0.22', linewidth=0.5,
+def binned_means_plot(df, min_n=None, gen=None, c='0.22', linewidth=0.5,
                       label=None, figax=None):
     fig, ax = get_figax(figax)
 
     if min_n is not None:
         df = df.loc[df['n'] > min_n]
     x = df['midpoint'].values
+    if gen is not None:
+        x = x / gen
     mean, sd = df['mean'].values, df['sd'].values
     n = df['n'].values
     ax.scatter(x, mean, c=c, s=5, alpha=1, zorder=10, label=label)
