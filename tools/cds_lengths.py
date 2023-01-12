@@ -12,8 +12,39 @@ from bgspy.utils import readfq, readfile
 import Bio.Data.CodonTable as CT
 from CAI import CAI, relative_adaptiveness
 
-START = 'ATG'
-STOP = ['TGA', 'TAG', 'TAA']
+
+ST = CT.standard_dna_table
+START = ST.start_codons
+STOP = ST.stop_codons
+
+
+def num_syn_nonsyn(codon):
+    NUCS = ['A', 'T', 'C', 'G']
+    MUTS = {'A': ('T', 'C', 'G'),
+            'T': ('A', 'C', 'G'),
+            'C': ('T', 'A', 'G'),
+            'G': ('A', 'T', 'C')}
+
+    AA = ST.forward_table[codon]
+    assert all((c in NUCS) for c in codon)
+    f = np.array([0, 0, 0])
+    for i, base in enumerate(codon):
+        for alt in MUTS[base]:
+            mut_codon = codon[:i] + alt + codon[(i + 1):]
+            if mut_codon in ST.stop_codons:
+                continue
+            mut_AA = ST.forward_table[mut_codon]
+            syn = mut_AA == AA
+            f[i] += syn
+    S = np.sum((f / 3))
+    N = 3-S
+    return S, N
+
+num_syn_nonsyn_table = dict()
+
+for codon in ST.forward_table.keys():
+    num_syn_nonsyn_table[codon] = num_syn_nonsyn(codon)
+
 
 keep_chroms = list(map(str, range(1, 23))) + ['X']
 
@@ -24,7 +55,8 @@ invalid = 0
 cleaned_codons = dict()
 locs = dict()
 gc3 = dict()
-
+num_syn = dict()
+num_nonsyn = dict()
 
 fp = readfile(sys.argv[1])
 for name, seq, _ in readfq(fp, name_only=False):
@@ -39,15 +71,17 @@ for name, seq, _ in readfq(fp, name_only=False):
 
     codons = [seq[i:i+3] for i in range(0, len(seq), 3)]
     stops = [i for i, c in enumerate(codons) if c in STOP]
+
     if not len(stops):
         invalid += 1
         continue
+
     first_stop = min(stops)
     codons = codons[:first_stop]
 
     first_codon = codons.pop(0)
     is_invalid = False
-    while first_codon != START:
+    while first_codon not in START:
         missing_start += 1
         if not len(codons):
             # no start codon, so ignored entirely
@@ -58,19 +92,23 @@ for name, seq, _ in readfq(fp, name_only=False):
     if is_invalid:
         continue
 
-    # reinsert the start codon (CAI examples have this!)
+    # reinsert the start codon (CAI examples have this)
     codons.insert(0, 'ATG')
 
     # get the gc3
     gc3[gene_id] = sum([c[2] in 'GC' for c in codons]) / len(codons)
 
-    #
+    # count the syn/non-syn AAs
+    S, N = zip(*[num_syn_nonsyn_table[c] for c in codons])
+    num_syn[gene_id] = np.sum(S)
+    num_nonsyn[gene_id] = np.sum(N)
 
     assert all([len(x)==3 for x in codons])
     assert '_' not in codons
     cleaned_codons[gene_id] = ''.join(codons)
 
     locs[gene_id] = (chrom, int(start), int(end))
+
 
 # reference set (all CDS)
 ref = list(cleaned_codons.values())
@@ -84,7 +122,8 @@ for gene_id, seq in cleaned_codons.items():
     gc = sum(x in 'GC' for x in seq) / len(seq)
     data = dict(chrom='chr'+chrom, start=start, end=end,
                 gene_id=gene_id, cai=cai, gc=gc, gc3=gc3[gene_id],
-                len=len(seq))
+                len=len(seq),
+                S=num_syn[gene_id], N=num_nonsyn[gene_id])
     rows.append(data)
 
 pd.DataFrame(rows).to_csv(sys.argv[2], sep='\t', index=False)

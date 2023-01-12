@@ -29,6 +29,8 @@ def write_fasta(aligns, filename):
             name = f"{species} {seqname}:{start}-{end}"
             f.write(f">{name}\n{seq}\n")
 
+COORD_RE = re.compile(r"Hsap_(?P<chrom>[^_]+)_(?P<start>\d+)_(?P<end>\d+)")
+
 for line in f:
     if line.startswith('#'):
         if line.startswith('# tree: '):
@@ -37,6 +39,9 @@ for line in f:
             aligns = list()
             tree_string = line[8:]
             tree = newick.loads(tree_string)
+
+            hsap_node = [n.name for n in tree[0].walk() if n.name.startswith('Hsap')][0]
+            hs_chrom, hs_start, hs_end = COORD_RE.match(hsap_node).groups()
             #trees.append(tree)
             line = next(f)
             assert(line.startswith('# id: '))
@@ -58,11 +63,15 @@ for line in f:
                 species, seqname = tmp
                 seqname = f"chr{seqname}"
                 #coord = f"{seqname}:{start}-{start+size}"
+                # TODO other species coords are wrong for reverse strand
                 end = start+size
                 coords = (seqname, start, end)
                 if species == 'homo_sapiens':
-                    # these coords are the name
-                    filename = f"{seqname}:{start}-{end}.fa"
+                    # these coords are the name, but use the proper coordinates
+                    # from the tree string!
+                    #assert start == int(hs_start)-1 and end == int(hs_end)
+                    filename = f"chr{hs_chrom}:{hs_start}-{hs_end}.fa"
+                    coords = 'chr'+hs_chrom, hs_start, hs_end
                 assert(typ == 's')
                 aligns.append((species, coords, aln))
                 species_set.add(species)

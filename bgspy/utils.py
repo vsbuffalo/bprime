@@ -1179,3 +1179,11 @@ def corr(x, y):
     keep = np.isfinite(x) & np.isfinite(y)
     return pearsonr(x[keep], y[keep]), spearmanr(x[keep], y[keep])
 
+def censor(x, probs):
+    """
+    Trim of tails
+    """
+    assert len(probs) == 2
+    l, u = np.quantile(x, probs)
+    return x[(x >= l) & (x <= u)]
+
