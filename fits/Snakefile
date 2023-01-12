@@ -3,7 +3,7 @@
 # other params
 NCORES = 40
 NCORES_BOOT = 40
-NSTARTS = 500
+NSTARTS = 1000
 NSTARTS_BOOT = 50
 
 NCORES_LOO = NCORES
@@ -89,10 +89,10 @@ rule loo:
 all_results = []
 for window in windows:
   all_results.append(f'{name}/window_{window}/mle.pkl')
-  boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for b in range(100)]
-  all_results.extend(boots)
-  loo_r2 = f"{name}/window_{window}/loo_r2.npz"
-  all_results.append(loo_r2)
+  #boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for b in range(100)]
+  #all_results.extend(boots)
+  #loo_r2 = f"{name}/window_{window}/loo_r2.npz"
+  #all_results.append(loo_r2)
 
 rule all:
   input: all_results

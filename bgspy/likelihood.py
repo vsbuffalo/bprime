@@ -24,7 +24,6 @@ from scipy.special import xlogy, xlog1py
 from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize
-from numba import jit
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
 from bgspy.utils import signif, load_seqlens
@@ -439,45 +438,6 @@ def negll_mutation(theta, Y, logB, w):
     # mut weight params
     pi0, W = theta[0], theta[1:]
     mu = 1.0
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    ll = 0.
-    for i in range(nx):
-        logBw_i = 0.
-        for j in range(nt):
-            for k in range(nf):
-                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-        log_pibar = np.log(pi0) + logBw_i
-        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
-    return -ll
-
-@jit(nopython=True)
-def negll_numba(theta, Y, logB, w):
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, mu, W = theta[0], theta[1], theta[2:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    ll = 0.
-    for i in range(nx):
-        logBw_i = 0.
-        for j in range(nt):
-            for k in range(nf):
-                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-        log_pibar = np.log(pi0) + logBw_i
-        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
-    return -ll
-
-@jit(nopython=True)
-def negll_mutation_numba(theta, Y, logB, w):
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, W = theta[0], theta[1:]
-    mu = 1.
     W = W.reshape((nt, nf))
     # interpolate B(w)'s
     ll = 0.
@@ -948,32 +908,32 @@ class FreeMutationModel(BGSLikelihood):
         self._load_optim(res)
 
     @property
-    def mle_W(self):
+    def mle_M(self):
         """
-        Extract out the W matrix.
+        Extract out the M matrix.
         """
         return self.theta_[1:].reshape((self.nt, self.nf))
 
     @property
-    def mle_mu_norm(self):
+    def mle_mu(self):
         """
-        Get the mutation rates from the normalized DFE.
+        Get the mutation rates by summing the columns of the M matrix.
         """
-        W = self.mle_W.reshape((self.nt, self.nf))
-        return W.sum(axis=0)
+        M = self.mle_M.reshape((self.nt, self.nf))
+        return M.sum(axis=0)
 
     @property
-    def mle_W_norm(self):
+    def mle_W(self):
         """
         Normalized W matrix (e.g. a DFE)
         """
-        W = self.mle_W.reshape((self.nt, self.nf))
-        Wc = W / W.sum(axis=0)
-        return Wc
+        M = self.mle_M.reshape((self.nt, self.nf))
+        W = M / M.sum(axis=0)
+        return W
 
     def dfe_table(self):
         rows = []
-        Wc = self.mle_W_norm
+        Wc = self.mle_W
         for i, feature in enumerate(self.features):
             rows.append("\t".join([feature, ','.join([str(round(x, 3)) for x in Wc[:, i].tolist()])]))
         return "\n".join(rows)
@@ -1122,15 +1082,14 @@ class SimplexModel(BGSLikelihood):
         """
         Extract out the mutation rate, μ.
         """
-        return self.theta_[1]
-
+        return np.repeat(self.theta_[1], self.nf)
 
     @property
     def mle_W(self):
         """
         Extract out the W matrix.
         """
-        return self.theta_[2:]
+        return self.theta_[2:].reshape(self.nt, self.nf)
 
     def __repr__(self):
         base_rows = super().__repr__()

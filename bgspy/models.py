@@ -34,7 +34,6 @@ import itertools
 import tqdm
 import time
 import numpy as np
-import allel
 from scipy.optimize import minimize_scalar
 import scipy.stats as stats
 import pandas as pd
@@ -243,8 +242,8 @@ class BGSModel(object):
         If this is not specified, then all classes
         are given equal weight.
         """
-        W = fit.mle_W_norm
-        mus = fit.mle_mu_norm
+        W = fit.mle_W
+        mus = fit.mle_mu
         F = self.genome.segments.F
         segments = self.genome.segments
         ranges = segments.ranges
@@ -281,10 +280,15 @@ class BGSModel(object):
             weight = ((mu-l)/(u - l))
             assert 0 <= weight <= 1
             r_interp = weight*rs[j-1, :, :] + (1-weight)*rs[j, :, :]
+
+            # zero out very small values to prevent underflow exception
+            SMALL = 1e-200
+            r_interp[r_interp < SMALL] = 0.
             pred_r = (W[:, i][:, None] * r_interp).sum(axis=0)
             pred_rs.extend(pred_r)
 
             R_interp = weight*Rs[j-1, :, :] + (1-weight)*Rs[j, :, :]
+            R_interp[R_interp < SMALL] = 0.
             pred_R = (W[:, i][:, None] * R_interp).sum(axis=0)
             pred_Rs.extend(pred_R)
 

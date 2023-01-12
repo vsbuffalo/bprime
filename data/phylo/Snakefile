@@ -9,7 +9,7 @@ PF_DIR = 'phylofit_estimates/'
 # MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
 MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
 RESCALE_MODEL_FILE = '../bmaps/bgspy/bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
-FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
+FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
 
 
 phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
@@ -123,7 +123,7 @@ rule uricchio_merged:
   Merge in the raw ratchet data and the phylofit substitution rates for
   the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
   """
-  input: data="uricchio_data.tsv", ratchet="ratchet_data.bed", 
+  input: data="uricchio_data.tsv", ratchet="ratchet_data_cds.bed", 
          pf="phylofit_rates.bed", rescaled_ratchet="ratchet_rescaled_data.bed"
   output: "uricchio_data_merged.bed"
   shell:

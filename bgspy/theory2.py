@@ -9,7 +9,6 @@ from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
 from scipy.interpolate import RegularGridInterpolator
-from numba import jit
 from ctypes import c_double, c_int, POINTER, c_ssize_t, c_void_p
 
 from bgspy.utils import dist_to_segment
