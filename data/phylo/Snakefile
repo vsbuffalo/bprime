@@ -86,9 +86,9 @@ rule ratchet_data_cds:
      bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "ratchet_data"
      """
 
-rule urrichio_data:
+rule uricchio_data:
   input: data="41559_2019_890_MOESM3_ESM.txt", cds_stats="../annotation/ensembl_cds_canonical_protein_coding_stats.tsv"
-  output: "urrichio_data.tsv"
+  output: "uricchio_data.tsv"
   run: 
     cols = ('gene_id', 'n_nonsyn', 'nonsyn_daf', 'n_syn', 
         'syn_daf', 'fixed_nonsyn', 'fixed_syn')
@@ -101,9 +101,9 @@ rule urrichio_data:
 
     gr = gr.merge(cd, on='gene_id')
     gr['total_fixed'] = gr['fixed_nonsyn']+gr['fixed_syn']
-    gr['syn_prop'] = gr['fixed_syn'] / gr['len']
-    gr['nonsyn_prop'] = gr['fixed_nonsyn'] / gr['len']
-    gr['total_prop'] = gr['total_fixed'] / gr['len']
+    gr['syn_prop'] = gr['fixed_syn'] / gr['S']
+    gr['nonsyn_prop'] = gr['fixed_nonsyn'] / gr['N']
+    gr['total_prop'] = gr['total_fixed'] / (gr['S'] + gr['N'])
     gr['dNdS'] = gr['fixed_nonsyn']/gr['fixed_syn']
     gr = gr[~gr['chrom'].isin(['chrX', None])]
 
@@ -111,21 +111,21 @@ rule urrichio_data:
     new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
                 'fixed_nonsyn', 'fixed_syn', 'dnDs', 
                 'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
-                'nonsyn_prop', 'total_prop', 'dNdS']
+                'nonsyn_prop', 'total_prop', 'dNdS', 'S', 'N']
 
     gr = gr.sort_values(['chrom', 'start', 'end'])
     gr = gr[new_cols]
     gr = gr.rename(columns={'chrom': '#chrom'})
     gr.to_csv(output[0], sep='\t', index=False)
 
-rule urrichio_merged:
+rule uricchio_merged:
   """
   Merge in the raw ratchet data and the phylofit substitution rates for
   the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
   """
-  input: data="urrichio_data.bed", ratchet="ratchet_data.bed", 
+  input: data="uricchio_data.tsv", ratchet="ratchet_data.bed", 
          pf="phylofit_rates.bed", rescaled_ratchet="ratchet_rescaled_data.bed"
-  output: "urrichio_data_merged.bed"
+  output: "uricchio_data_merged.bed"
   shell:
       """
       bedtools map -a {input.data} -b {input.ratchet} -c 6,7 -o mean,sum > tmp.bed
@@ -215,8 +215,8 @@ rescale_window_ratchet = ["ratchet_rescaled_rates_binned_1000000.bed",
 ALL_FILES = ["phylofit_rates.bed", *window_phylofit, 
              "ratchet_data.bed", "phylofit_to_ratchet.bed", 
              "ratchet_to_phylofit.bed",  "ratchet_to_phylofit_cds.bed", 
-             "urrichio_data.tsv", *window_ratchet,  
-             "urrichio_data_merged.bed",  "ratchet_data_cds.bed", 
+             "uricchio_data.tsv", *window_ratchet,  
+             "uricchio_data_merged.bed",  "ratchet_data_cds.bed", 
              "ratchet_rescaled_data.bed", 
              *rescale_window_ratchet,
              "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"]

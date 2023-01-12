@@ -1158,6 +1158,7 @@ def cutbins(x, nbins, method='interval', xrange=None, end_expansion=1.00001):
 
 def binned_summaries(x, y, nbins, method='interval',
                      funs={'mean': np.nanmean,
+                           'median': np.nanmedian,
                            'sd': np.nanstd,
                            'n': lambda x: np.sum(np.isfinite(x))}):
     """
