@@ -116,13 +116,13 @@ ref = list(cleaned_codons.values())
 weights = relative_adaptiveness(sequences=ref)
 
 rows = []
-for gene_id, seq in cleaned_codons.items():
+for gene_id, codons in cleaned_codons.items():
     chrom, start, end = locs[gene_id]
-    cai = CAI(seq, weights=weights)
-    gc = sum(x in 'GC' for x in seq) / len(seq)
+    cai = CAI(codons, weights=weights)
+    gc = sum(x in 'GC' for x in codons) / len(codons)
     data = dict(chrom='chr'+chrom, start=start, end=end,
                 gene_id=gene_id, cai=cai, gc=gc, gc3=gc3[gene_id],
-                len=len(seq),
+                len=len(codons),
                 S=num_syn[gene_id], N=num_nonsyn[gene_id])
     rows.append(data)
 
