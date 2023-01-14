@@ -669,6 +669,12 @@ def signif(x, digits=4):
         return np.nan
     return np.round(x, digits-int(floor(log10(abs(x))))-1)
 
+def pretty_signif(x, digits=2):
+    v = signif(x, digits)
+    if int(v) == v:
+        return int(v)
+    return v
+
 def midpoint(x):
     return 0.5*(x[:-1, ...] + x[1:, ...])
 
