@@ -82,13 +82,14 @@ initialize() {
   initializeMutationType("m4", h, "f", -1e-4);
   initializeMutationType("m5", h, "f", -1e-5);
   initializeMutationType("m6", h, "f", -1e-6);
+  initializeMutationType("m7", h, "f", -1e-7);
   gene_els = Dictionary();
   for (i in seqAlong(dfe.allKeys)) {
     key = dfe.allKeys[i];
     gx = paste0("g", i);
     gene_els.setValue(key, gx);
     initializeGenomicElementType(gx, 
-                                 c(m6, m5, m4, m3, m2, m1),
+                                 c(m7, m6, m5, m4, m3, m2, m1),
                                  dfe.getValue(key));
   }
   metadata.setValue("dfe", dfe);
