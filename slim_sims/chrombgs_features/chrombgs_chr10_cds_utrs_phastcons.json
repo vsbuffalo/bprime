@@ -3,12 +3,12 @@
   "runtype": "grid",
   "slim": "chrombgs_features.slim",
   "annot_file": "../../data/annotation/conserved_cds_utrs_phastcons.bed",
-  "dfe": "cds_utrs_phastcons_mle.tsv",
+  "dfe": "cds_utrs_phastcons_simplex_mle.tsv",
   "params":
      {
-       "N": {"grid": [10000, 33000, 37000], "type": "int"},
+       "N": {"grid": [37000], "type": "int"},
        "mu": {"grid": [1.3e-8], "type": "float"},
        "chr": {"grid": ["10"], "type": "str"}
      },
-   "nreps": 1
+   "nreps": 100
 }

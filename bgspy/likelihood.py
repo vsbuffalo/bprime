@@ -777,6 +777,16 @@ class BGSLikelihood:
                            (np.log10(bounds[0, 0]), np.log10(bounds[0, 1])))
         return obj
 
+    def W_to_tsv(self, filename, ndigits=3):
+        """
+        Write W to TSV.
+        """
+        W = self.mle_W.T
+        with open(filename, 'w') as f:
+            for i, feat in enumerate(self.features):
+                dfe = ','.join(map(str, np.round(W[i, :], ndigits)))
+                f.write(f"{feat}\t{dfe}\n")
+
     def __repr__(self):
         rows = [f"MLE (interpolated w): {self.nw} x {self.nt} x {self.nf}"]
         rows.append(f"  w grid: {signif(self.w)} (before interpolation)")
@@ -1108,7 +1118,7 @@ class SimplexModel(BGSLikelihood):
             base_rows += "W = \n" + tabulate(tab, headers=header)
         return base_rows
 
-    def predict(self, optim=None, theta=None):
+    def predict(self, optim=None, theta=None, B=False):
         """
         Predicted π from the best fit (if optim = None). If optim is 'random', a
         random MLE optimization is chosen (e.g. to get a senes of how much
@@ -1119,13 +1129,16 @@ class SimplexModel(BGSLikelihood):
         if theta is not None:
             return predict_simplex(theta, self.logB, self.w)
         if optim is None:
-            theta = self.theta_
+            theta = np.copy(self.theta_)
         else:
             thetas = self.optim.thetas_
             if optim == 'random':
-                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
+                theta = np.copy(thetas[np.random.randint(0, thetas.shape[0]), :])
             else:
-                theta = thetas[optim]
+                theta = np.copy(thetas[optim])
+        if B:
+            # rescale so B is returned, π0 = 1
+            theta[0] = 1.
         return predict_simplex(theta, self.logB, self.w)
 
 class FixedMutationModel(BGSLikelihood):

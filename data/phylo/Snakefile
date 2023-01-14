@@ -79,7 +79,7 @@ rule ratchet_recale_data:
      """
 
 rule ratchet_data_cds:
-  input: model = MODEL_FILE, fit = FIT_FILE
+  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
   output: "ratchet_data_cds.bed", "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"
   shell: 
      """
