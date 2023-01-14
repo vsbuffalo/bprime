@@ -48,8 +48,41 @@
 
 \section*{Introduction}
 
-Vast portions of eukaryotes genomes are under continual selectionary pressure
-to remove the continual influx of deleterious mutations.
+Eukaryotes genomes are under continual selectionary pressure to remove the
+continual influx of deleterious mutations at conserved regions. This purifying
+selection process keeps mutations that reduce fitness at low frequency in the
+population, and reduces genetic diversity at sites linked to genomic regions
+that are predominantly under purifying selection such as coding sequences and
+regions that have been shown to be phylogenetically conserved between species.
+Evolutionary geneticists have developed a series of mathematical models of this
+process, to predict quantities such as the equilibrium level of segregating
+deleterious mutations (\emph{genetic load}), and the reduction in neutral
+genetic diversity at linked sites due to a faster rate of coalescence (the $B$
+reduction factor). Statistical models of the purifying selection process fit to
+human genomic data closely match observed patterns of genetic variability along
+the genome, explaining around 60\% of the genetic variability at the megabase
+scale \parencite{McVicker2009-ax,Murphy2022-sj}.
+
+These evolutionary genetics models only consider the impact of new mutations
+that are sufficiently deleterious that they are guaranteed to be eliminated
+eventually by selection. When mutations are strongly deleterious, the impact of
+random genetic drift and random perturbations caused by selection at linked
+neighboring sites (genetic draft) on these mutations on their fates can be
+ignored. Under these conditions, mathematical models can assume an stationary
+balance between the input of new mutations entering the population at rate
+$\mu$ per basepair, per generation, and their rate of loss determined by the
+relative reduction in heterozygous fitness, $1-s$. Under these
+mutation-selection balance models, the equilibrium genetic load and the
+reduction in coalescent time are approximately determined by the ratio
+$\nicefrac{\mu}{s}$. However, estimates of the distribution of fitness effects
+suggest many new mutations are weakly deleterious, such that their dynamics can
+no longer ignore the influence of genetic drift and draft.
+
+
+
+To understand the this process and make predictions about the equilibrium level
+of deleterious mutations segregating in the population, evolutionary
+geneticists have used models of mutation-selection balance. These models 
 
 Non-equilibrium models of deleterious mutation flux.
 
