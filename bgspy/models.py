@@ -38,8 +38,10 @@ from scipy.optimize import minimize_scalar
 import scipy.stats as stats
 import pandas as pd
 
+from bgspy.utils import signif
 from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
+from bgspy.substitution import grid_interp_weights
 
 class BGSModel(object):
     """
@@ -189,6 +191,7 @@ class BGSModel(object):
             warnings.warn(msg)
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
+        self.N = N
 
     def get_ratchet_rates(self, wi, ti, chrom=None, as_times=False,
                           use_midpoints=True, width=None):
@@ -243,7 +246,7 @@ class BGSModel(object):
         are given equal weight.
         """
         W = fit.mle_W
-        mus = fit.mle_mu
+        mus = fit.mle_mu # one for each feature (for simplex, these are all same)
         F = self.genome.segments.F
         segments = self.genome.segments
         ranges = segments.ranges
@@ -269,34 +272,49 @@ class BGSModel(object):
         seglen_col = []
         feature_col = []
         for i in range(F.shape[1]):
+            # get the substiution rates and other info *for this feature type*
             fidx = F[:, i]
             rs = r[..., fidx]
             Rs = R[..., fidx]
-            mu = max(min(mus[i], self.w[-1]), self.w[0])
+            nsegs = fidx.sum()
+            mu = mus[i]
 
-            j = np.searchsorted(self.w, mu)
-            l, u = self.w[j-1], self.w[j]
-            assert l < u
-            weight = ((mu-l)/(u - l))
-            assert 0 <= weight <= 1
-            r_interp = weight*rs[j-1, :, :] + (1-weight)*rs[j, :, :]
+            r_interp = np.zeros(nsegs)
+            R_interp = np.zeros(nsegs)
+            for k in range(len(self.t)):
+                muw = mu*W[k, i]
+                j, weight = grid_interp_weights(self.w, muw)
 
-            # zero out very small values to prevent underflow exception
-            SMALL = 1e-200
-            r_interp[r_interp < SMALL] = 0.
-            pred_r = (W[:, i][:, None] * r_interp).sum(axis=0)
-            pred_rs.extend(pred_r)
+                # we should get the mutation rate back if we weight the mutation
+                # grid
+                assert np.allclose(weight*self.w[j-1] + (1-weight)*self.w[j], muw)
 
-            R_interp = weight*Rs[j-1, :, :] + (1-weight)*Rs[j, :, :]
-            R_interp[R_interp < SMALL] = 0.
-            pred_R = (W[:, i][:, None] * R_interp).sum(axis=0)
-            pred_Rs.extend(pred_R)
+                r_this_selcoef = weight*rs[j-1, k, :] + (1-weight)*rs[j, k, :]
+                R_this_selcoef = weight*Rs[j-1, k, :] + (1-weight)*Rs[j, k, :]
+                try:
+                    assert np.all(r_this_selcoef <= muw)
+                except:
+                    n_over = (r_this_selcoef > muw).sum()
+                    frac = signif(100*(r_this_selcoef > muw).mean(), 2)
+                    msg = (f"{n_over} segments ({frac}%) had estimated substitution rates "
+                            "greater than the DFE-weighted mutation rate for the"
+                           f" class s={self.t[k]}, feature '{fmaps[i]}'. This "
+                            "occurrs most likely due to numeric error in solving "
+                            "the nonlinear system of equations. These are set to zero.")
+                    warnings.warn(msg)
+                    r_this_selcoef[r_this_selcoef > muw] = 0.
+                r_interp += r_this_selcoef
+                R_interp += R_this_selcoef
+
+            # __import__('pdb').set_trace()
+            pred_rs.extend(r_interp)
+            pred_Rs.extend(R_interp)
 
             chrom_col.extend(chroms[fidx])
             start_col.extend(ranges[fidx, 0])
             end_col.extend(ranges[fidx, 1])
             seglen_col.extend(seglens[fidx])
-            fs = [fmaps[f] for f in np.where(F[fidx, :])[1]]
+            fs = [fmaps[i]] * fidx.sum()
             feature_col.extend(fs)
 
         d = pd.DataFrame({'chrom': chrom_col,
