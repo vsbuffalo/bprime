@@ -141,13 +141,31 @@ rule uricchio_merged:
       rm -f tmp.bed tmp2.bed
       """
 
+rule phylofit_to_ratchet_cds:
+  input: ratchet="ratchet_rescaled_data_cds.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  output: pf2r="phylofit_to_ratchet_cds.bed"
+  shell: 
+    """
+    bedtools map -a {input.ratchet} -b {input.pf} -c 4 -o mean | bedtools subtract -a - -b {input.exclude} > {output.pf2r}
+    """
+
+
+rule phylofit_to_ratchet_phastcons:
+  input: ratchet="ratchet_rescaled_data_phastcons.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
+  output: pf2r="phylofit_to_ratchet_phastcons.bed"
+  shell: 
+    """
+    bedtools map -a {input.ratchet} -b {input.pf} -c 4 -o mean | bedtools subtract -a - -b {input.exclude} > {output.pf2r}
+    """
+
+
 rule phylofit_to_ratchet:
   # This takes the estimated substitution rates from phylofit, and finds 
   # overlaps to the predicted ratchet ranges (these can be quite narrow ranges, 
   # since they vary a lot!). Usually bedtools maps would average the features in A 
   # (here the ratchet rate) and average multiple features that overlap B (here
   # the sub rates). Because the predicted ratchet rate varies a lot, usually only 
-  # a single rate is "joined" on a with a substitution rate
+  # a single rate is "joined" on a with a substitution rate. It's also mixing features types.
   input: ratchet="ratchet_rescaled_data.bed", pf="phylofit_rates.bed", exclude="../annotation/hg38_centro_slop.bed"
   output: pf2r="phylofit_to_ratchet.bed"
   shell: 
@@ -226,6 +244,8 @@ ALL_FILES = ["phylofit_rates.bed", *window_phylofit,
              "uricchio_data_merged.bed",  "ratchet_data_cds.bed", 
              "ratchet_rescaled_data.bed", 
              *rescale_window_ratchet,
+             "phylofit_to_ratchet_phastcons.bed",
+             "phylofit_to_ratchet_cds.bed",
              "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"]
 
 rule all:
