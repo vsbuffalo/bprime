@@ -1,11 +1,11 @@
 {
     "__default__" :
     {
-        "time" : "1-10:00:00",
+        "time" : "20-10:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu,preempt",
-        "mem" : "15GB",
+        "mem" : "50GB",
         "cores" : "1",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/chrombgs_features/",
         "name" : "features_{rule}_{wildcards}",

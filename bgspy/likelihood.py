@@ -106,8 +106,13 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         features = list(gm.segments.feature_map.keys())
 
         # bin Bs
-        vprint("-- binning Bs --")
-        b = bgs_bins.bin_Bs(gm.BScores)
+        fit_b = gm.Bs is not None
+        if fit_b:
+            vprint("-- binning B --")
+            b = bgs_bins.bin_Bs(gm.BScores)
+
+        # B' is always fit
+        vprint("-- binning B --")
         bp = bgs_bins.bin_Bs(gm.BpScores)
 
         # get the diversity data
@@ -115,10 +120,11 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
 
         if model == 'simplex':
             # fit the simplex model
-            vprint("-- fitting B simplex model --")
-            m_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                                bins=bgs_bins, features=features)
-            m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+            if fit_b:
+                vprint("-- fitting B simplex model --")
+                m_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                                    bins=bgs_bins, features=features)
+                m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
             # now to the B'
             vprint("-- fitting B' simplex model --")
@@ -128,10 +134,11 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         elif model == 'fixed':
             assert isinstance(mu, float), "mu must be a float if model='fixed'"
             # fit the simplex model
-            vprint("-- fitting B fixed model --")
-            m_b = FixedMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                                     bins=bgs_bins, features=features)
-            m_b.fit(starts=nstarts, mu=mu, ncores=ncores, algo='ISRES')
+            if fit_b:
+                vprint("-- fitting B fixed model --")
+                m_b = FixedMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                                         bins=bgs_bins, features=features)
+                m_b.fit(starts=nstarts, mu=mu, ncores=ncores, algo='ISRES')
 
             # now to the B'
             vprint("-- fitting B' fixed model --")
@@ -141,10 +148,11 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         else:
             # free mutation / default
             # fit the simplex model
-            vprint("-- fitting B free model --")
-            m_b = FreeMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                                    bins=bgs_bins, features=features)
-            m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+            if fit_b:
+                vprint("-- fitting B free model --")
+                m_b = FreeMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
+                                        bins=bgs_bins, features=features)
+                m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
             # now to the B'
             vprint("-- fitting B' free model --")
@@ -152,6 +160,8 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                                      bins=bgs_bins, features=features)
             m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
+        if not fit_b:
+            m_b = None
 
         with open(outfile, 'wb') as f:
             pickle.dump((m_b, m_bp), f)
