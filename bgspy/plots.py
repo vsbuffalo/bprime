@@ -142,7 +142,7 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     return fig, ax
 
 def binned_means_plot(df, min_n=None, gen=None,
-                      stat='mean',
+                      stat='mean', s=5,
                       c='0.22', linewidth=0.5,
                       label=None, figax=None):
     fig, ax = get_figax(figax)
@@ -154,6 +154,6 @@ def binned_means_plot(df, min_n=None, gen=None,
         x = x / gen
     mean, sd = df[stat].values, df['sd'].values
     n = df['n'].values
-    ax.scatter(x, mean, c=c, s=5, alpha=1, zorder=10, label=label)
+    ax.scatter(x, mean, c=c, s=s, alpha=1, zorder=10, label=label)
     ax.errorbar(x, mean, 2*sd/np.sqrt(n), fmt='none', c=c, elinewidth=linewidth)
     return fig, ax
