@@ -1102,7 +1102,8 @@ class SimplexModel(BGSLikelihood):
         """
         Extract out the mutation rate, μ.
         """
-        return np.repeat(self.theta_[1], self.nf)
+        return self.theta_[1]
+        #return np.repeat(self.theta_[1], self.nf)
 
     @property
     def mle_W(self):

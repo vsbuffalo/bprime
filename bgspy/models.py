@@ -246,7 +246,12 @@ class BGSModel(object):
         are given equal weight.
         """
         W = fit.mle_W
-        mus = fit.mle_mu # one for each feature (for simplex, these are all same)
+        mus = fit.mle_mu
+        from bgspy.likelihood import SimplexModel
+        if isinstance(fit, SimplexModel):
+            # repeat one for each feature (for simplex, these are all same)
+            mus = np.repeat(mus, fit.nf)
+
         F = self.genome.segments.F
         segments = self.genome.segments
         ranges = segments.ranges
