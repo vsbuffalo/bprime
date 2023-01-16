@@ -267,6 +267,7 @@ class BGSModel(object):
 
         pred_rs = []
         pred_Rs = []
+        pred_load = []
         chrom_col = []
         start_col, end_col = [], []
         seglen_col = []
@@ -281,6 +282,7 @@ class BGSModel(object):
 
             r_interp = np.zeros(nsegs)
             R_interp = np.zeros(nsegs)
+            load_interp = np.zeros(nsegs)
             for k in range(len(self.t)):
                 muw = mu*W[k, i]
                 j, weight = grid_interp_weights(self.w, muw)
@@ -304,11 +306,18 @@ class BGSModel(object):
                     warnings.warn(msg)
                     r_this_selcoef[r_this_selcoef > muw] = 0.
                 r_interp += r_this_selcoef
+                try:
+                    assert np.all(r_interp <= mu)
+                except:
+                    __import__('pdb').set_trace()
                 R_interp += R_this_selcoef
+                with np.errstate(under='ignore'):
+                    load_interp += np.log((1-2*self.t[k]))*R_this_selcoef
 
             # __import__('pdb').set_trace()
             pred_rs.extend(r_interp)
             pred_Rs.extend(R_interp)
+            pred_load.extend(load_interp)
 
             chrom_col.extend(chroms[fidx])
             start_col.extend(ranges[fidx, 0])
@@ -323,7 +332,8 @@ class BGSModel(object):
                           'feature': feature_col,
                           'R': pred_Rs,
                           'r': pred_rs,
-                          'seglen': seglen_col })
+                          'seglen': seglen_col,
+                          'load': pred_load})
         return d
 
     def get_ratchet_binned_array(self, chrom, width):

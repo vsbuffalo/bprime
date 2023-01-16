@@ -69,15 +69,15 @@ rule ratchet_data:
      bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
      """
 
-rule ratchet_recale_data_split:
-  input: model = MODEL_FILE, fit = FIT_FILE
+rule ratchet_rescale_data_split:
+  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
   output: "ratchet_rescaled_data_cds.bed", "ratchet_rescaled_data_utr.bed", "ratchet_rescaled_data_phastcons.bed"
   shell: 
      """
      bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "ratchet_rescaled_data"
      """
 
-rule ratchet_recale_data:
+rule ratchet_rescale_data:
   input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
   output: "ratchet_rescaled_data.bed"
   shell: 
