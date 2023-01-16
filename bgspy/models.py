@@ -244,6 +244,8 @@ class BGSModel(object):
         W is the MLE estimate of the DFE weights.
         If this is not specified, then all classes
         are given equal weight.
+
+        TODO: this code should go to substitutions module.
         """
         W = fit.mle_W
         mus = fit.mle_mu

@@ -674,6 +674,7 @@ class BGSLikelihood:
 
     def ci(self):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
+        assert False, "FIX: log stuff"
         lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
         return np.stack((lower, self.theta_, upper)).T
 

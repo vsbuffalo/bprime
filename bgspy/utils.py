@@ -1158,7 +1158,12 @@ def cutbins(x, nbins, method='interval', xrange=None, end_expansion=1.00001):
                          np.sort(x))
         return bins[~np.isnan(bins)]
     elif method == 'quantile':
-        return np.nanquantile(x, np.linspace(0, 1, nbins))
+        bins =  np.nanquantile(x, np.linspace(0, 1, nbins))
+        if xrange is not None:
+            # end should include max
+            bins[-1] = xrange[1]
+            bins[0] = xrange[0]
+        return bins
     else:
         raise ValueError("method must be 'interval', 'number', or 'quantile'")
 
@@ -1183,6 +1188,10 @@ def corr(x, y):
     """
     Compute Pearson and Spearman correlations, handles NaN.
     """
+    if isinstance(x, list):
+        x = np.array(x)
+    if isinstance(y, list):
+        y = np.array(y)
     keep = np.isfinite(x) & np.isfinite(y)
     return pearsonr(x[keep], y[keep]), spearmanr(x[keep], y[keep])
 

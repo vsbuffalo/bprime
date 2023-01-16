@@ -84,13 +84,10 @@ def percentile_ci(boot_thetas, alpha=0.05):
     eps = np.nanquantile(boot_thetas, (alpha/2, 1-alpha/2), axis=1)
     return eps
 
-def pivot_ci(boot_thetas, theta, alpha=0.05, log=True, axis=1):
+def pivot_ci(boot_thetas, theta, alpha=0.05, axis=0):
     """
-    Default axis is 1 for MLE thetas.
+    Use axis is 1 for MLE thetas from boostrap samples.
     """
-    if log:
-        boot_thetas = np.log10(boot_thetas)
-        theta = np.log10(theta)
     eps = np.quantile(boot_thetas, (alpha/2, 1-alpha/2), axis=axis)
-    return 10**(2*theta - eps[1]), 10**(2*theta - eps[0])
+    return np.array([2*theta - eps[1], 2*theta - eps[0]])
 
