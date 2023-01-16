@@ -621,6 +621,8 @@ class BGSLikelihood:
     def loo_chrom_bootstrap(self, nboot, blocksize, exclude_chrom, **kwargs):
         """
         Resample bin indices with bootstrapping but leave out a chromosome.
+
+        Blocksize is number of consecutive windows.
         """
         assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
         res = []
@@ -894,6 +896,7 @@ class FreeMutationModel(BGSLikelihood):
 
         if isinstance(starts, int):
             starts = [self.random_start() for _ in range(starts)]
+        assert isinstance(starts, list), "starts must be a list of θs or integer of random starts"
         ncores = 1 if ncores is None else ncores
         ncores = min(len(starts), ncores) # don't request more cores than we need
 
@@ -1073,8 +1076,10 @@ class SimplexModel(BGSLikelihood):
 
         if isinstance(starts, int):
             starts = [self.random_start() for _ in range(starts)]
-        # don't request more cores than we need
-        ncores = min(len(starts), ncores)
+
+        if ncores is not None:
+            # don't request more cores than we need
+            ncores = min(len(starts), ncores)
 
         Y = self.Y
         logB = self.logB

@@ -31,6 +31,10 @@ def array_all(x):
 
 def run_optims(workerfunc, starts, progress=True, ncores=50):
     """
+    Parallel optiomization.
+
+    Returns an OptimResult, which contains all the optimizations
+    from each random start.
     """
     nstarts = len(starts)
     ncores = ncores if ncores is not None else 1
