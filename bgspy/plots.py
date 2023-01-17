@@ -156,15 +156,17 @@ def binned_means_plot(df, min_n=None, gen=None,
     mean, sd = df[stat].values, df['sd'].values
     n = df['n'].values
     if thin is None:
-        ax.scatter(x, mean, c=c, s=s, alpha=1, zorder=10, label=label)
-        ax.errorbar(x, mean, 2*sd/np.sqrt(n), fmt='none', c=c, elinewidth=linewidth)
+        points = ax.scatter(x, mean, c=c, s=s, alpha=1, zorder=10, label=label)
+        ax.errorbar(x, mean, 2*sd/np.sqrt(n), fmt='none',
+                    c=points.get_edgecolor(),
+                    elinewidth=linewidth)
     else:
         x, mean = x, mean
         se = (2*sd/np.sqrt(n))
         x, mean = x[::thin], mean[::thin]
         se = se[::thin]
-        ax.scatter(x, mean, c=c, s=s, alpha=1,
-                   zorder=10, label=label)
+        points = ax.scatter(x, mean, c=c, s=s, alpha=1,
+                            zorder=10, label=label)
         ax.errorbar(x, mean, se,
-                    fmt='none', c=c, elinewidth=linewidth)
+                    fmt='none', c=points.get_edgecolor(), elinewidth=linewidth)
     return fig, ax

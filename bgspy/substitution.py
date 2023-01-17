@@ -10,9 +10,10 @@ def grid_interp_weights(w, mu):
     w = 1-weight # so weighting is w*lower + (1-w)*upper
     return j, w
 
+def JC69(dist):
+    return 0.75 - 0.75*np.exp(-4/3 * dist)
+
 ## an experiment -- deprecated
-#def JC69(dist):
-#    return 0.75 - 0.75*np.exp(-4/3 * dist)
 
 #def JC69_parametric(lambda_d, T):
 #    """
