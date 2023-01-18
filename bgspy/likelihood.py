@@ -52,6 +52,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    loo_chrom=False,
                    window=1_000_000, outliers=(0.0, 0.995),
                    recycle_mle=False,
+                   bp_only=False,
                    only_autos=True,
                    B=None, blocksize=20,
                    r2_file=None,
@@ -105,9 +106,14 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         # features -- load for labels
         features = list(gm.segments.feature_map.keys())
 
+	# handle if we're doing B too or just B'
+        m_b = None
+        if gm.Bs is None:
+            warnings.warn(f"BGSModel.Bs is not set, so not fitting classic Bs (this is likely okay.)")
+            bp_only = True # this has to be true now, no B
+
         # bin Bs
-        fit_b = gm.Bs is not None
-        if fit_b:
+        if not bp_only:
             vprint("-- binning B --")
             b = bgs_bins.bin_Bs(gm.BScores)
 
@@ -120,7 +126,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
 
         if model == 'simplex':
             # fit the simplex model
-            if fit_b:
+            if not bp_only:
                 vprint("-- fitting B simplex model --")
                 m_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
                                     bins=bgs_bins, features=features)
@@ -134,7 +140,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         elif model == 'fixed':
             assert isinstance(mu, float), "mu must be a float if model='fixed'"
             # fit the simplex model
-            if fit_b:
+            if not bp_only:
                 vprint("-- fitting B fixed model --")
                 m_b = FixedMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
                                          bins=bgs_bins, features=features)
@@ -148,7 +154,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         else:
             # free mutation / default
             # fit the simplex model
-            if fit_b:
+            if not bp_only:
                 vprint("-- fitting B free model --")
                 m_b = FreeMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
                                         bins=bgs_bins, features=features)
@@ -160,8 +166,6 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                                      bins=bgs_bins, features=features)
             m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
-        if not fit_b:
-            m_b = None
 
         with open(outfile, 'wb') as f:
             pickle.dump((m_b, m_bp), f)
@@ -177,9 +181,12 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
     if bootstrap:
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
         starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-        print("-- bootstrapping B --")
-        nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
-                                         starts=starts_b, ncores=ncores)
+
+        nlls_b, thetas_b = None, None
+        if not bp_only:
+            print("-- bootstrapping B --")
+            nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
+                                             starts=starts_b, ncores=ncores)
         print("-- bootstrapping B' --")
         nlls_bp, thetas_bp = m_bp.bootstrap(nboot=B, blocksize=blocksize,
                                             starts=starts_bp, ncores=ncores)
@@ -188,11 +195,14 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                                 nlls_bp=nlls_bp, thetas_bp=thetas_bp)
             print("-- bootstrapping results saved --")
             return
+
     if loo_chrom:
-        starts_b = [m_b.theta_] * nstarts
-        starts_bp = [m_bp.theta_] * nstarts
-        print("-- leave-one-out R2 estimation for B --")
-        b_r2 = m_b.loo_chrom_R2(starts=starts_b, ncores=ncores)
+        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
+        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
+        b_r2 = None
+        if not bp_only:
+            print("-- leave-one-out R2 estimation for B --")
+            b_r2 = m_b.loo_chrom_R2(starts=starts_b, ncores=ncores)
         print("-- leave-one-out R2 estimation for B' --")
         bp_r2 = m_bp.loo_chrom_R2(starts=starts_bp, ncores=ncores)
         np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
@@ -646,38 +656,38 @@ class BGSLikelihood:
         self.boot_r2ns_ = np.array(r2ns)
         return nlls, thetas
 
-    def loo_bootstrap(self, nboot, blocksize, **kwargs):
-        """
-        Resample bin indices, leaving one out, and and fit each time.
-        """
-        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
-        res = []
-        r2s = []
-        r2ns = []
-        n = self.bins.nbins(filter_masked=True)
-        for b in tqdm.trange(nboot):
-            idx = self.bins.resample_blocks(blocksize=blocksize,
-                                            filter_masked=True)
-            out_sample_idx = get_out_sample(idx, n)
-            fit_optim = self.fit(_indices=idx, **kwargs)
-            theta = fit_optim.theta
-            res.append(fit_optim)
-            if len(out_sample_idx):
-                r2s.append(self.R2(_idx=out_sample_idx, theta=theta))
-                r2ns.append(len(out_sample_idx))
-        nlls, thetas = process_bootstraps(res)
-        self.boot_nlls_ = nlls
-        self.boot_thetas_ = thetas
-        self.boot_r2s_ = np.array(r2s)
-        self.boot_r2ns_ = np.array(r2ns)
-        return nlls, thetas
-
     def ci(self):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
         assert False, "FIX: log stuff"
         lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
         return np.stack((lower, self.theta_, upper)).T
 
+#    def loo_bootstrap(self, nboot, blocksize, **kwargs):
+#        """
+#        EXPERIMENTAL!
+#        Resample bin indices, leaving one out, and and fit each time.
+#        """
+#        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
+#        res = []
+#        r2s = []
+#        r2ns = []
+#        n = self.bins.nbins(filter_masked=True)
+#        for b in tqdm.trange(nboot):
+#            idx = self.bins.resample_blocks(blocksize=blocksize,
+#                                            filter_masked=True)
+#            out_sample_idx = get_out_sample(idx, n)
+#            fit_optim = self.fit(_indices=idx, **kwargs)
+#            theta = fit_optim.theta
+#            res.append(fit_optim)
+#            if len(out_sample_idx):
+#                r2s.append(self.R2(_idx=out_sample_idx, theta=theta))
+#                r2ns.append(len(out_sample_idx))
+#        nlls, thetas = process_bootstraps(res)
+#        self.boot_nlls_ = nlls
+#        self.boot_thetas_ = thetas
+#        self.boot_r2s_ = np.array(r2s)
+#        self.boot_r2ns_ = np.array(r2ns)
+#        return nlls, thetas
 
     def ci(self):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -731,9 +741,23 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-    def loo_chrom_R2(self, **fit_kwargs):
+    def loo_chrom_R2(self, out_sample_chrom=None, **fit_kwargs):
+        """
+        Estimate R2 by leave-one-out of a whole chromosome, a new fit,
+        and estimate of R2 of the out sample chromosome.
+
+        The ML estimate can be recycled via the **fit_kwargs.
+        """
+        all_chroms = self.bins.bins().keys()
+
         r2s = []
-        for chrom in self.bins.bins().keys():
+        if in_sample_chroms is None:
+            in_sample_chroms = None
+
+	assert False, "TODO"
+
+        for chrom in in_sample_chroms:
+            print(f"working on chromosome {chrom}")
             in_sample = self.bins.chrom_indices(chrom, exclude=True)
             out_sample = self.bins.chrom_indices(chrom, exclude=False)
             fit_optim = self.fit(**fit_kwargs, _indices=in_sample)
@@ -1060,7 +1084,7 @@ class SimplexModel(BGSLikelihood):
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds, paired=False)
 
-    def fit(self, starts=1, ncores=None, algo='ISRES', _indices=None):
+    def fit(self, starts=1, ncores=None, algo='ISRES', progress=True, _indices=None):
         """
         Fit likelihood models with mumeric optimization (using nlopt).
 
@@ -1096,7 +1120,7 @@ class SimplexModel(BGSLikelihood):
                          bounds=self.bounds(), algo=algo)
 
         # run the optimization routine on muliple starts
-        res = run_optims(worker, starts, ncores=ncores, progress=not bootstrap)
+        res = run_optims(worker, starts, ncores=ncores, progress=progress)
 
         if bootstrap:
             # we don't clobber the existing results since this ins't a fit.

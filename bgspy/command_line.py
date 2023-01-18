@@ -238,7 +238,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
            bs_file, outfile, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
-    mu = None if mu == 'None' else mu # sterialize CL input
+    mu = None if mu == 'None' else float(mu) # sterialize CL input
     fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
                    access_file=access, fasta_file=fasta,
@@ -344,8 +344,15 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
               type=int, default=1)
-def R2(fit, r2_file, ncores, nstarts):
-    fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores, nstarts=nstarts, recycle_mle=True, loo_chrom=True)
+@click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
+def R2(fit, r2_file, ncores, nstarts, include_bs):
+    """
+    Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
+    and predicting the observed diversity on the excluded chromosome.
+    """
+    fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores, 
+                   bp_only=(not include_bs),
+                   nstarts=nstarts, recycle_mle=True, loo_chrom=True)
 
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),

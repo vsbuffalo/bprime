@@ -8,7 +8,7 @@
         "mem" : "50GB",
         "cores" : "1",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/slim_sims/chrombgs_features/",
-        "name" : "features_{rule}_{wildcards}",
+        "name" : "featsim_{rule}_{wildcards}",
         "output" : "logs/out/{rule}_{jobid}.out",
         "error" : "logs/error/{rule}_{jobid}.err"
     }

@@ -10,5 +10,5 @@
        "mu": {"grid": [1.3e-8], "type": "float"},
        "chr": {"grid": ["10"], "type": "str"}
      },
-   "nreps": 100
+   "nreps": 10
 }

@@ -1,6 +1,6 @@
 {
     "name": "hg38_cds_utrs_phastcons_fixed",
-    "windows": [1000000, 100000],
+    "windows": [1000000],
     "blocksize": 10000000,
     "model": 'fixed',
     "mu": 1.3e-8,
