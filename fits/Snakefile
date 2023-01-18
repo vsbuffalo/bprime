@@ -9,6 +9,8 @@ NSTARTS_BOOT = 50
 NCORES_LOO = NCORES
 NSTARTS_LOO = 50
 
+CHROMS = [f'chr{x}' for x in range(1, 23)]
+
 # from config
 name = config["name"]
 model = config["model"]
@@ -70,24 +72,25 @@ rule loo:
          access_file=access_file, fasta_file=fasta_file,
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
-  output: f'{name}/window_{{window}}/loo_r2_{{chrom}}.npz'
+  output: f'{name}/window_{{window}}/loo/loo_r2_{{chrom}}.npz'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
     bgspy r2 --fit {input.fit} \
       --r2-file {output[0]} \
+      --fit-dir loo \
+      --loo-chrom {wildcards.chrom} \
       --ncores {params.ncores} --nstarts {params.nstarts}
     """
-
-
 
 all_results = []
 for window in windows:
   all_results.append(f'{name}/window_{window}/mle.pkl')
   #boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for b in range(100)]
   #all_results.extend(boots)
-  #loo_r2 = f"{name}/window_{window}/loo_r2.npz"
-  #all_results.append(loo_r2)
+  for chrom in CHROMS:
+      loo_r2 = f"{name}/window_{window}/loo/loo_r2_{chrom}.npz"
+      all_results.append(loo_r2)
 
 rule all:
   input: all_results

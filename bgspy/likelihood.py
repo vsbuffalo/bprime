@@ -50,6 +50,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    nstarts=200,
                    loo_nstarts=100,
                    loo_chrom=False,
+                   loo_fits_dir=None,
                    window=1_000_000, outliers=(0.0, 0.995),
                    recycle_mle=False,
                    bp_only=False,
@@ -196,15 +197,29 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             print("-- bootstrapping results saved --")
             return
 
-    if loo_chrom:
+    if loo_chrom is not False:
+        # can be False (don't do LOO), True (do LOO for all chroms), or string 
+        # chromosome name (do LOO, exluding chromosome)
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
         starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
         b_r2 = None
+        if loo_chrom is True:
+           # iterate through everything
+           out_sample_chrom = None
+        else:
+           # single chrom specified... 
+           out_sample_chrom = loo_chrom
         if not bp_only:
             print("-- leave-one-out R2 estimation for B --")
-            b_r2 = m_b.loo_chrom_R2(starts=starts_b, ncores=ncores)
+            b_r2 = m_b.loo_chrom_R2(starts=loo_nstarts, 
+                                    out_sample_chrom=out_sample_chrom, 
+                                    loo_fits_dir=loo_fits_dir,
+                                    ncores=ncores)
         print("-- leave-one-out R2 estimation for B' --")
-        bp_r2 = m_bp.loo_chrom_R2(starts=starts_bp, ncores=ncores)
+        bp_r2 = m_bp.loo_chrom_R2(starts=loo_nstarts, 
+                                  out_sample_chrom=out_sample_chrom,
+                                  loo_fits_dir=loo_fits_dir,
+                                  ncores=ncores)
         np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
 
 def get_out_sample(idx, n):
@@ -761,28 +776,43 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-    def loo_chrom_R2(self, out_sample_chrom=None, **fit_kwargs):
+    def loo_chrom_R2(self, out_sample_chrom=None, loo_fits_dir=None, **fit_kwargs):
         """
-        Estimate R2 by leave-one-out of a whole chromosome, a new fit,
-        and estimate of R2 of the out sample chromosome.
+        Estimate R2 by leave-one-out of a whole chromosome, run a new fit, 
+        and then estimate of R2 of the out sample chromosome.
+
+        If out_sample_chrom is None, this loops over all chromosomes. However,
+        to accomodate running things in parallel on a cluster, out_sample_chrom can
+        bet set manually.
+
+        If fits_dir is specified, this will write each LOO fit to this directory.
 
         The ML estimate can be recycled via the **fit_kwargs.
         """
-        all_chroms = self.bins.bins().keys()
-
-        r2s = []
-        if in_sample_chroms is None:
-            in_sample_chroms = None
-
-        assert False, "TODO"
-
-        for chrom in in_sample_chroms:
-            print(f"working on chromosome {chrom}")
+        if out_sample_chrom is None:
+            all_chroms = self.bins.bins().keys()
+        else:
+            assert out_sample_chrom in self.bins.keys(), f"LOO chrom {chrom} not in bins!"
+            all_chroms = [out_sample_chrom]
+        for chrom in all_chroms:
             in_sample = self.bins.chrom_indices(chrom, exclude=True)
             out_sample = self.bins.chrom_indices(chrom, exclude=False)
+            print(f"fitting, leaving out {chrom}")
             fit_optim = self.fit(**fit_kwargs, _indices=in_sample)
-            r2s.append(self.R2(_idx=out_sample))
-        return np.array(r2s)
+            # mimic a new fit
+            new_fit = copy.copy(self)
+            new_fit._load_optim(fit_optim)
+            r2s.append(new_fit.R2(_idx=out_sample))
+            # monkey patch in some idx
+            new_fit._out_sample = out_sample
+            new_fit._in_sample = in_sample
+            if loo_fits_dir is not None:
+                if not os.path.exists(loo_fits_dir):
+                    os.makedirs(loo_fits_dir)
+                fpath = os.path.join(loo_fits_dir, f"mle_loo_{chrom}.pkl")
+                new_fit.save(fpath)
+            return np.array(r2s)
+           
 
     def R2(self, _idx=None, **kwargs):
         """
@@ -972,6 +1002,7 @@ class FreeMutationModel(BGSLikelihood):
 
         if bootstrap:
             # we don't clobber the existing results since this ins't a fit.
+            # instead, we return the OptimResult directly
             return res
         self._load_optim(res)
 

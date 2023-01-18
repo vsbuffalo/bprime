@@ -342,6 +342,9 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               help='pickle file of fitted results')
 @click.option('--r2-file', required=True, type=click.Path(writable=True),
               help='R2 .npz output file')
+@click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
+@click.option('--loo-chrom', default=None, 
+              help="leave-one-out chromosome, e.g. for paralelel processing")
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=1)
@@ -349,14 +352,15 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def R2(fit, r2_file, ncores, nstarts, include_bs):
+def R2(fit, r2_file, fit_dir, loo_chrom, ncores, nstarts, include_bs):
     """
     Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
     and predicting the observed diversity on the excluded chromosome.
     """
     fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores, 
-                   bp_only=(not include_bs),
-                   nstarts=nstarts, recycle_mle=True, loo_chrom=True)
+                   loo_fits_dir=fit_dir,
+                   bp_only=(not include_bs), loo_chrom=loo_chrom,
+                   loo_nstarts=nstarts, recycle_mle=True)
 
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),
