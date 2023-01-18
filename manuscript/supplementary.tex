@@ -383,17 +383,18 @@ the product of the individual reductions,
 
 \begin{align}
   \label{suppeqn:b}
-  B(x, \Psi) = \prod_g \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds
+  B(x, \Psi) = \prod_g^S \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds
 \end{align}
 
 where, $b(\mu(s, k(g)), s, L_g, r_g, d(x,g))$ is the reduction due to segment
-$g$. Here, $\mu(s, k(g))$ is the per-basepair per-genome rate that mutations
-with selection coefficient $s$ enter segments with feature class $k(g)$, $L_g$
-and $r_g$ are the length in basepairs and recombination rate per basepair of
-segment $g$, and the recombination distance between focal site $x$ and segment
-$g$ is $d(x, g)$. The functional form of $b$ varies depending on whether the
-classic BGS model is used, or our form of Santiago and Caballero's
-(\citeyear{Santiago2016-mu}) equations (see Section XXX).
+$g$, and there are $S$ total segments. Here, $\mu(s, k(g))$ is the per-basepair
+per-genome rate that mutations with selection coefficient $s$ enter segments
+with feature class $k(g)$, $L_g$ and $r_g$ are the length in basepairs and
+recombination rate per basepair of segment $g$, and the recombination distance
+between focal site $x$ and segment $g$ is $d(x, g)$. The functional form of $b$
+varies depending on whether the classic BGS model is used, or our form of
+Santiago and Caballero's (\citeyear{Santiago2016-mu}) equations (see Section
+XXX).
 
 Under both background selection models used in our likelihood, the diversity in
 window $b$ is $\bar{\pi}(b, \Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b |
@@ -486,7 +487,7 @@ which is the solution to the following system of two equations (see XXX for
 derivation),
 
 \begin{align}
-  {N}_{e,\infty} &= \exp \left( -\frac{V}{2} Q_\infty^2 \right) \\
+  {N}_{e,\infty} &= N \exp \left( -\frac{V}{2} Q_\infty^2 \right) \\
   {R} &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
 \end{align}
 
@@ -498,10 +499,14 @@ where
   Z &= 1 - \frac{Us}{U-{R}}
 \end{align}
 
-and $U = 2\mu L$ and $M = r_\text{BP} L$ as above. Solving this system of two
-equations for each segment also gives the total substitution or ``ratchet" rate
-per generation per segment ($\widetilde{R}$). The per-basepair substitution
-rate of the segment is $\lambda = \nicefrac{\widetilde{R}}{L}$
+and $U = 2\mu L$ and $M = r_\text{BP} L$ as above. In this section, we assume
+$\mu$ is the mutation rate to variants with heterozygous selection coefficient
+$s$ to simplify notation; later, $\mu$ refers to the genome-wide average
+mutation rate and the mutation rate is scaled by the DFE. Solving this system
+of two equations for each segment also gives the total substitution or
+``ratchet" rate per generation per segment ($\widetilde{R}$). The per-basepair
+substitution rate of a segment with mutation rate $\mu$ and selection
+coefficient $s$ is $\lambda_d(\mu, s) = \nicefrac{\widetilde{R}}{L}$
 
 Under Santiago and Caballero's model, the correct effective population size to
 gauge reduction in heterozygosity or coalescent times is given by equation XXX.
@@ -535,8 +540,8 @@ where $Z = 1 - Us / (U-\widetilde{R})$ and $V = Us - 2\widetilde{R}s$.
 \end{align}
 
 In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
-$s$. Our models use a fixed $q$-element grid of selection coefficients, and
-mutation rates are on a fixed $z$-element grid, which is later interpolated
+$s$. Our models use a fixed $m_s$-element grid of selection coefficients, and
+mutation rates are on a fixed $m_\mu$-element grid, which is later interpolated
 over during the maximum likelihood optimization. The number of annotation
 features $K$ is variable and set by the annotation data specified. There are
 two ways to parameterize the mutation rates and DFE for all annotation classes
@@ -545,14 +550,14 @@ parameterization, each annotation feature class has a free mutation rate
 parameter for each of these selection coefficients (as in equation
 \eqref{suppeqn:b}).
 
-In the free-mutation parameterization, there are $1 + K \times q$ for $\pi_0$
+In the free-mutation parameterization, there are $1 + K \times m_s$ for $\pi_0$
 and the free mutation rate parameters, where $K$ is the number of annotation
 features. The MLE optimization for this approach is unconstrained, though
 $\pi_0$ is bounded to be within $10^{-5} \le \pi_0 \le 10^{-1}$ and mutation
 rates are bounded within $10^{-11} \le \mu \le 10^{-7}$. The BGS model requires
 a mutation rate for each selection coefficient in the grid, for each annotation
 class (here, as an example, CDS, UTRs, and phastcons), which are stored in the
-$q \times K$ matrix $\mathbf{M}_\text{F}$,
+$m_s \times K$ matrix $\mathbf{M}_\text{F}$,
 
 \begin{align}
   \mathbf{M}_\text{F} = \begin{bmatrix}
@@ -586,14 +591,29 @@ the mutation rate $\mu$,
   \end{bmatrix}
 \end{align}
 
-which has $2 + K \times (q-1)$ free parameters, since each column must sum to
+which has $2 + K \times (m_s-1)$ free parameters, since each column must sum to
 one. This imposes the constraint that $\sum_i w_{i,k} = 1$, requiring
 constrained MLE optimization. 
 
 \section{Ratchet Rate Prediction}
 
-In the first iteration of calculating the B' maps, each segment under mutation,
-selection, drift processes
+After rescaling each segment $N_e$ by the local predicted reduction
+$\hat{B}(x)$, the ratchet rates and $B'$ values are re-calculated. 
+
+The rescaled $B'$ calculation outputs a $m_\mu \times m_s \times S$
+multidimensional array $\mathbf{R}$ of ratchet rates per segment. These are
+rescaled by the segment lengths $\mathbf{l}$, giving the per-basepair mutation
+rate array. The per-basepair ratchet rate given maximum likelihood estimates of
+$\hat{\mu}$ and $\widehat{\mathbf{W}}$ is used to predicted the ratchet rate
+for each segment $g$. The DFE estimate for feature $k$ is a column vector of
+$\widehat{\mathbf{W}}$, i.e. $\widehat{\mathbf{w}}_k$
+
+\begin{align}
+  \lambda_D(g) = 
+\end{align}
+
+The predicted ratchet rate for segment $g$ $\lambda_d(g)$ is based on these
+values.
 
 \printbibliography
 

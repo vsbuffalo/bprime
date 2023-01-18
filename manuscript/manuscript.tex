@@ -101,6 +101,93 @@ These models
 \end{figure}
 
 
+\subsection*{Evolutionary Models}
+
+CDS+phastcons+UTR model
+
+ - UTR as neutral control
+
+ - CDS takes priority over phastcons, phastcons is fallback. Otherwise, the
+   effect of CDS would be biased by the fraction removed and classified as
+   phastcons. This is the right comparison for the substitution model.
+
+\subsection*{Predicted Substitution Rates}
+
+- mention neg. auto correlation?
+
+- Gene level analysis
+
+To evaluate the predicted substitution rate of our CDS+phastcons+UTR model, 
+
+
+Additionally, our GBGS model makes predictions about the rate of substitutions
+in different segments under purifying selection. There are two stages of the
+prediction process. First, when the initial B' maps are calculated, the
+predicted substitution rate is calculated as a byproduct of 
+
+
+\section*{Methods}
+
+\subsection*{Solving the B' Equations for each Segment}
+
+In our implementation of the theory of \textcite{Santiago2016-mu}, we calculate
+the local effective population size $N_e(x) = b(x) N$ within a segment $x$ by
+solving a system of two non-linear equations, 
+
+\begin{align}
+  \label{eq:}
+  {N}_{e}(x) &= \exp \left( -\frac{V(x)}{2} Q^2(x) \right) & \text{\emph{effective population equation}} \\
+  {R}(x) &= \frac{4NU s}{\exp(4 N s)-1}  & \text{\emph{ratchet equation}} 
+\end{align}
+
+where,
+
+\begin{align}
+  V(x) &= U s - 2 {R}(x) s & \text{\emph{variation equation}} \\
+  Q^2(x) &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage persistence factor}} \\
+  Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
+\end{align}
+
+and $U = \mu L$ and $M = r_\text{BP} L$ are the total mutation and
+recombination rates for a segment $L$ basepairs long. Each mutation has a
+selection coefficient of $s$, for which we assume additive effects. Then, the
+local reduction factor is $b(x) = \nicefrac{N_e(x)}{N}$, and the per-basepair
+per-generation substitution rate is $\lambda_D = \nicefrac{R(x)}{L}$.
+
+In our software \texttt{bgspy}, these two equations are solved for a grid of
+mutation rates and selection coefficients for each specified segment from a
+feature type (e.g. CDS, UTRs, etc.). This results in estimates of $N_e(x)$ and
+$R(x)$ per segment. In the first-round B' calculation, we use the
+drift-effective population size, $N$.
+
+\subsection*{The B' Maps}
+
+The reduction at a focal site $x$ can be calculated as the product of all
+segments' contributing reduction factors, 
+
+\begin{align}
+  B(v) = \prod_x b(x,v)
+\end{align}
+
+where $b(x, v)$ is a modified version of $b(x)$ that accounts for the
+recombination between the segment $x$ and the neutral site $v$ (see XXX).
+
+In practice, we calculate B' using the variables determined by solving the B'
+equations for each mutation and selection coefficient in the grids. Since only
+the analog of $Q^2(x)$, $Q^2(x, v)$ changes, the pre-computed substitution rate
+(and thus local variance) can be re-used for each $v$. We calculate $B(v)$
+across a grid of focal points along the chromosome, spaced 10kb apart.
+
+\subsection*{Maximum Likelihood Estimation}
+
+\subsection*{Local Rescaling and Substitution Rate Prediction}
+
+
+
+
+
+
+
 
 
 % As genomes are transmitted through the generations, lifetime events selectively
