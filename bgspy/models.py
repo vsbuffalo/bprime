@@ -160,7 +160,7 @@ class BGSModel(object):
         #self.xs = xs
 
     def calc_Bp(self, N, step=100_000, recalc_segments=False,
-                ncores=None, nchunks=None, fit=None):
+                ncores=None, nchunks=None, fit=None, rescale=None):
         """
         Calculate new B' values across the genome.
 
@@ -170,10 +170,17 @@ class BGSModel(object):
         """
         use_rescaling = False
         if fit is not None:
+            assert rescale is None, "cannot use rescale with fit"
             # load the rescaling factors from a model fit
             # NOTE: this only effects the segment parts! nothing past that
             # in the B' calc
             self.genome.segments.load_rescaling_from_fit(fit)
+            use_rescaling = True # require segments to be re-calc'd
+
+        if rescale is not None:
+            assert rescale is None, "cannot use fit with rescale"
+            bp, w, t = rescale
+            self.genome.segments.load_rescaling_from_fixed_params(bp, w, t)
             use_rescaling = True # require segments to be re-calc'd
 
         if ncores is not None and nchunks is None:

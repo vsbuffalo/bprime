@@ -114,6 +114,60 @@ class Segments:
         np.put_along_axis(F, self.features[:, None], 1, axis=1)
         self.F = F
 
+    def _load_rescaling(self, bdict, w, t):
+        """
+        Common code for both ways of rescaling Ne locally, i.e. from a MLE
+        fit and from a set of existing Bs, e.g. grid
+        """
+
+        predicted_bscores = BScores(bdict, posdict, w=w, t=t)
+        predicted_bscores._build_interpolators()
+
+        rescaling = list()
+        for chrom, mids in self.midpoints.items():
+            if chrom not in predicted_bscores._interpolators:
+                # we don't have an interpolator for this chrom (usually X)
+                raise ValueError(f"{chrom} not in interpolators!")
+                #warnings.warn(f"skipping chromosome {chrom}!")
+                #self._rescaling_excluded.add(chrom)
+
+            b = predicted_bscores.B_at_pos(chrom, mids)
+            #rescaling[chrom] = b
+            rescaling.extend(b.squeeze())
+        self.rescaling = np.array(rescaling)
+
+    def load_rescaling_from_fixed_params(self, bp, w, t):
+        """
+        A test way to do rescaling is to use the unscaled B' values for
+        each mutation/selection coefficient combination. This is
+        primarily used for testing/comparison with sims with fixed mu/s
+        combinations.
+
+        """
+        assert isinstance(bp, BScores), "bp must be a BScores object"
+
+        # slice out this w/t
+        wi, ti = bp.indices(w, t)
+        # make a BScores object with just this predicted reduction.
+        bdict = {c: bp[c, w, t][1][:, None, None] for c in bp.B.keys()}
+        posdict = {c: bp[c, w, t][0] for c in bp.B.keys()}
+        predicted_bscores = BScores(bdict, posdict, np.array([w]), np.array([t]))
+
+        predicted_bscores._build_interpolators()
+
+        rescaling = list()
+        for chrom, mids in self.midpoints.items():
+            if chrom not in predicted_bscores._interpolators:
+                # we don't have an interpolator for this chrom (usually X)
+                raise ValueError(f"{chrom} not in interpolators!")
+                #warnings.warn(f"skipping chromosome {chrom}!")
+                #self._rescaling_excluded.add(chrom)
+
+            b = predicted_bscores.B_at_pos(chrom, mids)
+            #rescaling[chrom] = b
+            rescaling.extend(b.squeeze())
+        self.rescaling = np.array(rescaling)
+
     def load_rescaling_from_fit(self, fit):
         """
         Take a fit and run predict_B to get the rescaling factor.
@@ -132,22 +186,9 @@ class Segments:
         # dummy w/t
         w = np.array([0])
         t = np.array([0])
-        predicted_bscores = BScores(bdict, posdict, w=w, t=t)
-        predicted_bscores._build_interpolators()
 
-        rescaling = list()
-        for chrom, mids in self.midpoints.items():
-            if chrom not in predicted_bscores._interpolators:
-                # we don't have an interpolator for this chrom (usually X)
-                raise ValueError(f"{chrom} not in interpolators!")
-                #warnings.warn(f"skipping chromosome {chrom}!")
-                #self._rescaling_excluded.add(chrom)
-                 
-            b = predicted_bscores.B_at_pos(chrom, mids)
-            #rescaling[chrom] = b
-            rescaling.extend(b.squeeze())
-        self.rescaling = np.array(rescaling)
-        #return rescaling
+        predicted_bscores = BScores(bdict, posdict, w=w, t=t)
+        self._load_rescaling(predicted_bscores, w, t)
 
 def process_annotation(features, recmap, split_length=None):
     """

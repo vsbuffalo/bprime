@@ -1,5 +1,9 @@
 import numpy as np
 from sklearn.utils.validation import check_X_y
+import warnings
+from sklearn.model_selection import KFold, LeaveOneOut
+from collections import defaultdict
+from bgspy.utils import binned_statistic, cutbins
 
 def gaussian_kernel(x):
     # for underflow
@@ -34,4 +38,49 @@ class KernelRegression(object):
     def score(self, y):
         return np.mean((self.predict(y) - y)**2)
 
+def bin_kfolds(x, y, bins=np.arange(5, 100, 2), n_splits=100, **bin_args):
+    """
+    Use cross-validation to find the best number of bins, using
+    bgspy.utils.binned_statistic.
+    """
+    kf = KFold(n_splits=n_splits)
+    mses = defaultdict(list)
+    cv_mses = []
+    nbs = []
+
+    bin_range = (x.min(), 1.001*x.max()) # to include the right side
+
+    def safe_mean(x):
+        if not len(x) or np.all(~np.isfinite(x)):
+            return np.nan
+        return np.nanmean(x)
+
+    for nb in bins.astype(int):
+        for train, test in kf.split(x):
+            # cut bins
+            bins = cutbins(x[train], nb, xrange=bin_range, **bin_args)
+
+            # train: bin based on training data
+            bin_means = binned_statistic(x[train], y[train], statistic=safe_mean, bins=bins)
+
+            # get the number of elements per bin
+            bin_ns = binned_statistic(x[train], y[train], statistic=lambda x: np.sum(np.isfinite(x)), bins=bins)
+
+            # take the test data and bin it
+            idx = np.digitize(x[test], bins)
+
+            # estimate the squared error of predictions
+            se = (bin_means.statistic[idx-1] - y[test])**2
+
+            # we weight the MSE by the bin sizes
+            weights = bin_ns.statistic[idx-1]
+            keep = np.isfinite(se)
+            mse = np.average(se[keep], weights=weights[keep])
+
+            mses[nb].append(mse)
+            cv_mses.append(mse)
+            nbs.append(nb)
+
+    msedat = {nb: np.mean(v) for nb, v in mses.items()}
+    return list(msedat.keys()), list(msedat.values())
 
