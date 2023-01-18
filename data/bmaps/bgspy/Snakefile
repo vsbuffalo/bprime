@@ -30,7 +30,7 @@ rule bmap_chr10:
   input: annot=join("../../annotation/",  cons_track),
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
-  output: pkl_b_file="bmap_hg38_sims_{step}step_chr10.pkl"
+  output: pkl_b_file="bmap_hg38_sims_{step,\d+}step_chr10.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=sims_N, t=t, w=w
   shell:
     """
@@ -49,7 +49,7 @@ rule bmap_chr10_dense:
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
   output: pkl_b_file="bmap_hg38_sims_{grid_str}grid_{step}step_chr10.pkl"
-  params: ncores=NCORES, ncores_bp=NCORES_BP
+  params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=sims_N
   shell:
     """
     python ../../../bgspy/command_line.py calcb \
@@ -60,6 +60,29 @@ rule bmap_chr10_dense:
       --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
       --step {wildcards.step}
     """
+
+
+## this is a rescaled-version, for some sets of parameters
+rule bmap_chr10_rescale:
+  input: annot=join("../../annotation/",  cons_track),
+         seqlens_file="../../annotation/hg38_seqlens.tsv", 
+         recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt",
+	 pkl_b_file="bmap_hg38_sims_{grid_str}grid_{step}step_chr10.pkl"
+  output: pkl_rsb_file="bmap_{w}w_{t}t_rescaled_hg38_{grid_str}grid_{step}step_chr10.pkl"
+  params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=sims_N
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot {input.annot} \
+      --seqlens {input.seqlens_file} \
+      --g '{wildcards.grid_str}' \
+      --output {output} --popsize {params.popsize} --chrom chr10 \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --only-Bp \
+      --rescale {wildcards.w},{wildcards.t} --rescale-Bp-fit {input.pkl_b_file} \
+      --step {wildcards.step}
+    """
+
 
 
 # ===== For Empirical Work =====
@@ -166,6 +189,9 @@ maps = [
 
 rescaled = [ ## cds/utrs/phastcons fit (1Mbp)
              "bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
+
+             ## sim manual rescaled stuff
+	     "bmap_1e-8w_1e-3t_rescaled_hg38_6x7grid_10000step_chr10.pkl"
            ]
         
  

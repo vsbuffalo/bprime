@@ -128,6 +128,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     if ncores_bp is None and ncores is not None:
         ncores_bp = ncores
 
+    bpfit = None
     # load the fits if they exist
     if fit is not None:
         assert rescale is None, "--fit and --rescale cannot both be set!"

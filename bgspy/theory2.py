@@ -440,6 +440,10 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     # iterate over the segments, but each segments gets the full μ x sh.
     func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
 
+    if rescaling is None:
+        # create a dummy list to iterate over; internal code handles changing this to 1.
+        rescaling = [None] * len(L)
+
     if ncores is None or ncores == 1:
         res = list(tqdm.tqdm(map(func, zip(L, rbp, rescaling)), total=len(L)))
     else:
