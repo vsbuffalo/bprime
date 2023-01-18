@@ -178,7 +178,7 @@ class BGSModel(object):
             use_rescaling = True # require segments to be re-calc'd
 
         if rescale is not None:
-            assert rescale is None, "cannot use fit with rescale"
+            assert fit is None, "cannot use fit with rescale"
             bp, w, t = rescale
             self.genome.segments.load_rescaling_from_fixed_params(bp, w, t)
             use_rescaling = True # require segments to be re-calc'd

@@ -57,6 +57,9 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
     return m
 
 def parse_gridstr(x):
+    """
+    Grid strings are in the format v1,v2,v3, etc or lower:upper:ngrid
+    """
     if ',' not in x and ':' not in x:
         # fixed value
         return np.array([float(x)])
@@ -142,11 +145,11 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     # manual rescaling from a single fixed set of parameters is set.
     if rescale is not None:
         assert rescale_bp_file is not None, "specify --rescale-Bp-file too!"
-        w, t = list(map(float, rescale.split(',')))
+        rs_w, rs_t = list(map(float, rescale.split(',')))
         gm = BGSModel.load(rescale_bp_file)
-        assert w in gm.w, "μ not in ΒGSModel.w!"
-        assert s in gm.t, "s not in ΒGSModel.t!"
-        rescale = (bm.BpScores, w, t)
+        assert rs_w in gm.w, "μ not in ΒGSModel.w!"
+        assert rs_t in gm.t, "s not in ΒGSModel.t!"
+        rescale = (gm.BpScores, rs_w, rs_t)
 
     if fit is None:
         # use specified chromosome or set to None to use all in seqlens file
