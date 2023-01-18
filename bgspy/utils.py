@@ -1171,9 +1171,22 @@ def binned_summaries(x, y, nbins, method='interval',
                      funs={'mean': np.nanmean,
                            'median': np.nanmedian,
                            'sd': np.nanstd,
-                           'n': lambda x: np.sum(np.isfinite(x))}):
+                           'n': lambda x: np.sum(np.isfinite(x))},
+                     cut_tail=None):
     """
+
+    cut_tail: if None, no modifications. If this is a tuple of probabilities,
+               this will use censor() to remove x and y values that fall outside
+               the tails.
+
+
+    Notes: I find cut_tail is often very important for interval-based binning,
+    as the bin-width is based on the total range, and thus very sensitive
+    to outliers. I think cut_tail should be used in most of these cases.
     """
+    if cut_tail is not None:
+        idx = censor(x, cut_tail, return_idx=True)
+        x, y = x[idx], y[idx]
     bins = cutbins(x, nbins, method)
     cols = defaultdict(list)
     cols['start'] = bins[1:]
@@ -1195,11 +1208,14 @@ def corr(x, y):
     keep = np.isfinite(x) & np.isfinite(y)
     return pearsonr(x[keep], y[keep]), spearmanr(x[keep], y[keep])
 
-def censor(x, probs):
+def censor(x, probs, return_idx=False):
     """
     Trim of tails
     """
     assert len(probs) == 2
     l, u = np.quantile(x, probs)
-    return x[(x >= l) & (x <= u)]
+    idx = (x >= l) & (x <= u)
+    if return_idx:
+        return idx
+    return x[idx]
 

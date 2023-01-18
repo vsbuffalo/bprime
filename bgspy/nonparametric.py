@@ -4,6 +4,7 @@ import warnings
 from sklearn.model_selection import KFold, LeaveOneOut
 from collections import defaultdict
 from bgspy.utils import binned_statistic, cutbins
+from bgspy.plots import get_figax
 
 def gaussian_kernel(x):
     # for underflow
@@ -83,4 +84,13 @@ def bin_kfolds(x, y, bins=np.arange(5, 100, 2), n_splits=100, **bin_args):
 
     msedat = {nb: np.mean(v) for nb, v in mses.items()}
     return list(msedat.keys()), list(msedat.values())
+
+def kfolds_results(kf_res, figax=None):
+    fig, ax = get_figax(figax)
+    ax.plot(*kf_res)
+    b, mse = kf_res
+    best_idx = np.argmin(mse)
+    best = b[best_idx]
+    ax.scatter(b[best_idx], mse[best_idx])
+    return b[best_idx]
 

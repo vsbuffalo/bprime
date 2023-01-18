@@ -604,6 +604,26 @@ class BGSLikelihood:
     def nf(self):
         return self.dim()[2]
 
+    def predict_B_at_pos(self, chrom, pos, **kwargs):
+        """
+        Predict B from this fit, via interpolation.
+
+        TODO (low priority): sometimes outputs B > 1 due to
+        interpolation issues.
+        """
+        defaults = {'kind': 'quadratic',
+                    'assume_sorted': True,
+                    'bounds_error': False,
+                    'copy': False}
+        kwargs = {**defaults, **kwargs}
+        mids = self.bins.midpoints()
+        idx = self.bins.chrom_indices(chrom)
+        y = self.predict(B=True)
+        func = interpolate.interp1d(mids[chrom], y[idx],
+                                    fill_value=(y[0], y[-1]),
+                                    **kwargs)
+        return func(pos)
+
     def _load_optim(self, optim_res):
         """
         Taken an OptimResult() object.
@@ -1013,38 +1033,6 @@ class FreeMutationModel(BGSLikelihood):
             # rescale so B is returned, π0 = 1
             theta[0] = 1.
         return predict_freemutation(theta, self.logB, self.w)
-
-    def predict_B_at_pos(self, chrom, pos, **kwargs):
-        defaults = {'kind': 'quadratic',
-                    'assume_sorted': True,
-                    'bounds_error': False,
-                    'copy': False}
-        kwargs = {**defaults, **kwargs}
-        mids = self.bins.midpoints()
-        idx = self.bins.chrom_indices(chrom)
-        y = self.predict(B=True)
-        func = interpolate.interp1d(mids[chrom], y[idx],
-                                    fill_value=(y[0], y[-1]),
-                                    **kwargs)
-        return func(pos)
-
-
-    def predict_R(self, R, optim=None, theta=None):
-        """
-        """
-        if theta is not None:
-            return predict_freemutation(theta, self.logB, self.w)
-        if optim is None:
-            theta = self.theta_
-        else:
-            thetas = self.optim.thetas_
-            if optim == 'random':
-                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
-            else:
-                theta = thetas[optim]
-        return predict_freemutation(theta, self.logB, self.w)
-
-
 
     def __repr__(self):
         base_rows = super().__repr__()
