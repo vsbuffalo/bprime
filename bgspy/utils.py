@@ -1092,19 +1092,14 @@ def read_phylofit(filename):
     return data
 
 
-def get_human_branch_length(tree_str, min_tips=10, lab='homo_sapiens'):
+def get_branch_length(tree_str, species):
     """
-    Sort of a specialty function: take output from PhyloFit and
-    get the human branch length. min_tips sets the number of tips,
-    otherwise NaN will be returned.
+    Get the branch length of a species from a newick-string.
     """
     tree = newick.loads(tree_str)
     assert(isinstance(tree, list))
     assert(len(tree) == 1)
-    if len(tree[0].get_leaf_names()) < min_tips:
-        print( tree[0].get_leaf_names())
-        return np.nan
-    return [x.length for x in tree[0].walk() if x.name == lab][0]
+    return [x.length for x in tree[0].walk() if x.name == species][0]
 
 def bin2midpoints(x):
     """

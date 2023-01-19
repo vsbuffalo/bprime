@@ -1,8 +1,6 @@
 import os
 import pickle
-import re
 import pandas as pd
-from bgspy.utils import read_phylofit, get_human_branch_length, readfq, readfile
 from bgspy.models import BGSModel
 
 PF_DIR = 'phylofit_estimates/'
@@ -27,7 +25,16 @@ rule separate_alns:
        python ../../tools/split_multiz.py {input.multiz} cds_alns/ {input.map} 
        touch cds_alns/dummy.txt
        """
-    
+
+phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
+
+rule merge_phylofit:
+  input: PF_DIR
+  output: "phylofit_cds_rates.bed"
+  shell:
+    """
+    python ../../tools/merge_phylofits.py {input[0]} {output[0]}
+    """
 
 rule windows:
   input: annot="../annotation/hg38_seqlens.tsv"
@@ -145,7 +152,7 @@ rescale_window_ratchet = ["ratchet_rescaled_rates_binned_1000000.bed",
                           "ratchet_rescaled_rates_binned_5000000.bed"]
 
 
-ALL_FILES = [
+ALL_FILES = ["phylofit_cds_rates.bed",
              "cds_alns/dummy.txt",
              "ratchet_data.bed", 
              "uricchio_data.tsv", *window_ratchet,  

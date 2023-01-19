@@ -1,5 +1,5 @@
 """
-Summarize the CDS (i.e. canonical ensembl), gettin GC, GC3, and lengths. For a
+Summarize the CDS (i.e. canonical ensembl), calculating GC, GC3, and lengths. For a
 join to Urrichio et al data.
 
 """

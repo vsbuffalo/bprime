@@ -59,8 +59,6 @@ for name in cds:
     strand = human[0][0][3]
     seqfile = f"{name}_{chrom}:{start}-{end}{strand}.fa"
 
-    __import__('pdb').set_trace()
-
     with open(os.path.join(out_dir, seqfile), 'w') as f:
         for species in cds[name]:
             species_ranges, species_seqs = [], []
@@ -68,4 +66,4 @@ for name in cds:
             for region, seq in cds[name][species]:
                 species_seqs.append(seq)
             concat_seqs = ''.join(species_seqs)
-            f.write(f">{new_name}_{species}\n{concat_seqs}\n")
+            f.write(f">{species} {new_name}\n{concat_seqs}\n")
