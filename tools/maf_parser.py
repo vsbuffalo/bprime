@@ -11,6 +11,11 @@ import newick
 from bgspy.utils import readfile
 OUTDIR = "fasta_alns"
 
+# def reverse_complement(seq):
+#     pairs = {'A':'T', 'T':'A', 'C':'G', 'G':'C', '-':'-', 'N':'N',
+#              'a':'t', 't':'a', 'c':'g', 'g':'c'
+#     return ''.join([pairs[s] for s in pairs])[::-1]
+
 nodes = ('homo_sapiens', 'pan_paniscus', 'pan_troglodytes', 'gorilla_gorilla',
          'pongo_abelii', 'macaca_mulatta', 'chlorocebus_sabaeus', 'nomascus_leucogenys',
          'microcebus_murinus', 'macaca_fascicularis')

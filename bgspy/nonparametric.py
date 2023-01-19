@@ -39,7 +39,7 @@ class KernelRegression(object):
     def score(self, y):
         return np.mean((self.predict(y) - y)**2)
 
-def bin_kfolds(x, y, bins=np.arange(5, 100, 2), n_splits=100, **bin_args):
+def bin_kfolds(x, y, bins=np.arange(5, 100, 2), n_splits=100, cut_tails=None, **cutbin_args):
     """
     Use cross-validation to find the best number of bins, using
     bgspy.utils.binned_statistic.
@@ -59,7 +59,7 @@ def bin_kfolds(x, y, bins=np.arange(5, 100, 2), n_splits=100, **bin_args):
     for nb in bins.astype(int):
         for train, test in kf.split(x):
             # cut bins
-            bins = cutbins(x[train], nb, xrange=bin_range, **bin_args)
+            bins = cutbins(x[train], nb, xrange=bin_range, **cutbin_args)
 
             # train: bin based on training data
             bin_means = binned_statistic(x[train], y[train], statistic=safe_mean, bins=bins)
