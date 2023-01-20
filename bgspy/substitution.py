@@ -1,5 +1,13 @@
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
+
+def manual_interp(w, r, muw):
+    nw, nl = r.shape
+    res = np.empty(nl)
+    for i in range(nl):
+        res[i] = interp1d(w, r[:, i])(muw)
+    return res
 
 def grid_interp_weights(w, mu):
     j = np.searchsorted(w, mu)

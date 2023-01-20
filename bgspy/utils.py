@@ -1179,6 +1179,8 @@ def binned_summaries(x, y, nbins, method='interval',
     as the bin-width is based on the total range, and thus very sensitive
     to outliers. I think cut_tails should be used in most of these cases.
     """
+    x = np.array(x)
+    y = np.array(y)
     if cut_tails is not None:
         idx = censor(x, cut_tails, return_idx=True)
         x, y = x[idx], y[idx]
@@ -1208,7 +1210,7 @@ def censor(x, probs, return_idx=False):
     Trim of tails
     """
     assert len(probs) == 2
-    l, u = np.quantile(x, probs)
+    l, u = np.nanquantile(x, probs)
     idx = (x >= l) & (x <= u)
     if return_idx:
         return idx

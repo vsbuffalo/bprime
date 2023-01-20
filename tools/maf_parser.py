@@ -1,4 +1,8 @@
 """
+DEPRECATED: Ensembl MAF files are pain to work with.
+I used BioPython's indexed MAF API and it was clunky/buggy.
+
+
 Read an Ensembl MAF file. There's some additional code here for
 later extensions, but the main functionality is to extract out the
 multiple alignments for entries that have all nodes,

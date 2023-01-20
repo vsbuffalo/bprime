@@ -1,5 +1,9 @@
 ## Substitution rates from 10-primate phylogeny
 
+### Gene ID Mapping
+
+BioMart's API sucks so this was done online. The file is checked in.
+
 ### Extraction and Concatenation of CDS
 
 `knownCanonical.exonNuc.fa.gz` was downloaded from UCSC (see `Snakefile`) and

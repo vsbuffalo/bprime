@@ -41,7 +41,7 @@ import pandas as pd
 from bgspy.utils import signif
 from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
-from bgspy.substitution import grid_interp_weights
+from bgspy.substitution import grid_interp_weights, manual_interp
 
 class BGSModel(object):
     """
@@ -275,9 +275,8 @@ class BGSModel(object):
 
         T = segments._segment_parts_sc16[2]
         R = 1/T
-        #r = R/seglens ## this underflows
-        r = np.zeros_like(R)
-        np.divide(R, seglens[None, None, :], out=r, where=R > np.finfo(np.float64).tiny * seglens.max())
+        with np.errstate(under='ignore'):
+            r = R/seglens
 
         pred_rs = []
         pred_Rs = []
@@ -295,8 +294,12 @@ class BGSModel(object):
             mu = mus[i]
 
             r_interp = np.zeros(nsegs)
+            # r_interp2 = np.zeros(nsegs)
             R_interp = np.zeros(nsegs)
             load_interp = np.zeros(nsegs)
+
+            # iterate over each selection coefficient, adding it's contribution
+            # to this feature type's ratchet rate for each segment.
             for k in range(len(self.t)):
                 muw = mu*W[k, i]
                 j, weight = grid_interp_weights(self.w, muw)
@@ -305,8 +308,11 @@ class BGSModel(object):
                 # grid
                 assert np.allclose(weight*self.w[j-1] + (1-weight)*self.w[j], muw)
 
-                r_this_selcoef = weight*rs[j-1, k, :] + (1-weight)*rs[j, k, :]
-                R_this_selcoef = weight*Rs[j-1, k, :] + (1-weight)*Rs[j, k, :]
+                with np.errstate(under='ignore'):
+                    r_this_selcoef = weight*rs[j-1, k, :] + (1-weight)*rs[j, k, :]
+                    # r_this_selcoef2 = (1-weight)*rs[j-1, k, :] + (weight)*rs[j, k, :]
+                    R_this_selcoef = weight*Rs[j-1, k, :] + (1-weight)*Rs[j, k, :]
+
                 try:
                     assert np.all(r_this_selcoef <= muw)
                 except:
@@ -318,17 +324,19 @@ class BGSModel(object):
                             "occurrs most likely due to numeric error in solving "
                             "the nonlinear system of equations. These are set to zero.")
                     warnings.warn(msg)
-                    r_this_selcoef[r_this_selcoef > muw] = 0.
+
+                    # this is due to numeric issues I believe in interpolation,
+                    # so we bound the ratchet rate to the mutation rate for this
+                    # class since r < mu under neutrality and selection.
+                    # r_this_selcoef2[r_this_selcoef > muw] = muw
+                    r_this_selcoef[r_this_selcoef > muw] = muw
                 r_interp += r_this_selcoef
-                try:
-                    assert np.all(r_interp <= mu)
-                except:
-                    __import__('pdb').set_trace()
+                # r_interp2 += r_this_selcoef2
+                #__import__('pdb').set_trace()
                 R_interp += R_this_selcoef
                 with np.errstate(under='ignore'):
                     load_interp += np.log((1-2*self.t[k]))*R_this_selcoef
 
-            # __import__('pdb').set_trace()
             pred_rs.extend(r_interp)
             pred_Rs.extend(R_interp)
             pred_load.extend(load_interp)

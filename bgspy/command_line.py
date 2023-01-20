@@ -270,7 +270,6 @@ def subrate(bs_file, fit, outfile, split):
     rdf = m.ratchet_df(bpfit)
     msg = "feature mismatch between BGSModel and fit!"
     assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
-
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
     if not split:
         rdf.to_csv(outfile, sep='\t', header=False, index=False)
@@ -343,7 +342,7 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
 @click.option('--r2-file', required=True, type=click.Path(writable=True),
               help='R2 .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
-@click.option('--loo-chrom', default=None, 
+@click.option('--loo-chrom', default=None,
               help="leave-one-out chromosome, e.g. for paralelel processing")
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
@@ -357,7 +356,7 @@ def R2(fit, r2_file, fit_dir, loo_chrom, ncores, nstarts, include_bs):
     Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
     and predicting the observed diversity on the excluded chromosome.
     """
-    fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores, 
+    fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores,
                    loo_fits_dir=fit_dir,
                    bp_only=(not include_bs), loo_chrom=loo_chrom,
                    loo_nstarts=nstarts, recycle_mle=True)

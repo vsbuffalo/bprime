@@ -26,14 +26,18 @@ rule separate_alns:
        touch cds_alns/dummy.txt
        """
 
+# not needed, we use whole directory
+# if it fails here, run the phylofit command in the README.md 
+# (this can't be put in snakemake)
 phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
 
 rule merge_phylofit:
-  input: PF_DIR
+  input: dummy="phylofit_estimates/dummy.txt", dir=PF_DIR
   output: "phylofit_cds_rates.bed"
   shell:
     """
-    python ../../tools/merge_phylofits.py {input[0]} {output[0]}
+    python ../../tools/merge_phylofits.py {input.dir} tmp.bed
+    sort -k1,1 -k2,2n  tmp.bed > {output[0]}
     """
 
 rule windows:
@@ -44,11 +48,12 @@ rule windows:
     bedtools makewindows -g {input.annot} -w {wildcards.width} | bedtools sort > {output[0]}
     """
 
-rule ratchet_data:
-  # this is the full phastcons raw segment ratchet data, calculated alongside 
+rule unscaled_ratchet_data:
+  # this is the full raw segment ratchet data, calculated alongside 
   # the B scores.
+  # NOTE: this is UNSCALED and should most likely NOT BE USED
   input: model = MODEL_FILE, fit = FIT_FILE
-  output: "ratchet_data.bed"
+  output: "unscaled_ratchet_data.bed"
   shell: 
      """
      bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
@@ -56,28 +61,30 @@ rule ratchet_data:
 
 rule ratchet_rescale_data_split:
   input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-  output: "ratchet_rescaled_data_cds.bed", "ratchet_rescaled_data_utr.bed", "ratchet_rescaled_data_phastcons.bed"
+  output: "rescaled_ratchet_data_cds.bed", "rescaled_ratchet_data_utr.bed", "rescaled_ratchet_data_phastcons.bed"
   shell: 
      """
-     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "ratchet_rescaled_data"
+     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data"
      """
 
 rule ratchet_rescale_data:
   input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-  output: "ratchet_rescaled_data.bed"
+  output: "rescaled_ratchet_data.bed"
   shell: 
      """
      bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
      """
 
-rule ratchet_data_cds:
+rule unscaled_ratchet_data_cds:
   input: model = MODEL_FILE, fit = FIT_FILE
-  output: "ratchet_data_cds.bed", "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"
+  output: "unscaled_ratchet_data_cds.bed", "unscaled_ratchet_data_utr.bed", "unscaled_ratchet_data_phastcons.bed"
   shell: 
      """
-     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "ratchet_data"
+     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "unscaled_ratchet_data"
      """
 
+## load and clean up Uricchio et al data
+## NOTE: the protein coding stats is processed in data/annotation
 rule uricchio_data:
   input: data="41559_2019_890_MOESM3_ESM.txt", cds_stats="../annotation/ensembl_cds_canonical_protein_coding_stats.tsv"
   output: "uricchio_data.tsv"
@@ -87,7 +94,7 @@ rule uricchio_data:
 
     gr = pd.read_csv(input.data,
                      sep='\t', names=cols, comment='#')
-    gr['dnDs'] = gr['fixed_nonsyn'] / gr['fixed_syn']
+    gr['dnds'] = gr['fixed_nonsyn'] / gr['fixed_syn']
 
     cd = pd.read_csv(input.cds_stats, sep='\t')
 
@@ -101,7 +108,7 @@ rule uricchio_data:
 
 
     new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
-                'fixed_nonsyn', 'fixed_syn', 'dnDs', 
+                'fixed_nonsyn', 'fixed_syn', 'dnds', 
                 'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
                 'nonsyn_prop', 'total_prop', 'dNdS', 'S', 'N']
 
@@ -110,56 +117,83 @@ rule uricchio_data:
     gr = gr.rename(columns={'chrom': '#chrom'})
     gr.to_csv(output[0], sep='\t', index=False)
 
-rule uricchio_merged:
+rule uricchio_merged_raw:
   """
   Merge in the raw ratchet data and the phylofit substitution rates for
   the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
+
+  NOTE: We do not have the precise transcripts Uricchio et al used.
+  But this is fine, it's just for validation and dn/ds.
+  The stats are on the canonical transcripts CDS FASTA file.
+
+  The phylofit data is from the UCSC Multiz 20-way, but subset for 5 primates.
+  The UCSC file I use is knownCanonical.exonNuc.fa.gz  for the phylofit estimates.
   """
-  input: data="uricchio_data.tsv", ratchet="ratchet_rescaled_data_cds.bed", 
-         pf="phylofit_rates.bed", rescaled_ratchet="ratchet_rescaled_data.bed"
-  output: "uricchio_data_merged.bed"
+  input: data="uricchio_data.tsv", 
+         unscaled_ratchet="unscaled_ratchet_data_cds.bed", 
+         pf="phylofit_cds_rates.bed", 
+         rescaled_ratchet="rescaled_ratchet_data.bed"
+  output: "uricchio_data_merged_raw.bed"
   shell:
       """
-      bedtools map -a {input.data} -b {input.ratchet} -c 6,7 -o mean,sum > tmp.bed
-      bedtools map -a tmp.bed -b {input.rescaled_ratchet} -c 6,7 -o mean,sum > tmp2.bed
-      bedtools map -a tmp2.bed -b {input.pf} -c 4,5 -o mean,sum > {output[0]}
+      bedtools map -a {input.data} -b {input.rescaled_ratchet} -c 6,7 -o mean,sum > tmp.bed
+      bedtools map -a tmp.bed -b {input.unscaled_ratchet} -c 6,7 -o mean,sum > tmp2.bed
+      bedtools map -a tmp2.bed -b {input.pf} -c 5,6 -o mean,sum > {output[0]}
       rm -f tmp.bed tmp2.bed
       """
 
+rule uricchio_merged:
+  input: "uricchio_data_merged_raw.bed"
+  output: "uricchio_data_merged.tsv"
+  run:
+    new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
+                'fixed_nonsyn', 'fixed_syn', 'dnds', 
+                'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
+                'nonsyn_prop', 'total_prop', 'dNdS', 'S', 'N',
+                
+                'r_rs', 'r_rs_nbases',
+                'r_us', 'r_us_nbases',
+                'pf_subrate', 'pf_nbases',
+                ]
+    gr = pd.read_csv(input[0], sep='\t', comment='#', names=new_cols)
+    gr['width'] = gr['end'] - gr['start']
+    gr['midpoint'] = 0.5*(gr['start'] + gr['end'])
+    gr.to_csv(output[0], sep='\t', index=False)
+
+
+rule phylofit_cds:
+  input: pf="phylofit_cds_rates.bed", ratchet="rescaled_ratchet_data_{feature}.bed"
+  output: "phylofit_rescaled_ratchet_{feature}_merged.bed"
+  shell:
+     """
+     bedtools map -a {input.pf} -b {input.ratchet} -prec 10 -c 6 -o mean > {output[0]}
+     """
+
+
 rule ratchet_windows:
-  input: ratchet="ratchet_data.bed", win="hg38_windows_{width}.bed"
-  output: "ratchet_rates_binned_{width}"
+  input: ratchet="rescaled_ratchet_data_cds.bed", win="hg38_windows_{width}.bed"
+  output: "rescaled_ratchet_cds_rates_binned_{width}"
   shell:
     """
     bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
     """
 
-rule ratchet_recale_windows:
-  input: ratchet="ratchet_rescaled_data.bed", win="hg38_windows_{width}.bed"
-  output: "ratchet_rescaled_rates_binned_{width}"
-  shell:
-    """
-    bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
-    """
-
-
-window_ratchet = ["ratchet_rates_binned_1000000.bed", 
-                  "ratchet_rates_binned_100000.bed",
-                  "ratchet_rates_binned_5000000.bed"]
-
-rescale_window_ratchet = ["ratchet_rescaled_rates_binned_1000000.bed", 
-                          "ratchet_rescaled_rates_binned_100000.bed",
-                          "ratchet_rescaled_rates_binned_5000000.bed"]
+rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed", 
+                          "rescaled_ratchet_cds_rates_binned_100000.bed",
+                          "rescaled_ratchet_cds_rates_binned_5000000.bed"]
 
 
 ALL_FILES = ["phylofit_cds_rates.bed",
              "cds_alns/dummy.txt",
-             "ratchet_data.bed", 
-             "uricchio_data.tsv", *window_ratchet,  
-             "uricchio_data_merged.bed",  "ratchet_data_cds.bed", 
-             "ratchet_rescaled_data.bed", 
-             *rescale_window_ratchet,
-             "ratchet_data_utr.bed", "ratchet_data_phastcons.bed"]
+             "rescaled_ratchet_data_cds.bed", 
+             "uricchio_data.tsv", 
+             "uricchio_data_merged_raw.bed", 
+             "uricchio_data_merged.tsv",
+             "unscaled_ratchet_data_cds.bed", 
+             "phylofit_rescaled_ratchet_cds_merged.bed",
+             "phylofit_rescaled_ratchet_utr_merged.bed",
+             "phylofit_rescaled_ratchet_phastcons_merged.bed",
+             *rescale_window_ratchet]
 
 rule all:
   input: ALL_FILES

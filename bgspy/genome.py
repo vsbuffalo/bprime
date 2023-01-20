@@ -42,7 +42,8 @@ class Segments:
 
     def __repr__(self):
         nfeats = len(self.feature_map)
-        return f"Segments ({len(self):,} total with {nfeats} feature type(s))"
+        with_rescaling = '' if self.rescaling is None else  ', with rescaling'
+        return f"Segments ({len(self):,} total with {nfeats} feature type(s){with_rescaling})"
 
     def __len__(self):
         return self.ranges.shape[0]
