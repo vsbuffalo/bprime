@@ -1,5 +1,6 @@
 ## likelihood.py -- functions for likelihood stuff
 import os
+import copy
 import pickle
 import warnings
 import json
@@ -796,6 +797,8 @@ class BGSLikelihood:
         else:
             assert out_sample_chrom in self.bins.keys(), f"LOO chrom {chrom} not in bins!"
             all_chroms = [out_sample_chrom]
+
+        r2s = []
         for chrom in all_chroms:
             in_sample = self.bins.chrom_indices(chrom, exclude=True)
             out_sample = self.bins.chrom_indices(chrom, exclude=False)
@@ -813,9 +816,8 @@ class BGSLikelihood:
                     os.makedirs(loo_fits_dir)
                 fpath = os.path.join(loo_fits_dir, f"mle_loo_{chrom}.pkl")
                 new_fit.save(fpath)
-            return np.array(r2s)
-
-
+        return np.array(r2s)
+           
     def R2(self, _idx=None, **kwargs):
         """
         The R² value of the predictions against actual results.
