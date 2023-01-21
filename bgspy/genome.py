@@ -169,26 +169,14 @@ class Segments:
             rescaling.extend(b.squeeze())
         self.rescaling = np.array(rescaling)
 
-    def load_rescaling_from_Bp(self, BpScores, fit, window):
+    def load_rescaling_from_Bp(self, BpScores, fit):
         """
         Take a B' map and a fit object, and predict for the given window size.
         """
-        predicted_B = fit.predict(B=True)
-        bins = fit.bins
-
-        bin_mids = fit.bins.midpoints()
-        bdict = dict()
-        posdict = dict()
-        for chrom in fit.bins.keys():
-            idx = fit.bins.chrom_indices(chrom)
-            bdict[chrom] = predicted_B[idx, None, None]
-            posdict[chrom] = np.array(bin_mids[chrom])
-
-        # dummy w/t
-        w = np.array([0])
-        t = np.array([0])
-
+        predicted_B = BpScores.predicted_B(fit)
+        postdict = BpScores.pos
         predicted_bscores = BScores(bdict, posdict, w=w, t=t)
+        # TODO left here
         self._load_rescaling(predicted_bscores, w, t)
 
     def load_rescaling_from_fit(self, fit):

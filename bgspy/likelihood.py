@@ -198,7 +198,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             return
 
     if loo_chrom is not False:
-        # can be False (don't do LOO), True (do LOO for all chroms), or string 
+        # can be False (don't do LOO), True (do LOO for all chroms), or string
         # chromosome name (do LOO, exluding chromosome)
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
         starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
@@ -207,16 +207,16 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
            # iterate through everything
            out_sample_chrom = None
         else:
-           # single chrom specified... 
+           # single chrom specified...
            out_sample_chrom = loo_chrom
         if not bp_only:
             print("-- leave-one-out R2 estimation for B --")
-            b_r2 = m_b.loo_chrom_R2(starts=loo_nstarts, 
-                                    out_sample_chrom=out_sample_chrom, 
+            b_r2 = m_b.loo_chrom_R2(starts=loo_nstarts,
+                                    out_sample_chrom=out_sample_chrom,
                                     loo_fits_dir=loo_fits_dir,
                                     ncores=ncores)
         print("-- leave-one-out R2 estimation for B' --")
-        bp_r2 = m_bp.loo_chrom_R2(starts=loo_nstarts, 
+        bp_r2 = m_bp.loo_chrom_R2(starts=loo_nstarts,
                                   out_sample_chrom=out_sample_chrom,
                                   loo_fits_dir=loo_fits_dir,
                                   ncores=ncores)
@@ -519,6 +519,8 @@ def negll_c(theta, Y, logB, w, two_alleles=False):
 def predict_simplex(theta, logB, w, mu=None):
     """
     Prediction function for SimplexModel and FixedMutationModel.
+
+    TODO: this should be ported to C, it's very slow.
     """
     fixed_mu = mu is not None
     nx, nw, nt, nf = logB.shape
@@ -778,7 +780,7 @@ class BGSLikelihood:
 
     def loo_chrom_R2(self, out_sample_chrom=None, loo_fits_dir=None, **fit_kwargs):
         """
-        Estimate R2 by leave-one-out of a whole chromosome, run a new fit, 
+        Estimate R2 by leave-one-out of a whole chromosome, run a new fit,
         and then estimate of R2 of the out sample chromosome.
 
         If out_sample_chrom is None, this loops over all chromosomes. However,
@@ -812,7 +814,7 @@ class BGSLikelihood:
                 fpath = os.path.join(loo_fits_dir, f"mle_loo_{chrom}.pkl")
                 new_fit.save(fpath)
             return np.array(r2s)
-           
+
 
     def R2(self, _idx=None, **kwargs):
         """

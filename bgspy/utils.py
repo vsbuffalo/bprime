@@ -327,29 +327,14 @@ class BScores:
     def predict_B(self, fit):
         """
         Predict the B values of all elements of the B map given a fit object.
-
+        TODO: this should maybe live elsewhere?
         """
-        mu = fit.mle_mu
-        W = fit.mle_W
-        nf = fit.nf
-
-        w, t = self.w, self.t
-
+        from bgspy.likelihood import predict_simplex
+        theta = np.copy(fit.theta_)
+        theta[0] = 1
         Bs = dict()
         for chrom in self.B.keys():
-            Bchrom = self.B[chrom]
-            nl = Bchrom.shape[0]
-            bs = np.zeros((nf, nl))
-            for i in range(nf):
-                B = np.moveaxis(Bchrom, 0, -1)[:, :, i, :]
-                for k in range(self.nt):
-                    muw = mu*W[k, i]
-                    # interpolate over the mutation axis
-                    # NOTE THIS IS DONE IN LOG-SPACE CURRENTLY
-                    b_interp_mut = midpoint_linear_interp(np.exp(B[:, i, :]), w, muw)
-                    assert np.all(b_interp_mut <= 0)
-                    bs[i, :] += np.log(b_interp_mut)
-            Bs[chrom] = bs
+            Bs[chrom] = predict_simplex(theta, self.B[chrom], self.w)
         return Bs
 
 def pretty_percent(x, ndigit=3):
