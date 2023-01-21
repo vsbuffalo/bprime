@@ -1,8 +1,9 @@
+import warnings
 import numpy as np
+import pandas as pd
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
-from bgspy.likelihood import SimplexModel
-from bgspy.utils import midpoint_linear_interp
+from bgspy.utils import midpoint_linear_interp, signif
 
 def ratchet_df(model, fit):
     """
@@ -12,14 +13,18 @@ def ratchet_df(model, fit):
     Segments object.
     """
     m = model
+    mus = fit.mle_mu
+    W = fit.mle_W
+
+    from bgspy.likelihood import SimplexModel # to prevent circular import
     if isinstance(fit, SimplexModel):
         # repeat one for each feature (for simplex, these are all same)
         mus = np.repeat(mus, fit.nf)
 
+    F = m.genome.segments.F
     nf = F.shape[1]
     assert fit.nf == nf
 
-    F = m.genome.segments.F
     segments = m.genome.segments
     ranges = segments.ranges
     seglens = np.diff(segments.ranges, axis=1).squeeze()
@@ -61,8 +66,8 @@ def ratchet_df(model, fit):
         for k in range(len(m.t)):
             muw = mu*W[k, i]
 
-            r_this_selcoef = midpoint_linear_interp(r_interp[:, k, :], m.w, muw)
-            R_this_selcoef = midpoint_linear_interp(R_interp[:, k, :], m.w, muw)
+            r_this_selcoef = midpoint_linear_interp(rs[:, k, :], m.w, muw)
+            R_this_selcoef = midpoint_linear_interp(Rs[:, k, :], m.w, muw)
 
             try:
                 assert np.all(r_this_selcoef <= muw)

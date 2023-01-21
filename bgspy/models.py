@@ -41,6 +41,7 @@ import pandas as pd
 from bgspy.utils import signif
 from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
+from bgspy.substitution import ratchet_df
 
 class BGSModel(object):
     """
