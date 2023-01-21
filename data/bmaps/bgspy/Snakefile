@@ -51,7 +51,7 @@ rule bmap_chr10_rescale:
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt",
 	 pkl_b_file="bmap_hg38_sims_{step,\d+}step_chr10.pkl"
-  output: pkl_rsb_file= "bmap_rescaled_hg38_sims_{w}w_{t}t_{step,\d+}step_chr10.pkl"
+  output: pkl_rsb_file= "rescaled_grid/bmap_rescaled_hg38_sims_{w}w_{t}t_{step,\d+}step_chr10.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP, popsize=sims_N, t=t, w=w
   shell:
     """
@@ -126,7 +126,8 @@ rule bmap_hg38_rescaled:
   input: 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
          recmap="../../annotation/hapmap_genetic_map.txt", 
-         fit="../../../fits/hg38_cds_utrs_phastcons_free/hg38_cds_utrs_phastcons/window_1000000/mle.pkl"
+         fit="../../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl",
+	 pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
   output: pkl_b_file="bmap_rescaled_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP
   shell:
@@ -136,7 +137,8 @@ rule bmap_hg38_rescaled:
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.popsize} \
       --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
-      --fit {input.fit} --only-Bp \
+      --rescale-fit {input.fit} --only-Bp \
+      --rescale-Bp-file {input.pkl_b_file} \
       --step {wildcards.step}
     """
 
@@ -172,7 +174,7 @@ maps = [
 rescaled_sims = []
 for ww in chr10_sim_config['params']['mu']['grid']:
     for tt in chr10_sim_config['params']['sh']['grid']:
-        rescaled_sims.append(f"bmap_rescaled_hg38_sims_{ww}w_{tt}t_10000step_chr10.pkl")
+        rescaled_sims.append(f"rescaled_grid/bmap_rescaled_hg38_sims_{ww}w_{tt}t_10000step_chr10.pkl")
 
 rescaled = [ ## cds/utrs/phastcons fit (1Mbp)
              "bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",

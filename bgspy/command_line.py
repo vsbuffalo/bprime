@@ -112,7 +112,7 @@ def cli():
               default=STEP_DEFAULT)
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
 @click.option('--only-B', default=False, is_flag=True, help="only calculate B")
-@click.option('--fit', default=None, help="pickle of B and B' fits for locally-rescaling genome-wide N")
+@click.option('--rescale-fit', default=None, help="pickle of B and B' fits for locally-rescaling genome-wide N")
 @click.option('--rescale', default=None, help="manual rescaling of a 'μ,s' pair, set --rescale-Bp-file too")
 @click.option('--rescale-Bp-file', default=None, help="previous B' calculations file")
 @click.option('--nchunks', default=NCHUNKS_DEFAULT, help='number of chunks to break the genome up into (for parallelization)')
@@ -125,33 +125,39 @@ def cli():
               type=click.Path(exists=False, writable=True))
 def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
           chrom, popsize, split_length, step, only_bp, only_b,
-          fit, rescale, rescale_bp_file, nchunks, ncores, ncores_bp, output):
+          rescale_fit, rescale, rescale_bp_file, nchunks, ncores, ncores_bp, output):
 
     N = popsize
     if ncores_bp is None and ncores is not None:
         ncores_bp = ncores
 
     bpfit = None
-    # load the fits if they exist
-    if fit is not None:
+
+    ### rescaling stuff: this creates a tuple passed to calc_Bp, 
+    ### of (Bp, w, t, fit) (some can be None)
+    # load the fits if they exist -- used for rescaling
+    if rescale_fit is not None:
         assert rescale is None, "--fit and --rescale cannot both be set!"
-        assert rescale_bp_file is None, "--fit and --rescale-Bp-file cannot both be set!"
-        fits = pickle.load(open(fit, 'rb'))
+        assert rescale_bp_file is not None, "--rescale-Bp-file must also be set!"
+        gm = BGSModel.load(rescale_bp_file)
+        fits = pickle.load(open(rescale_fit, 'rb'))
         if len(fits) == 2:
             bfit, bpfit = fits
         else:
             bpfit = fits
+        rescale = (gm.BpScores, None, None, bpfit)
 
     # manual rescaling from a single fixed set of parameters is set.
-    if rescale is not None:
+    if rescale_fit is None and rescale is not None:
         assert rescale_bp_file is not None, "specify --rescale-Bp-file too!"
         rs_w, rs_t = list(map(float, rescale.split(',')))
         gm = BGSModel.load(rescale_bp_file)
         assert rs_w in gm.w, "μ not in ΒGSModel.w!"
         assert rs_t in gm.t, "s not in ΒGSModel.t!"
-        rescale = (gm.BpScores, rs_w, rs_t)
+        rescale = (gm.BpScores, rs_w, rs_t, None)
 
-    if fit is None:
+    if rescale_fit is None:
+        ## Make sure chromosomes match
         # use specified chromosome or set to None to use all in seqlens file
         chrom = [chrom] if chrom is not None else None
     else:
@@ -167,7 +173,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     if not only_b:
         assert N is not None, "--popsize is not set and B' calculated!"
         m.calc_Bp(N=N, step=step, ncores=ncores_bp, nchunks=nchunks,
-                  fit=bpfit, rescale=rescale)
+                  rescale=rescale)
     #if not only_b and fill_nan:
     #    assert m.Bps is not None, "B' not set!"
     #    print(f"filling in B' NaNs with B...\t", end='', flush=True)

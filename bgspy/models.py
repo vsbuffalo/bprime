@@ -159,33 +159,40 @@ class BGSModel(object):
         #self.xs = xs
 
     def calc_Bp(self, N, step=100_000, recalc_segments=False,
-                ncores=None, nchunks=None, fit=None, rescale=None):
+                ncores=None, nchunks=None, rescale=None):
         """
         Calculate new B' values across the genome.
 
-
-        If fit is not None this is a B' fit that is used for local
-        reductions mode.
+        For local reduction mode, rescale is a tuple with either:
+          - (BpScores, w, t, None)
+          - (BpScores, None, None, fit)
         """
         use_rescaling = False
-        if fit is not None:
-            assert rescale is None, "cannot use rescale with fit"
-            # load the rescaling factors from a model fit
-            # NOTE: this only effects the segment parts! nothing past that
-            # in the B' calc
-            self.genome.segments.load_rescaling_from_Bp(self.BpScores, fit)
-            use_rescaling = True # require segments to be re-calc'd
-
         if rescale is not None:
-            assert fit is None, "cannot use fit with rescale"
-            bp, w, t = rescale
-            self.genome.segments.load_rescaling_from_fixed_params(bp, w, t)
+            bp, w, t, fit = rescale
+            assert isinstance(bp, BScores), "bp must be a BScores object"
+            if w is not None or t is not None:
+                # grid-mode
+                assert (w is not None) and (t is not None), "both w and t must be set"
+                assert fit is None, "fit cannot bet set in grid-mode rescaling"
+                self.genome.segments.load_rescaling_from_fixed_params(bp, w, t)
+            else:
+                assert w is None and t is None, "w and t cannot be set"
+                from bgspy.likelihood import SimplexModel
+                assert isinstance(fit, SimplexModel), "fit must be a SimplexModel"
+
+                # load the rescaling factors from a model fit
+                # NOTE: this only effects the segment parts! nothing past that
+                # in the B' calc
+                self.genome.segments.load_rescaling_from_Bp(bp, fit)
+
             use_rescaling = True # require segments to be re-calc'd
 
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
         if use_rescaling or recalc_segments or self.genome.segments._segment_parts_sc16 is None:
+            # re-calc the segment parts
             self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
 
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step, N=N,

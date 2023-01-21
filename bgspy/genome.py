@@ -87,6 +87,9 @@ class Segments:
         and the new BGS theory (if N is set).
         These components are for for each segment, to avoid unnecessary repeated
         calcs.
+
+        The rescaling vector is passed too, since this changes the B' 
+        non-linear equations solve during this step.
         """
         L = self.lengths
         rbp = self.rates
@@ -115,13 +118,12 @@ class Segments:
         np.put_along_axis(F, self.features[:, None], 1, axis=1)
         self.F = F
 
-    def _load_rescaling(self, bdict, w, t):
+    def _load_rescaling(self, predicted_bscores, w, t):
         """
         Common code for both ways of rescaling Ne locally, i.e. from a MLE
         fit and from a set of existing Bs, e.g. grid
         """
 
-        predicted_bscores = BScores(bdict, posdict, w=w, t=t)
         predicted_bscores._build_interpolators()
 
         rescaling = list()
@@ -169,14 +171,20 @@ class Segments:
             rescaling.extend(b.squeeze())
         self.rescaling = np.array(rescaling)
 
-    def load_rescaling_from_Bp(self, BpScores, fit):
+    def load_rescaling_from_Bp(self, bp, fit):
         """
         Take a B' map and a fit object, and predict for the given window size.
         """
-        predicted_B = BpScores.predicted_B(fit)
-        postdict = BpScores.pos
-        predicted_bscores = BScores(bdict, posdict, w=w, t=t)
-        # TODO left here
+        assert isinstance(bp, BScores), "bp must be a BScores object"
+        # add in extra dimensions to mimic the B nd-array
+        predicted_B = {c: b[:, None, None] for c, b in bp.predict_B(fit).items()}
+        posdict = bp.pos
+
+        # dummy w/t
+        w = np.array([0])
+        t = np.array([0])
+
+        predicted_bscores = BScores(predicted_B, posdict, w=w, t=t)
         self._load_rescaling(predicted_bscores, w, t)
 
     def load_rescaling_from_fit(self, fit):
@@ -192,6 +200,8 @@ class Segments:
         posdict = dict()
         for chrom in fit.bins.keys():
             idx = fit.bins.chrom_indices(chrom)
+            # note the extra axes added here, for downstream stuff, 
+            # B must have dimension nl x nt x nw; 
             bdict[chrom] = predicted_B[idx, None, None]
             posdict[chrom] = np.array(bin_mids[chrom])
 
