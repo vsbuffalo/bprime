@@ -41,7 +41,7 @@ import pandas as pd
 from bgspy.utils import signif
 from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
-from bgspy.substitution import grid_interp_weights, manual_interp
+from bgspy.substitution import ratchet_df
 
 class BGSModel(object):
     """
@@ -254,109 +254,8 @@ class BGSModel(object):
 
         TODO: this code should go to substitutions module.
         """
-        W = fit.mle_W
-        mus = fit.mle_mu
-        from bgspy.likelihood import SimplexModel
-        if isinstance(fit, SimplexModel):
-            # repeat one for each feature (for simplex, these are all same)
-            mus = np.repeat(mus, fit.nf)
+        return ratchet_df(self, fit)
 
-        F = self.genome.segments.F
-        segments = self.genome.segments
-        ranges = segments.ranges
-        seglens = np.diff(segments.ranges, axis=1).squeeze()
-        fmaps = segments.inverse_feature_map
-
-        # get chroms
-        chroms = []
-        for chrom, indices in segments.index.items():
-            chroms.extend([chrom] * len(indices))
-        chroms = np.array(chroms)
-
-        T = segments._segment_parts_sc16[2]
-        R = 1/T
-        with np.errstate(under='ignore'):
-            r = R/seglens
-
-        pred_rs = []
-        pred_Rs = []
-        pred_load = []
-        chrom_col = []
-        start_col, end_col = [], []
-        seglen_col = []
-        feature_col = []
-        for i in range(F.shape[1]):
-            # get the substiution rates and other info *for this feature type*
-            fidx = F[:, i]
-            rs = r[..., fidx]
-            Rs = R[..., fidx]
-            nsegs = fidx.sum()
-            mu = mus[i]
-
-            r_interp = np.zeros(nsegs)
-            # r_interp2 = np.zeros(nsegs)
-            R_interp = np.zeros(nsegs)
-            load_interp = np.zeros(nsegs)
-
-            # iterate over each selection coefficient, adding it's contribution
-            # to this feature type's ratchet rate for each segment.
-            for k in range(len(self.t)):
-                muw = mu*W[k, i]
-                j, weight = grid_interp_weights(self.w, muw)
-
-                # we should get the mutation rate back if we weight the mutation
-                # grid
-                assert np.allclose(weight*self.w[j-1] + (1-weight)*self.w[j], muw)
-
-                with np.errstate(under='ignore'):
-                    r_this_selcoef = weight*rs[j-1, k, :] + (1-weight)*rs[j, k, :]
-                    # r_this_selcoef2 = (1-weight)*rs[j-1, k, :] + (weight)*rs[j, k, :]
-                    R_this_selcoef = weight*Rs[j-1, k, :] + (1-weight)*Rs[j, k, :]
-
-                try:
-                    assert np.all(r_this_selcoef <= muw)
-                except:
-                    n_over = (r_this_selcoef > muw).sum()
-                    frac = signif(100*(r_this_selcoef > muw).mean(), 2)
-                    msg = (f"{n_over} segments ({frac}%) had estimated substitution rates "
-                            "greater than the DFE-weighted mutation rate for the"
-                           f" class s={self.t[k]}, feature '{fmaps[i]}'. This "
-                            "occurrs most likely due to numeric error in solving "
-                            "the nonlinear system of equations. These are set to zero.")
-                    warnings.warn(msg)
-
-                    # this is due to numeric issues I believe in interpolation,
-                    # so we bound the ratchet rate to the mutation rate for this
-                    # class since r < mu under neutrality and selection.
-                    # r_this_selcoef2[r_this_selcoef > muw] = muw
-                    r_this_selcoef[r_this_selcoef > muw] = muw
-                r_interp += r_this_selcoef
-                # r_interp2 += r_this_selcoef2
-                #__import__('pdb').set_trace()
-                R_interp += R_this_selcoef
-                with np.errstate(under='ignore'):
-                    load_interp += np.log((1-2*self.t[k]))*R_this_selcoef
-
-            pred_rs.extend(r_interp)
-            pred_Rs.extend(R_interp)
-            pred_load.extend(load_interp)
-
-            chrom_col.extend(chroms[fidx])
-            start_col.extend(ranges[fidx, 0])
-            end_col.extend(ranges[fidx, 1])
-            seglen_col.extend(seglens[fidx])
-            fs = [fmaps[i]] * fidx.sum()
-            feature_col.extend(fs)
-
-        d = pd.DataFrame({'chrom': chrom_col,
-                          'start': start_col,
-                          'end': end_col,
-                          'feature': feature_col,
-                          'R': pred_Rs,
-                          'r': pred_rs,
-                          'seglen': seglen_col,
-                          'load': pred_load})
-        return d
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)

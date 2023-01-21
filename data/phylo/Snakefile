@@ -132,7 +132,7 @@ rule uricchio_merged_raw:
   input: data="uricchio_data.tsv", 
          unscaled_ratchet="unscaled_ratchet_data_cds.bed", 
          pf="phylofit_cds_rates.bed", 
-         rescaled_ratchet="rescaled_ratchet_data.bed"
+         rescaled_ratchet="rescaled_ratchet_data_cds.bed"
   output: "uricchio_data_merged_raw.bed"
   shell:
       """

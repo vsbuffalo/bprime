@@ -77,6 +77,12 @@ class BinnedStat:
         return (self.midpoints, self.stat)
 
 class BScores:
+    """
+    Container class for B and B' Maps.
+    TODO:
+     - rename to BMap
+     - move out of utils.py (lol)
+    """
     def __init__(self, B, pos, w, t, features=None, step=None):
         self.B = B
         self.pos = pos
@@ -318,6 +324,33 @@ class BScores:
         pos = {c: x.midpoints for c, x in means.items()}
         return BScores(B, pos, self.w, self.t)
 
+    def predict_B(self, fit):
+        """
+        Predict the B values of all elements of the B map given a fit object.
+
+        """
+        mu = fit.mle_mu
+        W = fit.mle_W
+        nf = fit.nf
+
+        w, t = self.w, self.t
+
+        Bs = dict()
+        for chrom in self.B.keys():
+            Bchrom = self.B[chrom]
+            nl = Bchrom.shape[0]
+            bs = np.zeros((nf, nl))
+            for i in range(nf):
+                B = np.moveaxis(Bchrom, 0, -1)[:, :, i, :]
+                for k in range(self.nt):
+                    muw = mu*W[k, i]
+                    # interpolate over the mutation axis
+                    # NOTE THIS IS DONE IN LOG-SPACE CURRENTLY
+                    b_interp_mut = midpoint_linear_interp(np.exp(B[:, i, :]), w, muw)
+                    assert np.all(b_interp_mut <= 0)
+                    bs[i, :] += np.log(b_interp_mut)
+            Bs[chrom] = bs
+        return Bs
 
 def pretty_percent(x, ndigit=3):
     return np.round(100*x, ndigit)
@@ -1216,3 +1249,47 @@ def censor(x, probs, return_idx=False):
         return idx
     return x[idx]
 
+
+def manual_interp(w, r, muw):
+    """
+    Manual interpolation of the ratchet array. For
+    comaprison with manual interpolation with
+    grid_interp_weights.
+    """
+    nw, nl = r.shape
+    res = np.empty(nl)
+    for i in range(nl):
+        res[i] = interp1d(w, r[:, i])(muw)
+    return res
+
+def midpoint_linear_interp(Y, x, x0, replace_bounds=True):
+    """
+    """
+    try:
+        assert x[0] <= x0 < x[-1]
+    except AssertionError:
+        if replace_bounds:
+            if x0 >= x:
+                # out of upper bound, return last Y
+                return Y[-1, :]
+            else:
+                # out of lower bound, return first Y
+                assert x0 < x[0]
+                return Y[0, :]
+        else:
+            raise ValueError("out of bounds x0")
+
+    # not out of bounds, do normal linear interpolation
+    j = np.searchsorted(x, x0)
+    assert j < len(x)
+    l, u = x[j-1], x[j]
+    assert l < u
+    weight = ((x0-l)/(u - l))
+    assert 0 <= weight <= 1
+    w = 1-weight # so weighting is w*lower + (1-w)*upper
+
+    assert np.allclose(w*x[j-1] + (1-w)*x[j], x0)
+
+    with np.errstate(under='ignore'):
+        y_interp = (w*Y[j-1, :] + (1-w)*Y[j, :])
+    return y_interp
