@@ -211,17 +211,35 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     sh = np.fromiter(sh_lookup.keys(), dtype=float)
     return mu, sh, pos, X, tree_files
 
-def read_subs(filename):
+
+
+def load_substitution_files(dir, chrom_len, suffix='sub.tsv.gz'):
     """
-    TODO in progress
-    Read the substitution TSV file.
+    Collate all the substitution files in a directory.
+
+    For a single DFE per chromosome (currently), e.g. one sel coef
+    only free parms are mu and sel coef.
+
+    Returns: dict of dict of numpy counts per basepair.
     """
-    md = None
-    with readfile(filename) as f:
-        for line in f:
-            if line.startswith('#'):
-                md = line[1:].strip().split(';')
-                md = dict([tuple(x.split('=')) for x in md])
-                continue
-            chrom, pos, sel, mtype, h = line.strip().split('\t')
-            pos, sel = int(pos), float(sel)
+    all_files = get_files(dir, suffix=suffix)
+    results = defaultdict(dict) 
+    only_chrom = None # for checking we only have one chromosome
+
+    for filename in tqdm.tqdm(all_files):
+        with readfile(filename) as f:
+            for line in f:
+                if line.startswith('#'):
+                    md = line[1:].strip().strip(';').split(';')
+                    md = dict([tuple(x.split('=')) for x in md])
+                    continue
+                chrom, pos, sel, mtype, h = line.strip().split('\t')
+                if only_chrom is None:
+                    only_chrom = chrom
+                assert only_chrom == chrom
+                sel = float(sel)
+                if sel not in results[float(md['mu'])]:
+                    results[float(md['mu'])] = np.zeros(chrom_len, dtype=int)
+                results[float(md['mu'])][int(pos)] += 1
+    return results
+ 

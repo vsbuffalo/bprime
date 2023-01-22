@@ -322,6 +322,7 @@ cons = ["conserved_phastcons.bed.gz",
 
         # feature tracks with genomic elements only
         "conserved_cds_phastcons.bed.gz",
+	"conserved_cds_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons.bed.gz",
         "conserved_cds_utrs.bed.gz",
         "conserved_cds_utrs_promoters2kb.bed.gz",
@@ -377,6 +378,15 @@ rule conserved_cds_phastcons:
       --bed cds {input.cds} --bed phastcons {input.phastcons} | \
       gzip > {output}
     """
+
+rule conserved_cds_phastcons_merged:
+  input: "conserved_cds_phastcons.bed.gz"
+  output: "conserved_cds_phastcons_merged.bed.gz"
+  shell:
+    """
+    zcat {input[0]} | cut -f1,2,3 | gzip > {output}
+    """
+
 
 rule conserved_cds_utrs_regulatory_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", regulatory="hg38.regulatory.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -516,6 +526,7 @@ rule conserved_cds_utrs_phastcons_merged:
 # we want simple, example conservation tracks, but semi-realistic, e.g. CDS
 sim_cons = ["conserved_phastcons_chr10.bed",  # this is currently the primary conserved track for simulations
             "conserved_cds_utrs_phastcons_merged_chr10.bed",
+            "conserved_cds_phastcons_merged_chr10.bed",
             ]
 sim_neut = ["neutral_phastcons_chr10.bed.gz"]
 
@@ -526,6 +537,15 @@ rule split_phastcons:
   shell:
       """
       zgrep "chr10" {input} > {output}
+      """
+
+rule split_merged_noutr:
+  input: "conserved_cds_phastcons_merged.bed.gz"
+  output: "conserved_cds_phastcons_merged_chr10.bed"
+  shell:
+      """
+      zgrep "chr10" {input} | cut -f1-3 > {output}
+      mkdir -p calc_bkgd_conserved/ && cp conserved_cds_phastcons_merged_chr10.bed calc_bkgd_conserved/chr10.bed
       """
 
 rule split_merged:

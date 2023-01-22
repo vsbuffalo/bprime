@@ -10,6 +10,9 @@ import numpy as np
 from bgspy.utils import signif
 from bgspy.sim_utils import param_grid, read_params, random_seed
 
+
+    
+
 def filename_pattern(dir, base, params, split_dirs=False, seed=False, rep=False):
     """
     Create a filename pattern with wildcares in braces (for Snakemake)
