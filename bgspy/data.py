@@ -8,7 +8,7 @@ import numpy as np
 import tqdm.autonotebook as tqdm
 import tskit
 from tabulate import tabulate
-from bgspy.utils import read_bed3, ranges_to_masks
+from bgspy.utils import read_bed3, ranges_to_masks, GC
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
 from bgspy.utils import readfq, pretty_percent, bin_chrom, mean_ratio
@@ -314,6 +314,14 @@ class GenomeData:
                 self.accesssible_masks = acc
             else:
                 self.combine_accesssible(acc)
+
+    def get_segment_GC(self):
+        results = defaultdict(list)
+        for chrom, ranges in self.genome.segments.range_dict.items():
+            for (start, end) in ranges:
+                seq = self.seqs[chrom][start:end]
+                results[chrom].append(GC(seq))
+        return results
 
     def combine_accesssible(self, masks):
         for chrom in masks:

@@ -6,7 +6,7 @@ import sys
 import re
 import os
 from collections import defaultdict
-from bgspy.utils import readfq, readfile
+from bgspy.utils import readfq, readfile, parse_region
 
 KEEP_SPECIES = set(['hg38', 'panPan1', 'panTro4', 'gorGor3', 'ponAbe2'])
 KEEP_CHROMS = set([f'chr{c}' for c in range(1, 23)])
@@ -29,12 +29,6 @@ except:
 #         except ValueError:
 #             idx.append(None)
 
-def parse_region_withstrand(x):
-    res = re.match(r'(chr[^:]+):(\d+)-(\d+)([+-])', region)
-    if res is None:
-        return res
-    chrom, start, end, strand = res.groups()
-    return chrom, int(start), int(end), strand
 
 cds = defaultdict(lambda: defaultdict(list))
 
@@ -50,7 +44,7 @@ for name, seq, comment in readfq(in_fasta, name_only=False):
         gene = f"{nm}_{id}"
     if species not in KEEP_SPECIES:
         continue
-    region = parse_region_withstrand(region)
+    region = parse_region(region, with_strand=True)
     cds[gene][species].append((region, seq))
     n += 1
 

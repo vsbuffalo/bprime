@@ -42,7 +42,11 @@ class Segments:
 
     def __repr__(self):
         nfeats = len(self.feature_map)
-        with_rescaling = '' if self.rescaling is None else  ', with rescaling'
+        if hasattr(self, 'rescaling'):
+            # back compatability
+            with_rescaling = '' if self.rescaling is None else  ', with rescaling'
+        else:
+            with_rescaling = False
         return f"Segments ({len(self):,} total with {nfeats} feature type(s){with_rescaling})"
 
     def __len__(self):
@@ -60,6 +64,11 @@ class Segments:
     @property
     def chroms(self):
         return list(self.index.keys())
+
+    @property
+    def range_dict(self):
+        ""
+        return {c: self.ranges[idx] for c, idx in self.index.items()}
 
     @property
     def L(self):
@@ -88,7 +97,7 @@ class Segments:
         These components are for for each segment, to avoid unnecessary repeated
         calcs.
 
-        The rescaling vector is passed too, since this changes the B' 
+        The rescaling vector is passed too, since this changes the B'
         non-linear equations solve during this step.
         """
         L = self.lengths
@@ -200,8 +209,8 @@ class Segments:
         posdict = dict()
         for chrom in fit.bins.keys():
             idx = fit.bins.chrom_indices(chrom)
-            # note the extra axes added here, for downstream stuff, 
-            # B must have dimension nl x nt x nw; 
+            # note the extra axes added here, for downstream stuff,
+            # B must have dimension nl x nt x nw;
             bdict[chrom] = predicted_B[idx, None, None]
             posdict[chrom] = np.array(bin_mids[chrom])
 

@@ -96,7 +96,7 @@ for name, seq, _ in readfq(fp, name_only=False):
     codons.insert(0, 'ATG')
 
     # get the gc3
-    gc3[gene_id] = sum([c[2] in 'GC' for c in codons]) / len(codons)
+    gc3[gene_id] = sum([c[2].upper() in 'GC' for c in codons]) / len(codons)
 
     # count the syn/non-syn AAs
     S, N = zip(*[num_syn_nonsyn_table[c] for c in codons])
@@ -119,7 +119,7 @@ rows = []
 for gene_id, codons in cleaned_codons.items():
     chrom, start, end = locs[gene_id]
     cai = CAI(codons, weights=weights)
-    gc = sum(x in 'GC' for x in codons) / len(codons)
+    gc = sum(x.upper() in 'GC' for x in codons) / len(codons)
     data = dict(chrom='chr'+chrom, start=start, end=end,
                 gene_id=gene_id, cai=cai, gc=gc, gc3=gc3[gene_id],
                 len=len(codons),

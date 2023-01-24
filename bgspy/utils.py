@@ -22,6 +22,8 @@ import newick
 
 
 
+GCs = set([ord(b) for b in 'GCgc'])
+
 SEED_MAX = 2**32-1
 
 # alias this
@@ -1185,12 +1187,13 @@ def binned_summaries(x, y, nbins, method='interval',
                            'median': np.nanmedian,
                            'sd': np.nanstd,
                            'n': lambda x: np.sum(np.isfinite(x))},
+                     remove_nan=True,
                      cut_tails=None):
     """
 
     cut_tails: if None, no modifications. If this is a tuple of probabilities,
                this will use censor() to remove x and y values that fall outside
-               the tails.
+               the tails. If a float, tails are (float, 1-float).
 
 
     Notes: I find cut_tails is often very important for interval-based binning,
@@ -1199,7 +1202,12 @@ def binned_summaries(x, y, nbins, method='interval',
     """
     x = np.array(x)
     y = np.array(y)
+    if remove_nan:
+        keep = np.isfinite(x) & np.isfinite(y)
+        x, y = x[keep], y[keep]
     if cut_tails is not None:
+        if isinstance(cut_tails, float):
+            cut_tails = (cut_tails, 1-cut_tails)
         idx = censor(x, cut_tails, return_idx=True)
         x, y = x[idx], y[idx]
     bins = cutbins(x, nbins, method)
@@ -1278,3 +1286,24 @@ def midpoint_linear_interp(Y, x, x0, replace_bounds=True):
     with np.errstate(under='ignore'):
         y_interp = (w*Y[j-1, :] + (1-w)*Y[j, :])
     return y_interp
+
+def parse_region(x, with_strand=False):
+    if with_strand:
+        res = re.match(r'(chr[^:]+):(\d+)-(\d+)([+-])', region)
+    else:
+        res = re.match(r'(chr[^:]+):(\d+)-(\d+)', region)
+    if res is None:
+        return res
+    if with_strand:
+        chrom, start, end, strand = res.groups()
+    else:
+        chrom, start, end = res.groups()
+        strand = None
+    return chrom, int(start), int(end), strand
+
+
+def GC(seq):
+    seqlen = sum(x for x in seq if x not in 'Nn')
+    return sum([x.upper() in 'gcGC' for x in seq]) / seqlen
+
+

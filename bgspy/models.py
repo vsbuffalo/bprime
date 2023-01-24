@@ -251,17 +251,14 @@ class BGSModel(object):
         r = R/seglens
         return midpoints, r, segments.ranges, seglens
 
-    def ratchet_df(self, fit):
+    def ratchet_df(self, fit, predict_under_feature=None):
         """
         Output a combined ratchet, for all segments.
 
-        W is the MLE estimate of the DFE weights.
-        If this is not specified, then all classes
-        are given equal weight.
-
-        TODO: this code should go to substitutions module.
+        predict_under_feature: an index of which feature type to predict under
+        (e.g. to predict assuming all segments were CDS)
         """
-        return ratchet_df(self, fit)
+        return ratchet_df(self, fit, predict_under_feature)
 
 
     def get_ratchet_binned_array(self, chrom, width):

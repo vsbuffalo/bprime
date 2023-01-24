@@ -5,7 +5,7 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 from bgspy.utils import midpoint_linear_interp, signif
 
-def ratchet_df(model, fit):
+def ratchet_df(model, fit, predict_under_feature=None):
     """
     Predict the ratchet given a model and fits.
 
@@ -64,7 +64,13 @@ def ratchet_df(model, fit):
         # iterate over each selection coefficient, adding it's contribution
         # to this feature type's ratchet rate for each segment.
         for k in range(len(m.t)):
-            muw = mu*W[k, i]
+            if predict_under_feature is None:
+                # use the corresponding DFE estimate for this feature
+                muw = mu*W[k, i]
+            else:
+                # force the DFE to follow one feature
+                muw = mu*W[k, predict_under_feature]
+
 
             r_this_selcoef = midpoint_linear_interp(rs[:, k, :], m.w, muw)
             R_this_selcoef = midpoint_linear_interp(Rs[:, k, :], m.w, muw)

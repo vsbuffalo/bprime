@@ -133,7 +133,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
 
     bpfit = None
 
-    ### rescaling stuff: this creates a tuple passed to calc_Bp, 
+    ### rescaling stuff: this creates a tuple passed to calc_Bp,
     ### of (Bp, w, t, fit) (some can be None)
     # load the fits if they exist -- used for rescaling
     if rescale_fit is not None:
@@ -262,18 +262,27 @@ def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
               help="BGSModel genome model pickle file (contains B' and B)")
 @click.option('--fit', required=True, type=click.Path(exists=True),
               help='pickle file of fitted results')
+@click.option('--force-feature', default=None,
+              help='force all predictions using DFE estimates of this feature')
 @click.option('--outfile', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--split', default=False, is_flag=True,
               help="split into different files for each feature "
                    "(uses '<outfile>_<feature_a>.bed', etc)")
-def subrate(bs_file, fit, outfile, split):
+def subrate(bs_file, fit, force_feature, outfile, split):
     """
     """
     m = BGSModel.load(bs_file)
     bfit, bpfit = pickle.load(open(fit, 'rb'))
-    rdf = m.ratchet_df(bpfit)
+
+    if force_feature is not None:
+        avail_feats = [x.lower() for x in bpfit.features]
+        force_feature = force_feature.lower()
+        assert force_feature in avail_feats
+        feature_idx = avail_feats.index(force_feature)
+
+    rdf = m.ratchet_df(bpfit, predict_under_feature=feature_idx)
     msg = "feature mismatch between BGSModel and fit!"
     assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
