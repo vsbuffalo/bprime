@@ -39,6 +39,8 @@ rule seqlens:
 annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", 
          "hg38.ensembl.gff3.gz",
          "hg38.ensembl_cds.bed.gz", 
+         "cds_no_phastcons.bed.gz",
+         "hg38.ensembl_cds_annot.bed.gz", # version with tx IDs
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
          
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
@@ -215,6 +217,15 @@ rule cds:
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
+rule cds_annot:
+  # cleaner version, no 0bp, for MAF work
+  input: "hg38.ensembl.gff3.gz"
+  output: "hg38.ensembl_cds_annot.bed.gz"
+  shell:
+      """
+      python ../../tools/annot_gff.py {input[0]} | gzip > {output[0]}
+      """
+
 rule utrs:
   input: "hg38.ensembl.gff3.gz"
   output: "hg38.ensembl_utrs.bed.gz"
@@ -322,13 +333,13 @@ cons = ["conserved_phastcons.bed.gz",
 
         # feature tracks with genomic elements only
         "conserved_cds_phastcons.bed.gz",
-	"conserved_cds_phastcons_merged.bed.gz",
+        "conserved_cds_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons.bed.gz",
         "conserved_cds_utrs.bed.gz",
         "conserved_cds_utrs_promoters2kb.bed.gz",
 
-			  # with encode regulatory elements
- 				"conserved_cds_utrs_regulatory_phastcons.bed.gz",
+        # with encode regulatory elements
+        "conserved_cds_utrs_regulatory_phastcons.bed.gz",
 
         # simplified phastcons -- merged 100bp adjacent
         "conserved_cds_utrs_phastcons_simplified.bed.gz",
@@ -377,6 +388,14 @@ rule conserved_cds_phastcons:
     python ../../tools/combine_features.py --seqlens {input.seqlens} \
       --bed cds {input.cds} --bed phastcons {input.phastcons} | \
       gzip > {output}
+    """
+
+rule cds_no_phastcons:
+  input: cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz"
+  output: "cds_no_phastcons.bed.gz"
+  shell:
+    """
+    bedtools subtract -a {input.cds} -b {input.phastcons} | gzip > {output[0]}
     """
 
 rule conserved_cds_phastcons_merged:

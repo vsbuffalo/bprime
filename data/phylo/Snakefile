@@ -26,6 +26,9 @@ rule separate_alns:
        touch cds_alns/dummy.txt
        """
 
+
+# ----------- phylotfit of whole CDS ---------------
+
 # not needed, we use whole directory
 # if it fails here, run the phylofit command in the README.md 
 # (this can't be put in snakemake)
@@ -40,6 +43,37 @@ rule merge_phylofit:
     sort -k1,1 -k2,2n tmp.bed |  \
       bedtools coverage -a - -b {input.pc} > {output[0]}
     """
+
+# ----------- phylotfit from MAF regions ---------------
+
+raw_mafs = [f"raw_mafs/chr{c}" for c in range(2, 23)]
+
+rule download_mafs:
+  output: "raw_mafs/{chrom}.maf.gz"
+  shell: 
+    """
+    wget -O {output[0]} https://hgdownload.soe.ucsc.edu/goldenPath/hg38/multiz20way/maf/{wildcards.chrom}.maf.gz
+    """
+
+rule filter_mafs:
+  input: "raw_mafs/{chrom}.maf.gz"
+  output: "filtered_mafs/{chrom}.maf.gz"
+  shell: 
+    """
+    mafFilter <( zcat {input} ) -minCol=40 | gzip > {output[0]}
+    """
+
+rule cds_region_mafs:
+  input: bed="../annotation/hg38.ensembl_cds_annot.bed.gz"
+  output: "cds_region_mafs/dummy_{chrom}.txt"
+  shell:
+    """
+    mkdir -p cds_region_mafs
+    mafsInRegion <( zgrep "^{wildcards.chrom}" ../annotation/hg38.ensembl_cds_annot.bed.gz  ) -outDir cds_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
+    touch cds_region_mafs/{output[0]}
+    """
+
+# ----------- other processsing ---------------
 
 rule windows:
   input: annot="../annotation/hg38_seqlens.tsv"
@@ -203,8 +237,12 @@ ALL_FILES = ["phylofit_cds_rates.bed",
              "phylofit_rescaled_ratchet_cds_merged.bed",
              "phylofit_rescaled_ratchet_utr_merged.bed",
              "phylofit_rescaled_ratchet_phastcons_merged.bed",
-             *rescale_window_ratchet]
+             *rescale_window_ratchet,
+]
+
+ALL_FILES += [f"filtered_mafs/chr{chrom}.maf.gz" for chrom in range(1, 23)]
+ALL_FILES += [f"cds_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
+
 
 rule all:
-  input: ALL_FILES
-
+  input: ALL_FILES, 

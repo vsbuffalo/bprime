@@ -71,6 +71,16 @@ class Segments:
         return {c: self.ranges[idx] for c, idx in self.index.items()}
 
     @property
+    def rescaling_dict(self):
+        ""
+        return {c: self.rescaling[idx] for c, idx in self.index.items()}
+
+    @property
+    def feature_dict(self):
+        ""
+        return {c: self.features[idx] for c, idx in self.index.items()}
+
+    @property
     def L(self):
         "Return a dict of segment lengths (L) per chrom"
         return {c: self.lengths[idx] for c, idx in self.index.items()}

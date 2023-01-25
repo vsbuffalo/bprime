@@ -1289,9 +1289,9 @@ def midpoint_linear_interp(Y, x, x0, replace_bounds=True):
 
 def parse_region(x, with_strand=False):
     if with_strand:
-        res = re.match(r'(chr[^:]+):(\d+)-(\d+)([+-])', region)
+        res = re.match(r'(chr[^:]+):(\d+)-(\d+)([+-])', x)
     else:
-        res = re.match(r'(chr[^:]+):(\d+)-(\d+)', region)
+        res = re.match(r'(chr[^:]+):(\d+)-(\d+)', x)
     if res is None:
         return res
     if with_strand:
@@ -1303,7 +1303,25 @@ def parse_region(x, with_strand=False):
 
 
 def GC(seq):
-    seqlen = sum(x for x in seq if x not in 'Nn')
-    return sum([x.upper() in 'gcGC' for x in seq]) / seqlen
+    seqlen = np.sum(~np.isin(seq, [ord('N'), ord('n')]))
+    if isinstance(seq, np.ndarray):
+        return sum([x in GCs for x in seq]) / seqlen
+    else:
+        return sum([x.upper() in 'gcGC' for x in seq]) / seqlen
+
+
+
+GFF_COLS = 'seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'
+
+def read_gff(filename, parse_attributes=False):
+    tx = dict()
+    with readfile(filename) as f:
+        for line in f:
+            cols = dict(zip(GFF_COLS, line.strip().split('\t')))
+            feature = cols['feature']
+            if parse_attributes:
+                attrs = dict([tuple(x.split('=')) for x in cols['attribute'].split(';')])
+                cols['attribute'] = attrs
+            yield cols
 
 
