@@ -40,8 +40,12 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "hg38.ensembl.gff3.gz",
          "hg38.ensembl_cds.bed.gz", 
          "cds_no_phastcons.bed.gz",
-         "hg38.ensembl_cds_annot.bed.gz", # version with tx IDs
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
+
+         "hg38.ensembl_cds_annot.bed.gz", # version with tx IDs
+         "conserved_phastcons_annot.bed.gz", # version for MAF (no 0bp features)
+         "hg38.ensembl_utr_annot.bed.gz", # version for MAF (no 0bp features)
+
          
          "hg38.ensembl_exons.bed.gz", "hg38.ensembl_utrs.bed.gz", 
          "hg38.ensembl_introns_conservative.bed.gz", "hg38.ensembl_introns.bed.gz", 
@@ -235,6 +239,25 @@ rule utrs:
       bedtools merge -i -i | \
       sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
+
+rule utr_annot:
+  # cleaner version, no 0bp, for MAF work
+  input: "hg38.ensembl_utrs.bed.gz"
+  output: "hg38.ensembl_utr_annot.bed.gz"
+  shell:
+      """
+      bioawk -cbed '{{ if ($end-$start > 0) {{ print $1,$2,$3,"utr_"$1":"$2"-"$3 }} }}' {input[0]} | gzip > {output[0]}
+      """
+
+rule phastcons_annot:
+  # cleaner version, no 0bp, for MAF work
+  input: "conserved_phastcons.bed.gz"
+  output: "conserved_phastcons_annot.bed.gz"
+  shell:
+      """
+      bioawk -cbed '{{ if ($end-$start > 0) {{ print $1,$2,$3,"phastcons_"$1":"$2"-"$3 }} }}' {input[0]} | gzip > {output[0]}
+      """
+
 
 rule introns:
   input: genes="hg38.ensembl_genes.bed.gz", utr="hg38.ensembl_utrs.bed.gz", exon="hg38.ensembl_exons_merged.bed.gz"

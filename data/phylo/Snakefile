@@ -69,9 +69,67 @@ rule cds_region_mafs:
   shell:
     """
     mkdir -p cds_region_mafs
-    mafsInRegion <( zgrep "^{wildcards.chrom}" ../annotation/hg38.ensembl_cds_annot.bed.gz  ) -outDir cds_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
-    touch cds_region_mafs/{output[0]}
+    mafsInRegion <( zgrep "^{wildcards.chrom}" {input.bed}  ) -outDir cds_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
+    touch {output[0]}
     """
+
+### PHYLOFIT NEEDS TO BE RUN MANUALL, see README (Grr!)
+# be sure to touch cds_phylofits/dummy.txt after
+
+rule cds_merge_phylofit:
+  input: dummy="cds_region_phylofits/dummy.txt", dir="cds_region_phylofits/", pc="../annotation/conserved_phastcons.bed.gz"
+  output: "cds_region_phylofits.bed"
+  shell:
+    """
+    python ../../tools/merge_phylofits2.py {input.dir} tmp.bed
+    sort -k1,1 -k2,2n tmp.bed | \
+    bedtools coverage -a - -b {input.pc} > {output[0]}
+    """
+
+
+##### same for UTRs and phastcons
+
+rule utrs_region_mafs:
+  input: bed="../annotation/hg38.ensembl_utr_annot.bed.gz"
+  output: "utr_region_mafs/dummy_{chrom}.txt"
+  shell:
+    """
+    mkdir -p utr_region_mafs
+    mafsInRegion <( zgrep "^{wildcards.chrom}" {input.bed}  ) -outDir utr_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
+    touch {output[0]}
+    """
+
+rule phastcons_region_mafs:
+  input: bed="../annotation/conserved_phastcons_annot.bed.gz"
+  output: "phastcons_region_mafs/dummy_{chrom}.txt"
+  shell:
+    """
+    mkdir -p phastcons_region_mafs
+    mafsInRegion <( zgrep "^{wildcards.chrom}" {input.bed}  ) -outDir phastcons_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
+    touch {output[0]}
+    """
+
+rule phastcons_merge_phylofit:
+  input: dummy="cds_region_phylofits/dummy.txt", dir="phastcons_region_mafs/"
+  output: "phastcons_region_phylofits.bed"
+  shell:
+    """
+    python ../../tools/merge_phylofits2.py {input.dir} tmp_pc.bed
+    sort -k1,1 -k2,2n tmp_pc.bed > {output[0]}
+    rm -f tmp_pc.bed
+    """
+
+rule utr_merge_phylofit:
+  input: dummy="utr_region_phylofits/dummy.txt", dir="utr_region_mafs/"
+  output: "utr_region_phylofits.bed"
+  shell:
+    """
+    python ../../tools/merge_phylofits2.py {input.dir} tmp_utr.bed
+    sort -k1,1 -k2,2n tmp_utr.bed > {output[0]}
+    rm -f tmp_utr.bed
+    """
+
+
 
 # ----------- other processsing ---------------
 
@@ -238,10 +296,16 @@ ALL_FILES = ["phylofit_cds_rates.bed",
              "phylofit_rescaled_ratchet_utr_merged.bed",
              "phylofit_rescaled_ratchet_phastcons_merged.bed",
              *rescale_window_ratchet,
+             
+             "cds_region_phylofits.bed",  # PF ests from the extracted CDS from the MAF
+             "utr_region_phylofits.bed",
+             "phastcons_region_phylofits.bed",
 ]
 
 ALL_FILES += [f"filtered_mafs/chr{chrom}.maf.gz" for chrom in range(1, 23)]
 ALL_FILES += [f"cds_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
+ALL_FILES += [f"utr_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
+ALL_FILES += [f"phastcons_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
 
 
 rule all:
