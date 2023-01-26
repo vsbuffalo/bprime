@@ -60,6 +60,9 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "ensembl_cds_canonical_protein_coding_stats.tsv",
          ]
 
+# for phylofit
+annot.extend([f"conserved_phastcons/chr{x}.bed" for x in range(1, 23)])
+
 rule centro:
   output: "hg38_centro.bed"
   shell:
@@ -394,6 +397,15 @@ rule conserved_track:
         sort  --version-sort -k 1,1 -k2,2n | \
         bedtools merge | gzip > {output}
       """
+
+rule split_conserved_track:
+  input: "conserved_phastcons.bed.gz"
+  output: "conserved_phastcons/{chrom}.bed"
+  shell:
+    """
+    zgrep "^{wildcards.chrom}" {input} > {output[0]}
+    """
+
 # this is used for sims with combined conserved regions (phastcons)
 rule phastcons_simplified:
   input: "conserved_phastcons.bed.gz"

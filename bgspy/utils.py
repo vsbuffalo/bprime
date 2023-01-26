@@ -1097,6 +1097,7 @@ def read_phylofit(filename):
     with open(filename) as f:
         for line in f:
             if line.startswith("RATE_MAT"):
+                # read the rate matrix and tree
                 line = next(f).strip()
                 rates = list()
                 while len(line) and not line.startswith("TREE"):
@@ -1104,7 +1105,10 @@ def read_phylofit(filename):
                     rates.append(row)
                     line = next(f).strip()
                 assert(line.startswith("TREE"))
-                data['tree'] = line.strip().split(': ', 1)[1]
+                data['rate'] = np.array(rates)
+                tree = line.strip().split(': ', 1)[1]
+                data['tree'] = tree
+                data['branch_lengths'] = get_branch_length(tree)
             else:
                 key, val = line.strip().split(': ', 1)
                 key = key.lower().replace(': ', '')
@@ -1112,14 +1116,14 @@ def read_phylofit(filename):
     return data
 
 
-def get_branch_length(tree_str, species):
+def get_branch_length(tree_str):
     """
     Get the branch length of a species from a newick-string.
     """
     tree = newick.loads(tree_str)
     assert(isinstance(tree, list))
     assert(len(tree) == 1)
-    return [x.length for x in tree[0].walk() if x.name == species][0]
+    return {x.name: x.length for x in tree[0].walk()}
 
 def bin2midpoints(x):
     """

@@ -78,6 +78,14 @@ rule phylofit_by_feature:
      phyloFit --tree $TREE --subst-mod HKY85  --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
      """
 
+rule maf_for_phastcons:
+   input: bed="../annotation/conserved_phastcons/{chrom}.bed", maf="filtered_mafs/{chrom}.maf"
+   output: "mafs_by_feature/{chrom}.phastcons.maf"
+   shell:
+     """
+     # the echo BS is because maf_parse is dropping the header for BEDs(!)
+     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
+     """
 
 # ----------- other processsing ---------------
 
@@ -253,8 +261,10 @@ ALL_FILES += [f"filtered_mafs/chr{chrom}.maf" for chrom in range(1, 23)]
 for chrom_num in range(1, 23):
   chrom = f"chr{chrom_num}"
   ALL_FILES.append(f"pfests_by_feature/{chrom}.CDS.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.pseudogene.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.three_prime_UTR.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.five_prime_UTR.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons.mod")
 
 rule all:
   input: ALL_FILES, 
