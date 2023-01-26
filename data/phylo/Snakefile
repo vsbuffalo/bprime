@@ -16,6 +16,14 @@ rule get_knowncanonical_multiz:
      wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/multiz20way/alignments/knownCanonical.exonNuc.fa.gz
      """
 
+rule filter_mafs:
+  input: "raw_mafs/{chrom}.maf.gz"
+  output: "filtered_mafs/{chrom}.maf"
+  shell: 
+    """
+    mafFilter <( zcat {input} ) -speciesFilter=species.txt > {output[0]}
+    """
+
 rule separate_alns:
    # note the "ensembl_ucsc_stable_id.tsv" file was downloaded from biomart website
    input: multiz="knownCanonical.exonNuc.fa.gz", map="ensembl_ucsc_stable_id.tsv"
@@ -25,7 +33,6 @@ rule separate_alns:
        python ../../tools/split_multiz.py {input.multiz} cds_alns/ {input.map} 
        touch cds_alns/dummy.txt
        """
-
 
 # ----------- phylotfit of whole CDS ---------------
 
@@ -44,91 +51,32 @@ rule merge_phylofit:
       bedtools coverage -a - -b {input.pc} > {output[0]}
     """
 
-# ----------- phylotfit from MAF regions ---------------
+# ----------- phylotfit for whole regions ---------------
 
-raw_mafs = [f"raw_mafs/chr{c}" for c in range(2, 23)]
-
-rule download_mafs:
-  output: "raw_mafs/{chrom}.maf.gz"
+rule split_gff:
+  input: "../annotation/hg38.ensembl.gff3.gz"
+  output: "gff_by_chrom/hg38.ensembl_{chrom}.gff"
   shell: 
     """
-    wget -O {output[0]} https://hgdownload.soe.ucsc.edu/goldenPath/hg38/multiz20way/maf/{wildcards.chrom}.maf.gz
+    zgrep "^{wildcards.chrom}" {input} | bioawk -cgff '$feature~/CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
     """
 
-rule filter_mafs:
-  input: "raw_mafs/{chrom}.maf.gz"
-  output: "filtered_mafs/{chrom}.maf.gz"
-  shell: 
-    """
-    mafFilter <( zcat {input} ) -minCol=40 | gzip > {output[0]}
-    """
+rule maf_by_feature:
+   input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", maf="filtered_mafs/{chrom}.maf"
+   output: "mafs_by_feature/{chrom}.CDS.maf", "mafs_by_feature/{chrom}.three_prime_UTR.maf", "mafs_by_feature/{chrom}.five_prime_UTR.maf"
+   shell:
+     """
+     maf_parse --features {input.gff} --by-category --out-root mafs_by_feature/{wildcards.chrom} {input.maf}
+     """
 
-rule cds_region_mafs:
-  input: bed="../annotation/hg38.ensembl_cds_annot.bed.gz"
-  output: "cds_region_mafs/dummy_{chrom}.txt"
-  shell:
-    """
-    mkdir -p cds_region_mafs
-    mafsInRegion <( zgrep "^{wildcards.chrom}" {input.bed}  ) -outDir cds_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
-    touch {output[0]}
-    """
-
-### PHYLOFIT NEEDS TO BE RUN MANUALL, see README (Grr!)
-# be sure to touch cds_phylofits/dummy.txt after
-
-rule cds_merge_phylofit:
-  input: dummy="cds_region_phylofits/dummy.txt", dir="cds_region_phylofits/", pc="../annotation/conserved_phastcons.bed.gz"
-  output: "cds_region_phylofits.bed"
-  shell:
-    """
-    python ../../tools/merge_phylofits2.py {input.dir} tmp.bed
-    sort -k1,1 -k2,2n tmp.bed | \
-    bedtools coverage -a - -b {input.pc} > {output[0]}
-    """
-
-
-##### same for UTRs and phastcons
-
-rule utrs_region_mafs:
-  input: bed="../annotation/hg38.ensembl_utr_annot.bed.gz"
-  output: "utr_region_mafs/dummy_{chrom}.txt"
-  shell:
-    """
-    mkdir -p utr_region_mafs
-    mafsInRegion <( zgrep "^{wildcards.chrom}" {input.bed}  ) -outDir utr_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
-    touch {output[0]}
-    """
-
-rule phastcons_region_mafs:
-  input: bed="../annotation/conserved_phastcons_annot.bed.gz"
-  output: "phastcons_region_mafs/dummy_{chrom}.txt"
-  shell:
-    """
-    mkdir -p phastcons_region_mafs
-    mafsInRegion <( zgrep "^{wildcards.chrom}" {input.bed}  ) -outDir phastcons_region_mafs/ filtered_mafs/{wildcards.chrom}.maf.gz
-    touch {output[0]}
-    """
-
-rule phastcons_merge_phylofit:
-  input: dummy="cds_region_phylofits/dummy.txt", dir="phastcons_region_mafs/"
-  output: "phastcons_region_phylofits.bed"
-  shell:
-    """
-    python ../../tools/merge_phylofits2.py {input.dir} tmp_pc.bed
-    sort -k1,1 -k2,2n tmp_pc.bed > {output[0]}
-    rm -f tmp_pc.bed
-    """
-
-rule utr_merge_phylofit:
-  input: dummy="utr_region_phylofits/dummy.txt", dir="utr_region_mafs/"
-  output: "utr_region_phylofits.bed"
-  shell:
-    """
-    python ../../tools/merge_phylofits2.py {input.dir} tmp_utr.bed
-    sort -k1,1 -k2,2n tmp_utr.bed > {output[0]}
-    rm -f tmp_utr.bed
-    """
-
+rule phylofit_by_feature:
+   input: "mafs_by_feature/{chrom_feature}.maf"
+   output: "pfests_by_feature/{chrom_feature}.mod"
+   shell:
+     """
+     TREE="(ponAbe2,((hg38,(panTro4,panPan1)),gorGor3))"
+     phyloFit --tree $TREE --subst-mod HKY85  --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
+     """
 
 
 # ----------- other processsing ---------------
@@ -297,16 +245,16 @@ ALL_FILES = ["phylofit_cds_rates.bed",
              "phylofit_rescaled_ratchet_phastcons_merged.bed",
              *rescale_window_ratchet,
              
-             "cds_region_phylofits.bed",  # PF ests from the extracted CDS from the MAF
-             "utr_region_phylofits.bed",
-             "phastcons_region_phylofits.bed",
 ]
 
-ALL_FILES += [f"filtered_mafs/chr{chrom}.maf.gz" for chrom in range(1, 23)]
-ALL_FILES += [f"cds_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
-ALL_FILES += [f"utr_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
-ALL_FILES += [f"phastcons_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 23)]
+ALL_FILES += [f"filtered_mafs/chr{chrom}.maf" for chrom in range(1, 23)]
+#ALL_FILES += [f"phastcons_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 2)]
 
+for chrom_num in range(1, 23):
+  chrom = f"chr{chrom_num}"
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.CDS.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.three_prime_UTR.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.five_prime_UTR.mod")
 
 rule all:
   input: ALL_FILES, 

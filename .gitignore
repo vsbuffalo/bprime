@@ -1,3 +1,6 @@
 data/slim_sims/
 .snakemake/
 msprime_sims/varying_nsamples_*json
+data/phylofit/cds_region_mafs
+data/phylofit/utr_region_mafs
+data/phylofit/phastcons_region_mafs
