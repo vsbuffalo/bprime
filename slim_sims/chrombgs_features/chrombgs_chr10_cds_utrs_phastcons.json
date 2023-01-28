@@ -6,9 +6,9 @@
   "dfe": "cds_utrs_phastcons_simplex_mle.tsv",
   "params":
      {
-       "N": {"grid": [37000], "type": "int"},
+       "N": {"grid": [10000], "type": "int"},
        "mu": {"grid": [1.3e-8], "type": "float"},
        "chr": {"grid": ["10"], "type": "str"}
      },
-   "nreps": 10
+   "nreps": 500
 }

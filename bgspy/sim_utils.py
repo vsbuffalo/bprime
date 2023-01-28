@@ -1,6 +1,7 @@
 ## sim_utils.py -- common utility functions for msprime and slim
 import os
 import re
+import pickle
 import warnings
 from functools import partial
 import itertools
@@ -213,7 +214,7 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
 
 
 
-def load_substitution_files(dir, chrom_len, suffix='sub.tsv.gz'):
+def process_substitution_files(dir, outfile, suffix='sub.tsv.gz'):
     """
     Collate all the substitution files in a directory.
 
@@ -223,7 +224,8 @@ def load_substitution_files(dir, chrom_len, suffix='sub.tsv.gz'):
     Returns: dict of dict of numpy counts per basepair.
     """
     all_files = get_files(dir, suffix=suffix)
-    results = defaultdict(dict) 
+    #results = defaultdict(dict) 
+    results = dict()
     only_chrom = None # for checking we only have one chromosome
 
     for filename in tqdm.tqdm(all_files):
@@ -238,8 +240,15 @@ def load_substitution_files(dir, chrom_len, suffix='sub.tsv.gz'):
                     only_chrom = chrom
                 assert only_chrom == chrom
                 sel = float(sel)
-                if sel not in results[float(md['mu'])]:
-                    results[float(md['mu'])] = np.zeros(chrom_len, dtype=int)
-                results[float(md['mu'])][int(pos)] += 1
-    return results
+                mu = float(md['mu']) 
+                if mu not in results:
+                    results[mu] = dict()
+                if sel not in results[mu]:
+                    results[mu][sel] = Counter()
+                results[mu][sel][int(pos)] += 1
+
+    with open(outfile, 'wb') as f:
+        pickle.dump(results, f)
+
+
  
