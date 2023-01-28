@@ -9,6 +9,16 @@ import scipy.stats as stats
 from bgspy.theory import B_var_limit
 from bgspy.utils import signif, mean_ratio
 
+# from https://writing.stackexchange.com/questions/21658/what-is-the-image-size-in-scientific-paper-if-indicated-as-a-single-1-5-or-2-c 
+# in mm
+mm_to_inches = lambda x: 0.0393701 * x
+
+img_size = dict(one = mm_to_inches(90), onehalf = mm_to_inches(140), two = mm_to_inches(190))
+
+asp_ratio = dict(golden = (1 + np.sqrt(5))/2, one=1, two=2)
+
+sizes = {(k, ar): np.round((v, v/asp_ratio[ar]), 4) for k, v in img_size.items() for ar in asp_ratio}
+
 def center_scale(x):
     return (x-x.mean())/x.std()
 

@@ -263,7 +263,7 @@ def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
 @click.option('--fit', required=True, type=click.Path(exists=True),
               help='pickle file of fitted results')
 @click.option('--force-feature', default=None,
-              help='force all predictions using DFE estimates of this feature')
+              help='force all predictions using DFE estimates of this feature (experimental)')
 @click.option('--outfile', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
@@ -276,6 +276,7 @@ def subrate(bs_file, fit, force_feature, outfile, split):
     m = BGSModel.load(bs_file)
     bfit, bpfit = pickle.load(open(fit, 'rb'))
 
+    feature_idx = None
     if force_feature is not None:
         avail_feats = [x.lower() for x in bpfit.features]
         force_feature = force_feature.lower()

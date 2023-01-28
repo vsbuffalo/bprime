@@ -78,6 +78,31 @@ rule phylofit_by_feature:
      phyloFit --tree $TREE --subst-mod HKY85  --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
      """
 
+rule phylofit_by_feature_lengths:
+   input: "mafs_by_feature/{chrom_feature}.maf"
+   output: "mafs_by_feature_lengths/{chrom_feature}.tsv"
+   shell:
+     """
+     """
+
+rule phastcons_no_cds_utr:
+   # subtract out the genomic annotation features to mimic what B is calc'd on
+   input: pc="../annotation/conserved_phastcons/{chrom}.bed", gff="gff_by_chrom/hg38.ensembl_{chrom}.gff"
+   output: "../annotation/conserved_phastcons_no_cds/{chrom}.bed"
+   shell:
+     """
+     bedtools subtract -a {input.pc} -b {input.gff} > {output[0]}
+     """
+
+rule maf_for_phastcons_no_cds_utrs:
+   input: bed="../annotation/conserved_phastcons_no_cds/{chrom}.bed", maf="filtered_mafs/{chrom}.maf"
+   output: "mafs_by_feature/{chrom}.phastcons_no_cds_utr.maf"
+   shell:
+     """
+     # the echo BS is because maf_parse is dropping the header for BEDs(!)
+     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
+     """
+
 rule maf_for_phastcons:
    input: bed="../annotation/conserved_phastcons/{chrom}.bed", maf="filtered_mafs/{chrom}.maf"
    output: "mafs_by_feature/{chrom}.phastcons.maf"
@@ -244,6 +269,7 @@ rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed",
 ALL_FILES = ["phylofit_cds_rates.bed",
              "cds_alns/dummy.txt",
              "rescaled_ratchet_data_cds.bed", 
+             "rescaled_ratchet_data.bed",
              "uricchio_data.tsv", 
              "uricchio_data_merged_raw.bed", 
              "uricchio_data_merged.tsv",
@@ -265,6 +291,7 @@ for chrom_num in range(1, 23):
   ALL_FILES.append(f"pfests_by_feature/{chrom}.three_prime_UTR.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.five_prime_UTR.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons_no_cds_utr.mod")
 
 rule all:
   input: ALL_FILES, 
