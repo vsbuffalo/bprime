@@ -1133,12 +1133,15 @@ def bin2midpoints(x):
     return 0.5*(x.bin_edges[1:] + x.bin_edges[:-1])
 
 
-def bin2pairs(x):
+def bin2pairs(x, use_mean_ratio=False):
     """
     Convenience function to take a BinnedStatistics object and return the
     binned midpoints and statistic together as a pair.
     """
-    return bin2midpoints(x), x.statistic
+    y = x.statistic
+    if use_mean_ratio:
+        y = mean_ratio(y)
+    return bin2midpoints(x), y
 
 def logbins(x, nbins, density=True, remove_nan=True):
     """

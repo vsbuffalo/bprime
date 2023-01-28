@@ -25,37 +25,33 @@ group. The set a_B(i_B) is the collection of sites in with membership in
 annotation set i_B.
 """
 
-from collections import defaultdict, namedtuple, Counter
-import multiprocessing
-import os
 import pickle
 import warnings
-import itertools
-import tqdm
-import time
 import numpy as np
-from scipy.optimize import minimize_scalar
 import scipy.stats as stats
-import pandas as pd
 
-from bgspy.utils import signif
-from bgspy.utils import Bdtype, BScores, BinnedStat, bin_chrom
+from bgspy.utils import Bdtype, BScores, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
 from bgspy.substitution import ratchet_df
+
 
 class BGSModel(object):
     """
     BGSModel contains the the segments under purifying selection
     to compute the B and B' values.
     """
+
     def __init__(self, genome, t_grid=None, w_grid=None, split_length=None):
         # main genome data needed to calculate B
         self.genome = genome
         assert self.genome.is_complete(), "genome is missing data!"
-        diff_split_lengths = genome.split_length is not None and split_length != genome.split_length
+        diff_split_lengths = (genome.split_length is not None and
+                              split_length != genome.split_length)
         if self.genome.segments is None or diff_split_lengths:
             if diff_split_lengths:
-                warnings.warn("supplied Genome object has segment split lengths that differ from that specified -- resegmenting")
+                warnings.warn("supplied Genome object has segment split "
+                              "lengths that differ from that specified "
+                              "-- resegmenting")
             self.genome.create_segments(split_length=split_length)
         # stuff for B
         self.Bs = None
@@ -70,7 +66,8 @@ class BGSModel(object):
 
     @property
     def features(self):
-        features = [self.segments.inverse_feature_map[i] for i in range(self.nf)]
+        features = [self.segments.inverse_feature_map[i] for
+                    i in range(self.nf)]
         return features
 
     @property
@@ -102,7 +99,8 @@ class BGSModel(object):
 
     @property
     def BScores(self):
-        return BScores(self.Bs, self.B_pos, self.w, self.t, self.features, self.step)
+        return BScores(self.Bs, self.B_pos, self.w,
+                       self.t, self.features, self.step)
 
     @property
     def BpScores(self):
@@ -117,8 +115,9 @@ class BGSModel(object):
         if self.Bs is None or self.B_pos is None:
             raise ValueError("B scores not yet calculated.")
         assert filename.endswith('.pkl'), "filename should end in '.pkl'"
+
         with open(filename, 'wb') as f:
-            pickle.dump({'B': self.BScores, 'Bp': self.BpScores})
+            pickle.dump({'B': self.BScores, 'Bp': self.BpScores}, f)
 
     def load_B(self, filename):
         """
@@ -147,17 +146,16 @@ class BGSModel(object):
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
         if recalc_segments or self.genome.segments._segment_parts is None:
-            print(f"pre-computing segment contributions...\t", end='')
+            print("pre-computing segment contributions...\t", end='')
             self.genome.segments._calc_segparts(self.w, self.t)
-            print(f"done.")
-        segment_parts = self.genome.segments._segment_parts
+            print("done.")
         Bs, B_pos = calc_B_parallel(self.genome, self.w,
                                     step=step, nchunks=nchunks,
                                     ncores=ncores)
-        stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
+        stacked_Bs = {chrom: np.stack(x).astype(Bdtype)
+                      for chrom, x in Bs.items()}
         self.Bs = stacked_Bs
         self.B_pos = B_pos
-        #self.xs = xs
 
     def calc_Bp(self, N, step=100_000, recalc_segments=False,
                 ncores=None, nchunks=None, rescale=None):
@@ -174,25 +172,28 @@ class BGSModel(object):
             assert isinstance(bp, BScores), "bp must be a BScores object"
             if w is not None or t is not None:
                 # grid-mode
-                assert (w is not None) and (t is not None), "both w and t must be set"
+                msg = "both w and t must be set"
+                assert (w is not None) and (t is not None), msg
                 assert fit is None, "fit cannot bet set in grid-mode rescaling"
                 self.genome.segments.load_rescaling_from_fixed_params(bp, w, t)
             else:
                 assert w is None and t is None, "w and t cannot be set"
                 from bgspy.likelihood import SimplexModel
-                assert isinstance(fit, SimplexModel), "fit must be a SimplexModel"
+                msg = "fit must be a SimplexModel"
+                assert isinstance(fit, SimplexModel), msg
 
                 # load the rescaling factors from a model fit
                 # NOTE: this only effects the segment parts! nothing past that
                 # in the B' calc
                 self.genome.segments.load_rescaling_from_Bp(bp, fit)
 
-            use_rescaling = True # require segments to be re-calc'd
+            use_rescaling = True  # require segments to be re-calc'd
 
         if ncores is not None and nchunks is None:
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
-        if use_rescaling or recalc_segments or self.genome.segments._segment_parts_sc16 is None:
+        no_sc16 = self.genome.segments._segment_parts_sc16 is None
+        if use_rescaling or recalc_segments or no_sc16:
             # re-calc the segment parts
             self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
 
