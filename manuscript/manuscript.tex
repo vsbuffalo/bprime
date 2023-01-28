@@ -46,7 +46,27 @@
 \begin{document}
 \maketitle
 
+
+
+\begin{abstract} 
+
+Previous work in population genomics has established that negative selection
+against against new deleterious variants introduced by mutation profoundly
+shapes large-scale patterns of variation across the genome. However, the
+mathematical models that describe this process only consider variants so
+deleterious that they cannot drift up in frequency and ultimately fix. In
+reality, there number of mildly deleterious mutations 
+
+
+\end{abstract}
+
+
+
 \section*{Introduction}
+
+
+
+
 
 Eukaryotes genomes are under continual selectionary pressure to remove the
 continual influx of deleterious mutations at conserved regions. This purifying
@@ -136,15 +156,15 @@ solving a system of two non-linear equations,
 
 \begin{align}
   \label{eq:}
-  {N}_{e}(x) &= \exp \left( -\frac{V(x)}{2} Q^2(x) \right) & \text{\emph{effective population equation}} \\
-  {R}(x) &= \frac{4NU s}{\exp(4 N s)-1}  & \text{\emph{ratchet equation}} 
+  {N}_{e}(x) &= N \exp \left( -\frac{V(x)}{2} Q^2(x) \right) & \text{\emph{effective population equation}} \\
+  {R}(x) &= \frac{4N_e(x)U s}{\exp(4 N_e(x) s)-1}  & \text{\emph{ratchet equation}} 
 \end{align}
 
 where,
 
 \begin{align}
-  V(x) &= U s - 2 {R}(x) s & \text{\emph{variation equation}} \\
-  Q^2(x) &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage persistence factor}} \\
+  V(x) &= U s - 2 {R}(x) s & \text{\emph{fitness variance equation}} \\
+  Q^2(x) &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage inflation factor}} \\
   Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
 \end{align}
 
