@@ -35,6 +35,7 @@ rule fit:
   shell:
     """
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --chrom "chr10" \
       --model {params.model} --mu {params.mu} \
       --tree-file {input.treefile} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
@@ -50,11 +51,17 @@ expected_mle_files = []
 for file in avail_tree_files.keys():
     rgx = '../../data/slim_sims/chrombgs_chr10/conserved_cds_phastcons_merged/sims/(\d+)/(.+)'
     subdir, file = re.match(rgx, file).groups()
+    _, rep = re.match(r'.*seed(\d+)_rep(\d+)_treeseq.tree$', file).groups()
+    rep = int(rep)
+    # let's only process one rep for MLE -- the others were mainly for sim B
+    # estimates, which are faster
+    if rep > 10:
+       continue
     outfile = join(MLEDIR, subdir, file.replace('_treeseq.tree', '_1000000_mle.pkl'))
     expected_mle_files.append(outfile)
 
 
-print(avail_tree_files)
+#print(avail_tree_files)
 #print(avail_tree_files, expected_mle_files)
 rule all:
   input: *expected_mle_files

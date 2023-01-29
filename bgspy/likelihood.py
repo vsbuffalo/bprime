@@ -43,6 +43,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    neut_file=None, access_file=None, fasta_file=None,
                    bs_file=None,
                    model='free',
+                   chrom=None,
                    mu=None,
                    outfile=None,
                    ncores=70,
@@ -79,6 +80,9 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         # infer the genome name if not supplies
         name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
         seqlens = load_seqlens(seqlens_file)
+        if chrom is not None:
+            # only include this one chromosome
+            seqlens = {c: l for c, l in seqlens.items() if c == chrom}
         if only_autos:
             seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
         vprint("-- loading genome --")
@@ -90,7 +94,8 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             gd.load_counts_dir(counts_dir)
         else:
             assert counts_dir is None, "set either counts directory or sim tree file"
-            gd.load_counts_from_ts(file=tree_file)
+            assert chrom is not None, "chrom needs to be specified when loading from a treeseq"
+            gd.load_counts_from_ts(file=tree_file, chrom=chrom)
 
         gd.load_neutral_masks(neut_file)
         gd.load_accessibile_masks(access_file)

@@ -228,6 +228,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
               help="a tree sequence file, e.g. from a simulation")
 @click.option('--model', required=False, default='free', help='model type',
               type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
+@click.option('--chrom', default=None, help='fit only on specified chromosome')
 @click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
 @click.option('--neutral', required=True, type=click.Path(exists=True),
               help='neutral region BED file')
@@ -253,7 +254,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
-def loglik(seqlens, recmap, counts_dir, tree_file, model, mu, neutral, access, fasta,
+def loglik(seqlens, recmap, counts_dir, tree_file, model, chrom, mu, neutral, access, fasta,
            bs_file, outfile, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
     mu = None if mu == 'None' else float(mu) # sterialize CL input
@@ -262,7 +263,7 @@ def loglik(seqlens, recmap, counts_dir, tree_file, model, mu, neutral, access, f
                    neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file,
-                   model=model, mu=mu,
+                   model=model, chrom=chrom, mu=mu,
                    outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers)
 
