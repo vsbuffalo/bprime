@@ -36,7 +36,7 @@ rule fit:
     """
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --model {params.model} --mu {params.mu} \
-      --treefile {input.treefile} --neutral {input.neut_file} \
+      --tree-file {input.treefile} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
       --fasta {input.fasta_file} \
       --ncores {params.ncores} --nstarts {params.nstarts} \

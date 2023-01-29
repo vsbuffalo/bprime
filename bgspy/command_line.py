@@ -1,14 +1,9 @@
 import click
 import numpy as np
-import tqdm
 import pickle
 import os
 from collections import namedtuple
-from matplotlib.backends.backend_pdf import PdfPages
 from bgspy.models import BGSModel
-from bgspy.recmap import RecMap
-from bgspy.utils import sum_logliks_over_chroms
-#from bgspy.plots import chrom_plot, ll_grid
 from bgspy.genome import Genome
 from bgspy.utils import Grid
 from bgspy.likelihood import fit_likelihood
@@ -23,16 +18,20 @@ LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 # human grid defaults
 # sorry non-human researchers, I like other organisms too, just for
 # my sims :)
-MIN_W = np.sqrt(1e-8 * 1e-7) # midpooint between 1e-7 and 1e-8 on a log10 scale
+# midpooint between 1e-7 and 1e-8 on a log10 scale
+MIN_W = np.sqrt(1e-8 * 1e-7)
 #HUMAN_W = (-10, np.log10(MIN_W))
 HUMAN_W = (-11, -7)
 HUMAN_T = (-7, -1)
+
+
 def grid_maker(nw, nt, w_range=HUMAN_W, t_range=HUMAN_T):
-  return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
+    return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
+
 
 def grid_maker_from_str(x):
-  nw, nt = tuple(map(int, x.split('x')))
-  return grid_maker(nw, nt)
+    nw, nt = tuple(map(int, x.split('x')))
+    return grid_maker(nw, nt)
 
 
 def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
@@ -56,6 +55,7 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
     m = BGSModel(g, w_grid=w, t_grid=t, split_length=split_length)
     return m
 
+
 def parse_gridstr(x):
     """
     Grid strings are in the format v1,v2,v3, etc or lower:upper:ngrid
@@ -74,6 +74,7 @@ def parse_gridstr(x):
         raise click.BadParameter(msg)
     return 10**np.linspace(lower, upper, int(ngrid))
 
+
 def calc_stats(x, stats={'mean': np.mean, 'median': np.median, 'var': np.var,
                         'min': np.min, 'max': np.max,
                          'non-zero-min': lambda x: np.min(x[x > 0]),
@@ -83,9 +84,11 @@ def calc_stats(x, stats={'mean': np.mean, 'median': np.median, 'var': np.var,
                         'total': lambda y: y.shape[0]}):
     return {s: func(x) for s, func in stats.items()}
 
+
 @click.group()
 def cli():
     pass
+
 
 @cli.command()
 @click.option('--recmap', type=str, required=True,
@@ -125,7 +128,8 @@ def cli():
               type=click.Path(exists=False, writable=True))
 def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
           chrom, popsize, split_length, step, only_bp, only_b,
-          rescale_fit, rescale, rescale_bp_file, nchunks, ncores, ncores_bp, output):
+          rescale_fit, rescale, rescale_bp_file, nchunks, ncores,
+          ncores_bp, output):
 
     N = popsize
     if ncores_bp is None and ncores is not None:
@@ -181,6 +185,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     #    print(f"done.")
     m.save(output)
 
+
 @cli.command()
 @click.option('--recmap', required=True, type=click.Path(exists=True),
               help='BED file with rec rates per window in the 4th column')
@@ -200,7 +205,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
                        split_length=split_length)
     segments = m.segments
     if output:
-        with(outfile, 'wb') as f:
+        with(output, 'wb') as f:
             pickle.dump(segments, f)
         return
     ranges = segments.ranges
@@ -210,6 +215,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
     rec_stats = calc_stats(rec)
     print(f"range stats: {ranges_stats}")
     print(f"rec stats: {rec_stats}")
+
 
 @cli.command()
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
@@ -247,17 +253,19 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
-def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
+def loglik(seqlens, recmap, counts_dir, tree_file, model, mu, neutral, access, fasta,
            bs_file, outfile, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
     mu = None if mu == 'None' else float(mu) # sterialize CL input
     fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, tree_file=tree_file, neut_file=neutral,
+                   counts_dir=counts_dir, tree_file=tree_file, 
+                   neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file,
                    model=model, mu=mu,
                    outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers)
+
 
 @cli.command()
 @click.option('--bs-file', required=True, type=click.Path(exists=True),
@@ -379,11 +387,13 @@ def R2(fit, r2_file, fit_dir, loo_chrom, ncores, nstarts, include_bs):
                    bp_only=(not include_bs), loo_chrom=loo_chrom,
                    loo_nstarts=nstarts, recycle_mle=True)
 
+
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),
               help='pickle file of fitted results')
 @click.option('--bootstrap-dir', required=True, type=click.Path(exists=True),
-              help='directory of bootstrap results (e.g. if run with Snakemake) to collect')
+              help=('directory of bootstrap results (e.g. if run with '
+                    'Snakemake) to collect'))
 @click.option('--outfile', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for new fit object")
