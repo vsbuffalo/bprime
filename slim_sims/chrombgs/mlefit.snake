@@ -1,0 +1,60 @@
+from os.path import join
+from bgspy.utils import get_files
+
+# fit params
+NCORES = 40
+NSTARTS = 100
+
+CHROMS = ['chr10']
+
+# ------- MLE parameters and fitting  -------
+# from config
+name = config["name"]
+model = config["model"]
+mu = config.get("mu", None)
+seqlens_file = config["seqlens_file"]
+recmap_file = config["recmap_file"]
+access_file = config["access_file"]
+neut_file = config["neut_file"]
+fasta_file = config["fasta_file"]
+Bs_file = config["Bs_file"]
+sim_dir = config["tree_dir"]
+
+
+MLEDIR = join('../../data/slim_sims/chrombgs_chr10', name, 'mle')
+
+
+# fit likelihoods to all of these
+rule fit:
+  input: treefile=join(sim_dir, "{subdir}/{run_name}_treeseq.tree"),
+         seqlens=seqlens_file, recmap_file=recmap_file,
+         access_file=access_file, fasta_file=fasta_file,
+         neut_file=neut_file, bs_file=Bs_file
+  output: join(MLEDIR, '{subdir}/{run_name}_{window}_mle.pkl')
+  params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu
+  shell:
+    """
+    bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --model {params.model} --mu {params.mu} \
+      --treefile {input.treefile} --neutral {input.neut_file} \
+      --access {input.access_file} --bs-file {input.bs_file} \
+      --fasta {input.fasta_file} \
+      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --window {wildcards.window} \
+      --outfile {output[0]}
+    """
+
+
+avail_tree_files = get_files(sim_dir, suffix=".tree", as_dict=True)
+expected_mle_files = []
+for file in avail_tree_files.keys():
+    rgx = '../../data/slim_sims/chrombgs_chr10/conserved_cds_phastcons_merged/sims/(\d+)/(.+)'
+    subdir, file = re.match(rgx, file).groups()
+    outfile = join(MLEDIR, subdir, file.replace('_treeseq.tree', '_1000000_mle.pkl'))
+    expected_mle_files.append(outfile)
+
+
+print(avail_tree_files)
+#print(avail_tree_files, expected_mle_files)
+rule all:
+  input: *expected_mle_files

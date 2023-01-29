@@ -3,13 +3,10 @@ import os
 import copy
 import pickle
 import warnings
-import json
-import multiprocessing
 import tqdm.autonotebook as tqdm
 #import tqdm.notebook as tqdm
 from tabulate import tabulate
 from functools import partial
-from collections import Counter, defaultdict
 import numpy as np
 from ctypes import POINTER, c_double, c_ssize_t, c_int
 
@@ -21,16 +18,15 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 # except ImportError:
 #     pass
 
-from scipy.special import xlogy, xlog1py
-from scipy.stats import binned_statistic
 from scipy import interpolate
 from scipy.optimize import minimize
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
 from bgspy.utils import signif, load_seqlens
-from bgspy.data import pi_from_pairwise_summaries, GenomicBins, GenomicBinnedData
+from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
-from bgspy.plots import model_diagnostic_plots, predict_chrom_plot, resid_fitted_plot
+from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
+from bgspy.plots import resid_fitted_plot
 from bgspy.bootstrap import process_bootstraps, pivot_ci
 from bgspy.models import BGSModel
 
@@ -41,7 +37,9 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
+
 def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
+                   tree_file=None,
                    neut_file=None, access_file=None, fasta_file=None,
                    bs_file=None,
                    model='free',
@@ -87,7 +85,13 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         g = Genome(name, seqlens=seqlens)
         g.load_recmap(recmap_file)
         gd = GenomeData(g)
-        gd.load_counts_dir(counts_dir)
+        if counts_dir is not None:
+            assert tree_file is None, "set either counts directory or sim tree file"
+            gd.load_counts_dir(counts_dir)
+        else:
+            assert counts_dir is None, "set either counts directory or sim tree file"
+            gd.load_counts_from_ts(file=tree_file)
+
         gd.load_neutral_masks(neut_file)
         gd.load_accessibile_masks(access_file)
         gd.load_fasta(fasta_file)

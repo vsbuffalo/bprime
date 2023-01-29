@@ -50,6 +50,7 @@ rule bgs_map:
 
 SIM_NP = os.path.join(DATADIR, bgs_run.name, f"{bgs_run.name}.npz")
 
+# extract the B maps from the simulations
 rule process:
   input: sims=bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name, 'sims')
   output: np=SIM_NP

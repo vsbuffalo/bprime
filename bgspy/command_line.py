@@ -216,8 +216,10 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
               help='tab-delimited file of chromosome names and their length')
 @click.option('--recmap', required=True, type=click.Path(exists=True),
               help='HapMap formatted recombination map')
-@click.option('--counts-dir', required=True, type=click.Path(exists=True),
+@click.option('--counts-dir', required=False, type=click.Path(exists=True),
               help='directory to Numpy .npy per-basepair counts')
+@click.option('--tree-file', required=False, type=click.Path(exists=True),
+              help="a tree sequence file, e.g. from a simulation")
 @click.option('--model', required=False, default='free', help='model type',
               type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
 @click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
@@ -250,7 +252,7 @@ def loglik(seqlens, recmap, counts_dir, model, mu, neutral, access, fasta,
     outliers = tuple([float(x) for x in outliers.split(',')])
     mu = None if mu == 'None' else float(mu) # sterialize CL input
     fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, neut_file=neutral,
+                   counts_dir=counts_dir, tree_file=tree_file, neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file,
                    model=model, mu=mu,

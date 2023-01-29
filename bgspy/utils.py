@@ -532,6 +532,7 @@ def bin_aggregate(pos, values, func, bins, right=False, **kwargs):
         n[i-1] = np.sum(idx == i)
     return BinnedStat(agg, bins, n)
 
+
 def read_npy_dir(dir):
     return {f: np.load(os.path.join(dir, f)) for f in os.listdir(dir)}
 
@@ -666,20 +667,25 @@ def read_centro(file):
             chroms[chrom].append(int(end))
     return {k: tuple(sorted(set(v))) for k, v in chroms.items()}
 
-def get_files(dir, suffix):
+
+def get_files(dir, suffix, as_dict=False):
     """
 
     Recursively get files from directories in dir with suffix, e.g. used for
     getting all .tree files across seed subdirectories.
+    
     """
-    all_files = set()
+    all_files = dict()
     for root, dirs, files in os.walk(dir):
         for file in files:
             if suffix is not None:
                 if not file.endswith(suffix):
                     continue
-            all_files.add(os.path.join(root, *dirs, file))
-    return list(all_files)
+            key = os.path.join(root, *dirs, file)
+            all_files[key] = os.path.basename(file)
+    if as_dict:
+        return all_files
+    return list(all_files.keys())
 
 @np.vectorize
 def signif(x, digits=4):

@@ -102,7 +102,6 @@ class Segments:
 
     def _calc_segparts(self, w, t, N=None, ncores=None):
         """
-
         Calculate the fixed components of the classic BGS theory
         and the new BGS theory (if N is set).
         These components are for for each segment, to avoid unnecessary repeated
