@@ -167,11 +167,8 @@ def trimmed_pi_bounds(Y, alpha):
         lower, upper = alpha/2, 1-alpha/2
     else:
         lower, upper = alpha
-    import pdb;pdb.set_trace()
     pi = pi_from_pairwise_summaries(Y)
-    import pdb;pdb.set_trace()
     q1, q2 = np.nanquantile(pi, lower), np.nanquantile(pi, upper)
-    import pdb;pdb.set_trace()
     return q1, q2
 
 
@@ -966,13 +963,11 @@ class GenomicBinnedData(GenomicBins):
         # so on the full Y matrix
         Y = self.Y(filter_masked=False)
         lower, upper = trimmed_pi_bounds(Y, alpha)
-        import pdb;pdb.set_trace()
         assert(Y.shape[0] == len(self.chrom_ints(filter_masked=False)))
         for chrom, Y_chrom in self.data_.items():
             idx = self.chrom_indices(chrom)
             pi = pi_from_pairwise_summaries(Y_chrom)
             passed = (pi > lower) & (pi < upper)
-            import pdb;pdb.set_trace()
             self.masks_[chrom] = passed
         self.outlier_quantiles = (lower, upper)
 
