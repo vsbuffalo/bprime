@@ -29,6 +29,8 @@ from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot
 from bgspy.bootstrap import process_bootstraps, pivot_ci
 from bgspy.models import BGSModel
+from bgspy.sim_utils import mutate_simulated_tree
+
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -39,7 +41,7 @@ AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
 def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
-                   tree_file=None,
+                   sim_tree_file=None, sim_mu=None,
                    neut_file=None, access_file=None, fasta_file=None,
                    bs_file=None,
                    model='free',
@@ -89,24 +91,28 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         g = Genome(name, seqlens=seqlens)
         g.load_recmap(recmap_file)
         gd = GenomeData(g)
+        is_sim = sim_tree_file is not None
         if counts_dir is not None:
-            assert tree_file is None, "set either counts directory or sim tree file"
+            assert not is_sim, "set either counts directory or sim tree file"
             gd.load_counts_dir(counts_dir)
         else:
             assert counts_dir is None, "set either counts directory or sim tree file"
             assert chrom is not None, "chrom needs to be specified when loading from a treeseq"
-            gd.load_counts_from_ts(file=tree_file, chrom=chrom)
+            assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
+            ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
+            gd.load_counts_from_ts(ts, chrom=chrom)
+
 
         gd.load_neutral_masks(neut_file)
         gd.load_accessibile_masks(access_file)
-        gd.load_fasta(fasta_file)
+        gd.load_fasta(fasta_file, soft_mask=True)
         gd.trim_ends(thresh_cM=thresh_cM)
 
         # bin the diversity data
         vprint("-- binning pairwise diversity --")
         bgs_bins = gd.bin_pairwise_summaries(window,
-                                            filter_accessible=True,
-                                            filter_neutral=True)
+                                             filter_accessible=True,
+                                             filter_neutral=True)
         # mask bins that are outliers
         bgs_bins.mask_outliers(outliers)
 

@@ -167,8 +167,11 @@ def trimmed_pi_bounds(Y, alpha):
         lower, upper = alpha/2, 1-alpha/2
     else:
         lower, upper = alpha
+    import pdb;pdb.set_trace()
     pi = pi_from_pairwise_summaries(Y)
+    import pdb;pdb.set_trace()
     q1, q2 = np.nanquantile(pi, lower), np.nanquantile(pi, upper)
+    import pdb;pdb.set_trace()
     return q1, q2
 
 
@@ -297,6 +300,7 @@ class GenomeData:
         assert self.genome.recmap is not None, "GenomeData.genome.recmap is not set!"
         ends = trim_map_ends(self.genome.recmap, thresh_cM)
         for chrom, (lower, upper) in ends.items():
+            assert lower < upper
             self.accesssible_masks[chrom][0:(lower+1)] = 0
             self.accesssible_masks[chrom][upper:] = 0
         self.thresh_cM = thresh_cM
@@ -962,11 +966,13 @@ class GenomicBinnedData(GenomicBins):
         # so on the full Y matrix
         Y = self.Y(filter_masked=False)
         lower, upper = trimmed_pi_bounds(Y, alpha)
+        import pdb;pdb.set_trace()
         assert(Y.shape[0] == len(self.chrom_ints(filter_masked=False)))
         for chrom, Y_chrom in self.data_.items():
             idx = self.chrom_indices(chrom)
             pi = pi_from_pairwise_summaries(Y_chrom)
             passed = (pi > lower) & (pi < upper)
+            import pdb;pdb.set_trace()
             self.masks_[chrom] = passed
         self.outlier_quantiles = (lower, upper)
 
@@ -978,11 +984,12 @@ class GenomicBinnedData(GenomicBins):
         Y = []
         for chrom, data in self.data_.items():
             for j in range(data.shape[0]):
-                if filter_masked is True:
+                if filter_masked:
                     if self.masks_[chrom][j]:
                         Y.append(data[j, :])
                 else:
                     Y.append(data[j, :])
+        assert len(Y) > 0, "Y is empty"
         return np.stack(Y)
 
     def nbins(self, filter_masked=True):

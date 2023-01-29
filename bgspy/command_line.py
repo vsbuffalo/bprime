@@ -224,8 +224,9 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
               help='HapMap formatted recombination map')
 @click.option('--counts-dir', required=False, type=click.Path(exists=True),
               help='directory to Numpy .npy per-basepair counts')
-@click.option('--tree-file', required=False, type=click.Path(exists=True),
-              help="a tree sequence file, e.g. from a simulation")
+@click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
+              help="a tree sequence file from a simulation")
+@click.option('--sim-mu', required=False, type=float, help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
 @click.option('--model', required=False, default='free', help='model type',
               type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
 @click.option('--chrom', default=None, help='fit only on specified chromosome')
@@ -254,12 +255,14 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
-def loglik(seqlens, recmap, counts_dir, tree_file, model, chrom, mu, neutral, access, fasta,
+def loglik(seqlens, recmap, counts_dir, sim_tree_file, sim_mu,
+           model, chrom, mu, neutral, access, fasta,
            bs_file, outfile, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
     mu = None if mu == 'None' else float(mu) # sterialize CL input
     fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, tree_file=tree_file, 
+                   sim_mu=sim_mu,
+                   counts_dir=counts_dir, sim_tree_file=sim_tree_file, 
                    neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file,

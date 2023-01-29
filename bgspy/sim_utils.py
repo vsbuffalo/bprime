@@ -26,6 +26,8 @@ def mutate_simulated_tree(ts, rate, seed=None,
     Given a TreeSequence of a simulated tree, remove all selected
     sites (if remove_existing_mutations=True)
     """
+    if isinstance(ts, str):
+        ts = tsk.load(ts)
     if remove_existing_mutations:
         ts = delete_mutations(ts)
     return msprime.sim_mutations(ts, rate=rate, random_seed=seed)

@@ -1,6 +1,10 @@
 from os.path import join
 from bgspy.utils import get_files
 
+# treeseq to count data params
+# higher than exp. because smaller N
+SIM_MU = 1e-7
+
 # fit params
 NCORES = 40
 NSTARTS = 100
@@ -37,7 +41,8 @@ rule fit:
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --chrom "chr10" \
       --model {params.model} --mu {params.mu} \
-      --tree-file {input.treefile} --neutral {input.neut_file} \
+      --sim-tree-file {input.treefile} --neutral {input.neut_file} \
+      --sim-mu SIM_MU,
       --access {input.access_file} --bs-file {input.bs_file} \
       --fasta {input.fasta_file} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
