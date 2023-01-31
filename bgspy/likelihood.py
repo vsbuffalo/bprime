@@ -26,7 +26,7 @@ from bgspy.utils import signif, load_seqlens
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
-from bgspy.plots import resid_fitted_plot
+from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.bootstrap import process_bootstraps, pivot_ci
 from bgspy.models import BGSModel
 from bgspy.sim_utils import mutate_simulated_tree
@@ -832,7 +832,25 @@ class BGSLikelihood:
                 fpath = os.path.join(loo_fits_dir, f"mle_loo_{chrom}.pkl")
                 new_fit.save(fpath)
         return np.array(r2s)
-           
+
+    def dfe_plot(self, figax=None):
+        """
+        TODO
+        """
+        fig, ax = get_figax(figax)
+        xt = np.log10(self.t)
+
+        nf = self.nf
+        pad = 0.03
+        w = 1/nf - pad  # width of bars, for each feature with allowance
+        hw = w/2
+        for i in range(nf):
+            feat = self.features[i]
+            ax.bar(xt - 1/(nf/2) + i/nf, self.mle_W[:, i], align='edge', width=w, label=feat)
+        ax.set_xticks(np.log10(self.t), [f"$10^{{{int(x)}}}$" for x in xt])
+        ax.set_ylabel('probability')
+        ax.legend()
+
     def R2(self, _idx=None, **kwargs):
         """
         The R² value of the predictions against actual results.
