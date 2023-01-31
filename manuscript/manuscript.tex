@@ -55,7 +55,50 @@ against against new deleterious variants introduced by mutation profoundly
 shapes large-scale patterns of variation across the genome. However, the
 mathematical models that describe this process only consider variants so
 deleterious that they cannot drift up in frequency and ultimately fix. In
-reality, there number of mildly deleterious mutations 
+reality, some deleterious variants can fix if the randomness of the
+evolutionary process overpowers selection. There are two primary sources of
+such randomness in the evolutionary process, genetic drift and genetic draft,
+but both are ignored by current mutation-selection models. Here, we introduce a
+new whole-genome general mutation-selection-drift model that extends and
+implements previous theory by \textcite{Santiago2016-mu}. This model estimates
+the strength of selection at specified sites by modeling large-scale
+distortions in chromosomal patterns of genetic variability across the genome.
+Unlike previous models, our models can estimate the distribution of 
+fitness effects at conserved sites. Additionally, because our 
+model incorporates drift and draft, our model makes explicit predictions 
+about the substitution rate of weakly deleterious mutations and allows us to 
+test XXX.
+
+A full evolutionary model of deleterious mutation must not only describe the
+mutation rate and distribution of fitness effects, but also the substitution
+rate for mildly deleterious mutations. Our model is fit to genome wide
+patterns of genetic diversity across the genome, estimating the 
+mutation rate, neutral diversity level, and the distribution of fitness effects. 
+Additionally, because our model allows for substitution, our model makes 
+predictions about the substitution rate in conserved features.
+
+
+
+Previous work has established that selection against strongly deleterious
+mutations across the genome profoundly shapes large-scale patterns of genetic
+variability in the human genome. However, 
+
+selection against new deleterious mtuationss
+
+
+
+In reality, natural selection in some 
+parts of the genome effectively speeds up evolution, which 
+
+In
+reality, the number of mildly deleterious mutations 
+
+
+increases the pace of ev
+
+Here extend the theory of \textcite{Santiago2016-mu} to work across 
+whole-genomes. This model estimates the reduction in genetic diversity 
+from mutation-selection-drift processes 
 
 
 \end{abstract}
@@ -81,6 +124,7 @@ reduction factor). Statistical models of the purifying selection process fit to
 human genomic data closely match observed patterns of genetic variability along
 the genome, explaining around 60\% of the genetic variability at the megabase
 scale \parencite{McVicker2009-ax,Murphy2022-sj}.
+
 
 These evolutionary genetics models only consider the impact of new mutations
 that are sufficiently deleterious that they are guaranteed to be eliminated
@@ -121,6 +165,12 @@ These models
 
 
 \subsection*{Evolutionary Models}
+
+We model the diversity at punitively neutral sites. These are sites in regions
+we have \emph{a prior} reason to believe have a DFE nearly entirely
+concentrated in the neutral range. While this may not be the case in reality,
+it is necessary given the computational demands of modeling whole-genome
+selection. 
 
 CDS+phastcons+UTR model
 
