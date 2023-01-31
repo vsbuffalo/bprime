@@ -7,7 +7,7 @@
     "fasta_file": "../../data/annotation/hg38.fa.gz",
     "neut_file": "../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz",
     "tree_dir": "../../data/slim_sims/chrombgs_chr10/conserved_cds_phastcons_merged/sims/",
-    "Bs_file": "../../data/bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl"
+    "Bs_file": "../../data/bmaps/bgspy/bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl"
 }
 
 

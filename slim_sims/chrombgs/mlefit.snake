@@ -7,7 +7,7 @@ SIM_MU = 1e-7
 
 # fit params
 NCORES = 40
-NSTARTS = 100
+NSTARTS = 500
 
 CHROMS = ['chr10']
 
