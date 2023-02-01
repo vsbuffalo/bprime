@@ -220,8 +220,8 @@ rule cds:
   shell:
     """
       bioawk -cgff ' $feature ~ /^CDS$/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
-      bedtools merge -i -i | \
-      sort --version-sort -k1,1 -k2,2n | gzip > {output}
+          sort --version-sort -k1,1 -k2,2n | 
+          bedtools merge | gzip > {output}
     """
 
 rule cds_annot:
