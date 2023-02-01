@@ -11,8 +11,7 @@ for line in open(sys.argv[2]):
     gene_map[gene_id].append(tx_id)
     tx_map[tx_id] = gene_id
 
-out_prefix = sys.argv[3]
-open_fh = dict()
+encountered_genes = set()
 
 for entry in read_gff(sys.argv[1], parse_attributes=True):
     feature = entry['feature']
@@ -27,16 +26,16 @@ for entry in read_gff(sys.argv[1], parse_attributes=True):
 
         chrom, start, end = cols
         start, end = int(start), int(end)
-         
-        feature = 'UTR' if feature in ('five_prime_UTR', 'three_prime_UTR') else feature
 
         if end-start == 0:
             # skip zero-bp entries
             continue
+        gene_feature_id = entry['feature'] + '_' + gene_id
+        cols.append(gene_feature_id)
+        encountered_genes.add((chrom, gene_feature_id))
         name = f"{feature}_{gene_id}"
-        cols.append(name)
+        print('\t'.join(cols))
 
-        if chrom not in open_fh:
-            open_fh[chrom] = open(f"{out_prefix}_{chrom}.bed", 'w')
-
-        open_fh[chrom].write('\t'.join(cols) + '\n')
+with open(sys.argv[3], 'w') as f:
+    for cols in encountered_genes:
+        f.write('\t'.join(cols) + '\n')

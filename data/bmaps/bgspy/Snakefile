@@ -164,6 +164,9 @@ maps = [
         ## unlabelled types -- currently only N=10k
         "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
 
+        ## merged CDS+phastcons for simple sim checks
+        "bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl",
+
         ## for checking empirical ratchet convergence
 	"bmap_hg37_ratchet_10000step_10000N_cds_utrs_phastcons.pkl",
 

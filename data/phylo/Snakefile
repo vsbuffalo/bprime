@@ -58,12 +58,13 @@ rule split_gff:
   output: "gff_by_chrom/hg38.ensembl_{chrom}.gff"
   shell: 
     """
-    zgrep "^{wildcards.chrom}" {input} | bioawk -cgff '$feature~/CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
+    zcat {input} | bioawk -cgff '$seqname~/{wildcards.chrom}/ {{ print $0 }}' | bioawk -cgff '$feature~/CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
     """
 
 rule maf_by_feature:
    input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", maf="filtered_mafs/{chrom}.maf"
-   output: "mafs_by_feature/{chrom}.CDS.maf", "mafs_by_feature/{chrom}.three_prime_UTR.maf", "mafs_by_feature/{chrom}.five_prime_UTR.maf"
+   output: "mafs_by_feature/{chrom}.CDS.maf", "mafs_by_feature/{chrom}.three_prime_UTR.maf", 
+           "mafs_by_feature/{chrom}.five_prime_UTR.maf", "mafs_by_feature/{chrom}.pseudogene.maf",
    shell:
      """
      maf_parse --features {input.gff} --by-category --out-root mafs_by_feature/{wildcards.chrom} {input.maf}
@@ -79,6 +80,7 @@ rule phylofit_by_feature:
      """
 
 rule phylofit_by_feature_lengths:
+   # TODO
    input: "mafs_by_feature/{chrom_feature}.maf"
    output: "mafs_by_feature_lengths/{chrom_feature}.tsv"
    shell:
@@ -111,6 +113,34 @@ rule maf_for_phastcons:
      # the echo BS is because maf_parse is dropping the header for BEDs(!)
      (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
      """
+# ----------- feature x gene subrates ---------------
+# NOTE: this has to be run in stages... this is because we do not know a priori 
+# how many genes there are.
+
+
+# this step is run to produce all the chromosome-level genes IDs, which is merged
+# into all_genes.txt
+rule split_gff_gene:
+  input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", map="../annotation/gene_tx_ids_canonical.txt" 
+  output: gff="gff_by_chrom_gene_level/hg38.ensembl_{chrom}.gff", gene="all_genes_{chrom}.txt"
+  shell: 
+    """
+    python ../../tools/annot_gff.py {input.gff}  {input.map} "all_genes_{wildcards.chrom}.txt" > {output[0]}
+    """
+
+#all_genes_features = [line.strip() for line in open("all_genes.txt")]
+
+gene_feature_mafs = "mafs_by_feature_gene/{chrom}.{feature_gene}.maf"
+
+rule maf_by_feature_gene:
+   input: gff="gff_by_chrom_gene_level/hg38.ensembl_{chrom}.gff", 
+          maf="filtered_mafs/{chrom}.maf"
+   output: "mafs_by_feature_gene/{chrom}.{feature_gene}.maf"
+   shell:
+     """
+     maf_parse --features {input.gff} --by-category --out-root mafs_by_feature/{wildcards.chrom} {input.maf}
+     """
+
 
 # ----------- other processsing ---------------
 
@@ -265,6 +295,7 @@ rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed",
                           "rescaled_ratchet_cds_rates_binned_100000.bed",
                           "rescaled_ratchet_cds_rates_binned_5000000.bed"]
 
+feature_by_genes= [f"gff_by_chrom_gene_level/hg38.ensembl_chr{c}.gff" for c in range(1, 23)]
 
 ALL_FILES = ["phylofit_cds_rates.bed",
              "cds_alns/dummy.txt",
@@ -278,6 +309,9 @@ ALL_FILES = ["phylofit_cds_rates.bed",
              "phylofit_rescaled_ratchet_utr_merged.bed",
              "phylofit_rescaled_ratchet_phastcons_merged.bed",
              *rescale_window_ratchet,
+
+             # the phylofit of features x gene_tx_ids_canonical
+             *feature_by_genes
              
 ]
 
