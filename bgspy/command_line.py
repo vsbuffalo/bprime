@@ -335,6 +335,9 @@ def subrate(bs_file, fit, force_feature, outfile, split):
 @click.option('--outfile', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
+
+@click.option('--only-Bp', default=True, is_flag=True, 
+              help="only calculate B'")
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=None)
@@ -351,7 +354,7 @@ def subrate(bs_file, fit, force_feature, outfile, split):
 @click.option('--blocksize', type=int,
               help='number of basepairs for block size for bootstrap')
 def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
-              bs_file, outfile, ncores, nstarts, window, outliers,
+              bs_file, outfile, only_bp, ncores, nstarts, window, outliers,
               b, blocksize):
     outliers = tuple([float(x) for x in outliers.split(',')])
     # internally we use blocksize to represent the number of adjacent windows
@@ -363,6 +366,7 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    seqlens_file=seqlens, recmap_file=recmap,
                    counts_dir=counts_dir, neut_file=neutral,
                    access_file=access, fasta_file=fasta,
+                   bp_only=only_bp,
                    bs_file=bs_file, boots_outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
                    B=b, blocksize=blocksize)
@@ -399,12 +403,16 @@ def R2(fit, r2_file, fit_dir, loo_chrom, ncores, nstarts, include_bs):
 @click.option('--bootstrap-dir', required=True, type=click.Path(exists=True),
               help=('directory of bootstrap results (e.g. if run with '
                     'Snakemake) to collect'))
-@click.option('--outfile', required=True,
+@click.option('--outfile', required=False,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for new fit object")
 def collect_straps(fit, bootstrap_dir, outfile):
     """
     Collection all the bootstrap files (e.g. if run on a cluster with Snakemake).
+
+    If outfile is specified, the bootstraps are collect into arrays
+    and put into the BGSLikelihood model as attributes and both
+    B' and B' are saved
     """
     with open(fit, 'rb') as f:
         sm_b, sm_bp = pickle.load(f)

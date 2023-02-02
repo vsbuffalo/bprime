@@ -4,7 +4,7 @@
 NCORES = 40
 NCORES_BOOT = 40
 NSTARTS = 1000
-NSTARTS_BOOT = 50
+NSTARTS_BOOT = 500
 
 NCORES_LOO = NCORES
 NSTARTS_LOO = 50
@@ -46,6 +46,7 @@ rule fit:
     """
 
 rule bootstrap:
+  # note that this only runs one bootstrap, we set nboot = ncores
   input: fit=f'{name}/window_{{window}}/mle.pkl', 
          seqlens=seqlens_file, recmap_file=recmap_file,
          access_file=access_file, fasta_file=fasta_file,
@@ -56,7 +57,7 @@ rule bootstrap:
   shell:
     """
     bgspy bootstrap --fit {input.fit} \
-      --B 10 --blocksize {params.blocksize} \
+      --B {params.ncores} --blocksize {params.blocksize} \
       --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
@@ -83,10 +84,12 @@ rule loo:
       --ncores {params.ncores} --nstarts {params.nstarts}
     """
 
+NBOOT_PARALLEL = 100
 all_results = []
 for window in windows:
   all_results.append(f'{name}/window_{window}/mle.pkl')
-  boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for b in range(100)]
+  boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for 
+           b in range(NBOOT_PARALLEL)]
   all_results.extend(boots)
   for chrom in CHROMS:
       loo_r2 = f"{name}/window_{window}/loo/loo_r2_{chrom}.npz"

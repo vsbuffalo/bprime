@@ -690,6 +690,7 @@ class BGSLikelihood:
 
     def loo_chrom_bootstrap(self, nboot, blocksize, exclude_chrom, **kwargs):
         """
+        EXPERIMENTAL -- do not use
         Resample bin indices with bootstrapping but leave out a chromosome.
 
         Blocksize is number of consecutive windows.
@@ -725,7 +726,6 @@ class BGSLikelihood:
         else:
             raise ValueError("improper bootstrap method")
         return np.stack((lower, self.theta_, upper)).T
-
 
     def save(self, filename):
         """

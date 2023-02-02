@@ -42,7 +42,6 @@ annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz",
          "cds_no_phastcons.bed.gz",
          "hg38.ensembl_genes.bed.gz", "hg38_centro.bed", "ensembl_pseudogenes.bed.gz",
 
-         "hg38.ensembl_cds_annot.bed.gz", # version with tx IDs
          "conserved_phastcons_annot.bed.gz", # version for MAF (no 0bp features)
          "hg38.ensembl_utr_annot.bed.gz", # version for MAF (no 0bp features)
 
@@ -174,7 +173,7 @@ rule ensembl_promoters:
    shell:
      """
      bedtools flank -i <(zgrep five_prime_UTR {input.gff} | grep -v chrY) -g {input.seqlens} -l 2000 -r 0 -s | \
-      bedtools sort | bedtools merge | gzip > {output}
+      bedtools sort | tools merge | gzip > {output}
      """
 
 
@@ -220,18 +219,9 @@ rule cds:
   shell:
     """
       bioawk -cgff ' $feature ~ /^CDS$/ {{ print $seqname,$start,$end,$feature }} ' {input} | \
-          sort --version-sort -k1,1 -k2,2n | 
-          bedtools merge | gzip > {output}
+      sort --version-sort -k1,1 -k2,2n | \
+      bedtools merge | gzip > {output}
     """
-
-rule cds_annot:
-  # cleaner version, no 0bp, for MAF work
-  input: "hg38.ensembl.gff3.gz"
-  output: "hg38.ensembl_cds_annot.bed.gz"
-  shell:
-      """
-      python ../../tools/annot_gff.py {input[0]} | gzip > {output[0]}
-      """
 
 rule utrs:
   input: "hg38.ensembl.gff3.gz"
