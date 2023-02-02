@@ -350,6 +350,63 @@ def subrate(bs_file, fit, force_feature, outfile, split):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
+@click.option('--J', type=int, help='number of jackknife replicates')
+def jackknife(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
+              bs_file, outfile, only_bp, ncores, nstarts, window, outliers,
+              j, blocksize):
+    outliers = tuple([float(x) for x in outliers.split(',')])
+    # internally we use blocksize to represent the number of adjacent windows
+    msg = (f"specified blocksize ({blocksize}) creates blocks less "
+            "than the width of one window ({window})")
+    assert int(blocksize / window) > 1, msg
+    blocksize  = int(blocksize / window)
+    fit_likelihood(fit_file=fit,
+                   seqlens_file=seqlens, recmap_file=recmap,
+                   counts_dir=counts_dir, neut_file=neutral,
+                   access_file=access, fasta_file=fasta,
+                   bp_only=only_bp,
+                   bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
+                   nstarts=nstarts, window=window, outliers=outliers,
+                   B=b, blocksize=blocksize)
+
+
+
+@cli.command()
+@click.option('--fit', required=True, type=click.Path(exists=True),
+              help='pickle file of fitted results')
+@click.option('--seqlens', required=True, type=click.Path(exists=True),
+              help='tab-delimited file of chromosome names and their length')
+@click.option('--recmap', required=True, type=click.Path(exists=True),
+              help='HapMap formatted recombination map')
+@click.option('--counts-dir', required=True, type=click.Path(exists=True),
+              help='directory to Numpy .npy per-basepair counts')
+@click.option('--neutral', required=True, type=click.Path(exists=True),
+              help='neutral region BED file')
+@click.option('--access', required=True, type=click.Path(exists=True),
+              help='accessible regions BED file (e.g. no centromeres)')
+@click.option('--fasta', required=True, type=click.Path(exists=True),
+              help='FASTA reference file (e.g. to mask Ns and lowercase'+
+                   '/soft-masked bases')
+@click.option('--bs-file', required=True, type=click.Path(exists=True),
+              help="BGSModel genome model pickle file (contains B' and B)")
+@click.option('--outfile', required=True,
+              type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for results")
+
+@click.option('--only-Bp', default=True, is_flag=True, 
+              help="only calculate B'")
+@click.option('--ncores',
+              help='number of cores to use for multi-start optimization',
+              type=int, default=None)
+@click.option('--nstarts',
+              help='number of starts for multi-start optimization',
+              type=int, default=None)
+@click.option('--window',
+              help='size (in basepairs) of the window',
+              type=int, default=1_000_000)
+@click.option('--outliers',
+              help='quantiles for trimming bin π',
+              type=str, default='0.0,0.995')
 @click.option('--B', type=int, help='number of bootstrap replicates')
 @click.option('--blocksize', type=int,
               help='number of basepairs for block size for bootstrap')
@@ -367,7 +424,7 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    counts_dir=counts_dir, neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bp_only=only_bp,
-                   bs_file=bs_file, boots_outfile=outfile, ncores=ncores,
+                   bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
                    B=b, blocksize=blocksize)
 

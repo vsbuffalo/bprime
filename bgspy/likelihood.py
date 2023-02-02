@@ -58,8 +58,9 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    bp_only=False,
                    only_autos=True,
                    B=None, blocksize=20,
+                   J=None,
                    r2_file=None,
-                   boots_outfile=None,
+                   bootjack_outfile=None,
                    name=None,
                    fit_file=None,
                    thresh_cM=0.3, verbose=True):
@@ -193,13 +194,15 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         with open(fit_file, 'rb') as f:
             m_b, m_bp = pickle.load(f)
 
-    # bootstrap if needed
+    # bootstrap if needed -- TODO common code could be refactors to jackknife
     bootstrap = B is not None
+    msg = "cannot do both bootstrap and jackknife"
     if bootstrap:
+        assert J is None
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
         starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
 
-        nlls_b, thetas_b = None, None
+        nlls_b, thetas_b = None, None # in case only-Bp
         if not bp_only:
             print("-- bootstrapping B --")
             nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
@@ -207,12 +210,35 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         print("-- bootstrapping B' --")
         nlls_bp, thetas_bp = m_bp.bootstrap(nboot=B, blocksize=blocksize,
                                             starts=starts_bp, ncores=ncores)
-        if boots_outfile is not None:
-            np.savez(boots_outfile, nlls_b=nlls_b, thetas_b=thetas_b,
-                                nlls_bp=nlls_bp, thetas_bp=thetas_bp)
+        if bootjack_outfile is not None:
+            np.savez(bootjack_outfile, 
+                     nlls_b=nlls_b, thetas_b=thetas_b,
+                     nlls_bp=nlls_bp, thetas_bp=thetas_bp)
             print("-- bootstrapping results saved --")
             return
 
+    jackknife = J is not None
+    if jackknife:
+        assert B is None, msg
+        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
+        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
+
+        nlls_b, thetas_b = None, None  # in case only-Bp
+        if not bp_only:
+            print("-- jackknife B --")
+            nlls_b, thetas_b = m_b.jackknife(njack=J, 
+                                             starts=starts_b, ncores=ncores)
+        print("-- jackknife B' --")
+        nlls_bp, thetas_bp = m_bp.jackknife(njack=J,
+                                            starts=starts_bp, ncores=ncores)
+        if bootjack_outfile is not None:
+            np.savez(bootjack_outfile, 
+                     nlls_b=nlls_b, thetas_b=thetas_b,
+                     nlls_bp=nlls_bp, thetas_bp=thetas_bp)
+            print("-- jackknife results saved --")
+            return
+
+    # estimate LOO R2
     if loo_chrom is not False:
         # can be False (don't do LOO), True (do LOO for all chroms), or string
         # chromosome name (do LOO, exluding chromosome)
@@ -666,7 +692,7 @@ class BGSLikelihood:
         self.theta_ = optim_res.theta
         self.nll_ = optim_res.nll
 
-    def load_boostraps(self, nlls, thetas):
+    def load_bootstraps(self, nlls, thetas):
         """
         Load the bootstrap results by setting attributes.
         """
@@ -677,7 +703,8 @@ class BGSLikelihood:
         """
         Resample bin indices and fit each time.
         """
-        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
+        msg = "bins attribute must be set to a GenomicBinnedData object"
+        assert self.bins is not None, msg
         res = []
         for b in tqdm.trange(nboot):
             idx = self.bins.resample_blocks(blocksize=blocksize,
@@ -688,33 +715,30 @@ class BGSLikelihood:
         self.boot_thetas_ = thetas
         return nlls, thetas
 
-    def loo_chrom_bootstrap(self, nboot, blocksize, exclude_chrom, **kwargs):
+    def jackknife(self, njack, remove_range=None, **kwargs):
         """
-        EXPERIMENTAL -- do not use
-        Resample bin indices with bootstrapping but leave out a chromosome.
+        Do the jackknife.
 
-        Blocksize is number of consecutive windows.
+        For parallelization, one can specify a remove_range, so 
+        different ranges can be specified across different 
+        nodes.
         """
-        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
+        msg = "bins attribute must be set to a GenomicBinnedData object"
+        assert self.bins is not None,
         res = []
-        r2s = []
-        r2ns = []
-        n = self.bins.nbins(filter_masked=True)
-        for b in tqdm.trange(nboot):
-            idx = self.bins.resample_blocks(blocksize=blocksize,
-                                            filter_masked=True,
-                                            exclude_chrom=exclude_chrom)
-            fit_optim = self.fit(**kwargs, _indices=idx)
-            theta = fit_optim.theta
-            res.append(fit_optim)
-            out_sample_idx = self.bins.chrom_indices(exclude_chrom)
-            r2s.append(self.R2(_idx=out_sample_idx, theta=theta))
-            r2ns.append(len(out_sample_idx))
+        idx = np.arange(self.Y.shape[0])
+        if remove_range is None:
+            # what samples are we going to remove?
+            jack_idx = np.random.choice(idx, replace=False)
+        else:
+            jack_idx = np.random.choice(np.arange(*remove_range),
+                                        replace=False)
+        for j in tqdm.trange(jack_idx):
+            idx = set(idx).difference(jack_idx)
+            res.append(self.fit(**kwargs, _indices=idx))
         nlls, thetas = process_bootstraps(res)
         self.boot_nlls_ = nlls
         self.boot_thetas_ = thetas
-        self.boot_r2s_ = np.array(r2s)
-        self.boot_r2ns_ = np.array(r2ns)
         return nlls, thetas
 
     def ci(self, method='quantile'):
@@ -836,7 +860,7 @@ class BGSLikelihood:
         The R² value of the predictions against actual results.
 
         _idx: the indices of values to use, e.g. for cross-validation or LOO
-              boostrapping.
+              bootstrapping.
         """
         pred_pi = self.predict(**kwargs)
         pi = pi_from_pairwise_summaries(self.Y)
