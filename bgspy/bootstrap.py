@@ -1,5 +1,12 @@
+import os
+import warnings
+from collections import namedtuple
 import itertools
 import numpy as np
+
+BootstrapResults = namedtuple('BootstrapResults',
+                              ('b_nll', 'b_theta',
+                               'bp_nll', 'bp_theta'))
 
 
 def resample_blocks(bins, blocksize, nsamples=None, exclude_chroms=None):
@@ -80,8 +87,8 @@ def process_bootstraps(optim_results):
     thetas = np.stack(thetas).T
     return nlls, thetas
 
-def percentile_ci(boot_thetas, alpha=0.05):
-    eps = np.nanquantile(boot_thetas, (alpha/2, 1-alpha/2), axis=1)
+def percentile_ci(boot_thetas, alpha=0.05, axis=0):
+    eps = np.nanquantile(boot_thetas, (alpha/2, 1-alpha/2), axis=axis)
     return eps
 
 def pivot_ci(boot_thetas, theta, alpha=0.05, axis=0):
@@ -91,3 +98,27 @@ def pivot_ci(boot_thetas, theta, alpha=0.05, axis=0):
     eps = np.quantile(boot_thetas, (alpha/2, 1-alpha/2), axis=axis)
     return np.array([2*theta - eps[1], 2*theta - eps[0]])
 
+def load_from_bs_dir(bootstrap_dir):
+    """
+    Load bootstrap results from the .npz file created 
+    from the bootstrap command line option. 
+    Because of the way parallelization was done, 
+    this these assume there are B and B' results in each 
+    .npz.
+    """
+    strap_files = os.listdir(bootstrap_dir)
+    nlls_b, thetas_b = [], []
+    nlls_bp, thetas_bp = [], []
+    for f in strap_files:
+        d = np.load(os.path.join(bootstrap_dir, f))
+        nlls_b.append(d['nlls_b'])
+        nlls_bp.append(d['nlls_bp'])
+        thetas_b.append(d['thetas_b'])
+        thetas_bp.append(d['thetas_bp'])
+
+    b_boot_nlls = np.concatenate(nlls_b, axis=0)
+    b_boot_thetas = np.concatenate(thetas_b, axis=1).T
+    bp_boot_nlls = np.concatenate(nlls_bp, axis=0)
+    bp_boot_thetas = np.concatenate(thetas_bp, axis=1).T
+
+    return BootstrapResults(b_boot_nlls, b_boot_thetas, bp_boot_nlls, bp_boot_thetas)

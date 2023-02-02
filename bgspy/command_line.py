@@ -7,6 +7,7 @@ from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.utils import Grid
 from bgspy.likelihood import fit_likelihood
+from bgspy.bootstrap import load_from_bs_dir
 
 SPLIT_LENGTH_DEFAULT = 10_000
 STEP_DEFAULT = 10_000
@@ -407,21 +408,15 @@ def collect_straps(fit, bootstrap_dir, outfile):
     """
     with open(fit, 'rb') as f:
         sm_b, sm_bp = pickle.load(f)
-    strap_files = os.listdir(bootstrap_dir)
-    nlls_b, thetas_b = [], []
-    nlls_bp, thetas_bp = [], []
-    for f in strap_files:
-        d = np.load(os.path.join(bootstrap_dir, f))
-        nlls_b.append(d['nlls_b'])
-        nlls_bp.append(d['nlls_bp'])
-        thetas_b.append(d['thetas_b'])
-        thetas_bp.append(d['thetas_bp'])
+
+    tmp = load_from_bs_dir(bootstrap_dir)
+    b_boot_nlls, b_boot_thetas, bp_boot_nlls, bp_boot_thetas = tmp
 
     # join all the strap
-    sm_b.boot_nlls_ = np.concatenate(nlls_b, axis=0)
-    sm_b.boot_thetas_ = np.concatenate(thetas_b, axis=1).T
-    sm_bp.boot_nlls_ = np.concatenate(nlls_bp, axis=0)
-    sm_bp.boot_thetas_ = np.concatenate(thetas_bp, axis=1).T
+    sm_b.boot_nlls_ = b_boot_nlls
+    sm_b.boot_thetas_ = b_boot_thetas
+    sm_bp.boot_nlls_ = bp_boot_nlls
+    sm_bp.boot_thetas_ = bp_boot_thetas
 
     with open(outfile, 'wb') as f:
         pickle.dump((sm_b, sm_bp), f)

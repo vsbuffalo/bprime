@@ -27,7 +27,7 @@ from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
-from bgspy.bootstrap import process_bootstraps, pivot_ci
+from bgspy.bootstrap import process_bootstraps, pivot_ci, percentile_ci
 from bgspy.models import BGSModel
 from bgspy.sim_utils import mutate_simulated_tree
 
@@ -666,6 +666,13 @@ class BGSLikelihood:
         self.theta_ = optim_res.theta
         self.nll_ = optim_res.nll
 
+    def load_boostraps(self, nlls, thetas):
+        """
+        Load the bootstrap results by setting attributes.
+        """
+        self.boot_nlls_ = nlls
+        self.boot_thetas_ = thetas
+
     def bootstrap(self, nboot, blocksize, **kwargs):
         """
         Resample bin indices and fit each time.
@@ -709,47 +716,20 @@ class BGSLikelihood:
         self.boot_r2ns_ = np.array(r2ns)
         return nlls, thetas
 
-    def ci(self):
+    def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
-        assert False, "FIX: log stuff"
-        lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
+        if method == 'quantile':
+            lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
+        elif method == 'percentile':
+            lower, upper = percentile_ci(self.boot_thetas_)
+        else:
+            raise ValueError("improper bootstrap method")
         return np.stack((lower, self.theta_, upper)).T
 
-#    def loo_bootstrap(self, nboot, blocksize, **kwargs):
-#        """
-#        EXPERIMENTAL!
-#        Resample bin indices, leaving one out, and and fit each time.
-#        """
-#        assert self.bins is not None, "bins attribute must be set to a GenomicBinnedData object"
-#        res = []
-#        r2s = []
-#        r2ns = []
-#        n = self.bins.nbins(filter_masked=True)
-#        for b in tqdm.trange(nboot):
-#            idx = self.bins.resample_blocks(blocksize=blocksize,
-#                                            filter_masked=True)
-#            out_sample_idx = get_out_sample(idx, n)
-#            fit_optim = self.fit(_indices=idx, **kwargs)
-#            theta = fit_optim.theta
-#            res.append(fit_optim)
-#            if len(out_sample_idx):
-#                r2s.append(self.R2(_idx=out_sample_idx, theta=theta))
-#                r2ns.append(len(out_sample_idx))
-#        nlls, thetas = process_bootstraps(res)
-#        self.boot_nlls_ = nlls
-#        self.boot_thetas_ = thetas
-#        self.boot_r2s_ = np.array(r2s)
-#        self.boot_r2ns_ = np.array(r2ns)
-#        return nlls, thetas
-
-    def ci(self):
-        assert self.boot_thetas_ is not None, "bootstrap() has not been run"
-        lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
-        return np.stack((lower, self.theta_, upper)).T
 
     def save(self, filename):
         """
-        Pickle this object.
+         Pickle this object.
         """
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
