@@ -715,27 +715,36 @@ class BGSLikelihood:
         self.boot_thetas_ = thetas
         return nlls, thetas
 
-    def jackknife(self, njack, remove_range=None, **kwargs):
+    def jackknife(self, njack=None, remove_range=None, **kwargs):
         """
         Do the jackknife.
 
-        For parallelization, one can specify a remove_range, so 
-        different ranges can be specified across different 
+        For parallelization, one can specify a remove_range, so
+        different ranges can be specified across different
         nodes.
+
+        If you want to recycle the MLE θ, pass a starts keyword argument
+        with the MLE vector (optionally repeated for multiple starts.
         """
         msg = "bins attribute must be set to a GenomicBinnedData object"
-        assert self.bins is not None,
+        assert self.bins is not None, msg
         res = []
         idx = np.arange(self.Y.shape[0])
         if remove_range is None:
             # what samples are we going to remove?
-            jack_idx = np.random.choice(idx, replace=False)
+            jack_idx = np.random.choice(idx, njack, replace=False)
         else:
-            jack_idx = np.random.choice(np.arange(*remove_range),
-                                        replace=False)
-        for j in tqdm.trange(jack_idx):
-            idx = set(idx).difference(jack_idx)
-            res.append(self.fit(**kwargs, _indices=idx))
+            rng = np.arange(*remove_range)
+            if njack is not None:
+                njack = len(rng)
+            else:
+                assert njack <= len(rng), "len(njack) must be <= len(range)"
+            jack_idx = np.random.choice(rng, njack, replace=False)
+
+        for j in tqdm.tqdm(jack_idx):
+            jidx = list(set(idx).difference(jack_idx))
+            res.append(self.fit(**kwargs, _indices=jidx))
+
         nlls, thetas = process_bootstraps(res)
         self.boot_nlls_ = nlls
         self.boot_thetas_ = thetas
