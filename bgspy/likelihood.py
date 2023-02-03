@@ -64,6 +64,8 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    loo_nstarts=100,
                    loo_chrom=False,
                    loo_fits_dir=None,
+                   save_data=None,
+                   only_save_data=True,
                    window=1_000_000, outliers=(0.0, 0.995),
                    recycle_mle=False,
                    bp_only=False,
@@ -147,11 +149,21 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             b = bgs_bins.bin_Bs(gm.BScores)
 
         # B' is always fit
-        vprint("-- binning B --")
+        vprint("-- binning B' --")
         bp = bgs_bins.bin_Bs(gm.BpScores)
 
         # get the diversity data
+        vprint("-- making diversity matrix Y --")
         Y = bgs_bins.Y()
+
+        # save testing data at this point
+        if save_data is not None:
+            vprint("-- saving pre-fit model data --")
+            with open(save_data, 'wb') as f:
+                dat = {'bgs_bins': bgs_bins, 'Y': Y, 'bp': bp, 'gm': gm}
+                pickle.dump(dat, f)
+            if only_save_data:
+                return
 
         if model == 'simplex':
             # fit the simplex model
@@ -326,7 +338,7 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     return lb, ub
 
 
-def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
+def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
            log10_mu_bounds=MU_BOUNDS,
            paired=False):
     """
@@ -348,7 +360,7 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
     return lb, ub
 
 
-def bounds_fixed_mutation(nt, nf, log10_pi0_bounds=(-4, -2)):
+def bounds_fixed_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS):
     """
     Return the bounds on for optimization under the simplex model
     model with fixed mutations.
@@ -363,8 +375,28 @@ def bounds_fixed_mutation(nt, nf, log10_pi0_bounds=(-4, -2)):
     return lb, ub
 
 def random_start_mutation(nt, nf,
-                          log10_pi0_bounds=(-4, -3),
+                          log10_pi0_bounds=PI0_BOUNDS,
                           log10_mu_bounds=MU_BOUNDS):
+    """
+    Create a random start position log10 uniform over the bounds for π0
+    and all the mutation parameters under the free mutation model.
+    """
+    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
+                            10**log10_pi0_bounds[1], 1)
+    W = np.empty((nt, nf))
+    for i in range(nt):
+        for j in range(nf):
+            W[i, j] = np.random.uniform(10**log10_mu_bounds[0], 
+                                        10**log10_mu_bounds[1])
+    theta = np.empty(nt*nf + 1)
+    theta[0] = pi0
+    theta[1:] = W.flat
+    return theta
+
+
+def random_start_mutation_log10(nt, nf,
+                                log10_pi0_bounds=PI0_BOUNDS,
+                                log10_mu_bounds=MU_BOUNDS):
     """
     Create a random start position log10 uniform over the bounds for π0
     and all the mutation parameters under the free mutation model.
@@ -379,8 +411,29 @@ def random_start_mutation(nt, nf,
     theta[1:] = W.flat
     return theta
 
-def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
+
+def random_start_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
                          log10_mu_bounds=MU_BOUNDS):
+    """
+    Create a random start position, uniform over the bounds for π0
+    and μ, and Dirichlet under the DFE weights for W, under the simplex model.
+    """
+    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 10**log10_pi0_bounds[1], 1)
+    mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
+    W = np.empty((nt, nf))
+    for i in range(nf):
+        W[:, i] = np.random.dirichlet([1.] * nt)
+        assert np.abs(W[:, i].sum() - 1.) < 1e-5
+    theta = np.empty(nt*nf + 2)
+    theta[0] = pi0
+    theta[1] = mu
+    theta[2:] = W.flat
+    check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
+    return theta
+
+
+def random_start_simplex_log10(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
+                               log10_mu_bounds=MU_BOUNDS):
     """
     Create a random start position log10 uniform over the bounds for π0
     and μ, and uniform under the DFE weights for W, under the simplex model.
@@ -398,13 +451,15 @@ def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
     check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
     return theta
 
-def random_start_fixed_mutation(nt, nf, log10_pi0_bounds=(-4, -3)):
+
+def random_start_fixed_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS):
     """
     Create a random start position log10 uniform over the bounds for π0
     and μ, and uniform under the DFE weights for W, under the simplex model,
     but for a fixed mutation rate.
     """
-    pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
+    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
+                            10**log10_pi0_bounds[1], 1)
     W = np.empty((nt, nf))
     for i in range(nf):
         W[:, i] = np.random.dirichlet([1.] * nt)
@@ -502,24 +557,6 @@ def negll(theta, Y, logB, w):
     llm = nD*log_pibar + nS*log1mexp(log_pibar)
     return -np.sum(llm)
 
-## there's an imp DeprecationWarning this trigger
-# if HAS_JAX:
-#     def negll_jax(theta, Y, logB, w):
-#         nS = Y[:, 0]
-#         nD = Y[:, 1]
-#         nx, nw, nt, nf = logB.shape
-#         # mut weight params
-#         pi0, W = theta[0], theta[1:]
-#         W = W.reshape((nt, nf))
-#         # interpolate B(w)'s
-#         logBw = jnp.zeros(nx, dtype=jnp.float32)
-#         for i in range(nx):
-#             for j in range(nt):
-#                 for k in range(nf):
-#                     logBw = logBw.at[i].add(jnp.interp(W[j, k], w, logB[i, :, j, k]))
-#         log_pibar = jnp.log(pi0) + logBw
-#         llm = nD*log_pibar + nS*jnp.log1p(-jnp.exp(log_pibar))
-#         return -jnp.sum(llm)
 
 def negll_mutation(theta, Y, logB, w):
     nS = Y[:, 0]
@@ -1154,7 +1191,7 @@ class SimplexModel(BGSLikelihood):
 
     def random_start(self):
         """
-        Random starts
+        Random starts, on a linear scale for μ and π0.
         """
         return random_start_simplex(self.nt, self.nf,
                                     self.log10_pi0_bounds,
@@ -1175,10 +1212,9 @@ class SimplexModel(BGSLikelihood):
         _indices: indices to include in fit; this is primarily internal, for
                   bootstrapping
         """
-        algo = algo.upper()
-        algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
-        assert algo in algos, f"algo must be in {algos}"
-        engine = algos[algo]
+        #algo = algo.upper()
+        #algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
+        #assert algo in algos, f"algo must be in {algos}"
 
         if isinstance(starts, int):
             starts = [self.random_start() for _ in range(starts)]

@@ -241,9 +241,10 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
                    '/soft-masked bases')
 @click.option('--bs-file', required=True, type=click.Path(exists=True),
               help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--outfile', required=True,
-              type=click.Path(dir_okay=False, writable=True),
+@click.option('--outfile', default=None, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
+@click.option('--save-data', required=False, help="output pickle file for full data going into fit")
+@click.option('--only-data', default=False, is_flag=True, help="only get the data going into the fit, and quit")
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=None)
@@ -258,17 +259,22 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
               type=str, default='0.0,0.995')
 def loglik(seqlens, recmap, counts_dir, sim_tree_file, sim_mu,
            model, chrom, mu, neutral, access, fasta,
-           bs_file, outfile, ncores, nstarts, window, outliers):
+           bs_file, outfile, save_data, only_data, ncores, nstarts, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
-    mu = None if mu == 'None' else float(mu) # sterialize CL input
+    # for fixed mu
+    mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
+    if not only_data:
+        assert outfile is not None, "--outfile must be set (unless --only-data)!"
     fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
                    sim_mu=sim_mu,
                    counts_dir=counts_dir, sim_tree_file=sim_tree_file, 
                    neut_file=neutral,
                    access_file=access, fasta_file=fasta,
-                   bs_file=bs_file,
+                   bs_file=bs_file, 
                    model=model, chrom=chrom, mu=mu,
-                   outfile=outfile, ncores=ncores,
+                   outfile=outfile, 
+                   save_data=save_data, only_save_data=only_data,
+                   ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers)
 
 

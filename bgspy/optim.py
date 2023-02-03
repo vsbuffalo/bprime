@@ -157,7 +157,7 @@ def equality_constraint_function(nt, nf, fixed_mu):
     return func
 
 def nlopt_simplex_worker(start, func, nt, nf, bounds, mu=None,
-                         constraint_tol=1e-11, xtol_rel=1e-3,
+                         constraint_tol=1e-2, xtol_rel=1e-3,
                          maxeval=1000000, algo='ISRES'):
     """
     Use nlopt to do constrained (inequality to bound DFE weights
@@ -168,14 +168,8 @@ def nlopt_simplex_worker(start, func, nt, nf, bounds, mu=None,
     offset = 1 + int(not fixed_mu)
     nparams = nt * nf + offset
 
-    if algo == 'ISRES':
-        nlopt_algo = nlopt.GN_ISRES
-    elif algo == 'NEWUOA':
-        nlopt_algo = nlopt.LN_NEWUOA_BOUND
-    elif algo == 'NELDERMEAD':
-        nlopt_algo = nlopt.LN_NELDERMEAD
-    else:
-        raise ValueError("algo must be 'isres' or 'cobyla'")
+
+    nlopt_algo = getattr(nlopt, algo)
 
     opt = nlopt.opt(nlopt_algo, nparams)
     opt.set_min_objective(func)

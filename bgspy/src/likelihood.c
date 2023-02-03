@@ -200,6 +200,8 @@ double negloglik(const double *theta,
     return -ll;
 }
 
+
+/*
 double negloglik_freepi0(const double *theta,
                          const ssize_t nchroms,
                          const ssize_t *chrom_index,
@@ -231,15 +233,7 @@ double negloglik_freepi0(const double *theta,
     //for (int i=0; i < 4; i++) printf(" stide %d=%d \n", i, logB_strides[i]);
     //printf("mu: %g\n", mu);
 
-    /* for (int i=0; i < n_theta; i++) { */
-    /*     printf("theta(i=%d) -> %g\n", i, theta[i]); */
-    /* } */
-
-    /* for (int i=0; i < nW; i++) { */
-    /*     printf("W(i=%d) -> %g\n", i, W[i]); */
-    /* } */
-
-    //print_theta(theta, 2+nW);
+     //print_theta(theta, 2+nW);
     for (ssize_t i=0; i < nx; i++) {
         logBw_i = 0.; // initialize start of sum
         for (ssize_t j=0; j < nt; j++) {
@@ -276,4 +270,4 @@ double negloglik_freepi0(const double *theta,
     fflush(stdout);
     return -ll;
 }
-
+*/

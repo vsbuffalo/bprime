@@ -25,16 +25,39 @@ Bs_file = config["Bs_file"]
 windows = [int(w) for w in config["windows"]]
 blocksize = int(config["blocksize"])
 
+# the data that goes into the likelihood model
+model_data = 'model_data.pkl'
+
+rule save_data:
+  # only get the data, e.g. for testing, for this model
+  input: seqlens=seqlens_file, recmap_file=recmap_file,
+         access_file=access_file, fasta_file=fasta_file,
+         neut_file=neut_file, counts_dir=counts_dir,
+         bs_file=Bs_file
+  output: model_data
+  params: model=model, mu=mu, name=name
+  shell:
+    """
+    mkdir -p {params.name}
+    bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --model {params.model} \
+      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
+      --access {input.access_file} --bs-file {input.bs_file} \
+      --fasta {input.fasta_file} \
+      --only-data --save-data {output[0]}
+    """
+
 
 rule fit:
   input: seqlens=seqlens_file, recmap_file=recmap_file,
          access_file=access_file, fasta_file=fasta_file,
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
-  output: f'{name}/window_{{window}}/mle.pkl'
-  params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu
+  output: 'window_{window}/mle.pkl'
+  params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu, name=name
   shell:
     """
+    mkdir -p {params.name}
     bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --model {params.model} --mu {params.mu} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
@@ -47,12 +70,12 @@ rule fit:
 
 rule jackknife:
   # note that this only runs one bootstrap, we set nboot = ncores
-  input: fit=f'{name}/window_{{window}}/mle.pkl', 
+  input: fit='window_{window}/mle.pkl', 
          seqlens=seqlens_file, recmap_file=recmap_file,
          access_file=access_file, fasta_file=fasta_file,
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
-  output: f'{name}/window_{{window}}/bootstraps/bootstrap_{{boot}}.npz'
+  output: 'window_{window}/bootstraps/bootstrap_{boot}.npz'
   params: ncores=NCORES_BOOT, nstarts=NSTARTS_BOOT, blocksize=blocksize
   shell:
     """
@@ -68,12 +91,12 @@ rule jackknife:
     """
 
 rule loo:
-  input: fit=f'{name}/window_{{window}}/mle.pkl', 
+  input: fit='window_{window}/mle.pkl', 
          seqlens=seqlens_file, recmap_file=recmap_file,
          access_file=access_file, fasta_file=fasta_file,
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
-  output: f'{name}/window_{{window}}/loo/loo_r2_{{chrom}}.npz'
+  output: 'window_{window}/loo/loo_r2_{chrom}.npz'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
@@ -87,13 +110,16 @@ rule loo:
 NBOOT_PARALLEL = 100
 all_results = []
 for window in windows:
-  all_results.append(f'{name}/window_{window}/mle.pkl')
-  boots = [f"{name}/window_{window}/bootstraps/bootstrap_{b}.npz" for 
+  all_results.append(f'window_{window}/mle.pkl')
+  boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
            b in range(NBOOT_PARALLEL)]
   all_results.extend(boots)
   for chrom in CHROMS:
-      loo_r2 = f"{name}/window_{window}/loo/loo_r2_{chrom}.npz"
+      loo_r2 = f"window_{window}/loo/loo_r2_{chrom}.npz"
       all_results.append(loo_r2)
 
 rule all:
   input: all_results
+
+rule data:
+  input: model_data

@@ -1,8 +1,8 @@
 {
-    "name": "hg38_cds_utrs_phastcons",
+    "name": "hg38_cds_utrs_phastcons_simplex",
     "windows": [1000000],
     "blocksize": 2000000,
-    "model": 'simplex',
+    "model": "simplex",
     "seqlens_file": "../../data/annotation/hg38_seqlens.tsv",
     "recmap_file": "../../data/annotation/hapmap_genetic_map.txt",
     "access_file": "../../data/annotation/no_centro.bed",
