@@ -107,82 +107,115 @@ def constraint_matrix(nt, nf, fixed_mu=False):
         W[:, i] = 1.
     return A
 
-def inequality_constraint_functions(nt, nf, mu=None, log10_mu_bounds=(-11, -7)):
+
+def inequality_constraint_functions(nt, nf, log10_W_bounds, mu=None):
     """
-    Return two functions for testing whether inequality contraints are met
-    (for nlopt). The contraint is that:
+    Return two functions for testing whether inequality constraints 
+    are met (for nlopt).  NOTE: due to an unfortunate naming accident
+    w = μW in the command line code.
+
+    The constraint is that:
 
        l < μW < u
 
-    where l and u are the lower and upper bounds for the mutation rate grid.
+    where l and u are the lower and upper bounds for w (in code), or
+    M (in math), the product of μW.
 
     These are rearranged to give explicit lower and upper bounds, that must
     be less than zero:
 
        l - μW < 0
        μW - u < 0
+
+    This also works if the fixed mutation model is used.
     """
     fixed_mu = mu is not None
     A = constraint_matrix(nt, nf, fixed_mu=fixed_mu)
-    lower, upper = 10**log10_mu_bounds[0], 10**log10_mu_bounds[1]
+    lower, upper = 10**log10_W_bounds[0], 10**log10_W_bounds[1]
+
     def func_l(result, x, grad):
         if not fixed_mu:
             u = x[1]
         else:
             u = mu
-        M = lower - (u *  A.dot(x))
+        M = lower - (u * A.dot(x))
         for i in range(nf):
             result[i] = M[i]
+
     def func_u(result, x, grad):
         if not fixed_mu:
             u = x[1]
         else:
             u = mu
-        M = (u *  A.dot(x)) - upper
+        M = (u * A.dot(x)) - upper
         for i in range(nf):
             result[i] = M[i]
+
     return func_l, func_u
 
-def equality_constraint_function(nt, nf, fixed_mu):
+
+def equality_constraint_function(nt, nf, fixed_mu=False):
     """
     Ensure that all the DFE weights sum to 1. Returns a function
     for nlopt to test this (will be equal to zero, within nlopt's
     tolerance, if contraint is met).
     """
     A = constraint_matrix(nt, nf, fixed_mu)
+
     def func(result, x, grad):
         M = A.dot(x)
         for i in range(nf):
             result[i] = M[i] - 1.
     return func
 
-def nlopt_simplex_worker(start, func, nt, nf, bounds, mu=None,
-                         constraint_tol=1e-2, xtol_rel=1e-3,
+
+def nlopt_simplex_worker(start, func, nt, nf, bounds, 
+                         log10_W_bounds, mu=None,
+                         constraint_tol=1e-3, xtol_rel=1e-3,
                          maxeval=1000000, algo='ISRES'):
     """
     Use nlopt to do constrained (inequality to bound DFE weights
     and equality to enforce the simplex) and bounded optimization
-    for the simplex model.
+    for the simplex model (possibly with fixed mu)
     """
     fixed_mu = mu is not None
+    # we have one fewer parameter to optimize over with fixed mu
     offset = 1 + int(not fixed_mu)
     nparams = nt * nf + offset
 
-
+    # get the nlopt optimiziation routine
     nlopt_algo = getattr(nlopt, algo)
 
     opt = nlopt.opt(nlopt_algo, nparams)
     opt.set_min_objective(func)
-    hl, hu = inequality_constraint_functions(nt, nf, mu=mu)
+
+    # inequality constraint for l < μW < u
+    # NOTE: these bounds are for the product μW, 
+    # so they are *wider* than MU_BOUNDS. These should 
+    # be bounded by the B interpolation range.
+    hl, hu = inequality_constraint_functions(nt, nf, mu=mu,
+                                             log10_W_bounds=log10_W_bounds)
+    # tolerances for inequality constraint
     tols = np.repeat(constraint_tol, nf)
+
+    # specify the simplex inequality constraints, that each entry be
+    # 0 ≤ W ≤ 1 (up to the tolerance)
     opt.add_inequality_mconstraint(hl, tols)
     opt.add_inequality_mconstraint(hu, tols)
+
+    # add the equality constraint -- that DFE must sum to 1
     ce = equality_constraint_function(nt, nf, fixed_mu)
     opt.add_equality_mconstraint(ce, tols)
+
+    # set the bounds of all parameters
     lb, ub = bounds
     opt.set_lower_bounds(lb)
     opt.set_upper_bounds(ub)
+
+    # set the x relative tolerance
     opt.set_xtol_rel(xtol_rel)
+
+    # set max number of evaluations
     opt.set_maxeval(maxeval)
     assert start.size == nparams
     mle = opt.optimize(start)
@@ -190,7 +223,8 @@ def nlopt_simplex_worker(start, func, nt, nf, bounds, mu=None,
     success = opt.last_optimize_result()
     return nll, mle, success
 
-def optim_plot(only_success=True, tail=0.5, x_percent=False, downsample=None, **runs):
+
+def optim_plot(only_success=True, logy=False, tail=0.5, x_percent=False, downsample=None, **runs):
     """
     Make a plot of the rank-ordered optimization minima for the
     labeled runs keywords. Only the top 'tail' entries are kept.
@@ -223,7 +257,8 @@ def optim_plot(only_success=True, tail=0.5, x_percent=False, downsample=None, **
     else:
         ax.set_xlabel("rank")
     ax.legend()
-    ax.semilogy()
+    if logy:
+        ax.semilogy()
 
 class OptimResult:
     def __init__(self, nlls, thetas, success, starts=None):

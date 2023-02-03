@@ -663,7 +663,8 @@ class BGSLikelihood:
     """
     def __init__(self,
                  Y, w, t, logB, bins=None, features=None,
-                 log10_pi0_bounds=PI0_BOUNDS):
+                 log10_pi0_bounds=PI0_BOUNDS, 
+                 log10_mu_bounds=MU_BOUNDS):
         self.w = w
         self.t = t
         if bins is not None:
@@ -673,7 +674,8 @@ class BGSLikelihood:
             assert bins.nbins() == Y.shape[0]
         self.bins = bins
         self.log10_pi0_bounds = log10_pi0_bounds
-        self.log10_mu_bounds = np.log10(w[0]), np.log10(w[-1])
+        # the bounds for mu alone
+        self.log10_mu_bounds = log10_mu_bounds
 
         try:
             assert logB.ndim == 4
@@ -1037,7 +1039,8 @@ def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
 
 class FreeMutationModel(BGSLikelihood):
     def __init__(self, Y, w, t, logB, bins=None,
-                 features=None, log10_pi0_bounds=(-5, -1)):
+                 features=None, 
+                 log10_pi0_bounds=PI0_BOUNDS):
         super().__init__(Y=Y, w=w, t=t, logB=logB, features=features,
                          bins=bins, log10_pi0_bounds=log10_pi0_bounds)
 
@@ -1099,7 +1102,7 @@ class FreeMutationModel(BGSLikelihood):
 
         # run the optimization routine on muliple starts
         res = run_optims(worker, starts, ncores=ncores,
-                        progress=not bootstrap)
+                         progress=not bootstrap)
 
         if bootstrap:
             # we don't clobber the existing results since this ins't a fit.
@@ -1184,14 +1187,41 @@ class FreeMutationModel(BGSLikelihood):
             base_rows += "μ = \n" + tabulate(W.sum(axis=0)[None, :], headers=header[1:])
         return base_rows
 
+
 class SimplexModel(BGSLikelihood):
+    """
+    BGSLikelihood Model with the DFE matrix W on a simplex, free 
+    π0 and free μ (within bounds).
+
+    Note that the B grid sets the bounds around μW, since this product
+    cannot fall outside the interpolation range. For bounded μ,
+    this implies a lower and upper DFE 
+
+    l < μW < u: l, u are the interpolation bounds
+
+    l/μ_upper < W < u/μ_lower
+
+    Then, we add the further constrain in nlopt_simplex_worker
+    that 0 < W < 1. So, this imposes an effective lower bound 
+    that l/μ_upper < W < min(1, u/μ_lower)
+    """
     def __init__(self, Y, w, t, logB, bins=None,
-                 features=None, log10_pi0_bounds=PI0_BOUNDS):
+                 features=None, 
+                 log10_pi0_bounds=PI0_BOUNDS,
+                 log10_mu_bounds=MU_BOUNDS):
         super().__init__(Y=Y, w=w, t=t, logB=logB,
                          bins=bins, features=features,
-                         log10_pi0_bounds=log10_pi0_bounds)
+                         log10_pi0_bounds=log10_pi0_bounds,
+                         log10_mu_bounds=log10_mu_bounds)
         self.start_pi0 = None
         self.start_mu = None
+        # the bounds of W are set by B grid interpolation range
+        # and mutation rate bounds
+        self.W_bounds = (np.min(w)/(10**MU_BOUNDS[0]),
+                         min(1, np.max(w)/(10**MU_BOUNDS[1])))
+        assert self.W_bounds[0] > 0
+        assert self.W_bounds[0] <= 1
+
 
     def random_start(self):
         """
@@ -1212,8 +1242,7 @@ class SimplexModel(BGSLikelihood):
         return start
 
     def bounds(self):
-        return bounds_simplex(self.nt, self.nf,
-                              self.log10_pi0_bounds,
+        return bounds_simplex(self.nt, self.nf, self.log10_pi0_bounds,
                               self.log10_mu_bounds, paired=False)
 
     def fit(self, starts=1, ncores=None, 
@@ -1253,10 +1282,14 @@ class SimplexModel(BGSLikelihood):
             Y = Y[_indices, ...]
             logB = logB[_indices, ...]
 
+        # wrap the negloglik function around the data and B grid
         nll = partial(negll_simplex_full, Y=Y,
                       B=logB, w=self.w)
+
+        # make the main simplex worker for parallelization
         worker = partial(nlopt_simplex_worker,
                          func=nll, nt=self.nt, nf=self.nf,
+                         log10_W_bounds=np.log10(self.W_bounds),
                          bounds=self.bounds(), algo=algo)
 
         # run the optimization routine on muliple starts
@@ -1273,7 +1306,6 @@ class SimplexModel(BGSLikelihood):
         Extract out the mutation rate, μ.
         """
         return self.theta_[1]
-        #return np.repeat(self.theta_[1], self.nf)
 
     @property
     def mle_W(self):
