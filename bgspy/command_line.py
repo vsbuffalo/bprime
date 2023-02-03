@@ -367,7 +367,7 @@ def jackknife(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    bp_only=only_bp,
                    bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
-                   B=b, blocksize=blocksize)
+                   B=b, blocksize=blocksize, recycle_mle=True)
 
 
 
@@ -426,7 +426,7 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    bp_only=only_bp,
                    bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
-                   B=b, blocksize=blocksize)
+                   B=b, blocksize=blocksize, recycle_mle=True)
 
 @cli.command()
 @click.option('--fit', required=True, type=click.Path(exists=True),

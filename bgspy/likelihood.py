@@ -39,6 +39,17 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
+# mutation rate hard bounds
+# these are set for human. I'm targetting the uncertainty 
+# with the mutational slowdown, e.g. see Moorjani et al 2016
+MU_BOUNDS = tuple(np.log10((0.9e-8,  5e-8)))
+
+
+# π0 bounds: lower is set by lowest observed π in humans
+# highest is based on B lowest is 0.02, e.g. π = π0 Β,
+# 1e-4 = 0.005 B
+PI0_BOUNDS = tuple(np.log10((0.0005, 0.005)))  # this is fairly permissive
+# see https://twitter.com/jkpritch/status/1600296856999047168/photo/1
 
 def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    sim_tree_file=None, sim_mu=None,
@@ -198,7 +209,8 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
     bootstrap = B is not None
     msg = "cannot do both bootstrap and jackknife"
     if bootstrap:
-        assert J is None
+        assert J is None, msg
+        vprint('note: recycling MLE for bootstrap')
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
         starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
 
@@ -220,6 +232,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
     jackknife = J is not None
     if jackknife:
         assert B is None, msg
+        vprint('note: recycling MLE for jackknife')
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
         starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
 
@@ -292,8 +305,8 @@ def access(B, i, l, j, k):
     return likclib.access(logB_ptr, i, l, j, k, B.ctypes.strides)
 
 
-def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
-                    log10_mu_bounds=(-11, -7), paired=False):
+def bounds_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
+                    log10_mu_bounds=MU_BOUNDS, paired=False):
     """
     Return the bounds on for optimization under the free mutation
     model. If paired=True, the bounds are zipped together for each
@@ -314,7 +327,7 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=(-4, -2),
 
 
 def bounds_simplex(nt, nf, log10_pi0_bounds=(-4, -2),
-           log10_mu_bounds=(-11, -7),
+           log10_mu_bounds=MU_BOUNDS,
            paired=False):
     """
     Return the bounds on for optimization under the simplex model
@@ -351,7 +364,7 @@ def bounds_fixed_mutation(nt, nf, log10_pi0_bounds=(-4, -2)):
 
 def random_start_mutation(nt, nf,
                           log10_pi0_bounds=(-4, -3),
-                          log10_mu_bounds=(-11, -7)):
+                          log10_mu_bounds=MU_BOUNDS):
     """
     Create a random start position log10 uniform over the bounds for π0
     and all the mutation parameters under the free mutation model.
@@ -367,7 +380,7 @@ def random_start_mutation(nt, nf,
     return theta
 
 def random_start_simplex(nt, nf, log10_pi0_bounds=(-4, -3),
-                         log10_mu_bounds=(-11, -7)):
+                         log10_mu_bounds=MU_BOUNDS):
     """
     Create a random start position log10 uniform over the bounds for π0
     and μ, and uniform under the DFE weights for W, under the simplex model.
@@ -715,13 +728,12 @@ class BGSLikelihood:
         self.boot_thetas_ = thetas
         return nlls, thetas
 
-    def jackknife(self, njack=None, remove_range=None, **kwargs):
+    def jackknife(self, njack=None, chunks=None, **kwargs):
         """
         Do the jackknife.
 
-        For parallelization, one can specify a remove_range, so
-        different ranges can be specified across different
-        nodes.
+	If you want to compute across a cluster, set the chunks tuple,
+        (nchunks, chunk_id)
 
         If you want to recycle the MLE θ, pass a starts keyword argument
         with the MLE vector (optionally repeated for multiple starts.
@@ -730,7 +742,7 @@ class BGSLikelihood:
         assert self.bins is not None, msg
         res = []
         idx = np.arange(self.Y.shape[0])
-        if remove_range is None:
+        if chunks is None:
             # what samples are we going to remove?
             jack_idx = np.random.choice(idx, njack, replace=False)
         else:

@@ -45,7 +45,7 @@ rule fit:
       --outfile {output[0]}
     """
 
-rule bootstrap:
+rule jackknife:
   # note that this only runs one bootstrap, we set nboot = ncores
   input: fit=f'{name}/window_{{window}}/mle.pkl', 
          seqlens=seqlens_file, recmap_file=recmap_file,
@@ -56,7 +56,7 @@ rule bootstrap:
   params: ncores=NCORES_BOOT, nstarts=NSTARTS_BOOT, blocksize=blocksize
   shell:
     """
-    bgspy bootstrap --fit {input.fit} \
+    bgspy jackknife --fit {input.fit} \
       --B {params.ncores} --blocksize {params.blocksize} \
       --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
