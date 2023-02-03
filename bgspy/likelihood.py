@@ -418,8 +418,10 @@ def random_start_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     Create a random start position, uniform over the bounds for π0
     and μ, and Dirichlet under the DFE weights for W, under the simplex model.
     """
-    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 10**log10_pi0_bounds[1], 1)
-    mu = np.random.uniform(10**log10_mu_bounds[0], 10**log10_mu_bounds[1], 1)
+    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
+                            10**log10_pi0_bounds[1], 1)
+    mu = np.random.uniform(10**log10_mu_bounds[0],
+                           10**log10_mu_bounds[1], 1)
     W = np.empty((nt, nf))
     for i in range(nf):
         W[:, i] = np.random.dirichlet([1.] * nt)
@@ -661,7 +663,7 @@ class BGSLikelihood:
     """
     def __init__(self,
                  Y, w, t, logB, bins=None, features=None,
-                 log10_pi0_bounds=(-5, -1)):
+                 log10_pi0_bounds=PI0_BOUNDS):
         self.w = w
         self.t = t
         if bins is not None:
@@ -1184,27 +1186,41 @@ class FreeMutationModel(BGSLikelihood):
 
 class SimplexModel(BGSLikelihood):
     def __init__(self, Y, w, t, logB, bins=None,
-                 features=None, log10_pi0_bounds=(-5, -1)):
+                 features=None, log10_pi0_bounds=PI0_BOUNDS):
         super().__init__(Y=Y, w=w, t=t, logB=logB,
                          bins=bins, features=features,
                          log10_pi0_bounds=log10_pi0_bounds)
+        self.start_pi0 = None
+        self.start_mu = None
 
     def random_start(self):
         """
         Random starts, on a linear scale for μ and π0.
+
+        Note: if the attributes self.start_pi0 and/or self.start_mu
+        are set, these fixed start points *replace* the corresponding
+        start element in this random array.
         """
-        return random_start_simplex(self.nt, self.nf,
-                                    self.log10_pi0_bounds,
-                                    self.log10_mu_bounds)
+        start = random_start_simplex(self.nt, self.nf,
+                                     self.log10_pi0_bounds,
+                                     self.log10_mu_bounds)
+        if self.start_pi0 is not None:
+            start[0] = self.start_pi0
+        if self.start_mu is not None:
+            start[1] = self.start_mu
+
+        return start
 
     def bounds(self):
         return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds, paired=False)
 
-    def fit(self, starts=1, ncores=None, algo='ISRES', progress=True, _indices=None):
+    def fit(self, starts=1, ncores=None, 
+            algo='GN_ISRES', start_pi0=None, start_mu=None,
+            progress=True, _indices=None):
         """
-        Fit likelihood models with mumeric optimization (using nlopt).
+        Fit likelihood models with numeric optimization (using nlopt).
 
         starts: either an integer number of random starts or a list of starts.
         ncores: number of cores to use for multiprocessing.
@@ -1212,9 +1228,16 @@ class SimplexModel(BGSLikelihood):
         _indices: indices to include in fit; this is primarily internal, for
                   bootstrapping
         """
+        # TODO: now I just directly pass the algo to nlopt, no checking
+        # e.g. for testing. Clean up interface later.
         #algo = algo.upper()
         #algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
         #assert algo in algos, f"algo must be in {algos}"
+
+        if start_pi0 is not None:
+            self.start_pi0 = start_pi0
+        if start_mu is not None:
+            self.start_mu = start_mu
 
         if isinstance(starts, int):
             starts = [self.random_start() for _ in range(starts)]
