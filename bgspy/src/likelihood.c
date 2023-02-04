@@ -57,12 +57,13 @@ double interp_logBw(const double x, const double *w, const double *logB,
  
     //print_Bw(logB, i, j, k, nw, strides); printf("\n");
     //printf("interpolation bounds: [%.3g, %.3g]\n", min_w, max_w);
-    if (x <= min_w && fabs(x - min_w)) {
+    if (x <= min_w) {
         // if mutation is below or equal to the lower threshold return 
-        // first point
-        y = LOGBW_GET(logB, i, 0, j, k, strides);
+        // *zero*, which in log-space is B=1, e.g. no reduction (since 
+        // mutation is sufficiently weak, no effect)
+        //y = LOGBW_GET(logB, i, 0, j, k, strides);
         free(strides);
-        return y;
+        return 0;
     }
     if (x >= max_w && fabs(x - max_w) < MUTMAX_THRESH) {
         // within the max thresh; truncate to last point

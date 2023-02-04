@@ -305,8 +305,10 @@ class GenomeData:
     def load_fasta(self, fasta_file, soft_mask=True):
         """
         Load a FASTA genome reference file, which is used to
-        determine which sites are accessible (e.g. Ns and soft-masked
-        are set as inaccessible).
+        determine which sites are accessible.
+
+        If soft_mask is True, Ns and soft-masked bases
+        are set as inaccessible.
         """
         self.seqs = load_fasta(fasta_file, self.genome.chroms)
         if soft_mask:

@@ -5,6 +5,7 @@ import pickle
 import warnings
 import tqdm.autonotebook as tqdm
 #import tqdm.notebook as tqdm
+from scipy.special import softmax
 from tabulate import tabulate
 from functools import partial
 import numpy as np
@@ -24,7 +25,7 @@ from bgspy.genome import Genome
 from bgspy.data import GenomeData
 from bgspy.utils import signif, load_seqlens
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
-from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker
+from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker, nlopt_softmax_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.bootstrap import process_bootstraps, pivot_ci, percentile_ci
@@ -137,11 +138,11 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         # features -- load for labels
         features = list(gm.segments.feature_map.keys())
 
-	# handle if we're doing B too or just B'
+        # handle if we're doing B too or just B'
         m_b = None
         if gm.Bs is None:
             warnings.warn(f"BGSModel.Bs is not set, so not fitting classic Bs (this is likely okay.)")
-            bp_only = True # this has to be true now, no B
+            bp_only = True  # this has to be true now, no B
 
         # bin Bs
         if not bp_only:
@@ -1001,6 +1002,7 @@ def negll_freemut(Y, B, w, two_alleles=False):
         return negll_c(new_theta, Y, B, w, two_alleles)
     return func
 
+
 def negll_freemut_full(theta, grad, Y, B, w, two_alleles=False):
     """
     Like negll_freemut() but not a closure.
@@ -1015,6 +1017,24 @@ def negll_freemut_full(theta, grad, Y, B, w, two_alleles=False):
     #print("-->", theta, new_theta)
     return negll_c(new_theta, Y, B, w, two_alleles)
 
+
+def negll_softmax_full(theta, grad, Y, B, w):
+    """
+    Softmax version of the simplex model wrapper for negll_c().
+
+    grad is required for nlopt.
+    """
+    nx, nw, nt, nf = B.shape
+    # get out the W matrix, which on the optimization side, is over all reals
+    sm_theta = np.copy(theta)
+    W_reals = theta[2:].reshape(nt, nf)
+    with np.errstate(under='ignore'):
+        W = softmax(W_reals, axis=0)
+    assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
+    sm_theta[2:] = W.flat
+    return negll_c(sm_theta, Y, B, w)
+
+
 def negll_simplex_full(theta, grad, Y, B, w):
     """
     Simplex model wrapper for negll_c().
@@ -1022,6 +1042,7 @@ def negll_simplex_full(theta, grad, Y, B, w):
     grad is required for nlopt.
     """
     return negll_c(theta, Y, B, w)
+
 
 def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
     """
@@ -1247,6 +1268,7 @@ class SimplexModel(BGSLikelihood):
 
     def fit(self, starts=1, ncores=None, 
             algo='GN_ISRES', start_pi0=None, start_mu=None,
+            softmax=False,
             progress=True, _indices=None):
         """
         Fit likelihood models with numeric optimization (using nlopt).
@@ -1283,11 +1305,13 @@ class SimplexModel(BGSLikelihood):
             logB = logB[_indices, ...]
 
         # wrap the negloglik function around the data and B grid
-        nll = partial(negll_simplex_full, Y=Y,
+        negll_func = negll_simplex_full if not softmax else negll_softmax_full
+        nll = partial(negll_func, Y=Y,
                       B=logB, w=self.w)
 
         # make the main simplex worker for parallelization
-        worker = partial(nlopt_simplex_worker,
+        worker_func = nlopt_simplex_worker if not softmax else nlopt_softmax_worker
+        worker = partial(worker_func,
                          func=nll, nt=self.nt, nf=self.nf,
                          log10_W_bounds=np.log10(self.W_bounds),
                          bounds=self.bounds(), algo=algo)

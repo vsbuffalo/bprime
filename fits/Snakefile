@@ -26,7 +26,8 @@ windows = [int(w) for w in config["windows"]]
 blocksize = int(config["blocksize"])
 
 # the data that goes into the likelihood model
-model_data = 'model_data.pkl'
+windows = [100_000, 1_000_000]
+model_data = [f'model_data_{w}.pkl' for w in windows]
 
 rule save_data:
   # only get the data, e.g. for testing, for this model
@@ -34,7 +35,7 @@ rule save_data:
          access_file=access_file, fasta_file=fasta_file,
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
-  output: model_data
+  output: 'model_data_{window}.pkl'
   params: model=model, mu=mu, name=name
   shell:
     """
@@ -43,6 +44,7 @@ rule save_data:
       --model {params.model} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
+      --window {wildcards.window} \
       --fasta {input.fasta_file} \
       --only-data --save-data {output[0]}
     """
@@ -108,18 +110,20 @@ rule loo:
     """
 
 NBOOT_PARALLEL = 100
-all_results = []
+loo_results = []
+mle_results = []
+boots_results = []
 for window in windows:
-  all_results.append(f'window_{window}/mle.pkl')
-  boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
-           b in range(NBOOT_PARALLEL)]
-  all_results.extend(boots)
+  mle_results.append(f'window_{window}/mle.pkl')
+  #boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
+  #         b in range(NBOOT_PARALLEL)]
+  boots_results.extend(boots)
   for chrom in CHROMS:
       loo_r2 = f"window_{window}/loo/loo_r2_{chrom}.npz"
-      all_results.append(loo_r2)
+      loo_results.append(loo_r2)
 
-rule all:
-  input: all_results
+rule fit:
+  input: mle_results
 
 rule data:
   input: model_data

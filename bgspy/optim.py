@@ -169,6 +169,46 @@ def equality_constraint_function(nt, nf, fixed_mu=False):
     return func
 
 
+def nlopt_softmax_worker(start, func, nt, nf, bounds, 
+                         log10_W_bounds, 
+                         constraint_tol=1e-3, xtol_rel=1e-3,
+                         maxeval=1000000, algo='ISRES'):
+    """
+    not for fixed mu (TODO)
+    """
+    # get the nlopt optimiziation routine
+    nlopt_algo = getattr(nlopt, algo)
+    nparams = nt * nf + 2
+
+    opt = nlopt.opt(nlopt_algo, nparams)
+    opt.set_min_objective(func)
+
+    # set the bounds of all parameters
+    nbounds = len(bounds[0])
+    softmax_bounds = [-1e-4] * nbounds, [1e4] * nbounds
+    # pi0
+    softmax_bounds[0][0] = bounds[0][0]
+    softmax_bounds[1][0] = bounds[1][0]
+    # mu
+    softmax_bounds[0][1] = bounds[0][1]
+    softmax_bounds[1][1] = bounds[1][1]
+    lb, ub = softmax_bounds
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
+
+    # set the x relative tolerance
+    opt.set_xtol_rel(xtol_rel)
+
+    # set max number of evaluations
+    opt.set_maxeval(maxeval)
+    assert start.size == nparams
+    mle = opt.optimize(start)
+    nll = opt.last_optimum_value()
+    success = opt.last_optimize_result()
+    return nll, mle, success
+
+
+
 def nlopt_simplex_worker(start, func, nt, nf, bounds, 
                          log10_W_bounds, mu=None,
                          constraint_tol=1e-3, xtol_rel=1e-3,
