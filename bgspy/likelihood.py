@@ -23,7 +23,7 @@ from scipy import interpolate
 from scipy.optimize import minimize
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
-from bgspy.utils import signif, load_seqlens
+from bgspy.utils import signif, load_seqlens, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker, nlopt_softmax_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
@@ -59,13 +59,14 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    model='free',
                    chrom=None,
                    mu=None,
-                   outfile=None,
+                   fit_outfile=None,
                    ncores=70,
                    nstarts=200,
                    loo_nstarts=100,
                    loo_chrom=False,
                    loo_fits_dir=None,
                    save_data=None,
+                   premodel_data=None,
                    only_save_data=True,
                    window=1_000_000, outliers=(0.0, 0.995),
                    recycle_mle=False,
@@ -94,78 +95,93 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             print(*args, **kwargs)
     already_fit = fit_file is not None
     if not already_fit:
-        # infer the genome name if not supplies
-        name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
-        seqlens = load_seqlens(seqlens_file)
-        if chrom is not None:
-            # only include this one chromosome
-            seqlens = {c: l for c, l in seqlens.items() if c == chrom}
-        if only_autos:
-            seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
-        vprint("-- loading genome --")
-        g = Genome(name, seqlens=seqlens)
-        g.load_recmap(recmap_file)
-        gd = GenomeData(g)
-        is_sim = sim_tree_file is not None
-        if counts_dir is not None:
-            assert not is_sim, "set either counts directory or sim tree file"
-            gd.load_counts_dir(counts_dir)
+        #  --------- load data, build summary statistics ----------
+        if not premodel_data:
+            # infer the genome name if not supplies
+            name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
+            seqlens = load_seqlens(seqlens_file)
+            if chrom is not None:
+                # only include this one chromosome
+                seqlens = {c: l for c, l in seqlens.items() if c == chrom}
+            if only_autos:
+                seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
+            vprint("-- loading genome --")
+            g = Genome(name, seqlens=seqlens)
+            g.load_recmap(recmap_file)
+            gd = GenomeData(g)
+            is_sim = sim_tree_file is not None
+            if counts_dir is not None:
+                assert not is_sim, "set either counts directory or sim tree file"
+                gd.load_counts_dir(counts_dir)
+            else:
+                assert counts_dir is None, "set either counts directory or sim tree file"
+                assert chrom is not None, "chrom needs to be specified when loading from a treeseq"
+                assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
+                ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
+                gd.load_counts_from_ts(ts, chrom=chrom)
+
+
+            gd.load_neutral_masks(neut_file)
+            gd.load_accessibile_masks(access_file)
+            gd.load_fasta(fasta_file, soft_mask=True)
+            gd.trim_ends(thresh_cM=thresh_cM)
+
+            # bin the diversity data
+            vprint("-- binning pairwise diversity --")
+            bgs_bins = gd.bin_pairwise_summaries(window,
+                                                 filter_accessible=True,
+                                                 filter_neutral=True)
+
+            del gd  # we don't need it after this, it's summarized
+            # mask bins that are outliers
+            bgs_bins.mask_outliers(outliers)
+
+            # genome models
+            vprint("-- loading Bs --")
+            gm = BGSModel.load(bs_file)
+
+            # features -- load for labels
+            features = list(gm.segments.feature_map.keys())
+
+            # handle if we're doing B too or just B'
+            m_b = None
+            if gm.Bs is None:
+                warnings.warn(f"BGSModel.Bs is not set, so not fitting classic Bs (this is likely okay.)")
+                bp_only = True  # this has to be true now, no B
+
+            # bin Bs
+            if not bp_only:
+                vprint("-- binning B --")
+                b = bgs_bins.bin_Bs(gm.BScores)
+
+            # B' is always fit
+            vprint("-- binning B' --")
+            bp = bgs_bins.bin_Bs(gm.BpScores)
+
+            # get the diversity data
+            vprint("-- making diversity matrix Y --")
+            Y = bgs_bins.Y()
+
+            # save testing data at this point if specified
+            if save_data is not None:
+                vprint("-- saving pre-fit model data --")
+                with open(save_data, 'wb') as f:
+                    dat = {'bgs_bins': bgs_bins, 'Y': Y, 
+                           'bp': bp, 'gm': gm, 'features': features}
+                    if not bp_only:
+                        dat['b'] = b
+                    pickle.dump(dat, f)
+                if only_save_data:
+                    return
         else:
-            assert counts_dir is None, "set either counts directory or sim tree file"
-            assert chrom is not None, "chrom needs to be specified when loading from a treeseq"
-            assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
-            ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
-            gd.load_counts_from_ts(ts, chrom=chrom)
+            # we have pre-model data already crunched we can load!
+            dat = load_pickle(premodel_data)
+            bgs_bins, Y, bp, gm = (dat['bgs_bins'], dat['Y'], 
+                                   dat['bp'], dat['gm'])
+            features = dat['features']
+            b = dat.get('b', None)
 
-
-        gd.load_neutral_masks(neut_file)
-        gd.load_accessibile_masks(access_file)
-        gd.load_fasta(fasta_file, soft_mask=True)
-        gd.trim_ends(thresh_cM=thresh_cM)
-
-        # bin the diversity data
-        vprint("-- binning pairwise diversity --")
-        bgs_bins = gd.bin_pairwise_summaries(window,
-                                             filter_accessible=True,
-                                             filter_neutral=True)
-        # mask bins that are outliers
-        bgs_bins.mask_outliers(outliers)
-
-        # genome models
-        vprint("-- loading Bs --")
-        gm = BGSModel.load(bs_file)
-
-        # features -- load for labels
-        features = list(gm.segments.feature_map.keys())
-
-        # handle if we're doing B too or just B'
-        m_b = None
-        if gm.Bs is None:
-            warnings.warn(f"BGSModel.Bs is not set, so not fitting classic Bs (this is likely okay.)")
-            bp_only = True  # this has to be true now, no B
-
-        # bin Bs
-        if not bp_only:
-            vprint("-- binning B --")
-            b = bgs_bins.bin_Bs(gm.BScores)
-
-        # B' is always fit
-        vprint("-- binning B' --")
-        bp = bgs_bins.bin_Bs(gm.BpScores)
-
-        # get the diversity data
-        vprint("-- making diversity matrix Y --")
-        Y = bgs_bins.Y()
-
-        # save testing data at this point
-        if save_data is not None:
-            vprint("-- saving pre-fit model data --")
-            with open(save_data, 'wb') as f:
-                dat = {'bgs_bins': bgs_bins, 'Y': Y, 'bp': bp, 'gm': gm}
-                pickle.dump(dat, f)
-            if only_save_data:
-                return
-
+        #  --------- fit the model ----------
         if model == 'simplex':
             # fit the simplex model
             if not bp_only:
@@ -209,16 +225,20 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
 
 
-        with open(outfile, 'wb') as f:
-            pickle.dump((m_b, m_bp), f)
+        # save the fitted model
+        obj = {'m_b': m_b, 'm_bp': m_bp}
+        with open(fit_outfile, 'wb') as f:
+            pickle.dump(obj, f)
         vprint("-- model saved --")
 
     else:
-        # model already fit!
+        # model already fit, we load it for downstream stuff 
         with open(fit_file, 'rb') as f:
-            m_b, m_bp = pickle.load(f)
+            obj = pickle.load(f)
+            m_b, m_bp = obj.get('m_b', None), obj['m_bp']  # always expect B'
 
-    # bootstrap if needed -- TODO common code could be refactors to jackknife
+
+    #  --------- bootstrap ----------
     bootstrap = B is not None
     msg = "cannot do both bootstrap and jackknife"
     if bootstrap:
@@ -242,6 +262,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             print("-- bootstrapping results saved --")
             return
 
+    #  --------- jackknife ----------
     jackknife = J is not None
     if jackknife:
         assert B is None, msg
@@ -264,7 +285,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             print("-- jackknife results saved --")
             return
 
-    # estimate LOO R2
+    #  --------- leave-one-out ----------
     if loo_chrom is not False:
         # can be False (don't do LOO), True (do LOO for all chroms), or string
         # chromosome name (do LOO, exluding chromosome)
@@ -288,6 +309,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                                   out_sample_chrom=out_sample_chrom,
                                   loo_fits_dir=loo_fits_dir,
                                   ncores=ncores)
+
         np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
 
 def get_out_sample(idx, n):

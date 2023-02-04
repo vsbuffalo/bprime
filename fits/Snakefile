@@ -26,7 +26,6 @@ windows = [int(w) for w in config["windows"]]
 blocksize = int(config["blocksize"])
 
 # the data that goes into the likelihood model
-windows = [100_000, 1_000_000]
 model_data = [f'model_data_{w}.pkl' for w in windows]
 
 rule save_data:
@@ -40,65 +39,46 @@ rule save_data:
   shell:
     """
     mkdir -p {params.name}
-    bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+    bgspy data --seqlens {input.seqlens} --recmap {input.recmap_file} \
       --model {params.model} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
       --window {wildcards.window} \
       --fasta {input.fasta_file} \
-      --only-data --save-data {output[0]}
+      --output {output[0]}
     """
 
 
 rule fit:
-  input: seqlens=seqlens_file, recmap_file=recmap_file,
-         access_file=access_file, fasta_file=fasta_file,
-         neut_file=neut_file, counts_dir=counts_dir,
-         bs_file=Bs_file
-  output: 'window_{window}/mle.pkl'
+  input: 'model_data_{window}.pkl'
+  output: 'fit_{window}/mle.pkl'
   params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu, name=name
   shell:
     """
     mkdir -p {params.name}
-    bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
+    bgspy fit \
       --model {params.model} --mu {params.mu} \
-      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
-      --access {input.access_file} --bs-file {input.bs_file} \
-      --fasta {input.fasta_file} \
+      --data {input[0]} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
-      --window {wildcards.window} \
-      --outfile {output[0]}
+      --output {output[0]}
     """
 
 rule jackknife:
   # note that this only runs one bootstrap, we set nboot = ncores
-  input: fit='window_{window}/mle.pkl', 
-         seqlens=seqlens_file, recmap_file=recmap_file,
-         access_file=access_file, fasta_file=fasta_file,
-         neut_file=neut_file, counts_dir=counts_dir,
-         bs_file=Bs_file
-  output: 'window_{window}/bootstraps/bootstrap_{boot}.npz'
+  input: fit='fit_{window}/mle.pkl', 
+  output: 'fit_{window}/bootstraps/bootstrap_{boot}.npz'
   params: ncores=NCORES_BOOT, nstarts=NSTARTS_BOOT, blocksize=blocksize
   shell:
     """
     bgspy jackknife --fit {input.fit} \
       --B {params.ncores} --blocksize {params.blocksize} \
-      --seqlens {input.seqlens} --recmap {input.recmap_file} \
-      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
-      --access {input.access_file} --bs-file {input.bs_file} \
-      --fasta {input.fasta_file} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
-      --window {wildcards.window} \
       --outfile {output[0]}
     """
 
 rule loo:
-  input: fit='window_{window}/mle.pkl', 
-         seqlens=seqlens_file, recmap_file=recmap_file,
-         access_file=access_file, fasta_file=fasta_file,
-         neut_file=neut_file, counts_dir=counts_dir,
-         bs_file=Bs_file
-  output: 'window_{window}/loo/loo_r2_{chrom}.npz'
+  input: fit='fit_{window}/mle.pkl', 
+  output: 'fit_{window}/loo/loo_r2_{chrom}.npz'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
@@ -114,15 +94,15 @@ loo_results = []
 mle_results = []
 boots_results = []
 for window in windows:
-  mle_results.append(f'window_{window}/mle.pkl')
+  mle_results.append(f'fit_{window}/mle.pkl')
   #boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
   #         b in range(NBOOT_PARALLEL)]
-  boots_results.extend(boots)
+  #boots_results.extend(boots)
   for chrom in CHROMS:
-      loo_r2 = f"window_{window}/loo/loo_r2_{chrom}.npz"
+      loo_r2 = f"fit_{window}/loo/loo_r2_{chrom}.npz"
       loo_results.append(loo_r2)
 
-rule fit:
+rule mle:
   input: mle_results
 
 rule data:
