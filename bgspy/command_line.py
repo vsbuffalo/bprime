@@ -275,6 +275,8 @@ def data(seqlens, recmap, counts_dir, model, chrom, mu,
 @click.option('--model', required=False, default='free', help='model type',
               type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
 @click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
+@click.option('--softmax', default=False, is_flag=True,
+              help='whether to fit DFE in softmax space')
 @click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--ncores',
@@ -283,10 +285,11 @@ def data(seqlens, recmap, counts_dir, model, chrom, mu,
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
               type=int, default=None)
-def fit(data, model, mu, output, ncores, nstarts):
+def fit(data, model, mu, softmax, output, ncores, nstarts):
     # for fixed mu
     mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     fit_likelihood(model=model, mu=mu,
+                   softmax=softmax,
                    fit_outfile=output, 
                    ncores=ncores,
                    premodel_data=data,

@@ -13,8 +13,10 @@ Use
 to create directories/links for model fitting. Then,
 
     $ cd model_spec 
-    $ bash snakemake_runner.sh -c model_spec.json
+    $ snakemake data -j1 --configfile ./model_spec.json
+    $ snakemake mle -j1 --configfile ./model_spec.json
 
-to run. Note that the JSON files must specify files with 
-an extra `../` since these are run one directory deeper than 
-the JSON files are in.
+to calculate the data summaries and fit the model.
+
+Note that the JSON model specification files must specify files with an extra
+`../` since these are run one directory deeper than the JSON files are in.

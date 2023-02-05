@@ -59,6 +59,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    bs_file=None,
                    model='free',
                    chrom=None,
+                   softmax=False,
                    mu=None,
                    fit_outfile=None,
                    ncores=70,
@@ -185,17 +186,22 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
         #  --------- fit the model ----------
         if model == 'simplex':
             # fit the simplex model
+            algo = 'GN_ISRES' if not softmax else 'LD_LBFGS'
             if not bp_only:
                 vprint("-- fitting B simplex model --")
                 m_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
                                     bins=bgs_bins, features=features)
-                m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+                m_b.fit(starts=nstarts, ncores=ncores, 
+                        softmax=softmax,
+                        algo=algo)
 
             # now to the B'
             vprint("-- fitting B' simplex model --")
             m_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
                                 bins=bgs_bins, features=features)
-            m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+            m_bp.fit(starts=nstarts, ncores=ncores, 
+                     softmax=softmax,
+                     algo=algo)
         elif model == 'fixed':
             assert isinstance(mu, float), "mu must be a float if model='fixed'"
             # fit the simplex model
@@ -364,7 +370,7 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
 
 def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
            log10_mu_bounds=MU_BOUNDS,
-           softmax=False, bounded_softmax=False, global_bound=1e3,
+           softmax=False, bounded_softmax=False, global_bound=1e4,
            paired=False):
     """
     Return the bounds on for optimization under the simplex model

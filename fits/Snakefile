@@ -12,8 +12,8 @@ if machine == 'cluster':
     NCORES_BOOT = 40
     NCORES_LOO = NCORES
 else:
-    NCORES = 70
-    NCORES_BOOT = 70
+    NCORES = 60
+    NCORES_BOOT = 60
     NCORES_LOO = NCORES
 
 
@@ -56,6 +56,21 @@ rule save_data:
       --output {output[0]}
     """
 
+
+rule fit_softmax:
+  input: 'model_data_{window}.pkl'
+  output: 'fit_{window}/mle_softmax.pkl'
+  params: ncores=NCORES, nstarts=10000, model=model, mu=mu, name=name
+  shell:
+    """
+    mkdir -p {params.name}
+    bgspy fit \
+      --model {params.model} --mu {params.mu} \
+      --data {input[0]} \
+      --softmax \
+      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --output {output[0]}
+    """
 
 rule fit:
   input: 'model_data_{window}.pkl'
@@ -103,6 +118,7 @@ mle_results = []
 boots_results = []
 for window in windows:
   mle_results.append(f'fit_{window}/mle.pkl')
+  #mle_results.append(f'fit_{window}/mle_softmax.pkl')
   #boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
   #         b in range(NBOOT_PARALLEL)]
   #boots_results.extend(boots)
