@@ -1,0 +1,30 @@
+name: bprime
+channels: 
+  - conda-forge
+  - anaconda
+  - bioconda
+dependencies:
+  - gsl
+  - msprime>=1.1.1
+  - tskit>=0.4.1
+  - scikit-allel
+  - scipy
+  - seaborn
+  - snakemake
+  - numpy
+  - matplotlib
+  - jupyterlab
+  - tqdm
+  - pandas
+  - statsmodels
+  - pyslim
+  - ipykernel
+  - click
+  - bedtools
+  - bioawk
+  - nlopt
+  - pytest
+  - pyBigWig
+  - pip
+  - pip:
+    - newick

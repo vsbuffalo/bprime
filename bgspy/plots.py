@@ -1,7 +1,8 @@
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-from bgspy.utils import mean_ratio
+from bgspy.utils import mean_ratio, argsort_chroms
 import matplotlib as mpl
 lowess = sm.nonparametric.lowess
 
@@ -207,3 +208,20 @@ def binned_means_plot(df, min_n=None, gen=None,
         ax.errorbar(x, mean, se,
                     fmt='none', c=points.get_edgecolor(), elinewidth=linewidth)
     return fig, ax
+
+
+def chrom_resid_plot(obj, figax=None):
+    fig, ax = get_figax(figax)
+    df = pd.DataFrame(dict(chrom=obj.bins.chroms(), resid=obj.resid()))
+
+    # clean up the chrom order
+    df = df.iloc[argsort_chroms(df['chrom'])]
+    sd = df['resid'].std()
+
+    grpd = {c: d['resid'].values for c, d in df.groupby('chrom')}
+    chroms = df['chrom'].unique()
+    resids = [grpd[chrom] / sd for chrom in chroms]
+    _ = ax.boxplot(resids, labels=[x.replace('chr', '') for x in chroms])
+    ax.axhline(0, c='0.66')
+    return fig, ax
+

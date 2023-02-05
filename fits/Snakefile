@@ -1,13 +1,21 @@
 # main annotation files
+#
 
-# other params
-NCORES = 40
-NCORES_BOOT = 40
+machine = 'server'
+
 NSTARTS = 1000
 NSTARTS_BOOT = 500
-
-NCORES_LOO = NCORES
 NSTARTS_LOO = 50
+
+if machine == 'cluster':
+    NCORES = 40
+    NCORES_BOOT = 40
+    NCORES_LOO = NCORES
+else:
+    NCORES = 70
+    NCORES_BOOT = 70
+    NCORES_LOO = NCORES
+
 
 CHROMS = [f'chr{x}' for x in range(1, 23)]
 

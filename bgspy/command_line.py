@@ -250,10 +250,8 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
-def data(seqlens, recmap, counts_dir, 
-         model, chrom, mu, neutral, access, fasta,
-         bs_file, output, premodel_data,
-         window, outliers):
+def data(seqlens, recmap, counts_dir, model, chrom, mu, 
+         neutral, access, fasta, bs_file, output, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
     # for fixed mu
     mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
@@ -263,10 +261,8 @@ def data(seqlens, recmap, counts_dir,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file, 
                    model=model, chrom=chrom, mu=mu,
-                   save_data=save_data, only_save_data=only_data,
-                   premodel_data=premodel_data,
-                   ncores=ncores,
-                   nstarts=nstarts, window=window, outliers=outliers)
+                   save_data=output, only_save_data=True,
+                   window=window, outliers=outliers)
 
 # @click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
 #               help="a tree sequence file from a simulation")
@@ -295,58 +291,6 @@ def fit(data, model, mu, output, ncores, nstarts):
                    ncores=ncores,
                    premodel_data=data,
                    nstarts=nstarts)
-
-
-@cli.command()
-@click.option('--seqlens', required=True, type=click.Path(exists=True),
-              help='tab-delimited file of chromosome names and their length')
-@click.option('--recmap', required=True, type=click.Path(exists=True),
-              help='HapMap formatted recombination map')
-@click.option('--counts-dir', required=False, type=click.Path(exists=True),
-              help='directory to Numpy .npy per-basepair counts')
-@click.option('--model', required=False, default='free', help='model type',
-              type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
-@click.option('--chrom', default=None, help='fit only on specified chromosome')
-@click.option('--neutral', required=True, type=click.Path(exists=True),
-              help='neutral region BED file')
-@click.option('--access', required=True, type=click.Path(exists=True),
-              help='accessible regions BED file (e.g. no centromeres)')
-@click.option('--fasta', required=True, type=click.Path(exists=True),
-              help='FASTA reference file (e.g. to mask Ns and lowercase'+
-                   '/soft-masked bases')
-@click.option('--bs-file', required=True, type=click.Path(exists=True),
-              help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--outfile', default=None, type=click.Path(dir_okay=False, writable=True),
-              help="pickle file for results")
-@click.option('--ncores',
-              help='number of cores to use for multi-start optimization',
-              type=int, default=None)
-@click.option('--nstarts',
-              help='number of starts for multi-start optimization',
-              type=int, default=None)
-@click.option('--window',
-              help='size (in basepairs) of the window',
-              type=int, default=1_000_000)
-@click.option('--outliers',
-              help='quantiles for trimming bin π',
-              type=str, default='0.0,0.995')
-def data(seqlens, recmap, counts_dir, 
-           model, chrom, mu, neutral, access, fasta,
-           bs_file, outfile, ncores, nstarts, window, outliers):
-    outliers = tuple([float(x) for x in outliers.split(',')])
-    # for fixed mu
-    mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
-    if not only_data:
-        assert outfile is not None, "--outfile must be set (unless --only-data)!"
-    fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, 
-                   neut_file=neutral,
-                   access_file=access, fasta_file=fasta,
-                   bs_file=bs_file, 
-                   model=model, chrom=chrom, mu=mu,
-                   outfile=outfile, 
-                   ncores=ncores,
-                   nstarts=nstarts, window=window, outliers=outliers)
 
 
 @cli.command()
@@ -444,7 +388,7 @@ def jackknife(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
                    bp_only=only_bp,
                    bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
                    nstarts=nstarts, window=window, outliers=outliers,
-                   B=b, blocksize=blocksize, recycle_mle=True)
+                   J=j, blocksize=blocksize, recycle_mle=True)
 
 
 

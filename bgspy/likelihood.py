@@ -28,6 +28,7 @@ from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker, nlopt_softmax_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
+from bgspy.plots import chrom_resid_plot
 from bgspy.bootstrap import process_bootstraps, pivot_ci, percentile_ci
 from bgspy.models import BGSModel
 from bgspy.sim_utils import mutate_simulated_tree
@@ -964,6 +965,9 @@ class BGSLikelihood:
     def diagnostic_plots(self):
         return model_diagnostic_plots(self)
 
+    def chrom_resid_plot(self, figax=None):
+        return chrom_resid_plot(self, figax)
+
     def predict_plot(self, chrom, ratio=True, label='prediction', figax=None):
         return predict_chrom_plot(self, chrom, ratio=ratio,
                                   label=label, figax=figax)
@@ -1303,9 +1307,11 @@ class SimplexModel(BGSLikelihood):
         """
         # TODO: now I just directly pass the algo to nlopt, no checking
         # e.g. for testing. Clean up interface later.
-        #algo = algo.upper()
-        #algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
-        #assert algo in algos, f"algo must be in {algos}"
+        algo = algo.upper()
+        algos = {'ISRES':'GN_ISRES'}
+        assert algo in algos, f"algo must be in {algos}"
+
+        algo = algos.get(algo, algo)
 
         if start_pi0 is not None:
             self.start_pi0 = start_pi0

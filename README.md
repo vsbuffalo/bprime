@@ -1,7 +1,18 @@
 
 
-mamba create -n bprime tensorflow-gpu keras numpy scipy statsmodels matplotlib click scikit-learn pandas msprime slim pyslim jupyterlab tqdm scikit-allel bedtools
 
+## Installation
+
+    mamba env create -f envs/bprime_dev.yml
+    conda activate bprime
+
+The `newick` package is not available through conda (grr!) and must be installed
+with:
+
+     ~/miniconda3/envs/bprime/bin/pip  install newick
+
+Note I use the full path to `pip`; I had some issues with the wrong `pip` being 
+used.
 
 ## The B Map Human Simulations
 

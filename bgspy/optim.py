@@ -42,7 +42,8 @@ def run_optims(workerfunc, starts, progress=True, ncores=50):
     if ncores > 1:
         with multiprocessing.Pool(ncores) as p:
             if progress:
-                res = list(tqdm.tqdm(p.imap(workerfunc, starts), total=nstarts))
+                res = list(tqdm.tqdm(p.imap(workerfunc, starts),
+                                     total=nstarts))
             else:
                 res = list(p.imap(workerfunc, starts))
     else:
