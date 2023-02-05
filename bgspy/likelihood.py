@@ -364,18 +364,27 @@ def bounds_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
 
 def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
            log10_mu_bounds=MU_BOUNDS,
+           softmax=False, bounded_softmax=False, global_bound=1e3,
            paired=False):
     """
     Return the bounds on for optimization under the simplex model
     model. If paired=True, the bounds are zipped together for each
     parameter.
+
+    If softmax=True, all W entries are in the reals, with bounds
+    -Inf, Inf. If a global optimization algorithm is being used,
+    bounded_softmax should be set to True; a high bound is chosen,
+    assuming that things are started on N(0, 1).
     """
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
     l += [10**log10_mu_bounds[0]]
     u += [10**log10_mu_bounds[1]]
-    l += [0.]*nf*nt
-    u += [1.]*nf*nt
+    softmax_bound = np.inf if not bounded_softmax else global_bound
+    lval = 0 if not softmax else -softmax_bound
+    uval = 1 if not softmax else softmax_bound
+    l += [lval]*nf*nt
+    u += [uval]*nf*nt
     lb = np.array(l)
     ub = np.array(u)
     assert np.all(lb < ub)
@@ -437,7 +446,7 @@ def random_start_mutation_log10(nt, nf,
 
 
 def random_start_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
-                         log10_mu_bounds=MU_BOUNDS):
+                         log10_mu_bounds=MU_BOUNDS, softmax=False):
     """
     Create a random start position, uniform over the bounds for π0
     and μ, and Dirichlet under the DFE weights for W, under the simplex model.
@@ -446,6 +455,15 @@ def random_start_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
                             10**log10_pi0_bounds[1], 1)
     mu = np.random.uniform(10**log10_mu_bounds[0],
                            10**log10_mu_bounds[1], 1)
+
+    nparams = nt*nf + 2
+    theta = np.empty(nparams)
+    if softmax:
+        theta[0] = pi0
+        theta[1] = mu
+        theta[2:] = np.random.normal(0, 1, nt*nf)
+        return theta
+
     W = np.empty((nt, nf))
     for i in range(nf):
         W[:, i] = np.random.dirichlet([1.] * nt)
@@ -1240,6 +1258,12 @@ class SimplexModel(BGSLikelihood):
     BGSLikelihood Model with the DFE matrix W on a simplex, free 
     π0 and free μ (within bounds).
 
+    There are two main way to parameterize the simplex for optimization.
+
+      1. No reparameterization: 0 < W < 1
+      2. Softmax: the columns of W are optimized over all reals,
+          and mapped to the simplex space with softmax.
+
     Note that the B grid sets the bounds around μW, since this product
     cannot fall outside the interpolation range. For bounded μ,
     this implies a lower and upper DFE 
@@ -1248,9 +1272,10 @@ class SimplexModel(BGSLikelihood):
 
     l/μ_upper < W < u/μ_lower
 
-    Then, we add the further constrain in nlopt_simplex_worker
-    that 0 < W < 1. So, this imposes an effective lower bound 
-    that l/μ_upper < W < min(1, u/μ_lower)
+    The C likelihood routine will always return B=1 when w is 
+    below the lower interpolation point (corresponding to w≈0). So
+    the lower bound doesn't need to be set. 
+
     """
     def __init__(self, Y, w, t, logB, bins=None,
                  features=None, 
@@ -1270,7 +1295,7 @@ class SimplexModel(BGSLikelihood):
         assert self.W_bounds[0] <= 1
 
 
-    def random_start(self):
+    def random_start(self, softmax=False):
         """
         Random starts, on a linear scale for μ and π0.
 
@@ -1280,7 +1305,8 @@ class SimplexModel(BGSLikelihood):
         """
         start = random_start_simplex(self.nt, self.nf,
                                      self.log10_pi0_bounds,
-                                     self.log10_mu_bounds)
+                                     self.log10_mu_bounds, 
+                                     softmax=softmax)
         if self.start_pi0 is not None:
             start[0] = self.start_pi0
         if self.start_mu is not None:
@@ -1288,9 +1314,13 @@ class SimplexModel(BGSLikelihood):
 
         return start
 
-    def bounds(self):
-        return bounds_simplex(self.nt, self.nf, self.log10_pi0_bounds,
-                              self.log10_mu_bounds, paired=False)
+    def bounds(self, softmax=False, global_bound=False):
+        return bounds_simplex(self.nt, self.nf, 
+                              self.log10_pi0_bounds,
+                              self.log10_mu_bounds, 
+                              softmax=softmax,
+                              global_bound=global_bound,
+                              paired=False)
 
     def fit(self, starts=1, ncores=None, 
             algo='GN_ISRES', start_pi0=None, start_mu=None,
@@ -1307,19 +1337,14 @@ class SimplexModel(BGSLikelihood):
         """
         # TODO: now I just directly pass the algo to nlopt, no checking
         # e.g. for testing. Clean up interface later.
-        algo = algo.upper()
-        algos = {'ISRES':'GN_ISRES'}
-        assert algo in algos, f"algo must be in {algos}"
-
-        algo = algos.get(algo, algo)
-
         if start_pi0 is not None:
             self.start_pi0 = start_pi0
         if start_mu is not None:
             self.start_mu = start_mu
 
         if isinstance(starts, int):
-            starts = [self.random_start() for _ in range(starts)]
+            starts = [self.random_start(softmax=softmax) for _
+                      in range(starts)]
 
         if ncores is not None:
             # don't request more cores than we need
@@ -1337,12 +1362,14 @@ class SimplexModel(BGSLikelihood):
         nll = partial(negll_func, Y=Y,
                       B=logB, w=self.w)
 
+        global_bound = algo.startswith('GN')
         # make the main simplex worker for parallelization
         worker_func = nlopt_simplex_worker if not softmax else nlopt_softmax_worker
         worker = partial(worker_func,
                          func=nll, nt=self.nt, nf=self.nf,
                          log10_W_bounds=np.log10(self.W_bounds),
-                         bounds=self.bounds(), algo=algo)
+                         bounds=self.bounds(softmax=softmax, global_bound=global_bound), 
+                         algo=algo)
 
         # run the optimization routine on muliple starts
         res = run_optims(worker, starts, ncores=ncores, progress=progress)
