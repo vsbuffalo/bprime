@@ -674,7 +674,6 @@ def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
 def negll_c(theta, Y, logB, w, two_alleles=False,
-            nonlinear_least_squares=False, 
             version2=True):
     """
     θ is [π0, μ, w11, w12, ...] and should
@@ -698,7 +697,7 @@ def negll_c(theta, Y, logB, w, two_alleles=False,
                           # weird type for dims/strides
                           POINTER(np.ctypeslib.c_intp),
                           POINTER(np.ctypeslib.c_intp),
-                          c_int, c_int)
+                          c_int)
     negloglik_restype = c_double
 
     likclib.negloglik.argtypes = negloglik_argtypes
@@ -709,8 +708,7 @@ def negll_c(theta, Y, logB, w, two_alleles=False,
 
     args = (theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
             logB.ctypes.shape, logB.ctypes.strides,
-            int(two_alleles), 
-            int(nonlinear_least_squares))
+            int(two_alleles))
 
     if not version2:
         return likclib.negloglik(*args)
@@ -1142,8 +1140,7 @@ def negll_softmax_full(theta, grad, Y, B, w, least_squares):
         W = softmax(W_reals, axis=0)
     assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
     sm_theta[2:] = W.flat
-    return negll_c(sm_theta, Y, B, w, 
-                   nonlinear_least_squares=least_squares)
+    return negll_c(sm_theta, Y, B, w)
 
 
 def negll_simplex_full(theta, grad, Y, B, w, least_squares):
@@ -1152,7 +1149,7 @@ def negll_simplex_full(theta, grad, Y, B, w, least_squares):
 
     grad is required for nlopt.
     """
-    return negll_c(theta, Y, B, w, nonlinear_least_squares=least_squares)
+    return negll_c(theta, Y, B, w)
 
 
 def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):

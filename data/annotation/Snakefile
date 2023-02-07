@@ -363,6 +363,7 @@ cons = ["conserved_phastcons.bed.gz",
         # full-coverage feature tracks
         "conserved_cds_utrs_phastcons_full.bed.gz",
         "conserved_cds_utrs_regulatory_phastcons_full.bed.gz",
+        "conserved_cds_phastcons_full.bed.gz",
 
         # with introns
         "conserved_cds_utrs_introns_phastcons.bed.gz",
@@ -477,6 +478,17 @@ rule conserved_cds_utrs_regulatory_phastcons_simplified:
       --bedfile {input.regulatory}  \
       --bed phastcons {input.phastcons} | \
       gzip > {output}
+    """
+
+
+rule conserved_cds_phastcons_full:
+  # not based on the simplified phastcons track!
+  input: cons="conserved_cds_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_cds_phastcons_full.bed.gz"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > conserved_cds_phastcons_complement.bed
+    (cat conserved_cds_phastcons_complement.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
 

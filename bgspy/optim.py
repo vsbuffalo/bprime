@@ -19,13 +19,17 @@ NL_OPT_CODES = {1:'success', 2:'stopval reached', 3:'ftol reached',
 
 
 def extract_opt_info(x):
+    """
+    General function that for both scipy and nlopt.
+    """
     is_scipy = hasattr(x, 'fun')
     if is_scipy:
         nll, res, success = x.fun, x.x, x.success
         success = -1 if not success else 1
     else:
         nll, res, success = x
-        assert success in NL_OPT_CODES.keys()
+        # 0 case is the try/except around nlopt.optimize
+        assert success == 0 or success in NL_OPT_CODES.keys()
     return nll, res, success
 
 def array_all(x):
@@ -33,7 +37,7 @@ def array_all(x):
 
 def run_optims(workerfunc, starts, progress=True, ncores=50):
     """
-    Parallel optiomization.
+    Parallel optimization.
 
     Returns an OptimResult, which contains all the optimizations
     from each random start.

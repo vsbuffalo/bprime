@@ -160,21 +160,25 @@ maps = [
 
         ## same as above, but denser grid
         "bmap_hg38_12x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
+
+        "bmap_hg38_12x7grid_10000step_10000N_cds_phastcons.pkl",
+        "bmap_hg38_12x7grid_10000step_10000N_cds_phastcons.pkl",
+        "bmap_hg38_12x7grid_10000step_10000N_cds_phastcons_full.pkl",
  
         # with regulatory elements (and simplified phastcons)
-        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_regulatory_phastcons.pkl",
+        #"bmap_hg38_6x7grid_10000step_10000N_cds_utrs_regulatory_phastcons.pkl",
 
         ## unlabelled types -- currently only N=10k
-        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
+        #"bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_merged.pkl",
 
         ## merged CDS+phastcons for simple sim checks
         "bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl",
 
         ## for checking empirical ratchet convergence
-	"bmap_hg37_ratchet_10000step_10000N_cds_utrs_phastcons.pkl",
+        #"bmap_hg37_ratchet_10000step_10000N_cds_utrs_phastcons.pkl",
 
         ## this includes a strong selection class -- full spectrum
-	"bmap_hg37_fullsel_10000step_10000N_cds_utrs_phastcons.pkl"
+        #"bmap_hg38_fullsel_10000step_10000N_cds_utrs_phastcons.pkl"
         ]
 
 rescaled_sims = []

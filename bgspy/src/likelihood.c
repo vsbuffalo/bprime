@@ -196,27 +196,6 @@ double negloglik(const double *theta,
     return -ll;
 }
 
-/*
-void check_Wjk(double Wjk, ssize_t j, ssize_t k, ssize_t nf) {
-    if (isnan(Wjk)) {
-        printf("ERROR: W_GET(W, j=%ld, k=%ld, nf=%ld) is returning NaN\n", 
-                j, k, nf);
-    }
-} */
-/*
-int check_Binterpol(double y, const double *theta, ssize_t nW,
-        ssize_t i, ssize_t j, ssize_t k, double Wjk) {
-    if (isnan(y)) {
-        printf("NaN interpolated B! theta=[");
-        print_theta(theta, 2+nW);
-        printf("]");
-        printf("i=%ld, j=%ld, k=%ld | Wjk=%g,", i, j, k, Wjk);
-        return 0;
-    }
-    return 1;
-}
- */
-
 double negloglik2(const double *theta,
                  const double *nS, const double *nD, 
                  const double *logB, 
