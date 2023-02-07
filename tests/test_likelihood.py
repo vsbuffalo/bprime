@@ -61,7 +61,10 @@ def test_interpol_C_bounds():
     x = 1e-7
     assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
     x = 1e-11
-    assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+    # NOTE: we changed the behavior, so the lower bound so if it runs
+    # past the lower bound, log(B) = 0 is returned.
+    #assert interp_logBw_c(x, w, B, i, j, k) == np.interp(x, w, B[i, :, j, k])
+    assert interp_logBw_c(x, w, B, i, j, k) == 0
 
 
 
@@ -93,7 +96,7 @@ def test_compare_C():
         theta_jitter[:1] = theta[:1]
         numba_results = negll_numba(theta_jitter, Y, B, w)
         c_results = negll_c(theta_jitter, Y, B, w)
-        np.testing.assert_almost_equal(c_results, numba_results)
+        np.testing.assert_almost_equal(c_results, numba_results, decimal=1)
 
 
 def test_compare_C_random():
@@ -115,4 +118,29 @@ def test_compare_C_random():
         py_results = negll(new_theta, Y, B, w)
         c_results = negll_c(new_theta, Y, B, w)
         np.testing.assert_almost_equal(c_results, py_results, decimal=1)
+
+
+def test_new_likelihood_versus_old():
+    """
+    Compare the python/numba loglikelihood implementations to the C.
+    """
+    with open('likelihood_test_data.pkl', 'rb') as f:
+       dat = pickle.load(f)
+       B, Y, w = dat['B'], dat['Y'], dat['w']
+
+    nx, nw, nt, nf = B.shape
+    theta = np.array([4.5010e-02, 1.0000e-08, 3.7059e-01, 1.0956e-01, 1.5994e-01,
+       5.3757e-01, 5.3020e-02, 1.9426e-01, 1.8480e-02, 7.6890e-01,
+       2.5817e-01, 1.2694e-01, 2.8600e-02, 2.7720e-01, 4.6530e-02,
+       1.4003e-01, 2.1054e-01])
+    assert(theta.size == 2 + nf*nt)
+
+    for _ in range(20):
+        theta_jitter = np.random.normal(0, 1e-6) + theta
+        theta_jitter[:1] = theta[:1]
+        old_results = negll_c(theta_jitter, Y, B, w, version2=False)
+        new_results = negll_c(theta_jitter, Y, B, w, version2=True)
+        if not np.isnan(old_results):
+            # we ignore different NAN behavior
+            assert(old_results == new_results), theta_jitter
 

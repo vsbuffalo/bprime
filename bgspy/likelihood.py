@@ -334,6 +334,29 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
 
         np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
 
+def negll_numba(theta, Y, logB, w):
+    """
+    DEPRECATED: This is only used for testing against new, faster C
+    implementations. The name is because this used to bet sped up with
+    numba.
+    """
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, mu, W = theta[0], theta[1], theta[2:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    ll = 0.
+    for i in range(nx):
+        logBw_i = 0.
+        for j in range(nt):
+            for k in range(nf):
+                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+        log_pibar = np.log(pi0) + logBw_i
+        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
+    return -ll
+
 def get_out_sample(idx, n):
     """
     Get the bootstrap indices that randomly weren't sampled.
@@ -651,7 +674,8 @@ def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
 def negll_c(theta, Y, logB, w, two_alleles=False,
-            nonlinear_least_squares=False, use_new=False):
+            nonlinear_least_squares=False, 
+            version2=True):
     """
     θ is [π0, μ, w11, w12, ...] and should
     have dimension (nt x nf) + 2
@@ -688,7 +712,7 @@ def negll_c(theta, Y, logB, w, two_alleles=False,
             int(two_alleles), 
             int(nonlinear_least_squares))
 
-    if not use_new:
+    if not version2:
         return likclib.negloglik(*args)
     else:
         return likclib.negloglik2(*args)

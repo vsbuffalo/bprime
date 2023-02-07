@@ -126,8 +126,7 @@ double negloglik(const double *theta,
                  const double *w,
                  const ssize_t *logB_dim, 
                  const ssize_t *logB_strides,
-                 const int two_alleles,
-                 const int gauss_nls) {
+                 const int two_alleles) {
 
     ssize_t nx = logB_dim[0]; 
     ssize_t nw = logB_dim[1];
@@ -187,28 +186,23 @@ double negloglik(const double *theta,
         //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
         
         // compute the final likelihood for this window
-        if (!gauss_nls) 
-            ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
-        else {
-            double obs_pi = nD[i] / (nS[i] + nD[i]);
-            double pi = exp(log_pi);
-            //ll += pow(obs_pi - pi, 2.);
-            ll += pow(obs_pi - pi, 2.);
-        }
+        double obs_pi = nD[i] / (nS[i] + nD[i]);
+        double pi = exp(log_pi);
+        //ll += pow(obs_pi - pi, 2.);
+        ll += pow(obs_pi - pi, 2.);
     }
     free(W);
     fflush(stdout);
-    if (!gauss_nls)
-        return -ll;
-    return ll;
+    return -ll;
 }
 
+/*
 void check_Wjk(double Wjk, ssize_t j, ssize_t k, ssize_t nf) {
     if (isnan(Wjk)) {
         printf("ERROR: W_GET(W, j=%ld, k=%ld, nf=%ld) is returning NaN\n", 
                 j, k, nf);
     }
-}
+} */
 /*
 int check_Binterpol(double y, const double *theta, ssize_t nW,
         ssize_t i, ssize_t j, ssize_t k, double Wjk) {
@@ -229,8 +223,7 @@ double negloglik2(const double *theta,
                  const double *w,
                  const ssize_t *logB_dim, 
                  const ssize_t *logB_strides,
-                 const int two_alleles,
-                 const int gauss_nls) {
+                 const int two_alleles) {
 
     ssize_t nx = logB_dim[0]; 
     ssize_t nw = logB_dim[1];
@@ -273,20 +266,30 @@ double negloglik2(const double *theta,
             double x = mu*Wjk;
             if (x <= min_w) {
                 w_idx[offset] = -1;
+                break;
             } else if (x >= max_w) {
+                if (x > max_w && fabs(x - max_w) > MUTMAX_THRESH) {
+                    printf("ERROR: x=%g out past max (with tolerance %g) (bounds: [%g, %g], max diff: %g)\n", 
+                            x, MUTMAX_THRESH, min_w, max_w, fabs(max_w - x));
+                    free(strides);
+                    return NAN;
+                }
                 w_idx[offset] = -2;
+                break;
             } else {
                 for (ssize_t l=0; l < nw-1; l++) {
                     // this is a O(n) search, we could use bisect to make this
                     // faster
                     if ((w[l] <= x) && (x < w[l+1])) {
                         w_idx[offset] = l;
+                        break;
                     }
                 }
             }
         }
     }
 
+    double log_pi0 = log(pi0);
     for (ssize_t i=0; i < nx; i++) {
         logBw_i = 0.; // initialize start of sum
         for (ssize_t j=0; j < nt; j++) {
@@ -299,8 +302,7 @@ double negloglik2(const double *theta,
                 if (wi == -1) {
                     // we're past the lowest mutation rate; assume that
                     // mutation and the DFE are so weak that there's no
-                    // reduction, e.g. log(B) = 0
-                    logBw_i += 0;
+                    // reduction, e.g. log(B) = 0, so do nothing
                 } else if (wi == -2) {
                     // we're past the end, use the endpoint B
                     // TODO check for far out out of bounds
@@ -316,9 +318,11 @@ double negloglik2(const double *theta,
                 //printf("new: %g, old: %g\n", logBw_i, Binc);
             }
         }
-        log_pi = log(pi0) + logBw_i;
+        log_pi = log_pi0 + logBw_i;
         ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
     }
+
+    free(w_idx);
     free(W);
     free(strides);
     fflush(stdout);
