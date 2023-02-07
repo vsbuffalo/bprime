@@ -260,7 +260,7 @@ def data(seqlens, recmap, counts_dir, model, chrom, mu,
                    neut_file=neutral,
                    access_file=access, fasta_file=fasta,
                    bs_file=bs_file, 
-                   model=model, chrom=chrom, mu=mu,
+                   model=model, fit_chrom=chrom, mu=mu,
                    save_data=output, only_save_data=True,
                    window=window, outliers=outliers)
 

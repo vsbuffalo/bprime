@@ -33,7 +33,6 @@ from bgspy.bootstrap import process_bootstraps, pivot_ci, percentile_ci
 from bgspy.models import BGSModel
 from bgspy.sim_utils import mutate_simulated_tree
 
-
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
 likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
@@ -58,7 +57,8 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                    neut_file=None, access_file=None, fasta_file=None,
                    bs_file=None,
                    model='free',
-                   chrom=None,
+                   sim_chrom=None,
+                   fit_chrom=None,
                    softmax=False,
                    mu=None,
                    fit_outfile=None,
@@ -91,6 +91,11 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
     Note: when both B and B' are pickled as a tuple, it is always in this order.
 
     name: if None, inferred from seqlens file, e.g. '<name>_seqlens.tsv'
+
+    NOTE: this is quite a long function, and should in the future be
+    refactored. However, I have kept as-is since results that 
+    take a long time to compute depend on this version.
+
     """
     def vprint(*args, **kwargs):
         if verbose:
@@ -102,9 +107,6 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
             # infer the genome name if not supplies
             name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
             seqlens = load_seqlens(seqlens_file)
-            if chrom is not None:
-                # only include this one chromosome
-                seqlens = {c: l for c, l in seqlens.items() if c == chrom}
             if only_autos:
                 seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
             vprint("-- loading genome --")
@@ -117,10 +119,10 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                 gd.load_counts_dir(counts_dir)
             else:
                 assert counts_dir is None, "set either counts directory or sim tree file"
-                assert chrom is not None, "chrom needs to be specified when loading from a treeseq"
+                assert sim_chrom is not None, "sim_chrom needs to be specified when loading from a treeseq"
                 assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
                 ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
-                gd.load_counts_from_ts(ts, chrom=chrom)
+                gd.load_counts_from_ts(ts, chrom=sim_chrom)
 
 
             gd.load_neutral_masks(neut_file)
@@ -193,6 +195,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                                     bins=bgs_bins, features=features)
                 m_b.fit(starts=nstarts, ncores=ncores, 
                         softmax=softmax,
+                        chrom=fit_chrom,
                         algo=algo)
 
             # now to the B'
@@ -201,6 +204,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                                 bins=bgs_bins, features=features)
             m_bp.fit(starts=nstarts, ncores=ncores, 
                      softmax=softmax,
+                     chrom=fit_chrom,
                      algo=algo)
         elif model == 'fixed':
             assert isinstance(mu, float), "mu must be a float if model='fixed'"
@@ -209,13 +213,17 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                 vprint("-- fitting B fixed model --")
                 m_b = FixedMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
                                          bins=bgs_bins, features=features)
-                m_b.fit(starts=nstarts, mu=mu, ncores=ncores, algo='ISRES')
+                m_b.fit(starts=nstarts, mu=mu, 
+                        chrom=fit_chrom,
+                        ncores=ncores, algo='ISRES')
 
             # now to the B'
             vprint("-- fitting B' fixed model --")
             m_bp = FixedMutationModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
                                       bins=bgs_bins, features=features)
-            m_bp.fit(starts=nstarts, mu=mu, ncores=ncores, algo='ISRES')
+            m_bp.fit(starts=nstarts, mu=mu, 
+                     chrom=fit_chrom,
+                     ncores=ncores, algo='ISRES')
         else:
             # free mutation / default
             # fit the simplex model
@@ -223,13 +231,17 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
                 vprint("-- fitting B free model --")
                 m_b = FreeMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
                                         bins=bgs_bins, features=features)
-                m_b.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+                m_b.fit(starts=nstarts, 
+                        chrom=fit_chrom,
+                        ncores=ncores, algo='ISRES')
 
             # now to the B'
             vprint("-- fitting B' free model --")
             m_bp = FreeMutationModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
                                      bins=bgs_bins, features=features)
-            m_bp.fit(starts=nstarts, ncores=ncores, algo='ISRES')
+            m_bp.fit(starts=nstarts, 
+                     chrom=fit_chrom,
+                     ncores=ncores, algo='ISRES')
 
 
         # save the fitted model
@@ -249,6 +261,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
     bootstrap = B is not None
     msg = "cannot do both bootstrap and jackknife"
     if bootstrap:
+        assert fit_chrom is None, "cannot set fit_chrom"
         assert J is None, msg
         vprint('note: recycling MLE for bootstrap')
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
@@ -272,6 +285,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
     #  --------- jackknife ----------
     jackknife = J is not None
     if jackknife:
+        assert fit_chrom is None, "cannot set fit_chrom"
         assert B is None, msg
         vprint('note: recycling MLE for jackknife')
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
@@ -294,6 +308,7 @@ def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
 
     #  --------- leave-one-out ----------
     if loo_chrom is not False:
+        assert fit_chrom is None, "cannot set fit_chrom"
         # can be False (don't do LOO), True (do LOO for all chroms), or string
         # chromosome name (do LOO, exluding chromosome)
         starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
@@ -386,6 +401,10 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     u = [10**log10_pi0_bounds[1]]
     l += [10**log10_mu_bounds[0]]
     u += [10**log10_mu_bounds[1]]
+    # if we use softmax, it should technically be unbounded
+    # but this handles the case where global optimization is used,
+    # which nlopt requires bounds for -- we set these to something
+    # relatively large
     softmax_bound = np.inf if not bounded_softmax else global_bound
     lval = 0 if not softmax else -softmax_bound
     uval = 1 if not softmax else softmax_bound
@@ -557,6 +576,7 @@ def R2(x, y):
 
 def penalized_negll_c(theta, Y, logB, w, mu0, r):
     """
+    EXPERIMENTAL
     A thin wrapper over negll_c() that imposes a penalty of the form:
 
      l*(θ) = l(θ | x) - r (μ - μ0)^2 / 2
@@ -630,7 +650,8 @@ def negll_mutation(theta, Y, logB, w):
 def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
-def negll_c(theta, Y, logB, w, two_alleles=False):
+def negll_c(theta, Y, logB, w, two_alleles=False,
+            nonlinear_least_squares=False, use_new=False):
     """
     θ is [π0, μ, w11, w12, ...] and should
     have dimension (nt x nf) + 2
@@ -647,16 +668,31 @@ def negll_c(theta, Y, logB, w, two_alleles=False):
     theta_ptr = theta.ctypes.data_as(POINTER(c_double))
     logB_ptr = logB.ctypes.data_as(POINTER(c_double))
     w_ptr = w.ctypes.data_as(POINTER(c_double))
-    likclib.negloglik.argtypes = (POINTER(c_double), POINTER(c_double),
-                              POINTER(c_double), POINTER(c_double),
-                              POINTER(c_double),
-                              # weird type for dims/strides
-                              POINTER(np.ctypeslib.c_intp),
-                              POINTER(np.ctypeslib.c_intp),
-                              c_int)
-    likclib.negloglik.restype = c_double
-    return likclib.negloglik(theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
-                             logB.ctypes.shape, logB.ctypes.strides, int(two_alleles))
+    negloglik_argtypes = (POINTER(c_double), POINTER(c_double),
+                          POINTER(c_double), POINTER(c_double),
+                          POINTER(c_double),
+                          # weird type for dims/strides
+                          POINTER(np.ctypeslib.c_intp),
+                          POINTER(np.ctypeslib.c_intp),
+                          c_int, c_int)
+    negloglik_restype = c_double
+
+    likclib.negloglik.argtypes = negloglik_argtypes
+    likclib.negloglik.restype = negloglik_restype
+
+    likclib.negloglik2.argtypes = negloglik_argtypes
+    likclib.negloglik2.restype = negloglik_restype
+
+    args = (theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
+            logB.ctypes.shape, logB.ctypes.strides,
+            int(two_alleles), 
+            int(nonlinear_least_squares))
+
+    if not use_new:
+        return likclib.negloglik(*args)
+    else:
+        return likclib.negloglik2(*args)
+
 
 def predict_simplex(theta, logB, w, mu=None):
     """
@@ -1068,7 +1104,7 @@ def negll_freemut_full(theta, grad, Y, B, w, two_alleles=False):
     return negll_c(new_theta, Y, B, w, two_alleles)
 
 
-def negll_softmax_full(theta, grad, Y, B, w):
+def negll_softmax_full(theta, grad, Y, B, w, least_squares):
     """
     Softmax version of the simplex model wrapper for negll_c().
 
@@ -1082,16 +1118,17 @@ def negll_softmax_full(theta, grad, Y, B, w):
         W = softmax(W_reals, axis=0)
     assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
     sm_theta[2:] = W.flat
-    return negll_c(sm_theta, Y, B, w)
+    return negll_c(sm_theta, Y, B, w, 
+                   nonlinear_least_squares=least_squares)
 
 
-def negll_simplex_full(theta, grad, Y, B, w):
+def negll_simplex_full(theta, grad, Y, B, w, least_squares):
     """
     Simplex model wrapper for negll_c().
 
     grad is required for nlopt.
     """
-    return negll_c(theta, Y, B, w)
+    return negll_c(theta, Y, B, w, nonlinear_least_squares=least_squares)
 
 
 def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
@@ -1321,16 +1358,16 @@ class SimplexModel(BGSLikelihood):
         return start
 
     def bounds(self, softmax=False, global_bound=False):
-        return bounds_simplex(self.nt, self.nf, 
+        return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
-                              self.log10_mu_bounds, 
+                              self.log10_mu_bounds,
                               softmax=softmax,
                               global_bound=global_bound,
                               paired=False)
 
     def fit(self, starts=1, ncores=None, 
             algo='GN_ISRES', start_pi0=None, start_mu=None,
-            softmax=False,
+            softmax=False, chrom=None, least_squares=False,
             progress=True, _indices=None):
         """
         Fit likelihood models with numeric optimization (using nlopt).
@@ -1358,15 +1395,26 @@ class SimplexModel(BGSLikelihood):
 
         Y = self.Y
         logB = self.logB
+         
+        # if we have pre-specified indices, we're doing 
+        # jackknife or bootstrap
         bootstrap = _indices is not None
         if bootstrap:
+            msg = "currently only whole-genome bootstrap/jackknife supported"
+            assert chrom is None, msg
             Y = Y[_indices, ...]
             logB = logB[_indices, ...]
+
+        if chrom is not None:
+            idx = self.bins.chrom_indices(chrom)
+            Y = Y[idx, ...]
+            logB = logB[idx, ...]
 
         # wrap the negloglik function around the data and B grid
         negll_func = negll_simplex_full if not softmax else negll_softmax_full
         nll = partial(negll_func, Y=Y,
-                      B=logB, w=self.w)
+                      B=logB, w=self.w,
+                      least_squares=least_squares)
 
         global_bound = algo.startswith('GN')
         # make the main simplex worker for parallelization
@@ -1374,7 +1422,8 @@ class SimplexModel(BGSLikelihood):
         worker = partial(worker_func,
                          func=nll, nt=self.nt, nf=self.nf,
                          log10_W_bounds=np.log10(self.W_bounds),
-                         bounds=self.bounds(softmax=softmax, global_bound=global_bound), 
+                         bounds=self.bounds(softmax=softmax, 
+                                            global_bound=global_bound), 
                          algo=algo)
 
         # run the optimization routine on muliple starts
@@ -1383,6 +1432,13 @@ class SimplexModel(BGSLikelihood):
         if bootstrap:
             # we don't clobber the existing results since this ins't a fit.
             return res
+
+        if chrom is not None:
+            obj = copy.copy(self)
+            obj._load_optim(res)
+            obj._chrom_fit = chrom
+            return obj
+
         self._load_optim(res)
 
     @property
@@ -1402,7 +1458,11 @@ class SimplexModel(BGSLikelihood):
     def __repr__(self):
         base_rows = super().__repr__()
         if self.theta_ is not None:
-            base_rows += "\n\nSimplex model ML estimates:\n"
+            base_rows += "\n\nSimplex model ML estimates:"
+            if hasattr(self, '_chrom_fit') and self._chrom_fit is not None:
+                base_rows += f" (chromosome {self._chrom_fit} only)\n"
+            else:
+                base_rows += f" (whole genome)\n"
             base_rows += f"negative log-likelihood: {self.nll_}\n"
             base_rows += f"π0 = {self.mle_pi0}\n"
             base_rows += f"μ = {self.mle_mu}\n"
@@ -1529,5 +1589,4 @@ class FixedMutationModel(BGSLikelihood):
             else:
                 theta = thetas[optim]
         return predict_simplex(theta, self.logB, self.w, mu)
-
 

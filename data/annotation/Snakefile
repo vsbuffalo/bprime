@@ -481,6 +481,7 @@ rule conserved_cds_utrs_regulatory_phastcons_simplified:
 
 
 rule conserved_cds_utrs_phastcons_full:
+  # NOTE: based on the simplified phastcons track!
   input: cons="conserved_cds_utrs_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_utrs_phastcons_full.bed.gz"
   shell:

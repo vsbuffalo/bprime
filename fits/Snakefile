@@ -117,8 +117,8 @@ loo_results = []
 mle_results = []
 boots_results = []
 for window in windows:
-  mle_results.append(f'fit_{window}/mle.pkl')
-  #mle_results.append(f'fit_{window}/mle_softmax.pkl')
+  #mle_results.append(f'fit_{window}/mle.pkl')
+  mle_results.append(f'fit_{window}/mle_softmax.pkl')
   #boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
   #         b in range(NBOOT_PARALLEL)]
   #boots_results.extend(boots)

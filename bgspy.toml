@@ -8,6 +8,9 @@ version = "0.01"
 readme = "README.md"
 requires-python = ">=3.8"
 
+[project.scripts]
+bgspy = "bgspy.command_line:cli"
+
 dependencies = [
     "numpy",
     "scipy"

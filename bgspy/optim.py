@@ -1,3 +1,4 @@
+import warnings
 import multiprocessing
 from collections import Counter
 import numpy as np
@@ -176,7 +177,8 @@ def convert_softmax(theta_sm, nt, nf):
     Given an MLE θ in softmax space for W, convert it back
     """
     theta = np.copy(theta_sm)
-    theta[2:] = softmax(theta[2:].reshape(nt, nf), axis=0).flat
+    with np.errstate(under='ignore'):
+        theta[2:] = softmax(theta[2:].reshape(nt, nf), axis=0).flat
     return theta
 
 
@@ -327,6 +329,10 @@ def optim_diagnotics_plot(fit, top_n=100):
     nt, nf, t = fit.nt, fit.nf, fit.t
     nlls = opt.nlls_
     thetas = opt.thetas_
+    if len(thetas) < top_n:
+        msg = "top_n < number of optimization results, truncating!"
+        warnings.warn(msg)
+        top_n = len(thetas)
     dfes = []
     mu_pi0 = []
     

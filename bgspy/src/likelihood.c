@@ -126,13 +126,14 @@ double negloglik(const double *theta,
                  const double *w,
                  const ssize_t *logB_dim, 
                  const ssize_t *logB_strides,
-                 const int two_alleles) {
+                 const int two_alleles,
+                 const int gauss_nls) {
 
     ssize_t nx = logB_dim[0]; 
     ssize_t nw = logB_dim[1];
     ssize_t nt = logB_dim[2];
     ssize_t nf = logB_dim[3];
-    //printf("dims: nx=%d, nw=%d, nt=%d, nf=%d\n", nx, nw, nt, nf);
+
     double pi0 = theta[0];
     double mu = theta[1];
     ssize_t nW = nt*nf;
@@ -141,21 +142,9 @@ double negloglik(const double *theta,
     double logBw_i;
     double Wjk;
     double ll = 0;
-    //for (int i=0; i<4; i++) printf("-> i=%d, %d", i, strides[i]);
 
-    //for (int i=0; i < 50; i++) printf("   %g\n", logB[i]);
-
-    //for (int i=0; i < 4; i++) printf(" stide %d=%d \n", i, logB_strides[i]);
-    //printf("mu: %g\n", mu);
-
-    /* for (int i=0; i < n_theta; i++) { */
-    /*     printf("theta(i=%d) -> %g\n", i, theta[i]); */
-    /* } */
-
-    /* for (int i=0; i < nW; i++) { */
-    /*     printf("W(i=%d) -> %g\n", i, W[i]); */
-    /* } */
-
+    // iterate through all windows, summing B values
+    // across features and selection coefficients per feature
     //print_theta(theta, 2+nW);
     for (ssize_t i=0; i < nx; i++) {
         logBw_i = 0.; // initialize start of sum
@@ -170,6 +159,8 @@ double negloglik(const double *theta,
                 //printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k, 
                 //       mu, Wjk, mu * Wjk);
                 //
+                // get the B value for this feature and sel coef, 
+                // by interpolating the B value for this mu x DFE
                 double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, logB_strides);
                 if (isnan(Binc)) {
                     printf("NaN Binc! theta=[");
@@ -182,7 +173,7 @@ double negloglik(const double *theta,
                 logBw_i += Binc;
             }
         }
-        //printf("%g, ", logBw[i]);
+
         double log_pi;
         if (two_alleles) {
             double pi = pi0 * exp(logBw_i);
@@ -194,81 +185,143 @@ double negloglik(const double *theta,
         //printf("c log(pi0): %g\n", log(pi0));
         //printf("c nD[%d]=%g, nS[%d]=%g\n", i, nD[i], i, nS[i]);
         //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
-        ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+        
+        // compute the final likelihood for this window
+        if (!gauss_nls) 
+            ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+        else {
+            double obs_pi = nD[i] / (nS[i] + nD[i]);
+            double pi = exp(log_pi);
+            //ll += pow(obs_pi - pi, 2.);
+            ll += pow(obs_pi - pi, 2.);
+        }
     }
     free(W);
     fflush(stdout);
-    return -ll;
+    if (!gauss_nls)
+        return -ll;
+    return ll;
 }
 
-
+void check_Wjk(double Wjk, ssize_t j, ssize_t k, ssize_t nf) {
+    if (isnan(Wjk)) {
+        printf("ERROR: W_GET(W, j=%ld, k=%ld, nf=%ld) is returning NaN\n", 
+                j, k, nf);
+    }
+}
 /*
-double negloglik_freepi0(const double *theta,
-                         const ssize_t nchroms,
-                         const ssize_t *chrom_index,
-                         const double *nS, const double *nD, 
-                         const double *logB, 
-                         const double *w,
-                         const ssize_t *logB_dim, 
-                         const ssize_t *logB_strides) {
-    // TODO in progress
+int check_Binterpol(double y, const double *theta, ssize_t nW,
+        ssize_t i, ssize_t j, ssize_t k, double Wjk) {
+    if (isnan(y)) {
+        printf("NaN interpolated B! theta=[");
+        print_theta(theta, 2+nW);
+        printf("]");
+        printf("i=%ld, j=%ld, k=%ld | Wjk=%g,", i, j, k, Wjk);
+        return 0;
+    }
+    return 1;
+}
+ */
+
+double negloglik2(const double *theta,
+                 const double *nS, const double *nD, 
+                 const double *logB, 
+                 const double *w,
+                 const ssize_t *logB_dim, 
+                 const ssize_t *logB_strides,
+                 const int two_alleles,
+                 const int gauss_nls) {
+
     ssize_t nx = logB_dim[0]; 
     ssize_t nw = logB_dim[1];
     ssize_t nt = logB_dim[2];
     ssize_t nf = logB_dim[3];
-    // allocate the vector of pi0 parameters for each chromosome
-    double *pi0;
-    pi0 = calloc(nchroms, sizeof(double));
-    memcpy(pi0, theta + 1, nchroms * sizeof(double));
+
+    double pi0 = theta[0];
     double mu = theta[1];
     ssize_t nW = nt*nf;
     double *W = calloc(nW, sizeof(double));
-    memcpy(W, theta + 1 + nchroms, nW * sizeof(double));
+    memcpy(W, theta + 2, nW * sizeof(double));
     double logBw_i;
     double Wjk;
     double ll = 0;
-    //for (int i=0; i<4; i++) printf("-> i=%d, %d", i, strides[i]);
+    double log_pi;
 
-    //for (int i=0; i < 50; i++) printf("   %g\n", logB[i]);
+    // variables we need for interpolation in this loop
+    double y1, y2;
+    double min_w = w[0];
+    double max_w = w[nw-1];
+    ssize_t *strides = malloc(4 * sizeof(ssize_t));
+    for (int i=0; i<4; i++) strides[i] = logB_strides[i] / sizeof(double);
+ 
+    // Iterate through all windows, summing B values across features and
+    // selection coefficients per feature
+    //
+    // Note that for each w=μW for a feature/selection combination has the same
+    // index, so this can be found once for a combination and re-used
+   
+    // array (simulating matrix) of the w indices for interpolation
+    int *w_idx = (int *)malloc(nt * nf * sizeof(int));
 
-    //for (int i=0; i < 4; i++) printf(" stide %d=%d \n", i, logB_strides[i]);
-    //printf("mu: %g\n", mu);
+    //int offset = i * nf + j;
+    // Now, get the right indices *once* for this theta.
+    int offset;
+    for (ssize_t j=0; j < nt; j++) {
+        for (ssize_t k=0; k < nf; k++) {
+            Wjk = W_GET(W, j, k, nf);
+            offset = j*nf + k;
+            double x = mu*Wjk;
+            if (x <= min_w) {
+                w_idx[offset] = -1;
+            } else if (x >= max_w) {
+                w_idx[offset] = -2;
+            } else {
+                for (ssize_t l=0; l < nw-1; l++) {
+                    // this is a O(n) search, we could use bisect to make this
+                    // faster
+                    if ((w[l] <= x) && (x < w[l+1])) {
+                        w_idx[offset] = l;
+                    }
+                }
+            }
+        }
+    }
 
-     //print_theta(theta, 2+nW);
     for (ssize_t i=0; i < nx; i++) {
         logBw_i = 0.; // initialize start of sum
         for (ssize_t j=0; j < nt; j++) {
             for (ssize_t k=0; k < nf; k++) {
                 Wjk = W_GET(W, j, k, nf);
-                if (isnan(Wjk)) {
-                    printf("ERROR: W_GET(W, j=%ld, k=%ld, nf=%ld) is returning NaN\n", 
-                            j, k, nf);
+                double x = mu*Wjk;
+
+                offset = j*nf + k;
+                int wi = w_idx[offset];
+                if (wi == -1) {
+                    // we're past the lowest mutation rate; assume that
+                    // mutation and the DFE are so weak that there's no
+                    // reduction, e.g. log(B) = 0
+                    logBw_i += 0;
+                } else if (wi == -2) {
+                    // we're past the end, use the endpoint B
+                    // TODO check for far out out of bounds
+                    logBw_i += LOGBW_GET(logB, i, nw-1, j, k, strides);
+                } else {
+                    //assert(w_idx >= 0);
+                    //assert(w_idx < nw);
+                    y1 = LOGBW_GET(logB, i, wi,   j, k, strides);
+                    y2 = LOGBW_GET(logB, i, wi+1, j, k, strides);
+                    logBw_i += (y2 - y1) / (w[wi+1] - w[wi]) * (x - w[wi]) + y1;
                 }
-                //if (j == 4) printf("j=%d, k=%d,offset: %d, nW=%d, W=%g W_GET=%g\n", j, k, nf*(j-1) + k, nW, W[(j-1)*nf + k], Wjk);
-                //printf("i=%d, j=%d, k=%d | mu=%g, Wjk=%g, mu Wjk=%g\n", i, j, k, 
-                //       mu, Wjk, mu * Wjk);
-                //
-                double Binc = interp_logBw(mu*Wjk, w, logB, nw, i, j, k, logB_strides);
-                if (isnan(Binc)) {
-                    printf("NaN Binc! theta=[");
-                    print_theta(theta, 2+nW);
-                    printf("]");
-                    printf("i=%ld, j=%ld, k=%ld | Wjk=%g,", i, j, k, Wjk);
-                    free(W);
-                    return NAN;
-                }
-                logBw_i += Binc;
+                //double Binc = interp_logBw(x, w, logB, nw, i, j, k, logB_strides);
+                //printf("new: %g, old: %g\n", logBw_i, Binc);
             }
         }
-        //printf("%g, ", logBw[i]);
-        double log_pi = log(pi0[chrom_index[i]]) + logBw_i;
-        //printf("c log(pi0): %g\n", log(pi0));
-        //printf("c nD[%d]=%g, nS[%d]=%g\n", i, nD[i], i, nS[i]);
-        //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
+        log_pi = log(pi0) + logBw_i;
         ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
     }
     free(W);
+    free(strides);
     fflush(stdout);
     return -ll;
 }
-*/
+
