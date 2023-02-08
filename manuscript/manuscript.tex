@@ -53,52 +53,33 @@
 Previous work in population genomics has established that negative selection
 against against new deleterious variants introduced by mutation profoundly
 shapes large-scale patterns of variation across the genome. However, the
-mathematical models that describe this process only consider variants so
-deleterious that they cannot drift up in frequency and ultimately fix. In
-reality, some deleterious variants can fix if the randomness of the
-evolutionary process overpowers selection. There are two primary sources of
-such randomness in the evolutionary process, genetic drift and genetic draft,
-but both are ignored by current mutation-selection models. Here, we introduce a
-new whole-genome general mutation-selection-drift model that extends and
-implements previous theory by \textcite{Santiago2016-mu}. This model estimates
-the strength of selection at specified sites by modeling large-scale
-distortions in chromosomal patterns of genetic variability across the genome.
-Unlike previous models, our models can estimate the distribution of 
-fitness effects at conserved sites. Additionally, because our 
-model incorporates drift and draft, our model makes explicit predictions 
-about the substitution rate of weakly deleterious mutations and allows us to 
-test XXX.
+mathematical models that describe this process only consider variation so
+deleterious that it cannot drift up in frequency and ultimately fix in the
+population. In reality, many new mutations are only mildly deleterious, and can
+fix in the population if random perturbations from genetic drift or selection
+at neighboring sites (genetic draft) overpowers the selection against them.
+Despite the large role negative selection plays across the human genome, no
+existing evolutionary models consider the joint effects of mutation, selection,
+and genetic drift and drift across the genome. Consequently, population genetic
+models cannot describe the ultimate fate of every new variant ---eventual
+extinction or fixation in the population--- and thus cannot connect to observed
+rates of molecular evolution.
 
-A full evolutionary model of deleterious mutation must not only describe the
-mutation rate and distribution of fitness effects, but also the substitution
-rate for mildly deleterious mutations. Our model is fit to genome wide
-patterns of genetic diversity across the genome, estimating the 
-mutation rate, neutral diversity level, and the distribution of fitness effects. 
-Additionally, because our model allows for substitution, our model makes 
-predictions about the substitution rate in conserved features.
+whole-genome variance models.
 
 
+This is because, in the very long run, all mutations must be accounted for.
 
-Previous work has established that selection against strongly deleterious
-mutations across the genome profoundly shapes large-scale patterns of genetic
-variability in the human genome. However, 
+Here, we introduce a new whole-genome general mutation-selection-draft-drift
+(MSD$^2$) model that extends and implements previous theory by
+\textcite{Santiago2016-mu}. 
 
-selection against new deleterious mtuationss
-
-
-
-In reality, natural selection in some 
-parts of the genome effectively speeds up evolution, which 
-
-In
-reality, the number of mildly deleterious mutations 
-
-
-increases the pace of ev
-
-Here extend the theory of \textcite{Santiago2016-mu} to work across 
-whole-genomes. This model estimates the reduction in genetic diversity 
-from mutation-selection-drift processes 
+Unlike classic mutation-selection models which cannot accurately capture the
+dynamics of weakly deleterious mutation, MSD$^2$ models can, and consequently
+can provide estimates of the distribution of selection coefficients of new
+mutations. Additionally, because our model incorporates drift and draft, our
+model makes explicit predictions about the substitution rate of weakly
+deleterious mutations and allows us to test XXX.
 
 
 \end{abstract}
@@ -106,6 +87,11 @@ from mutation-selection-drift processes
 
 
 \section*{Introduction}
+
+If the human evolutionary process were strongly impacted by Hill--Robertson
+Interference, we should expect that substitution rates are highest in regions
+experiencing the most selection, which are regions when $B(x)$ is the lowest.
+However, our model 
 
 
 emphasis on whole genome models
@@ -141,6 +127,11 @@ $\nicefrac{\mu}{s}$. However, estimates of the distribution of fitness effects
 suggest many new mutations are weakly deleterious, such that their dynamics can
 no longer ignore the influence of genetic drift and draft.
 
+At every spot in the genome the processes of mutation-selection-draft-drift
+against alleles deleterious in most environments reduce pairwise diversity. We
+can imagine some unobserved reduction map, $B(x)$ across the genome. Here we
+derive theory for this map under these processes and show how statistical
+models can be fit using this theory.
 
 
 To understand the this process and make predictions about the equilibrium level
@@ -156,12 +147,12 @@ These models
 \section*{Results}
 
 
-\begin{figure}[!htb]
-  \centering
-  \includegraphics{figures/experimental_1.pdf}
-  \caption{}
-  \label{fig:figure-1}
-\end{figure}
+%\begin{figure}[!htb]
+%  \centering
+%  \includegraphics{figures/experimental_1.pdf}
+%  \caption{}
+%  \label{fig:figure-1}
+%\end{figure}
 
 
 \subsection*{Evolutionary Models}
@@ -194,6 +185,16 @@ in different segments under purifying selection. There are two stages of the
 prediction process. First, when the initial B' maps are calculated, the
 predicted substitution rate is calculated as a byproduct of 
 
+\section*{Discussion}
+
+It is worth considering why this model performs well for models of negative
+selection. The fitness variance equation, $V(x) = (U-2R)s$ tells us that under
+MSD$^$2 models, the long-run variance is set by the balance of mutation and
+fixation. Whether a particular basepair's behavior follows this equation
+depends upon whether the long-run average is close to ``typical" for that
+basepair at a given time. Good things fix so quickly, that we're left with a
+constant churning of new variation
+
 
 \section*{Methods}
 
@@ -206,13 +207,14 @@ solving a system of two non-linear equations,
 \begin{align}
   \label{eq:}
   {N}_{e}(x) &= N \exp \left( -\frac{V(x)}{2} Q^2(x) \right) & \text{\emph{effective population equation}} \\
-  {R}(x) &= \frac{4N_e(x)U s}{\exp(4 N_e(x) s)-1}  & \text{\emph{ratchet equation}} 
+  {R}(x) &= \frac{4N_e(x)U s}{\exp(4 N_e(x) s)-1}  & \text{\emph{substitution equation}} 
 \end{align}
 
 where,
 
 \begin{align}
-  V(x) &= U s - 2 {R}(x) s & \text{\emph{fitness variance equation}} \\
+  %V(x) &= U s - 2 {R}(x) s & \text{\emph{fitness variance equation}} \\
+  V(x) &= (U  - 2 {R}(x)) s & \text{\emph{fitness variance equation}} \\
   Q^2(x) &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage inflation factor}} \\
   Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
 \end{align}
@@ -221,13 +223,25 @@ and $U = \mu L$ and $M = r_\text{BP} L$ are the total mutation and
 recombination rates for a segment $L$ basepairs long. Each mutation has a
 selection coefficient of $s$, for which we assume additive effects. Then, the
 local reduction factor is $b(x) = \nicefrac{N_e(x)}{N}$, and the per-basepair
-per-generation substitution rate is $\lambda_D = \nicefrac{R(x)}{L}$.
+per-generation substitution rate is $\lambda_D = \nicefrac{R(x)}{L}$. Note that
+in the variance equation, the long-run variance is the balance between mutation
+and twice the loss due to substitution, $(U-2R)s$, since for selective balance
+$V(x) = 0$ for $s>0$, the per-basepair substitution rate must be half the mutation rate,
+since each substitution removes twice the variance introduced by a mutation in
+a diploid species.
 
 In our software \texttt{bgspy}, these two equations are solved for a grid of
 mutation rates and selection coefficients for each specified segment from a
 feature type (e.g. CDS, UTRs, etc.). This results in estimates of $N_e(x)$ and
-$R(x)$ per segment. In the first-round B' calculation, we use the
-drift-effective population size, $N$.
+$R(x)$ per segment. In the first-round B' calculation, we use a single
+pre-specified drift-effective population size, $N$. The B' maps created here at
+this step reflect selection only in the segment, ignoring the impact of
+selection at other segments. By contrast, the locally-rescaled B' maps solve
+these equations, assuming the drift-effective population size is $B(x)N$. These
+reflect the segment's dynamics if they were effected by selection at other
+segments under selection in the genome. Consequently, we can compare and
+contrast models with local-recalling to test whether we achieve a better fit if
+we account selective interference from other segments.
 
 \subsection*{The B' Maps}
 
@@ -247,9 +261,28 @@ the analog of $Q^2(x)$, $Q^2(x, v)$ changes, the pre-computed substitution rate
 (and thus local variance) can be re-used for each $v$. We calculate $B(v)$
 across a grid of focal points along the chromosome, spaced 10kb apart.
 
+\subsection*{Assessing the B' Maps}
+
+We first assessed the B' maps against the observed average reduction across
+$XXX$ forward-simulations, $\bar{B}_\text{sim}(x)$. The mean-squared error has
+two sources, (1) bias from a breakdown in our theory $B(x)$ for the average
+reduction, and (2) variance from the simulations. We show that for most of the
+parameter space, the measured mean-squared error between simulation averages
+and our B' maps is at the theoretic minimum. This minimum variance is entirely
+from the coalescent noise when estimating $\bar{B}\text{sim}(x), which 
+
 \subsection*{Maximum Likelihood Estimation}
 
 \subsection*{Local Rescaling and Substitution Rate Prediction}
+
+
+\subsection*{Substitution Rate Predictions}
+
+Our MLE fit $\hat{\Phi}$ also implies a set of corresponding substitution rate
+predictions for each segment under mutation-selection-draft process. There are
+two sources of variation in these predictions in this model. First, there is
+the variation across the pre-specified functional categories, e.g. CDS, UTRs,
+and PhastCons. Second, there is region-specific variation 
 
 
 
@@ -1073,14 +1106,15 @@ p_\text{fix})$ (note that since $U$ is the \emph{diploid} mutation rate, the
 total population mutation rate is $UN$ per generation), so
 
 \begin{align}
-  T \approx \frac{\exp(4 N_e s)-1}{2 U s N_e}.
+  T \approx \frac{\exp(4 N_e s)-1}{2 U s N_e}
 \end{align}
 
 Since the ratchet rate depends on $N_e$, which in turn depends on the rate of
-the ratchet, we write the inverse as,
+the ratchet, we write the ratchet, or substitution, rate per basepair per
+generation as,
 
 \begin{align}
-  R(N_e) := \frac{2 U s N_e}{\exp(4 N_e s)-1}
+  R(N_e) := \frac{2 U s N_e}{\exp(4 N_e s)-1}.
 \end{align}
 
 Under weak and strong background selection the variance input of mutations
@@ -1100,9 +1134,13 @@ given by the following system of non-linear equations,
   N_{e,\infty} &\approx N \exp\left(-\frac{V_A}{(1-Z) (2-(2-M) Z)} \right)
 \end{align}
 
-The solution to these equations is the asymptotic equilibrium $\widetilde{N}_e$ and
-equilibrium ratchet rate $\widetilde{R}$. This set the equilibrium variance,
-$\widetilde{V} = Us - 2\widetilde{R}s$.
+The solution to these equations is the asymptotic equilibrium $\widetilde{N}_e$
+and equilibrium ratchet rate $\widetilde{R}$. This sets the equilibrium
+variance, $\widetilde{V} = Us - 2\widetilde{R}s$, or $\widetilde{V} = (U -
+2\widetilde{R})s$. Note that because $p_\text{fix} \le \nicefrac{1}{2N}$ for
+deleterious to neutral variation, $2R \le U$, or the diploid mutation rate must
+be greater than twice the per-basepair per-generation substitution rate for
+equilibrium variance $\widetilde{V} > 0$ for $s>0$. 
 
 \subsection*{Heterozygosity and $B$ values Under Weak and Strong Selection}
 

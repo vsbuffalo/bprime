@@ -97,8 +97,10 @@ following filters are applied based on masking regions:
     \texttt{cytoBand.txt}), with 5Mbp padding on either side. The file of
     passing masks is \path{data/annotation/no_centro.bed}. 
 
-  \item \textbf{Reference masking}: soft and hard-masked regions in the human GRCh38
-    reference genome are also masked.
+  \item \textbf{Reference masking}: soft and hard-masked regions in the human
+      GRCh38 reference genome are also masked. Soft-masked regions were
+      determined by Ensembl (XXX), which uses Repeat Masker (XXX) and Dust
+      (XXX).
 
   \item \textbf{Non-``putatively" neutral regions}: Additionally, for fitting our
     likelihood and estimating observed pairwise diversity, we only consider .
@@ -111,6 +113,7 @@ following filters are applied based on masking regions:
 \end{enumerate}
 
 These files are all produced by the Snakemake file \path{data/annotation/Snakefile}.
+Note that the levels of accessible putatively neutral bases 
 
 \begin{figure}[!htb]
   \centering
@@ -255,13 +258,14 @@ shown in red.}
 \end{figure}
 
 
-
 The likelihood method is fit to non-overlapping binned summaries of the allele
 counts matrix. 
 
 
 Based on exploratory data analyses, some bins were outliers and
-excluded (XXX).
+excluded (XXX). 
+
+
 
 \begin{enumerate}
   \item \textbf{Fraction of inaccessible sites per window}.  \path{mask_inaccessible_bins_frac}
@@ -353,10 +357,14 @@ $\bar{\pi}(b | \Psi)$ are the average diversity in bin $b$, and
 $Y_{\text{S},b}$ and $Y_{\text{S},b}$ are the sums across putatively neutral
 sites within a bin. Note that by binning, we sum the pairwise summaries of the
 data $\mathbf{Y}$ across sites, so the likelihood across bins is naturally
-weighted by the quantity of observed data. We estimate $h$ by fitting the model
-for a variety of window sizes $h$ and select the best using out-sample cross
-validation, as is standard in non-parametric regression (XXX, Wasserman, p.
-70).
+weighted by the quantity of observed data. 
+
+
+% TODO
+%We estimate $h$ by fitting the model
+%for a variety of window sizes $h$ and select the best using out-sample cross
+%validation, as is standard in non-parametric regression (XXX, Wasserman, p.
+%70).
 
 This model corresponds to a binomial likelihood for the observed data
 summarized at genomic scale $h$. Thus an alternative way to express this model
@@ -383,18 +391,19 @@ the product of the individual reductions,
 
 \begin{align}
   \label{suppeqn:b}
-  B(x, \Psi) = \prod_g^S \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds
+  B(x, \Psi) &= \prod_g^S \exp \left( \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right) \\
+             &= \exp \left( \sum_g^S \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right)
 \end{align}
 
-where, $b(\mu(s, k(g)), s, L_g, r_g, d(x,g))$ is the reduction due to segment
-$g$, and there are $S$ total segments. Here, $\mu(s, k(g))$ is the per-basepair
-per-genome rate that mutations with selection coefficient $s$ enter segments
-with feature class $k(g)$, $L_g$ and $r_g$ are the length in basepairs and
-recombination rate per basepair of segment $g$, and the recombination distance
-between focal site $x$ and segment $g$ is $d(x, g)$. The functional form of $b$
-varies depending on whether the classic BGS model is used, or our form of
-Santiago and Caballero's (\citeyear{Santiago2016-mu}) equations (see Section
-XXX).
+where, $b(\mu(s, k(g)), s, L_g, r_g, d(x,g))$ is the log reduction due to
+segment $g$, and there are $S$ total segments. Here, $\mu(s, k(g))$ is the
+per-basepair per-genome rate that mutations with selection coefficient $s$
+enter segments with feature class $k(g)$, $L_g$ and $r_g$ are the length in
+basepairs and recombination rate per basepair of segment $g$, and the
+recombination distance between focal site $x$ and segment $g$ is $d(x, g)$. The
+functional form of $b$ varies depending on whether the classic BGS model is
+used, or our form of Santiago and Caballero's (\citeyear{Santiago2016-mu})
+equations (see Section XXX).
 
 Under both background selection models used in our likelihood, the diversity in
 window $b$ is $\bar{\pi}(b, \Psi) = \bar{B}(b, \Psi) \pi_0$. Here, $\bar{B}(b |
@@ -415,9 +424,9 @@ in this and the next section. Using our notation from equation
 \eqref{suppeqn:b}, the classic mutation-selection-balance BGS model is,
 
 \begin{align}
-  b(\mu, s, L, r, 0) &= \exp \left( - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl \right) 
+  b(\mu, s, L, r, 0) &=  - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl 
 \end{align}
-
+ 
 (c.f. \cite{Hudson1995-xc} equation 5), where $\mu(l)$ is the \emph{haploid}
 per-basepair mutation rate at $l$ and $r(l)$ is the recombination fraction
 between the focal site (at position 0) and basepair $l$. Assuming constant
@@ -425,7 +434,7 @@ per-basepair recombination and mutation rates, $r(l) = r_\text{BP}l$ and
 $\mu(l) = \mu$, and
 
 \begin{align}
-  b(\mu, s, L, r_\text{BP}, 0) &= \exp \left( - \frac{2\mu L}{s + (1-s) r_\text{BP} L} \right)
+  b(\mu, s, L, r_\text{BP}, 0) &= - \frac{2\mu L}{s + (1-s) r_\text{BP} L} 
 \end{align}
 
 (c.f. \cite{Hudson1995-xc} equation 8, where the factor of two difference is
@@ -441,7 +450,7 @@ effects of the segment, and substitute in $b$ as the focal site changes. This
 integral substitution has a closed form,
 
 \begin{align}
-  b(\mu, s, L, r_\text{BP}, d) &= \exp \left( \frac{-2\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))} \right)
+  b(\mu, s, L, r_\text{BP}, d) &= \frac{-2\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))}
 \end{align}
 
 and terms can be collected in powers of $d$ and pre-computed for all segments
@@ -479,7 +488,7 @@ First, the reduction factor experienced by a focal site within the segment $g$
 generalized background selection is calculated as
 
 \begin{align}
-  \widetilde{b}'(\mu, s, L, r_\text{BP}) = \frac{\widetilde{N}_{e,\infty}}{N}
+  \widetilde{b}'(\mu, s, L, r_\text{BP}) = \log\left(\frac{\widetilde{N}_{e,\infty}}{N} \right)
 \end{align}
 
 where $\widetilde{N}_{e,\infty}$ is the asymptotic effective population size,
@@ -487,8 +496,8 @@ which is the solution to the following system of two equations (see XXX for
 derivation),
 
 \begin{align}
-  {N}_{e,\infty} &= N \exp \left( -\frac{V}{2} Q_\infty^2 \right) \\
-  {R} &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
+    {N}_{e,\infty} &= N \exp \left( -\frac{V}{2} Q_\infty^2 \right) \label{eqn:Ne_VQ2} \\
+  {R} &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1} \nonumber \\
 \end{align}
 
 where 
@@ -523,21 +532,24 @@ population size experienced by a focal site in the middle of a $L$-basepair
 segment, but B maps require the reduction $b'$ experienced by a focal site $x$
 at an arbitrary recombination distance apart. For each segment, we pre-compute
 the solution to the system of two equations, giving us $V$ and $Q_\infty^2$,
-and then use these values in the equation,
+and then use these values in the equation \eqref{eqn:Ne_VQ2},
 
-\begin{align}
-  b'(\mu, s, L, r, d) = \exp\left( -\frac{V}{2} \left(\frac{1}{(1-(1-d)Z}\right)^2 \right) 
+\begin{align} 
+    b'(\mu, s, L, r, d) = -\frac{V}{2} \left(\frac{1}{(1-(1-d)Z}\right)^2 
 \end{align}
 
-where $Z = 1 - Us / (U-\widetilde{R})$ and $V = Us - 2\widetilde{R}s$.
+where $Z = 1 - Us / (U-\widetilde{R})$ and $V = Us - 2\widetilde{R}s$. TODO
+check d.
 
 
 \subsection{Discretization of Parameters and Annotation Feature Classes}
 
 \begin{align}
   \label{suppeqn:b}
-  B(x, \Psi) = \prod_g \sum_{i} b(\mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g))
+  B(x, \Psi) = \exp \left( \sum_g^S \sum_{i} b\left( \mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g) \right)\right)
 \end{align}
+
+%TODO double check
 
 In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
 $s$. Our models use a fixed $m_s$-element grid of selection coefficients, and
