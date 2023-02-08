@@ -354,7 +354,7 @@ cons = ["conserved_phastcons.bed.gz",
         # this is phastcons with all genes removed, with CDS added
         "conserved_phastcons_not_genes_cds.bed.gz",
         # genes + cds + phastcons not in genes
-        "conserved_phastcons_not_genes_cds_genes.bed.gz"
+        "conserved_phastcons_not_genes_cds_genes.bed.gz",
 
         # with encode regulatory elements -- currently not used
         "conserved_cds_utrs_regulatory_phastcons.bed.gz",
@@ -366,6 +366,7 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_cds_utrs_phastcons_full.bed.gz",
         "conserved_cds_phastcons_full.bed.gz",
         "conserved_phastcons_not_genes_cds_full.bed.gz",
+        "conserved_phastcons_not_genes_cds_genes_full.bed.gz",
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
@@ -504,6 +505,16 @@ rule conserved_not_gene_cds_full:
     rm -f tmp_1.bed
     """
 
+rule conserved_not_gene_cds_genes_full:
+  input: cons="conserved_phastcons_not_genes_cds_genes.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_phastcons_not_genes_cds_genes_full.bed.gz"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > tmp_1.bed
+    (cat tmp_1.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    rm -f tmp_1.bed
+    """
+
 rule conserved_cds_utrs_phastcons_full:
   # NOTE: based on the simplified phastcons track!
   input: cons="conserved_cds_utrs_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -544,7 +555,7 @@ rule conserved_no_genes_genes_track:
   shell:
     """
     python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed cds {input.cds} --genes {input.genes} \
+      --bed cds {input.cds} --bed gene {input.genes} \
       --bed phastcons {input.not_genes} | \
       gzip > {output}
     """

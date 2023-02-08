@@ -9,10 +9,17 @@ from bgspy.utils import masks_to_ranges, readfile
 # lower priority labels are filled first
 # stuff like phastcons is sort of a catch-all - we care about
 # finer-grained labels
+# NOTE: a lot commented out; these can be tried again later, but likely 
+# have identifiability issues due to collinearity
 PRIORITY = [#'CTCF_binding_site', 'TF_binding_site',
-            'binding_site',
-            'utr', 'promoter', 'enhancer', 'cds', 'intron',
-            'phastcons', 'open_chromatin_region']
+            #'binding_site',
+            # 'promoter', 'enhancer', 
+            'utr',
+            'cds', 'gene', 'intron',
+            'phastcons',
+            #'open_chromatin_region'
+            ]
+
 @click.command()
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
