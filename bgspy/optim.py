@@ -331,7 +331,8 @@ def optim_plot(only_success=True, logy=False, tail=0.5, x_percent=False, downsam
         ax.semilogy()
 
 
-def optim_diagnotics_plot(fit, top_n=100):
+def optim_diagnotics_plot(fit, top_n=100, figsize=None,
+                          pi_scale=1e3, mu_scale=1e8, add_nll=False):
     """
     Thanks to Nate Pope for this visualization suggestion!
     """
@@ -346,10 +347,6 @@ def optim_diagnotics_plot(fit, top_n=100):
         top_n = len(thetas)
     dfes = []
     mu_pi0 = []
-    
-    # we could plot π0 and μ but it doesn't change much...
-    # for i in range(top_n):
-    #     mu_pi0.append(thetas[i][:2])
  
     for i in range(top_n):
         dfes.append(thetas[i][2:].reshape(nt, nf))
@@ -357,32 +354,39 @@ def optim_diagnotics_plot(fit, top_n=100):
     # mu_pi0 = np.stack(mu_pi0)
     dfes = np.stack(dfes)
 
-    fig, ax = plt.subplots(ncols=1, nrows=nf+3, sharex=True)
+    fig, ax = plt.subplots(ncols=1, nrows=nf+2 + int(add_nll),
+                           figsize=figsize, sharex=True, 
+                           height_ratios=[1]*nf + [1.2]*(2+add_nll))
 
-    
     for i in range(nf):
         ax[i].imshow(dfes[:, :, i].T, cmap='inferno')
         ax[i].set_ylabel(f"{features[i]}")
         ax[i].set_yticks(np.arange(nt), np.log10(t).astype(int))
         ax[i].xaxis.set_visible(False)
         ax[i].tick_params(axis='y', which='major', labelsize=5)
+        ax[i].set_aspect('auto')
         i += 1
 
-    ax[i].set_ylabel("$\pi_0$")
+    ax[i].set_ylabel(f"$\pi_0$ ($\\times^{{{int(-np.log10(pi_scale))}}}$)")
     ax[i].plot(np.arange(len(thetas))[:top_n], 
-               [x[0] for x in thetas][:top_n], c='0.22')
+               [x[0]*pi_scale for x in thetas][:top_n], c='0.22')
 
     i += 1
-    ax[i].set_ylabel("$\mu$")
+    ax[i].set_ylabel(f"$\mu$ ($\\times^{{{int(-np.log10(mu_scale))}}}$)")
     ax[i].plot(np.arange(len(thetas))[:top_n], 
-               [x[1] for x in thetas][:top_n], c='0.22')
+               [x[1]*mu_scale for x in thetas][:top_n], c='0.22')
     i += 1
 
-    ax[i].plot(np.arange(len(nlls))[:top_n], 
-               np.sort(nlls)[:top_n], c='0.22')
-    ax[i].set_ylabel('nll')
-    ax[i].set_xlabel('rank')
-    #plt.tight_layout()
+    if add_nll:
+        y = np.sort(nlls)[:top_n]
+        nlls_scale = int(-np.log10(np.max(y)))
+        ax[i].plot(np.arange(len(nlls))[:top_n], 
+                   y*10**nlls_scale, c='0.22')
+        ax[i].set_ylabel(f'NLL ($\\times 10^{{{nlls_scale}}}$)')
+        ax[i].set_xlabel('rank')
+        ax[i].ticklabel_format(useOffset=False)
+        #plt.tight_layout()
+    return fig, ax
 
 
 class OptimResult:

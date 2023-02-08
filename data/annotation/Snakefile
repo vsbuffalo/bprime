@@ -29,7 +29,6 @@ rule seqlens:
   shell:
     """
       bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
-      sed 's/^/chr/' | \
       grep -P '^chr[0-9X]+' |  \
       sort  --version-sort -k 1,1 -k2,2n > {output}
     """
@@ -173,7 +172,7 @@ rule ensembl_promoters:
    shell:
      """
      bedtools flank -i <(zgrep five_prime_UTR {input.gff} | grep -v chrY) -g {input.seqlens} -l 2000 -r 0 -s | \
-      bedtools sort | tools merge | gzip > {output}
+      bedtools sort | bedtools merge | gzip > {output}
      """
 
 
@@ -229,8 +228,9 @@ rule utrs:
   shell:
     """
       bioawk -cgff ' $feature ~ /five_prime_UTR|three_prime_UTR/ {{ print $seqname,$start,$end,$feature }}' {input} | \
-      bedtools merge -i -i | \
-      sort --version-sort -k1,1 -k2,2n | gzip > {output}
+      sort --version-sort -k1,1 -k2,2n | \
+      bedtools merge | \
+      gzip > {output}
     """
 
 rule utr_annot:
@@ -349,12 +349,14 @@ cons = ["conserved_phastcons.bed.gz",
 
         # feature tracks with genomic elements only
         "conserved_cds_phastcons.bed.gz",
-        "conserved_cds_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons.bed.gz",
-        "conserved_cds_utrs.bed.gz",
-        "conserved_cds_utrs_promoters2kb.bed.gz",
 
-        # with encode regulatory elements
+        # this is phastcons with all genes removed, with CDS added
+        "conserved_phastcons_not_genes_cds.bed.gz",
+        # genes + cds + phastcons not in genes
+        "conserved_phastcons_not_genes_cds_genes.bed.gz"
+
+        # with encode regulatory elements -- currently not used
         "conserved_cds_utrs_regulatory_phastcons.bed.gz",
 
         # simplified phastcons -- merged 100bp adjacent
@@ -362,16 +364,12 @@ cons = ["conserved_phastcons.bed.gz",
 
         # full-coverage feature tracks
         "conserved_cds_utrs_phastcons_full.bed.gz",
-        "conserved_cds_utrs_regulatory_phastcons_full.bed.gz",
         "conserved_cds_phastcons_full.bed.gz",
-
-        # with introns
-        "conserved_cds_utrs_introns_phastcons.bed.gz",
-        "conserved_cds_utrs_introns.bed.gz",
-        "conserved_cds_utrs_introns_promoters2kb.bed.gz",
+        "conserved_phastcons_not_genes_cds_full.bed.gz",
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
+        "conserved_cds_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons_merged.bed.gz",
 ] 
 
@@ -406,6 +404,15 @@ rule phastcons_simplified:
       bedtools merge -d 100 -i {input} | gzip > {output}
       """
 
+rule phastcons_no_genes:  
+  input: phastcons="conserved_phastcons.bed.gz", genes="hg38.ensembl_genes.bed.gz"
+  output: "conserved_phastcons_not_genes.bed.gz"
+  shell:
+      """
+      bedtools subtract -a {input.phastcons} -b {input.genes} | \
+        bioawk -cbed '{{ print $1,$2,$3,"phastcons_no_genes" }}' | gzip > {output[0]}
+      """
+
 rule conserved_cds_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_phastcons.bed.gz"
@@ -432,7 +439,6 @@ rule conserved_cds_phastcons_merged:
     zcat {input[0]} | cut -f1,2,3 | gzip > {output}
     """
 
-
 rule conserved_cds_utrs_regulatory_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", regulatory="hg38.regulatory.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_utrs_regulatory_phastcons.bed.gz"
@@ -444,8 +450,6 @@ rule conserved_cds_utrs_regulatory_phastcons:
       --bed phastcons {input.phastcons} | \
       gzip > {output}
     """
-
-
 
 rule conserved_cds_utrs_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -480,7 +484,6 @@ rule conserved_cds_utrs_regulatory_phastcons_simplified:
       gzip > {output}
     """
 
-
 rule conserved_cds_phastcons_full:
   # not based on the simplified phastcons track!
   input: cons="conserved_cds_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -491,6 +494,15 @@ rule conserved_cds_phastcons_full:
     (cat conserved_cds_phastcons_complement.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
+rule conserved_not_gene_cds_full:
+  input: cons="conserved_phastcons_not_genes_cds.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_phastcons_not_genes_cds_full.bed.gz"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > tmp_1.bed
+    (cat tmp_1.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    rm -f tmp_1.bed
+    """
 
 rule conserved_cds_utrs_phastcons_full:
   # NOTE: based on the simplified phastcons track!
@@ -502,71 +514,6 @@ rule conserved_cds_utrs_phastcons_full:
     (cat conserved_cds_utrs_phastcons_complement.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
-
-rule conserved_cds_utrs_regulatory_phastcons_full:
-  input: cons="conserved_cds_utrs_regulatory_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_regulatory_phastcons_full.bed.gz"
-  shell:
-    """
-    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > conserved_cds_utrs_regulatory_phastcons_complement.bed
-    (cat conserved_cds_utrs_regulatory_phastcons_complement.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
-    """
-
-
-rule conserved_cds_utrs:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed utr {input.utrs} --bed cds {input.cds} | \
-      gzip > {output}
-    """
-
-rule conserved_cds_utrs_promoters2kb:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", promoters="hg38.ensembl_promoters_2kb.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_promoters2kb.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed utr {input.utrs} --bed cds {input.cds} \
-      --bed promoter {input.promoters} | \
-      gzip > {output}
-    """
-
-rule conserved_cds_utrs_introns:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_introns.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds}  | \
-      gzip > {output}
-    """
-
-rule conserved_cds_utrs_introns_promoters2kb:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", promoters="hg38.ensembl_promoters_2kb.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_introns_promoters2kb.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed utr {input.utrs} --bed cds {input.cds} --bed intron {input.introns} \
-      --bed promoter {input.promoters} | \
-      gzip > {output}
-    """
-
-
-rule conserved_cds_utrs_introns_phastcons:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", introns="hg38.ensembl_introns.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_introns_phastcons.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed utr {input.utrs} --bed intron {input.introns} --bed cds {input.cds} \
-      --bed phastcons {input.phastcons} | \
-      gzip > {output}
-    """
-
 rule conserved_cds_utrs_phastcons_merged:
   input: utrs="hg38.ensembl_utrs.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
   output: "conserved_cds_utrs_phastcons_merged.bed.gz"
@@ -576,6 +523,29 @@ rule conserved_cds_utrs_phastcons_merged:
       --bed utr {input.utrs} --bed cds {input.cds} \
       --bed phastcons {input.phastcons} | \
       cut -f1-3 | \
+      gzip > {output}
+    """
+
+rule conserved_no_cds_track:
+  input: not_genes="conserved_phastcons_not_genes.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "conserved_phastcons_not_genes_cds.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} \
+      --bed phastcons {input.not_genes} | \
+      gzip > {output}
+    """
+
+rule conserved_no_genes_genes_track:
+  input: not_genes="conserved_phastcons_not_genes.bed.gz", cds="hg38.ensembl_cds.bed.gz",
+         seqlens="hg38_seqlens.tsv", genes="hg38.ensembl_genes.bed.gz"
+  output: "conserved_phastcons_not_genes_cds_genes.bed.gz" # yes, I'm sorry for this name
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} --genes {input.genes} \
+      --bed phastcons {input.not_genes} | \
       gzip > {output}
     """
 

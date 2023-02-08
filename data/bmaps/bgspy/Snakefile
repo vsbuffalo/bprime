@@ -155,16 +155,15 @@ maps = [
         # note: this uses the simplified phastcons track, merging all ranges 100bp within each other
         "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl",
 
-        ## genomic features with phastcons; CDS takes priority, phastcons catches HCNE
-        #"bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
+        # genomic features with phastcons; CDS takes priority, phastcons catches everything else
+        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
 
-        ## same as above, but denser grid
-        "bmap_hg38_12x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
+        # genomic features with phastcons; CDS takes priority, phastcons catches
+        "bmap_hg38_6x7grid_10000step_10000N_cds_phastcons.pkl",
 
-        "bmap_hg38_12x7grid_10000step_10000N_cds_phastcons.pkl",
-        "bmap_hg38_12x7grid_10000step_10000N_cds_phastcons.pkl",
-        "bmap_hg38_12x7grid_10000step_10000N_cds_phastcons_full.pkl",
- 
+        # genomic features with phastcons; CDS takes priority, phastcons catches
+        "bmap_hg38_6x7grid_10000step_10000N_cds_phastcons_full.pkl",
+
         # with regulatory elements (and simplified phastcons)
         #"bmap_hg38_6x7grid_10000step_10000N_cds_utrs_regulatory_phastcons.pkl",
 
