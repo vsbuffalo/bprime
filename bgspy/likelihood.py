@@ -26,6 +26,7 @@ from bgspy.data import GenomeData
 from bgspy.utils import signif, load_seqlens, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker, nlopt_softmax_worker
+from bgspy.optim import scipy_softmax_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
@@ -674,7 +675,7 @@ def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
 
 def negll_c(theta, Y, logB, w, two_alleles=False,
-            version2=True):
+            version=2):
     """
     θ is [π0, μ, w11, w12, ...] and should
     have dimension (nt x nf) + 2
@@ -706,14 +707,21 @@ def negll_c(theta, Y, logB, w, two_alleles=False,
     likclib.negloglik2.argtypes = negloglik_argtypes
     likclib.negloglik2.restype = negloglik_restype
 
+    likclib.negloglik3.argtypes = negloglik_argtypes
+    likclib.negloglik3.restype = negloglik_restype
+
     args = (theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
             logB.ctypes.shape, logB.ctypes.strides,
             int(two_alleles))
 
-    if not version2:
+    if version == 1:
         return likclib.negloglik(*args)
-    else:
+    elif version == 2:
         return likclib.negloglik2(*args)
+    elif version == 3:
+        return likclib.negloglik3(*args)
+    else:
+        raise ValueError("unsupported version")
 
 
 def predict_simplex(theta, logB, w, mu=None):
@@ -785,7 +793,7 @@ class BGSLikelihood:
 
         try:
             assert logB.ndim == 4
-            assert logB.shape[1] == w.size
+            #assert logB.shape[1] == w.size # TODO FIX
             assert logB.shape[2] == t.size
         except AssertionError:
             msg = "B dimensions ({logB.shape}) do not match (supplied w and t dimensions)"
@@ -1126,7 +1134,7 @@ def negll_freemut_full(theta, grad, Y, B, w, two_alleles=False):
     return negll_c(new_theta, Y, B, w, two_alleles)
 
 
-def negll_softmax_full(theta, grad, Y, B, w, least_squares):
+def negll_softmax_full2(theta, Y, B, w):
     """
     Softmax version of the simplex model wrapper for negll_c().
 
@@ -1140,16 +1148,42 @@ def negll_softmax_full(theta, grad, Y, B, w, least_squares):
         W = softmax(W_reals, axis=0)
     assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
     sm_theta[2:] = W.flat
-    return negll_c(sm_theta, Y, B, w)
+    return negll_c(sm_theta, Y, B, w, version=3)
 
 
-def negll_simplex_full(theta, grad, Y, B, w, least_squares):
+def negll_softmax_full(theta, grad, Y, B, w):
+    """
+    Softmax version of the simplex model wrapper for negll_c().
+
+    grad is required for nlopt.
+    """
+    nx, nw, nt, nf = B.shape
+    # get out the W matrix, which on the optimization side, is over all reals
+    sm_theta = np.copy(theta)
+    W_reals = theta[2:].reshape(nt, nf)
+    with np.errstate(under='ignore'):
+        W = softmax(W_reals, axis=0)
+    assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
+    sm_theta[2:] = W.flat
+    return negll_c(sm_theta, Y, B, w, version=3)
+
+
+def negll_simplex_full2(theta, Y, B, w):
     """
     Simplex model wrapper for negll_c().
 
     grad is required for nlopt.
     """
-    return negll_c(theta, Y, B, w)
+    return negll_c(theta, Y, B, w, version=3)
+
+
+def negll_simplex_full(theta, grad, Y, B, w):
+    """
+    Simplex model wrapper for negll_c().
+
+    grad is required for nlopt.
+    """
+    return negll_c(theta, Y, B, w, version=3)
 
 
 def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
@@ -1209,7 +1243,10 @@ class FreeMutationModel(BGSLikelihood):
         ncores = min(len(starts), ncores) # don't request more cores than we need
 
         Y = self.Y
-        logB = self.logB
+        if self.logB_fit is not None:
+            logB = self.logB_fit
+        else:
+            logB = self.logB
         bootstrap = _indices is not None
         if bootstrap:
             Y = Y[_indices, ...]
@@ -1353,10 +1390,10 @@ class SimplexModel(BGSLikelihood):
         self.start_mu = None
         # the bounds of W are set by B grid interpolation range
         # and mutation rate bounds
-        self.W_bounds = (np.min(w)/(10**MU_BOUNDS[0]),
-                         min(1, np.max(w)/(10**MU_BOUNDS[1])))
-        assert self.W_bounds[0] > 0
-        assert self.W_bounds[0] <= 1
+        self.W_bounds = (0, 1) #(np.min(w)/(10**MU_BOUNDS[0]),
+                        # min(1, np.max(w)/(10**MU_BOUNDS[1])))
+        #assert self.W_bounds[0] > 0
+        #assert self.W_bounds[0] <= 1
 
 
     def random_start(self, softmax=False):
@@ -1378,17 +1415,17 @@ class SimplexModel(BGSLikelihood):
 
         return start
 
-    def bounds(self, softmax=False, global_bound=False):
+    def bounds(self, softmax=False, global_bound=False, paired=False):
         return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds,
                               softmax=softmax,
                               global_bound=global_bound,
-                              paired=False)
+                              paired=paired)
 
     def fit(self, starts=1, ncores=None, 
             algo='GN_ISRES', start_pi0=None, start_mu=None,
-            softmax=False, chrom=None, least_squares=False,
+            softmax=False, chrom=None,
             progress=True, _indices=None):
         """
         Fit likelihood models with numeric optimization (using nlopt).
@@ -1415,7 +1452,10 @@ class SimplexModel(BGSLikelihood):
             ncores = min(len(starts), ncores)
 
         Y = self.Y
-        logB = self.logB
+        if self.logB_fit is not None:
+            logB = self.logB_fit
+        else:
+            logB = self.logB
          
         # if we have pre-specified indices, we're doing 
         # jackknife or bootstrap
@@ -1434,17 +1474,17 @@ class SimplexModel(BGSLikelihood):
         # wrap the negloglik function around the data and B grid
         negll_func = negll_simplex_full if not softmax else negll_softmax_full
         nll = partial(negll_func, Y=Y,
-                      B=logB, w=self.w,
-                      least_squares=least_squares)
+                      B=logB, w=self.w)
 
         global_bound = algo.startswith('GN')
         # make the main simplex worker for parallelization
         worker_func = nlopt_simplex_worker if not softmax else nlopt_softmax_worker
+        #worker_func = scipy_softmax_worker
         worker = partial(worker_func,
                          func=nll, nt=self.nt, nf=self.nf,
                          log10_W_bounds=np.log10(self.W_bounds),
                          bounds=self.bounds(softmax=softmax, 
-                                            global_bound=global_bound), 
+                                            global_bound=False), 
                          algo=algo)
 
         # run the optimization routine on muliple starts

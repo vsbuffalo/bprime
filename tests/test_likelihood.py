@@ -138,8 +138,8 @@ def test_new_likelihood_versus_old():
     for _ in range(20):
         theta_jitter = np.random.normal(0, 1e-6) + theta
         theta_jitter[:1] = theta[:1]
-        old_results = negll_c(theta_jitter, Y, B, w, version2=False)
-        new_results = negll_c(theta_jitter, Y, B, w, version2=True)
+        old_results = negll_c(theta_jitter, Y, B, w, version=1)
+        new_results = negll_c(theta_jitter, Y, B, w, version=2)
         if not np.isnan(old_results):
             # we ignore different NAN behavior
             assert(old_results == new_results), theta_jitter

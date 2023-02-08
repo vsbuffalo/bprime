@@ -11,11 +11,12 @@ from tabulate import tabulate
 import nlopt
 from scipy.optimize import minimize
 
-# nlopt has different error messages; we use this for scipy to
-# but just force to 'success' (1) or 'failure' (-1)
+# nlopt has different error messages; we use this for scipy too
+# which uses booleans we convert to integers
 NL_OPT_CODES = {1:'success', 2:'stopval reached', 3:'ftol reached',
                 4:'xtol reached', 5:'max eval', 6:'maxtime reached', -1:'failure',
-                -2:'invalid args', -3:'out of memory', -4:'forced stop'}
+               -2:'invalid args', -3:'out of memory', -4:'forced stop',
+                0: 'scipy failure'}
 
 
 def extract_opt_info(x):
@@ -35,7 +36,8 @@ def extract_opt_info(x):
 def array_all(x):
     return tuple([np.array(a) for a in x])
 
-def run_optims(workerfunc, starts, progress=True, ncores=50):
+def run_optims(workerfunc, starts, progress=True, ncores=50,
+               return_raw=False):
     """
     Parallel optimization.
 
@@ -60,6 +62,8 @@ def run_optims(workerfunc, starts, progress=True, ncores=50):
             res = list(map(workerfunc, starts))
 
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
+    if return_raw:
+        return nlls, thetas, success
     return OptimResult(nlls, thetas, success, np.array(starts))
 
 
@@ -230,9 +234,12 @@ def nlopt_softmax_worker(start, func, nt, nf,
     success = opt.last_optimize_result()
     return nll, mle, success
 
+def scipy_softmax_worker(start, func, nt, nf):
+    res = minimize(func, start, method='L-BFGS-B')
+    return res.fun, res.x, res.success
 
 
-def nlopt_simplex_worker(start, func, nt, nf, bounds, 
+def nlopt_simplex_worker(start, func, nt, nf, bounds,
                          log10_W_bounds, mu=None,
                          constraint_tol=1e-3, xtol_rel=1e-3,
                          maxeval=1000000, algo='ISRES'):
@@ -354,25 +361,28 @@ def optim_diagnotics_plot(fit, top_n=100):
 
     
     for i in range(nf):
-        ax[i].imshow(dfes[:, :, i-1].T, cmap='inferno')
+        ax[i].imshow(dfes[:, :, i].T, cmap='inferno')
         ax[i].set_ylabel(f"{features[i]}")
         ax[i].set_yticks(np.arange(nt), np.log10(t).astype(int))
         ax[i].xaxis.set_visible(False)
         ax[i].tick_params(axis='y', which='major', labelsize=5)
         i += 1
 
-    ax[i].plot(np.arange(len(thetas))[:top_n], 
-               [x[1] for x in thetas][:top_n], c='0.22')
-    i += 1
-
+    ax[i].set_ylabel("$\pi_0$")
     ax[i].plot(np.arange(len(thetas))[:top_n], 
                [x[0] for x in thetas][:top_n], c='0.22')
+
+    i += 1
+    ax[i].set_ylabel("$\mu$")
+    ax[i].plot(np.arange(len(thetas))[:top_n], 
+               [x[1] for x in thetas][:top_n], c='0.22')
     i += 1
 
     ax[i].plot(np.arange(len(nlls))[:top_n], 
                np.sort(nlls)[:top_n], c='0.22')
     ax[i].set_ylabel('nll')
     ax[i].set_xlabel('rank')
+    #plt.tight_layout()
 
 
 class OptimResult:
@@ -385,7 +395,7 @@ class OptimResult:
         self.success_ = success[idx]
         self.starts_ = starts[idx]
 
-    def is_succes(self):
+    def is_success(self):
         """
         Check that the MLE optimization passed.
         """
@@ -420,12 +430,13 @@ class OptimResult:
 
     @property
     def frac_success(self):
+        # works for both scipy and nlopt
         x = np.mean([v >= 1 for v in self.success_])
         return x
 
     def __repr__(self):
         code = NL_OPT_CODES[self.success_[self.pass_idx][0]]
-        return ("OptimResult\n"
+        return ("OptimResult top result:\n"
                f"  termination code: {code}\n"
                f"  stats: {self.stats} (prop success: {np.round(self.frac_success, 2)*100}%)\n"
                f"  negative log-likelihood = {self.nll}\n"

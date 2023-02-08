@@ -172,7 +172,7 @@ double negloglik(const double *theta,
                 logBw_i += Binc;
             }
         }
-
+        //printf("%g, ", logBw[i]);
         double log_pi;
         if (two_alleles) {
             double pi = pi0 * exp(logBw_i);
@@ -184,13 +184,8 @@ double negloglik(const double *theta,
         //printf("c log(pi0): %g\n", log(pi0));
         //printf("c nD[%d]=%g, nS[%d]=%g\n", i, nD[i], i, nS[i]);
         //printf("c llm[%d]: %g\n", i, nD[i]*log_pi + nS[i]*log(1 - exp(log_pi)));
-        
-        // compute the final likelihood for this window
-        double obs_pi = nD[i] / (nS[i] + nD[i]);
-        double pi = exp(log_pi);
-        //ll += pow(obs_pi - pi, 2.);
-        ll += pow(obs_pi - pi, 2.);
-    }
+        ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+    }                
     free(W);
     fflush(stdout);
     return -ll;
@@ -302,6 +297,63 @@ double negloglik2(const double *theta,
     }
 
     free(w_idx);
+    free(W);
+    free(strides);
+    fflush(stdout);
+    return -ll;
+}
+
+
+double negloglik3(const double *theta,
+                  const double *nS, const double *nD, 
+                  const double *logB, 
+                  const double *w,
+                  const ssize_t *logB_dim, 
+                  const ssize_t *logB_strides,
+                  const int two_alleles) {
+
+    ssize_t nx = logB_dim[0]; 
+    ssize_t nw = logB_dim[1];
+    assert(nw == 1);
+    ssize_t nt = logB_dim[2];
+    ssize_t nf = logB_dim[3];
+
+    double pi0 = theta[0];
+    double mu = theta[1];
+    ssize_t nW = nt*nf;
+    double *W = calloc(nW, sizeof(double));
+    memcpy(W, theta + 2, nW * sizeof(double));
+    double logBw_i;
+    double Wjk;
+    double ll = 0;
+    double log_pi;
+
+    // variables we need for interpolation in this loop
+    ssize_t *strides = malloc(4 * sizeof(ssize_t));
+    for (int i=0; i<4; i++) strides[i] = logB_strides[i] / sizeof(double);
+ 
+    // Iterate through all windows, summing B values across features and
+    // selection coefficients per feature
+    //
+    // Note that for each w=μW for a feature/selection combination has the same
+    // index, so this can be found once for a combination and re-used
+   
+    double log_pi0 = log(pi0);
+    for (ssize_t i=0; i < nx; i++) {
+        logBw_i = 0.; // initialize start of sum
+        for (ssize_t j=0; j < nt; j++) {
+            for (ssize_t k=0; k < nf; k++) {
+                Wjk = W_GET(W, j, k, nf);
+                double x = mu*Wjk;
+                double a = LOGBW_GET(logB, i, 0, j, k, strides);
+                logBw_i += -a*x;
+                //printf("logBw_i: %g", logBw_i);
+            }
+        }
+        log_pi = log_pi0 + logBw_i;
+        ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+    }
+
     free(W);
     free(strides);
     fflush(stdout);
