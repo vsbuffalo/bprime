@@ -1,6 +1,7 @@
 import warnings
 import pickle
 import numpy as np
+from bgspy.models import BGSModel
 from bgspy.utils import load_seqlens 
 from bgspy.sim_utils import mutate_simulated_tree
 from bgspy.genome import Genome
@@ -20,7 +21,7 @@ def summarize_data(# annotation
          # filters
          thresh_cM=0.3, outliers=(0.0, 0.995),
          # other
-         name=None, only_autos=True, verbose=True):
+         bp_only=False, name=None, only_autos=True, verbose=True):
     """
     Take all the genome data, the allele counts data (or simulated trees),
     and the B/B' maps and combine, computing and outputting to pickle:
@@ -107,8 +108,8 @@ def summarize_data(# annotation
 
 
 
-def fit(premodel_data, ncores=70, nstarts=200):
-    dat = load_pickle(premodel_data)
+def fit(data, output_file, ncores=70, nstarts=200):
+    dat = load_pickle(data)
     bins, Y, bp, gm = (dat['bins'], dat['Y'], 
                        dat['bp'], dat['gm'])
     features = dat['features']
@@ -122,49 +123,8 @@ def fit(premodel_data, ncores=70, nstarts=200):
     vprint("-- model saved --")
 
 
-
-def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
-                   sim_tree_file=None, sim_mu=None,
-                   neut_file=None, access_file=None, fasta_file=None,
-                   bs_file=None,
-                   model='free',
-                   sim_chrom=None,
-                   fit_chrom=None,
-                   softmax=False,
-                   mu=None,
-                   fit_outfile=None,
-                   ncores=70,
-                   nstarts=200,
-                   loo_nstarts=100,
-                   loo_chrom=False,
-                   loo_fits_dir=None,
-                   save_data=None,
-                   premodel_data=None,
-                   only_save_data=True,
-                   window=1_000_000, outliers=(0.0, 0.995),
-                   recycle_mle=False,
-                   bp_only=False,
-                   only_autos=True,
-                   B=None, blocksize=20,
-                   J=None,
-                   r2_file=None,
-                   bootjack_outfile=None,
-                   name=None,
-                   fit_file=None,
-                   thresh_cM=0.3, verbose=True):
-    """
-    """
-    def vprint(*args, **kwargs):
-        if verbose:
-            print(*args, **kwargs)
-            # save the fitted model
-
-    # model already fit, we load it for downstream stuff
-    with open(fit_file, 'rb') as f:
-        obj = pickle.load(f)
-        m_b, m_bp = obj.get('m_b', None), obj['m_bp']  # always expect B'
-
-
+def boostrap():
+    # TODO
     #  --------- bootstrap ----------
     bootstrap = B is not None
     msg = "cannot do both bootstrap and jackknife"

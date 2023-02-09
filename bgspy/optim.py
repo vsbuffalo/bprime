@@ -88,7 +88,19 @@ def run_optims(workerfunc, starts, progress=True, ncores=50,
         return nlls, thetas, success
     return OptimResult(nlls, thetas, success, np.array(starts))
 
-
+def scipy_softmax_worker(start, func, nt, nf, 
+                         bounds,
+                         method='L-BFGS-B'):
+    """
+    Main wrapper around scipy optimization via optimize.minimize.
+    """
+    nparams = nt*nf + 2
+    res = minimize(func, start, bounds=bounds, method=method, options={'maxiter':1e6})
+    nll = res.fun
+    mle = res.x
+    mle = convert_softmax(mle, nt, nf)
+    success = int(res.success) # this is so it matches nlopt
+    return nll, mle, success
 
 def convert_softmax(theta_sm, nt, nf):
     """

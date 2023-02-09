@@ -246,8 +246,10 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
+@click.option('--Bp-only', default=False, is_flag=True,
+              help="only calculate B'")
 def data(seqlens, recmap, neutral, access, fasta, 
-         bs_file, counts_dir, output, window, outliers):
+         bs_file, counts_dir, output, window, outliers, bp_only):
     outliers = tuple([float(x) for x in outliers.split(',')])
     summarize_data(seqlens_file=seqlens, recmap_file=recmap,
                    neut_file=neutral, access_file=access, fasta_file=fasta,
@@ -255,7 +257,7 @@ def data(seqlens, recmap, neutral, access, fasta,
                    counts_dir=counts_dir,
                    window=window,
                    outliers=outliers,
-                   output_file=output)
+                   output_file=output, bp_only=bp_only)
 
 # @click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
 #               help="a tree sequence file from a simulation")
@@ -265,11 +267,7 @@ def data(seqlens, recmap, neutral, access, fasta,
 @cli.command()
 @click.option('--data', default=None, type=click.Path(exists=True),
               help="pickle of pre-computed summary statistics")
-@click.option('--model', required=False, default='free', help='model type',
-              type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
-@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
-@click.option('--softmax', default=False, is_flag=True,
-              help='whether to fit DFE in softmax space')
+#@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
 @click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--ncores',
@@ -278,15 +276,13 @@ def data(seqlens, recmap, neutral, access, fasta,
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
               type=int, default=None)
-def fit(data, model, mu, softmax, output, ncores, nstarts):
+def fit(data, output, ncores, nstarts):
     # for fixed mu
-    mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
-    fit(model=model, mu=mu,
-                   softmax=softmax,
-                   fit_outfile=output, 
-                   ncores=ncores,
-                   premodel_data=data,
-                   nstarts=nstarts)
+    #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
+    fit(data=data,
+        output_file=output,
+        ncores=ncores,
+        nstarts=nstarts)
 
 
 @cli.command()
@@ -353,8 +349,7 @@ def subrate(bs_file, fit, force_feature, outfile, split):
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 
-@click.option('--only-Bp', default=True, is_flag=True, 
-              help="only calculate B'")
+@click.option('--only-Bp', default=True, is_flag=True, help="only calculate B'")
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=None)

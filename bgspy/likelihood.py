@@ -4,8 +4,9 @@ import copy
 import pickle
 import itertools
 import tqdm.autonotebook as tqdm
-#import tqdm.notebook as tqdm
+import tqdm.notebook as tqdm
 from scipy.special import softmax
+from scipy.optimize import curve_fit
 from tabulate import tabulate
 from functools import partial
 import numpy as np
@@ -20,25 +21,19 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 #     pass
 
 from scipy import interpolate
-from scipy.optimize import minimize
-from bgspy.genome import Genome
-from bgspy.data import GenomeData
-from bgspy.utils import signif, load_seqlens, load_pickle
+from bgspy.utils import signif, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
-from bgspy.optim import run_optims 
+from bgspy.optim import run_optims, scipy_softmax_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
 from bgspy.bootstrap import process_bootstraps, pivot_ci, percentile_ci
-from bgspy.models import BGSModel
-from bgspy.sim_utils import mutate_simulated_tree
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
 likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 
 #likclib = np.ctypeslib.load_library('lik', 'bgspy.src.__file__')
-AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 # mutation rate hard bounds
 # these are set for human. I'm targetting the uncertainty 
@@ -80,10 +75,36 @@ def check_bounds(x, lb, ub):
 
 # -------- main likelihood methods -----------
 
+def mut_curve(x, a):
+    """
+    This is the parametric form of the mutation grid -- this was
+    inferred and turned out to be exact over the points, given the
+    one free-parameter. This makes some sense given that the form of
+    the reduction is exp(-V/2 Q^2) and V is ~linear in mutation rate.
+    """
+    return np.exp(-a * x)
+
+def fit_B_curve_params(b, w):
+    """
+    Five the mutation curve for each DFE x feature combination.
+    Reduces the dimensionality of whatever the grid is to a single
+    parameter.
+    """
+    nx, nw, nt, nf = b.shape
+    params = np.empty((nx, 1, nt, nf))
+    for i in tqdm.tqdm(range(nx)):
+        for j in range(nt):
+            for k in range(nf):
+                popt, pcov = curve_fit(mut_curve, w, np.exp(b[i, :, j, k]))
+                assert(len(popt) == 1)
+                params[i, 0, j, k] = popt[0]
+    return params
 
 def negll_softmax(theta, Y, B, w):
     """
     Softmax version of the simplex model wrapper for negll_c().
+
+    For scipy, i.e. no grad argument.
     """
     nx, nw, nt, nf = B.shape
     # get out the W matrix, which on the optimization side, is over all reals
@@ -105,13 +126,13 @@ def negll_simplex(theta, Y, B, w):
 
 def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
                    log10_mu_bounds=MU_BOUNDS,
-                   softmax=False, bounded_softmax=False, 
-                   global_bound=1e4,
-                   paired=False):
+                   softmax=False, bounded_softmax=False,
+                   global_softmax_bound=1e4,
+                   paired=True):
     """
     Return the bounds on for optimization under the simplex model
     model. If paired=True, the bounds are zipped together for each
-    parameter.
+    parameter, for scipy.
 
     If softmax=True, all W entries are in the reals, with bounds
     -Inf, Inf. If a global optimization algorithm is being used,
@@ -126,7 +147,7 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     # but this handles the case where global optimization is used,
     # which nlopt requires bounds for -- we set these to something
     # relatively large
-    softmax_bound = np.inf if not bounded_softmax else global_bound
+    softmax_bound = np.inf if not bounded_softmax else global_softmax_bound
     lval = 0 if not softmax else -softmax_bound
     uval = 1 if not softmax else softmax_bound
     l += [lval]*nf*nt
@@ -141,7 +162,8 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
 
 def random_start_simplex(nt, nf, pi0=None, mu=None,
                          log10_pi0_bounds=PI0_BOUNDS,
-                         log10_mu_bounds=MU_BOUNDS, softmax=False):
+                         log10_mu_bounds=MU_BOUNDS, 
+                         softmax=True):
     """
     Create a random start position, uniform over the bounds for π0
     and μ, and Dirichlet under the DFE weights for W, under the simplex model.
@@ -543,22 +565,12 @@ class SimplexModel(BGSLikelihood):
 
     There are two main way to parameterize the simplex for optimization.
 
-      1. No reparameterization: 0 < W < 1
+      1. No reparameterization: 0 < W < 1, with constrained optimization.
       2. Softmax: the columns of W are optimized over all reals,
           and mapped to the simplex space with softmax.
-
-    Note that the B grid sets the bounds around μW, since this product
-    cannot fall outside the interpolation range. For bounded μ,
-    this implies a lower and upper DFE 
-
-    l < μW < u: l, u are the interpolation bounds
-
-    l/μ_upper < W < u/μ_lower
-
-    The C likelihood routine will always return B=1 when w is 
-    below the lower interpolation point (corresponding to w≈0). So
-    the lower bound doesn't need to be set. 
-
+    
+    Initially we tried no reparameterization, but this was slow and 
+    fragile. Softmax seems to work quite well.
     """
     def __init__(self, Y, w, t, logB, bins=None,
                  features=None, 
@@ -568,66 +580,47 @@ class SimplexModel(BGSLikelihood):
                          bins=bins, features=features,
                          log10_pi0_bounds=log10_pi0_bounds,
                          log10_mu_bounds=log10_mu_bounds)
-        self.start_pi0 = None
-        self.start_mu = None
-        # the bounds of W are set by B grid interpolation range
-        # and mutation rate bounds
-        self.W_bounds = (0, 1) #(np.min(w)/(10**MU_BOUNDS[0]),
-                        # min(1, np.max(w)/(10**MU_BOUNDS[1])))
-        #assert self.W_bounds[0] > 0
-        #assert self.W_bounds[0] <= 1
+        self.start_pi0_ = None
+        self.start_mu_ = None
+        # fit the exponential over the grid of mutation points
+        self.logB_fit = fit_B_curve_params(logB, w)
 
-
-    def random_start(self, pi0=None, mu=None, softmax=False):
+    def random_start(self, pi0=None, mu=None):
         """
         Random starts, on a linear scale for μ and π0.
-
-        Note: if the attributes self.start_pi0 and/or self.start_mu
-        are set, these fixed start points *replace* the corresponding
-        start element in this random array.
         """
         start = random_start_simplex(self.nt, self.nf,
                                      pi0=pi0, mu=mu,
                                      log10_pi0_bounds=self.log10_pi0_bounds,
-                                     log10_mu_bounds=self.log10_mu_bounds,
-                                     softmax=softmax)
-        if self.start_pi0 is not None:
-            start[0] = self.start_pi0
-        if self.start_mu is not None:
-            start[1] = self.start_mu
-
+                                     log10_mu_bounds=self.log10_mu_bounds)
+        if pi0 is not None:
+            self.start_pi0_ = pi0
+        if mu is not None:
+            self.start_mu_ = mu
         return start
 
-    def bounds(self, softmax=False, global_bound=False, paired=False):
+    def bounds(self):
         return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds,
-                              softmax=softmax,
-                              global_bound=global_bound,
-                              paired=paired)
+                              softmax=True,
+                              global_softmax_bound=False,
+                              paired=True)
 
     def fit(self, starts=1, ncores=None, 
-            algo='GN_ISRES', start_pi0=None, start_mu=None,
-            softmax=False, chrom=None,
-            progress=True, _indices=None):
+            start_pi0=None, start_mu=None,
+            chrom=None, progress=True, _indices=None):
         """
         Fit likelihood models with numeric optimization (using nlopt).
 
         starts: either an integer number of random starts or a list of starts.
         ncores: number of cores to use for multiprocessing.
-        algo: the optimization algorithm to use.
+        start_pi0/start_mu: starting values for pi0 and mu.
         _indices: indices to include in fit; this is primarily internal, for
                   bootstrapping
         """
-        # TODO: now I just directly pass the algo to nlopt, no checking
-        # e.g. for testing. Clean up interface later.
-        if start_pi0 is not None:
-            self.start_pi0 = start_pi0
-        if start_mu is not None:
-            self.start_mu = start_mu
-
         if isinstance(starts, int):
-            starts = [self.random_start(softmax=softmax) for _
+            starts = [self.random_start(pi0=start_pi0, mu=start_mu) for _
                       in range(starts)]
 
         if ncores is not None:
@@ -635,10 +628,8 @@ class SimplexModel(BGSLikelihood):
             ncores = min(len(starts), ncores)
 
         Y = self.Y
-        if self.logB_fit is not None:
-            logB = self.logB_fit
-        else:
-            logB = self.logB
+        assert self.logB_fit is not None
+        logB = self.logB_fit
          
         # if we have pre-specified indices, we're doing 
         # jackknife or bootstrap
@@ -654,24 +645,16 @@ class SimplexModel(BGSLikelihood):
             Y = Y[idx, ...]
             logB = logB[idx, ...]
 
-        # wrap the negloglik function around the data and B grid
-        negll_func = negll_simplex_full if not softmax else negll_softmax_full
-        nll = partial(negll_func, Y=Y,
-                      B=logB, w=self.w)
+        nll_func = partial(negll_softmax, Y=Y, B=logB, w=self.w)
 
-        global_bound = algo.startswith('GN')
-        # make the main simplex worker for parallelization
-        worker_func = nlopt_simplex_worker if not softmax else nlopt_softmax_worker
-        #worker_func = scipy_softmax_worker
-        worker = partial(worker_func,
-                         func=nll, nt=self.nt, nf=self.nf,
-                         log10_W_bounds=np.log10(self.W_bounds),
-                         bounds=self.bounds(softmax=softmax, 
-                                            global_bound=False), 
-                         algo=algo)
+        worker = partial(scipy_softmax_worker, 
+                         func=nll_func, 
+                         bounds=self.bounds(), 
+                         nt=self.nt, nf=self.nf, method='L-BFGS-B')
 
         # run the optimization routine on muliple starts
-        res = run_optims(worker, starts, ncores=ncores, progress=progress)
+        res = run_optims(worker, starts, ncores=ncores, 
+                         progress=progress)
 
         if bootstrap:
             # we don't clobber the existing results since this ins't a fit.
