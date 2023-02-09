@@ -151,7 +151,8 @@ def optim_plot(only_success=True, logy=False, tail=0.5, x_percent=False, downsam
 
 def optim_diagnotics_plot(fit, top_n=100, figsize=None,
                           pi_scale=1e3, mu_scale=1e8,
-                          add_nll=False, filter_success=True):
+                          add_nll=False, filter_success=True,
+                          cmap='viridis'):
     """
     Thanks to Nate Pope for this visualization suggestion!
     """
@@ -160,7 +161,7 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     nt, nf, t = fit.nt, fit.nf, fit.t
     nlls = opt.nlls_
     thetas = opt.thetas_
-    success = opt.success_
+    success = opt.success_.astype('bool')
 
     if filter_success:
         nlls = nlls[success]
@@ -187,7 +188,7 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     for i in range(nf):
         #ax[i].imshow(dfes[:, :, i].T, cmap='inferno')
         x = np.arange(top_n)
-        ax[i].pcolormesh(dfes[:, :, i].T, cmap='inferno', norm=norm)
+        ax[i].pcolormesh(dfes[:, :, i].T, cmap=cmap, norm=norm)
         ax[i].set_ylabel(f"{features[i]}")
         ax[i].set_yticks(np.arange(nt)+0.5, 
                          [f"${10}^{{{x}}}$" for x in np.log10(t).astype(int)])

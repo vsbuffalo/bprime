@@ -27,6 +27,8 @@ dependencies:
   - pyBigWig
   - ripgrep
   - neovim
+  - jupyterlab_widgets
+  - ipywidgets
   - pip
   - pip:
     - newick

@@ -24,6 +24,8 @@ dependencies:
   - bioawk
   - nlopt
   - pytest
+  - jupyterlab_widgets
+  - ipywidgets
   - pyBigWig
   - pip
   - pip:
