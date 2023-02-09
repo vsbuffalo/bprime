@@ -26,8 +26,7 @@ import numpy as np
 from scipy.special import softmax
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-#import tqdm.notebook as tqdm
-import tqdm.autonotebook as tqdm
+import tqdm
 import nlopt
 from scipy.optimize import minimize
 

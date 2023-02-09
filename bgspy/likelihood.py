@@ -3,8 +3,7 @@ import os
 import copy
 import pickle
 import itertools
-import tqdm.autonotebook as tqdm
-import tqdm.notebook as tqdm
+import tqdm
 from scipy.special import softmax
 from scipy.optimize import curve_fit
 from tabulate import tabulate
@@ -90,6 +89,9 @@ def fit_B_curve_params(b, w):
     Reduces the dimensionality of whatever the grid is to a single
     parameter.
     """
+    # TODO: fixing this, but shouldn't be global. Something upstream
+    # messed up the data
+    np.seterr(under='ignore')
     nx, nw, nt, nf = b.shape
     params = np.empty((nx, 1, nt, nf))
     for i in tqdm.tqdm(range(nx)):
