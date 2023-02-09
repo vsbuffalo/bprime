@@ -2,7 +2,7 @@
 import os
 import copy
 import pickle
-import warnings
+import itertools
 import tqdm.autonotebook as tqdm
 #import tqdm.notebook as tqdm
 from scipy.special import softmax
@@ -25,8 +25,7 @@ from bgspy.genome import Genome
 from bgspy.data import GenomeData
 from bgspy.utils import signif, load_seqlens, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
-from bgspy.optim import run_optims, nlopt_mutation_worker, nlopt_simplex_worker, nlopt_softmax_worker
-from bgspy.optim import scipy_softmax_worker
+from bgspy.optim import run_optims 
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
@@ -53,364 +52,62 @@ MU_BOUNDS = tuple(np.log10((0.9e-8,  5e-8)))
 PI0_BOUNDS = tuple(np.log10((0.0005, 0.005)))  # this is fairly permissive
 # see https://twitter.com/jkpritch/status/1600296856999047168/photo/1
 
-def fit_likelihood(seqlens_file=None, recmap_file=None, counts_dir=None,
-                   sim_tree_file=None, sim_mu=None,
-                   neut_file=None, access_file=None, fasta_file=None,
-                   bs_file=None,
-                   model='free',
-                   sim_chrom=None,
-                   fit_chrom=None,
-                   softmax=False,
-                   mu=None,
-                   fit_outfile=None,
-                   ncores=70,
-                   nstarts=200,
-                   loo_nstarts=100,
-                   loo_chrom=False,
-                   loo_fits_dir=None,
-                   save_data=None,
-                   premodel_data=None,
-                   only_save_data=True,
-                   window=1_000_000, outliers=(0.0, 0.995),
-                   recycle_mle=False,
-                   bp_only=False,
-                   only_autos=True,
-                   B=None, blocksize=20,
-                   J=None,
-                   r2_file=None,
-                   bootjack_outfile=None,
-                   name=None,
-                   fit_file=None,
-                   thresh_cM=0.3, verbose=True):
+# -------- random utility/convenience functions -----------
+
+def param_names(t, features):
     """
-    Wrapper function for a standard BGS analysis. This also allow for one to
-    take a fit object, and use it for bootstrapping across a cluster.
-
-    Many of the defaults are tailored for my human genetics data (sorry, use
-    at your own caution for other organisms).
-
-    Note: when both B and B' are pickled as a tuple, it is always in this order.
-
-    name: if None, inferred from seqlens file, e.g. '<name>_seqlens.tsv'
-
-    NOTE: this is quite a long function, and should in the future be
-    refactored. However, I have kept as-is since results that 
-    take a long time to compute depend on this version.
-
+    Label the simplex model parameters.
     """
-    def vprint(*args, **kwargs):
-        if verbose:
-            print(*args, **kwargs)
-    already_fit = fit_file is not None
-    if not already_fit:
-        #  --------- load data, build summary statistics ----------
-        if not premodel_data:
-            # infer the genome name if not supplies
-            name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
-            seqlens = load_seqlens(seqlens_file)
-            if only_autos:
-                seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
-            vprint("-- loading genome --")
-            g = Genome(name, seqlens=seqlens)
-            g.load_recmap(recmap_file)
-            gd = GenomeData(g)
-            is_sim = sim_tree_file is not None
-            if counts_dir is not None:
-                assert not is_sim, "set either counts directory or sim tree file"
-                gd.load_counts_dir(counts_dir)
-            else:
-                assert counts_dir is None, "set either counts directory or sim tree file"
-                assert sim_chrom is not None, "sim_chrom needs to be specified when loading from a treeseq"
-                assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
-                ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
-                gd.load_counts_from_ts(ts, chrom=sim_chrom)
+    sels, feats = np.meshgrid(np.log10(t), features)
+    sels, feats = itertools.chain(*sels.tolist()), itertools.chain(*feats.tolist())
+    return ["pi0", "mu"] + [f"W[{int(s)},{f}]" for s, f in zip(*(sels, feats))]
 
-
-            gd.load_neutral_masks(neut_file)
-            gd.load_accessibile_masks(access_file)
-            gd.load_fasta(fasta_file, soft_mask=True)
-            gd.trim_ends(thresh_cM=thresh_cM)
-
-            # bin the diversity data
-            vprint("-- binning pairwise diversity --")
-            bgs_bins = gd.bin_pairwise_summaries(window,
-                                                 filter_accessible=True,
-                                                 filter_neutral=True)
-
-            del gd  # we don't need it after this, it's summarized
-            # mask bins that are outliers
-            bgs_bins.mask_outliers(outliers)
-
-            # genome models
-            vprint("-- loading Bs --")
-            gm = BGSModel.load(bs_file)
-
-            # features -- load for labels
-            features = list(gm.segments.feature_map.keys())
-
-            # handle if we're doing B too or just B'
-            m_b = None
-            if gm.Bs is None:
-                warnings.warn(f"BGSModel.Bs is not set, so not fitting classic Bs (this is likely okay.)")
-                bp_only = True  # this has to be true now, no B
-
-            # bin Bs
-            if not bp_only:
-                vprint("-- binning B --")
-                b = bgs_bins.bin_Bs(gm.BScores)
-
-            # B' is always fit
-            vprint("-- binning B' --")
-            bp = bgs_bins.bin_Bs(gm.BpScores)
-
-            # get the diversity data
-            vprint("-- making diversity matrix Y --")
-            Y = bgs_bins.Y()
-
-            # save testing data at this point if specified
-            if save_data is not None:
-                vprint("-- saving pre-fit model data --")
-                with open(save_data, 'wb') as f:
-                    dat = {'bgs_bins': bgs_bins, 'Y': Y, 
-                           'bp': bp, 'gm': gm, 'features': features}
-                    if not bp_only:
-                        dat['b'] = b
-                    pickle.dump(dat, f)
-                if only_save_data:
-                    return
-        else:
-            # we have pre-model data already crunched we can load!
-            dat = load_pickle(premodel_data)
-            bgs_bins, Y, bp, gm = (dat['bgs_bins'], dat['Y'], 
-                                   dat['bp'], dat['gm'])
-            features = dat['features']
-            b = dat.get('b', None)
-
-        #  --------- fit the model ----------
-        if model == 'simplex':
-            # fit the simplex model
-            algo = 'GN_ISRES' if not softmax else 'LD_LBFGS'
-            if not bp_only:
-                vprint("-- fitting B simplex model --")
-                m_b = SimplexModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                                    bins=bgs_bins, features=features)
-                m_b.fit(starts=nstarts, ncores=ncores, 
-                        softmax=softmax,
-                        chrom=fit_chrom,
-                        algo=algo)
-
-            # now to the B'
-            vprint("-- fitting B' simplex model --")
-            m_bp = SimplexModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
-                                bins=bgs_bins, features=features)
-            m_bp.fit(starts=nstarts, ncores=ncores, 
-                     softmax=softmax,
-                     chrom=fit_chrom,
-                     algo=algo)
-        elif model == 'fixed':
-            assert isinstance(mu, float), "mu must be a float if model='fixed'"
-            # fit the simplex model
-            if not bp_only:
-                vprint("-- fitting B fixed model --")
-                m_b = FixedMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                                         bins=bgs_bins, features=features)
-                m_b.fit(starts=nstarts, mu=mu, 
-                        chrom=fit_chrom,
-                        ncores=ncores, algo='ISRES')
-
-            # now to the B'
-            vprint("-- fitting B' fixed model --")
-            m_bp = FixedMutationModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
-                                      bins=bgs_bins, features=features)
-            m_bp.fit(starts=nstarts, mu=mu, 
-                     chrom=fit_chrom,
-                     ncores=ncores, algo='ISRES')
-        else:
-            # free mutation / default
-            # fit the simplex model
-            if not bp_only:
-                vprint("-- fitting B free model --")
-                m_b = FreeMutationModel(w=gm.w, t=gm.t, logB=b, Y=Y,
-                                        bins=bgs_bins, features=features)
-                m_b.fit(starts=nstarts, 
-                        chrom=fit_chrom,
-                        ncores=ncores, algo='ISRES')
-
-            # now to the B'
-            vprint("-- fitting B' free model --")
-            m_bp = FreeMutationModel(w=gm.w, t=gm.t, logB=bp, Y=Y,
-                                     bins=bgs_bins, features=features)
-            m_bp.fit(starts=nstarts, 
-                     chrom=fit_chrom,
-                     ncores=ncores, algo='ISRES')
-
-
-        # save the fitted model
-        obj = {'m_b': m_b, 'm_bp': m_bp}
-        with open(fit_outfile, 'wb') as f:
-            pickle.dump(obj, f)
-        vprint("-- model saved --")
-
-    else:
-        # model already fit, we load it for downstream stuff 
-        with open(fit_file, 'rb') as f:
-            obj = pickle.load(f)
-            m_b, m_bp = obj.get('m_b', None), obj['m_bp']  # always expect B'
-
-
-    #  --------- bootstrap ----------
-    bootstrap = B is not None
-    msg = "cannot do both bootstrap and jackknife"
-    if bootstrap:
-        assert fit_chrom is None, "cannot set fit_chrom"
-        assert J is None, msg
-        vprint('note: recycling MLE for bootstrap')
-        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
-        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-
-        nlls_b, thetas_b = None, None # in case only-Bp
-        if not bp_only:
-            print("-- bootstrapping B --")
-            nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
-                                             starts=starts_b, ncores=ncores)
-        print("-- bootstrapping B' --")
-        nlls_bp, thetas_bp = m_bp.bootstrap(nboot=B, blocksize=blocksize,
-                                            starts=starts_bp, ncores=ncores)
-        if bootjack_outfile is not None:
-            np.savez(bootjack_outfile, 
-                     nlls_b=nlls_b, thetas_b=thetas_b,
-                     nlls_bp=nlls_bp, thetas_bp=thetas_bp)
-            print("-- bootstrapping results saved --")
-            return
-
-    #  --------- jackknife ----------
-    jackknife = J is not None
-    if jackknife:
-        assert fit_chrom is None, "cannot set fit_chrom"
-        assert B is None, msg
-        vprint('note: recycling MLE for jackknife')
-        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
-        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-
-        nlls_b, thetas_b = None, None  # in case only-Bp
-        if not bp_only:
-            print("-- jackknife B --")
-            nlls_b, thetas_b = m_b.jackknife(njack=J, 
-                                             starts=starts_b, ncores=ncores)
-        print("-- jackknife B' --")
-        nlls_bp, thetas_bp = m_bp.jackknife(njack=J,
-                                            starts=starts_bp, ncores=ncores)
-        if bootjack_outfile is not None:
-            np.savez(bootjack_outfile, 
-                     nlls_b=nlls_b, thetas_b=thetas_b,
-                     nlls_bp=nlls_bp, thetas_bp=thetas_bp)
-            print("-- jackknife results saved --")
-            return
-
-    #  --------- leave-one-out ----------
-    if loo_chrom is not False:
-        assert fit_chrom is None, "cannot set fit_chrom"
-        # can be False (don't do LOO), True (do LOO for all chroms), or string
-        # chromosome name (do LOO, exluding chromosome)
-        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
-        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-        b_r2 = None
-        if loo_chrom is True:
-           # iterate through everything
-           out_sample_chrom = None
-        else:
-           # single chrom specified...
-           out_sample_chrom = loo_chrom
-        if not bp_only:
-            print("-- leave-one-out R2 estimation for B --")
-            b_r2 = m_b.loo_chrom_R2(starts=loo_nstarts,
-                                    out_sample_chrom=out_sample_chrom,
-                                    loo_fits_dir=loo_fits_dir,
-                                    ncores=ncores)
-        print("-- leave-one-out R2 estimation for B' --")
-        bp_r2 = m_bp.loo_chrom_R2(starts=loo_nstarts,
-                                  out_sample_chrom=out_sample_chrom,
-                                  loo_fits_dir=loo_fits_dir,
-                                  ncores=ncores)
-
-        np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
-
-def negll_numba(theta, Y, logB, w):
+def R2(x, y):
     """
-    DEPRECATED: This is only used for testing against new, faster C
-    implementations. The name is because this used to bet sped up with
-    numba.
+    Based on scipy.stats.linregress
+    https://github.com/scipy/scipy/blob/v1.9.0/scipy/stats/_stats_mstats_common.py#L22-L209
     """
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, mu, W = theta[0], theta[1], theta[2:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    ll = 0.
-    for i in range(nx):
-        logBw_i = 0.
-        for j in range(nt):
-            for k in range(nf):
-                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-        log_pibar = np.log(pi0) + logBw_i
-        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
-    return -ll
-
-def get_out_sample(idx, n):
-    """
-    Get the bootstrap indices that randomly weren't sampled.
-    """
-    return np.array(list(set(np.arange(n)).difference(idx)))
+    complete_idx = ~(np.isnan(x) | np.isnan(y))
+    x = x[complete_idx]
+    y = y[complete_idx]
+    ssxm, ssxym, _, ssym = np.cov(x, y, bias=True).flat
+    return ssxym / np.sqrt(ssxm * ssym)
 
 
-def access(B, i, l, j, k):
+def check_bounds(x, lb, ub):
+    assert np.all((x >= lb) & (x <= ub))
+
+
+# -------- main likelihood methods -----------
+
+
+def negll_softmax(theta, Y, B, w):
     """
-    This is a function that tests uses the C function access()
-    to grab elements of the multidimensional array B using a macro.
-    This is primarily used in unit tests to ensure this is working properly.
+    Softmax version of the simplex model wrapper for negll_c().
     """
     nx, nw, nt, nf = B.shape
-    B = np.require(B, np.float64, ['ALIGNED'])
-    likclib.access.argtypes = (POINTER(c_double),
-                                     c_ssize_t,
-                                     c_ssize_t,
-                                     c_ssize_t,
-                                     c_ssize_t,
-                                     POINTER(np.ctypeslib.c_intp))
-
-    likclib.access.restype = c_double
-
-    logB_ptr = B.ctypes.data_as(POINTER(c_double))
-    return likclib.access(logB_ptr, i, l, j, k, B.ctypes.strides)
+    # get out the W matrix, which on the optimization side, is over all reals
+    sm_theta = np.copy(theta)
+    W_reals = theta[2:].reshape(nt, nf)
+    with np.errstate(under='ignore'):
+        W = softmax(W_reals, axis=0)
+    assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
+    sm_theta[2:] = W.flat
+    return negll_c(sm_theta, Y, B, w, version=3)
 
 
-def bounds_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
-                    log10_mu_bounds=MU_BOUNDS, paired=False):
+def negll_simplex(theta, Y, B, w):
     """
-    Return the bounds on for optimization under the free mutation
-    model. If paired=True, the bounds are zipped together for each
-    parameter.
+    Simplex model wrapper for negll_c().
     """
-    l = [10**log10_pi0_bounds[0]]
-    u = [10**log10_pi0_bounds[1]]
-    for i in range(nt):
-        for j in range(nf):
-            l += [10**log10_mu_bounds[0]]
-            u += [10**log10_mu_bounds[1]]
-    lb = np.array(l)
-    ub = np.array(u)
-    assert np.all(lb < ub)
-    if paired:
-        return list(zip(lb, ub))
-    return lb, ub
+    return negll_c(theta, Y, B, w, version=3)
 
 
 def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
-           log10_mu_bounds=MU_BOUNDS,
-           softmax=False, bounded_softmax=False, global_bound=1e4,
-           paired=False):
+                   log10_mu_bounds=MU_BOUNDS,
+                   softmax=False, bounded_softmax=False, 
+                   global_bound=1e4,
+                   paired=False):
     """
     Return the bounds on for optimization under the simplex model
     model. If paired=True, the bounds are zipped together for each
@@ -442,68 +139,19 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     return lb, ub
 
 
-def bounds_fixed_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS):
-    """
-    Return the bounds on for optimization under the simplex model
-    model with fixed mutations.
-    """
-    l = [10**log10_pi0_bounds[0]]
-    u = [10**log10_pi0_bounds[1]]
-    l += [0.]*nf*nt
-    u += [1.]*nf*nt
-    lb = np.array(l)
-    ub = np.array(u)
-    assert np.all(lb < ub)
-    return lb, ub
-
-def random_start_mutation(nt, nf,
-                          log10_pi0_bounds=PI0_BOUNDS,
-                          log10_mu_bounds=MU_BOUNDS):
-    """
-    Create a random start position log10 uniform over the bounds for π0
-    and all the mutation parameters under the free mutation model.
-    """
-    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
-                            10**log10_pi0_bounds[1], 1)
-    W = np.empty((nt, nf))
-    for i in range(nt):
-        for j in range(nf):
-            W[i, j] = np.random.uniform(10**log10_mu_bounds[0], 
-                                        10**log10_mu_bounds[1])
-    theta = np.empty(nt*nf + 1)
-    theta[0] = pi0
-    theta[1:] = W.flat
-    return theta
-
-
-def random_start_mutation_log10(nt, nf,
-                                log10_pi0_bounds=PI0_BOUNDS,
-                                log10_mu_bounds=MU_BOUNDS):
-    """
-    Create a random start position log10 uniform over the bounds for π0
-    and all the mutation parameters under the free mutation model.
-    """
-    pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
-    W = np.empty((nt, nf))
-    for i in range(nt):
-        for j in range(nf):
-            W[i, j] = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1])
-    theta = np.empty(nt*nf + 1)
-    theta[0] = pi0
-    theta[1:] = W.flat
-    return theta
-
-
-def random_start_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
+def random_start_simplex(nt, nf, pi0=None, mu=None,
+                         log10_pi0_bounds=PI0_BOUNDS,
                          log10_mu_bounds=MU_BOUNDS, softmax=False):
     """
     Create a random start position, uniform over the bounds for π0
     and μ, and Dirichlet under the DFE weights for W, under the simplex model.
     """
-    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
-                            10**log10_pi0_bounds[1], 1)
-    mu = np.random.uniform(10**log10_mu_bounds[0],
-                           10**log10_mu_bounds[1], 1)
+    if pi0 is None:
+        pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
+                                10**log10_pi0_bounds[1], 1)
+    if mu is None:
+        mu = np.random.uniform(10**log10_mu_bounds[0],
+                               10**log10_mu_bounds[1], 1)
 
     nparams = nt*nf + 2
     theta = np.empty(nparams)
@@ -523,205 +171,6 @@ def random_start_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     theta[2:] = W.flat
     check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
     return theta
-
-
-def random_start_simplex_log10(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
-                               log10_mu_bounds=MU_BOUNDS):
-    """
-    Create a random start position log10 uniform over the bounds for π0
-    and μ, and uniform under the DFE weights for W, under the simplex model.
-    """
-    pi0 = 10**np.random.uniform(log10_pi0_bounds[0], log10_pi0_bounds[1], 1)
-    mu = 10**np.random.uniform(log10_mu_bounds[0], log10_mu_bounds[1], 1)
-    W = np.empty((nt, nf))
-    for i in range(nf):
-        W[:, i] = np.random.dirichlet([1.] * nt)
-        assert np.abs(W[:, i].sum() - 1.) < 1e-5
-    theta = np.empty(nt*nf + 2)
-    theta[0] = pi0
-    theta[1] = mu
-    theta[2:] = W.flat
-    check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
-    return theta
-
-
-def random_start_fixed_mutation(nt, nf, log10_pi0_bounds=PI0_BOUNDS):
-    """
-    Create a random start position log10 uniform over the bounds for π0
-    and μ, and uniform under the DFE weights for W, under the simplex model,
-    but for a fixed mutation rate.
-    """
-    pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
-                            10**log10_pi0_bounds[1], 1)
-    W = np.empty((nt, nf))
-    for i in range(nf):
-        W[:, i] = np.random.dirichlet([1.] * nt)
-        assert np.abs(W[:, i].sum() - 1.) < 1e-5
-    theta = np.empty(nt*nf + 1)
-    theta[0] = pi0
-    theta[1:] = W.flat
-    return theta
-
-
-def interp_logBw_c(x, w, B, i, j, k):
-    """
-    Linearly interpolate log(B) over the mutation parameter w using the C
-    function. This is to test against the Python implementation.
-    """
-    nx, nw, nt, nf = B.shape
-    B = np.require(B, np.float64, ['ALIGNED'])
-    likclib.interp_logBw.argtypes = (c_double,           # x
-                                     POINTER(c_double),  # *w
-                                     POINTER(c_double),  # *logB
-                                     c_ssize_t,          # nw
-                                     c_ssize_t,          # i
-                                     c_ssize_t,          # j
-                                     c_ssize_t,          # k
-                                     POINTER(np.ctypeslib.c_intp)) # *strides
-
-    likclib.interp_logBw.restype = c_double
-
-    return likclib.interp_logBw(x,
-                                w.ctypes.data_as(POINTER(c_double)),
-                                B.ctypes.data_as(POINTER(c_double)),
-                                nw, i, j, k, B.ctypes.strides)
-
-def R2(x, y):
-    """
-    Based on scipy.stats.linregress
-    https://github.com/scipy/scipy/blob/v1.9.0/scipy/stats/_stats_mstats_common.py#L22-L209
-    """
-    complete_idx = ~(np.isnan(x) | np.isnan(y))
-    x = x[complete_idx]
-    y = y[complete_idx]
-    ssxm, ssxym, _, ssym = np.cov(x, y, bias=True).flat
-    return ssxym / np.sqrt(ssxm * ssym)
-
-
-def penalized_negll_c(theta, Y, logB, w, mu0, r):
-    """
-    EXPERIMENTAL
-    A thin wrapper over negll_c() that imposes a penalty of the form:
-
-     l*(θ) = l(θ | x) - r (μ - μ0)^2 / 2
-
-    where r can be thought of as the precision (1/variance) -- this is
-    essentially a Gaussian prior.
-    """
-    nll = negll_c(theta, Y, logB, w)
-    mu = theta[1]
-    return nll + r/2 * (mu - mu0)**2
-
-def log1mexp(x):
-    """
-    log(1-exp(-|x|)) computed using the methods described in
-    this paper: https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-
-    I've also added another condition to prevent underflow.
-
-    NOTE: note in use currently outside negll() -- critical code in C.
-    """
-    assert isinstance(x, np.ndarray), "x must be a float-like np.ndarray"
-    assert np.all(x < 0), "x must be < 0"
-    min_negexp = np.finfo(x.dtype).minexp / np.log2(np.exp(1))
-    a0 = np.log(2)
-    out = np.zeros_like(x)
-    #out = np.full_file(x, np.e)
-    not_underflow = x > min_negexp
-    abs_x = np.abs(x[not_underflow])
-    out[not_underflow] = np.where(abs_x < a0, np.log(-np.expm1(-abs_x)), np.log1p(-np.exp(-abs_x)))
-    return out
-
-def negll(theta, Y, logB, w):
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, mu, W = theta[0], theta[1], theta[2:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=float)
-    for i in range(nx):
-        for j in range(nt):
-            for k in range(nf):
-                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-    #pibar = pi0 * np.exp(logBw)
-    log_pibar = np.log(pi0) + logBw
-    #llm = nD*log_pibar + xlog1py(nS, -np.exp(log_pibar))
-    llm = nD*log_pibar + nS*log1mexp(log_pibar)
-    return -np.sum(llm)
-
-
-def negll_mutation(theta, Y, logB, w):
-    nS = Y[:, 0]
-    nD = Y[:, 1]
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, W = theta[0], theta[1:]
-    mu = 1.0
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    ll = 0.
-    for i in range(nx):
-        logBw_i = 0.
-        for j in range(nt):
-            for k in range(nf):
-                logBw_i += np.interp(mu*W[j, k], w, logB[i, :, j, k])
-        log_pibar = np.log(pi0) + logBw_i
-        ll += nD[i]*log_pibar + nS[i]*np.log1p(-np.exp(log_pibar))
-    return -ll
-
-def check_bounds(x, lb, ub):
-    assert np.all((x >= lb) & (x <= ub))
-
-def negll_c(theta, Y, logB, w, two_alleles=False,
-            version=2):
-    """
-    θ is [π0, μ, w11, w12, ...] and should
-    have dimension (nt x nf) + 2
-    """
-    nx, nw, nt, nf = logB.shape
-    nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
-    nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
-    assert nS.shape[0] == nx
-    assert theta.size == (nt * nf) + 2
-    theta = np.require(theta, np.float64, ['ALIGNED'])
-    logB = np.require(logB, np.float64, ['ALIGNED'])
-    nS_ptr = nS.ctypes.data_as(POINTER(c_double))
-    nD_ptr = nD.ctypes.data_as(POINTER(c_double))
-    theta_ptr = theta.ctypes.data_as(POINTER(c_double))
-    logB_ptr = logB.ctypes.data_as(POINTER(c_double))
-    w_ptr = w.ctypes.data_as(POINTER(c_double))
-    negloglik_argtypes = (POINTER(c_double), POINTER(c_double),
-                          POINTER(c_double), POINTER(c_double),
-                          POINTER(c_double),
-                          # weird type for dims/strides
-                          POINTER(np.ctypeslib.c_intp),
-                          POINTER(np.ctypeslib.c_intp),
-                          c_int)
-    negloglik_restype = c_double
-
-    likclib.negloglik.argtypes = negloglik_argtypes
-    likclib.negloglik.restype = negloglik_restype
-
-    likclib.negloglik2.argtypes = negloglik_argtypes
-    likclib.negloglik2.restype = negloglik_restype
-
-    likclib.negloglik3.argtypes = negloglik_argtypes
-    likclib.negloglik3.restype = negloglik_restype
-
-    args = (theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
-            logB.ctypes.shape, logB.ctypes.strides,
-            int(two_alleles))
-
-    if version == 1:
-        return likclib.negloglik(*args)
-    elif version == 2:
-        return likclib.negloglik2(*args)
-    elif version == 3:
-        return likclib.negloglik3(*args)
-    else:
-        raise ValueError("unsupported version")
 
 
 def predict_simplex(theta, logB, w, mu=None):
@@ -746,27 +195,8 @@ def predict_simplex(theta, logB, w, mu=None):
                 logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
     return pi0*np.exp(logBw)
 
-def predict_freemutation(theta, logB, w):
-    """
-    """
-    nx, nw, nt, nf = logB.shape
-    # mut weight params
-    pi0, W = theta[0], theta[1:]
-    W = W.reshape((nt, nf))
-    # interpolate B(w)'s
-    logBw = np.zeros(nx, dtype=float)
-    for i in range(nx):
-        for j in range(nt):
-            for k in range(nf):
-                logBw[i] += np.interp(W[j, k], w, logB[i, :, j, k])
-    return pi0*np.exp(logBw)
 
-
-def rescale_freemutation_thetas(thetas):
-    """
-
-    """
-    pass
+# -------- main likelihood classes -----------
 
 class BGSLikelihood:
     """
@@ -851,14 +281,19 @@ class BGSLikelihood:
                                     **kwargs)
         return func(pos)
 
-    def _load_optim(self, optim_res):
+    def _load_optim(self, optim_res, index=None):
         """
         Taken an OptimResult() object.
         """
         self.optim = optim_res
-        # load in the best values
-        self.theta_ = optim_res.theta
-        self.nll_ = optim_res.nll
+        if index is None:
+            # load in the best values
+            self.theta_ = optim_res.theta
+            self.nll_ = optim_res.nll
+        else:
+            self.theta_ = optim_res.thetas_[index]
+            self.nll_ = optim_res.nlls_[index]
+ 
 
     def load_bootstraps(self, nlls, thetas):
         """
@@ -1100,259 +535,6 @@ class BGSLikelihood:
         rows.append(f"  t grid: {signif(self.t)}")
         return "\n".join(rows)
 
-def negll_freemut(Y, B, w, two_alleles=False):
-    """
-    This is a closure around data; returns a negative log- likelihood
-    function around the data and a few fixed parameters (B and w).
-
-    The core part is negll_c().
-    """
-    def func(theta):
-        new_theta = np.full(theta.size + 1, np.nan)
-        theta = np.copy(theta)
-        new_theta[0] = theta[0]
-        # fix mutation rate to one and let W represent mutation rates to various classes
-        new_theta[1] = 1.
-        new_theta[2:] = theta[1:] # times mutation rates
-        #print("-->", theta, new_theta)
-        return negll_c(new_theta, Y, B, w, two_alleles)
-    return func
-
-
-def negll_freemut_full(theta, grad, Y, B, w, two_alleles=False):
-    """
-    Like negll_freemut() but not a closure.
-
-    grad is for nlopt and should be set to None if SciPy is being used.
-    """
-    new_theta = np.full(theta.size + 1, np.nan)
-    new_theta[0] = theta[0]
-    # fix mutation rate to one and let W represent mutation rates to various classes
-    new_theta[1] = 1.
-    new_theta[2:] = theta[1:] # times mutation rates
-    #print("-->", theta, new_theta)
-    return negll_c(new_theta, Y, B, w, two_alleles)
-
-
-def negll_softmax_full2(theta, Y, B, w):
-    """
-    Softmax version of the simplex model wrapper for negll_c().
-
-    grad is required for nlopt.
-    """
-    nx, nw, nt, nf = B.shape
-    # get out the W matrix, which on the optimization side, is over all reals
-    sm_theta = np.copy(theta)
-    W_reals = theta[2:].reshape(nt, nf)
-    with np.errstate(under='ignore'):
-        W = softmax(W_reals, axis=0)
-    assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
-    sm_theta[2:] = W.flat
-    return negll_c(sm_theta, Y, B, w, version=3)
-
-
-def negll_softmax_full(theta, grad, Y, B, w):
-    """
-    Softmax version of the simplex model wrapper for negll_c().
-
-    grad is required for nlopt.
-    """
-    nx, nw, nt, nf = B.shape
-    # get out the W matrix, which on the optimization side, is over all reals
-    sm_theta = np.copy(theta)
-    W_reals = theta[2:].reshape(nt, nf)
-    with np.errstate(under='ignore'):
-        W = softmax(W_reals, axis=0)
-    assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
-    sm_theta[2:] = W.flat
-    return negll_c(sm_theta, Y, B, w, version=3)
-
-
-def negll_simplex_full2(theta, Y, B, w):
-    """
-    Simplex model wrapper for negll_c().
-
-    grad is required for nlopt.
-    """
-    return negll_c(theta, Y, B, w, version=3)
-
-
-def negll_simplex_full(theta, grad, Y, B, w):
-    """
-    Simplex model wrapper for negll_c().
-
-    grad is required for nlopt.
-    """
-    return negll_c(theta, Y, B, w, version=3)
-
-
-def negll_simplex_fixed_mutation_full(theta, grad, Y, B, w, mu):
-    """
-    Simplex model wrapper for negll_c(), with fixed mutation.
-
-    grad is required for nlopt.
-    """
-    # insert the fixed μ
-    new_theta = np.zeros(theta.size + 1)
-    new_theta[0] = theta[0]
-    new_theta[1] = mu
-    new_theta[2:] = theta[1:]
-    return negll_c(new_theta, Y, B, w)
-
-
-class FreeMutationModel(BGSLikelihood):
-    def __init__(self, Y, w, t, logB, bins=None,
-                 features=None, 
-                 log10_pi0_bounds=PI0_BOUNDS):
-        super().__init__(Y=Y, w=w, t=t, logB=logB, features=features,
-                         bins=bins, log10_pi0_bounds=log10_pi0_bounds)
-
-    def random_start(self):
-        """
-        Random starts
-        """
-        return random_start_mutation(self.nt, self.nf,
-                                     self.log10_pi0_bounds,
-                                     self.log10_mu_bounds)
-
-    def bounds(self, paired=False):
-        return bounds_mutation(self.nt, self.nf,
-                               self.log10_pi0_bounds,
-                               self.log10_mu_bounds, paired=paired)
-
-    def fit(self, starts=1, ncores=None, algo='ISRES', two_alleles=False,
-            _indices=None):
-        """
-        Fit likelihood models with mumeric optimization (either scipy or nlopt).
-
-        starts: either an integer number of random starts or a list of starts.
-        ncores: number of cores to use for multiprocessing.
-        algo: the algorithm to use
-        two_alleles: do the two alleles correction (i.e. not infinite sites)
-        """
-        algo = algo.upper()
-        algos = {'L-BFGS-B':'scipy', 'ISRES':'nlopt',
-                 'NELDERMEAD':'nlopt', 'NEWUOA':'nlopt'}
-        assert algo in algos, f"algo must be in {algos}"
-        engine = algos[algo]
-
-        if isinstance(starts, int):
-            starts = [self.random_start() for _ in range(starts)]
-        assert isinstance(starts, list), "starts must be a list of θs or integer of random starts"
-        ncores = 1 if ncores is None else ncores
-        ncores = min(len(starts), ncores) # don't request more cores than we need
-
-        Y = self.Y
-        if self.logB_fit is not None:
-            logB = self.logB_fit
-        else:
-            logB = self.logB
-        bootstrap = _indices is not None
-        if bootstrap:
-            Y = Y[_indices, ...]
-            logB = logB[_indices, ...]
-
-        if engine == 'scipy':
-            nll = partial(negll_freemut_full, grad=None, Y=Y,
-                          B=logB, w=self.w, two_alleles=two_alleles)
-            worker = partial(minimize, nll, bounds=self.bounds(paired=True),
-                             method=algo, options={'eps':1e-9})
-        elif engine == 'nlopt':
-            nll = partial(negll_freemut_full, Y=Y,
-                          B=logB, w=self.w, two_alleles=two_alleles)
-            worker = partial(nlopt_mutation_worker,
-                             func=nll, nt=self.nt, nf=self.nf,
-                             bounds=self.bounds(), algo=algo)
-        else:
-            raise ValueError("engine must be 'scipy' or 'nlopt'")
-
-        # run the optimization routine on muliple starts
-        res = run_optims(worker, starts, ncores=ncores,
-                         progress=not bootstrap)
-
-        if bootstrap:
-            # we don't clobber the existing results since this ins't a fit.
-            # instead, we return the OptimResult directly
-            return res
-        self._load_optim(res)
-
-    @property
-    def mle_M(self):
-        """
-        Extract out the M matrix.
-        """
-        return self.theta_[1:].reshape((self.nt, self.nf))
-
-    @property
-    def mle_mu(self):
-        """
-        Get the mutation rates by summing the columns of the M matrix.
-        """
-        M = self.mle_M.reshape((self.nt, self.nf))
-        return M.sum(axis=0)
-
-    @property
-    def mle_W(self):
-        """
-        Normalized W matrix (e.g. a DFE)
-        """
-        M = self.mle_M.reshape((self.nt, self.nf))
-        W = M / M.sum(axis=0)
-        return W
-
-    def dfe_table(self):
-        rows = []
-        Wc = self.mle_W
-        for i, feature in enumerate(self.features):
-            rows.append("\t".join([feature, ','.join([str(round(x, 3)) for x in Wc[:, i].tolist()])]))
-        return "\n".join(rows)
-
-    @property
-    def nll(self):
-        return self.nll_
-
-    def predict(self, optim=None, theta=None, B=False):
-        """
-        Predicted π from the best fit (if optim = None). If optim is 'random', a
-        random MLE optimization is chosen (e.g. to get a senes of how much
-        variation there is across optimization). If optim is an integer,
-        this rank of optimization results is given (e.g. optim = 0 is the
-        best MLE).
-        """
-        if theta is not None:
-            return predict_freemutation(theta, self.logB, self.w)
-        if optim is None:
-            theta = np.copy(self.theta_)
-        else:
-            thetas = self.optim.thetas_
-            if optim == 'random':
-                theta = np.copy(thetas[np.random.randint(0, thetas.shape[0]), :])
-            else:
-                theta = np.copy(thetas[optim])
-
-        if B:
-            # rescale so B is returned, π0 = 1
-            theta[0] = 1.
-        return predict_freemutation(theta, self.logB, self.w)
-
-    def __repr__(self):
-        base_rows = super().__repr__()
-        if self.theta_ is not None:
-            base_rows += "\n\nFree-mutation model ML estimates:\n"
-            base_rows += f"negative log-likelihood: {self.nll_}\n"
-            base_rows += f"π0 = {self.mle_pi0}\n"
-            base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
-            W = self.mle_W.reshape((self.nt, self.nf))
-            Wc = W / W.sum(axis=0)
-            tab = np.concatenate((self.t[:, None], np.round(Wc, 3)), axis=1)
-            header = ()
-            if self.features is not None:
-                header = [''] + self.features
-
-            base_rows += "W = \n" + tabulate(tab, headers=header) + "\n"
-            base_rows += "μ = \n" + tabulate(W.sum(axis=0)[None, :], headers=header[1:])
-        return base_rows
-
 
 class SimplexModel(BGSLikelihood):
     """
@@ -1396,7 +578,7 @@ class SimplexModel(BGSLikelihood):
         #assert self.W_bounds[0] <= 1
 
 
-    def random_start(self, softmax=False):
+    def random_start(self, pi0=None, mu=None, softmax=False):
         """
         Random starts, on a linear scale for μ and π0.
 
@@ -1405,8 +587,9 @@ class SimplexModel(BGSLikelihood):
         start element in this random array.
         """
         start = random_start_simplex(self.nt, self.nf,
-                                     self.log10_pi0_bounds,
-                                     self.log10_mu_bounds, 
+                                     pi0=pi0, mu=mu,
+                                     log10_pi0_bounds=self.log10_pi0_bounds,
+                                     log10_mu_bounds=self.log10_mu_bounds,
                                      softmax=softmax)
         if self.start_pi0 is not None:
             start[0] = self.start_pi0
@@ -1515,26 +698,32 @@ class SimplexModel(BGSLikelihood):
         Extract out the W matrix.
         """
         return self.theta_[2:].reshape(self.nt, self.nf)
+    
+    def summary(self, index=None):
+        if self.theta_ is None:
+            return "no model fit."
+        base_rows = ""
+        base_rows += "\n\nSimplex model ML estimates:"
+        if hasattr(self, '_chrom_fit') and self._chrom_fit is not None:
+            base_rows += f" (chromosome {self._chrom_fit} only)\n"
+        else:
+            base_rows += f" (whole genome)\n"
+        base_rows += f"negative log-likelihood: {self.nll_}\n"
+        base_rows += f"π0 = {self.mle_pi0}\n"
+        base_rows += f"μ = {self.mle_mu}\n"
+        base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
+        header = ()
+        if self.features is not None:
+            header = [''] + self.features
+
+        W = self.mle_W.reshape((self.nt, self.nf))
+        tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
+        base_rows += "W = \n" + tabulate(tab, headers=header)
+        return base_rows
 
     def __repr__(self):
         base_rows = super().__repr__()
-        if self.theta_ is not None:
-            base_rows += "\n\nSimplex model ML estimates:"
-            if hasattr(self, '_chrom_fit') and self._chrom_fit is not None:
-                base_rows += f" (chromosome {self._chrom_fit} only)\n"
-            else:
-                base_rows += f" (whole genome)\n"
-            base_rows += f"negative log-likelihood: {self.nll_}\n"
-            base_rows += f"π0 = {self.mle_pi0}\n"
-            base_rows += f"μ = {self.mle_mu}\n"
-            base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
-            header = ()
-            if self.features is not None:
-                header = [''] + self.features
-
-            W = self.mle_W.reshape((self.nt, self.nf))
-            tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
-            base_rows += "W = \n" + tabulate(tab, headers=header)
+        base_rows += self.summary()
         return base_rows
 
     def predict(self, optim=None, theta=None, B=False):
@@ -1560,94 +749,142 @@ class SimplexModel(BGSLikelihood):
             theta[0] = 1.
         return predict_simplex(theta, self.logB, self.w)
 
-class FixedMutationModel(BGSLikelihood):
-    def __init__(self, Y, w, t, logB, bins=None,
-                 features=None, log10_pi0_bounds=(-5, -1)):
-        super().__init__(Y=Y, w=w, t=t, logB=logB, bins=bins,
-                         features=features, log10_pi0_bounds=log10_pi0_bounds)
 
-    def random_start(self):
-        """
-        Random starts
-        """
-        return random_start_fixed_mutation(self.nt, self.nf,
-                                           self.log10_pi0_bounds)
-
-    def bounds(self):
-        return bounds_fixed_mutation(self.nt, self.nf,
-                                     self.log10_pi0_bounds)
-
-    def fit(self, mu, starts=1, ncores=None, algo='ISRES'):
-        """
-        Fit likelihood models with mumeric optimization (using nlopt).
-
-        starts: either an integer number of random starts or a list of starts.
-        ncores: number of cores to use for multiprocessing.
-        algo: the optimization algorithm to use.
-        """
-        algo = algo.upper()
-        algos = {'ISRES':'nlopt', 'NELDERMEAD':'nlopt'}
-        assert algo in algos, f"algo must be in {algos}"
-        engine = algos[algo]
-
-        if isinstance(starts, int):
-            starts = [self.random_start() for _ in range(starts)]
-        # don't request more cores than we need
-        ncores = min(len(starts), ncores)
-
-        nll = partial(negll_simplex_fixed_mutation_full, Y=self.Y,
-                      B=self.logB, w=self.w, mu=mu)
-        worker = partial(nlopt_simplex_worker, mu=mu,
-                         func=nll, nt=self.nt, nf=self.nf,
-                         bounds=self.bounds(), algo=algo)
-        res = run_optims(worker, starts, ncores=ncores)
-        self.mu = mu
-        self._load_optim(res)
-
-    @property
-    def mle_W(self):
-        """
-        Extract out the W matrix.
-        """
-        return self.theta_[1:]
-
-    def __repr__(self):
-        base_rows = super().__repr__()
-        if self.theta_ is not None:
-            base_rows += "\n\nFixed-Mutation Simplex model ML estimates:\n"
-            base_rows += f"negative log-likelihood: {self.nll_}\n"
-            base_rows += f"π0 = {self.mle_pi0}\n"
-            base_rows += f"μ = {self.mu} (fixed)\n"
-            base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
-            header = ()
-            if self.features is not None:
-                header = [''] + self.features
-            W = self.mle_W.reshape((self.nt, self.nf))
-            tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
-            base_rows += "W = \n" + tabulate(tab, headers=header)
-        return base_rows
+# -------- older likelihood functions -----------
+# these are primarily legacy but used for testing
 
 
-        return base_rows
+def access(B, i, l, j, k):
+    """
+    This is a function that tests uses the C function access()
+    to grab elements of the multidimensional array B using a macro.
+    This is primarily used in unit tests to ensure this is working properly.
+    """
+    nx, nw, nt, nf = B.shape
+    B = np.require(B, np.float64, ['ALIGNED'])
+    likclib.access.argtypes = (POINTER(c_double),
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     c_ssize_t,
+                                     POINTER(np.ctypeslib.c_intp))
 
-    def predict(self, optim=None, theta=None, mu=None):
-        """
-        Predicted π from the best fit (if optim = None). If optim is 'random', a
-        random MLE optimization is chosen (e.g. to get a senes of how much
-        variation there is across optimization). If optim is an integer,
-        this rank of optimization results is given (e.g. optim = 0 is the
-        best MLE).
-        """
-        mu = self.mu if mu is None else mu
-        if theta is not None:
-            return predict_simplex(theta, self.logB, self.w, mu)
-        if optim is None:
-            theta = self.theta_
-        else:
-            thetas = self.optim.thetas_
-            if optim == 'random':
-                theta = thetas[np.random.randint(0, thetas.shape[0]), :]
-            else:
-                theta = thetas[optim]
-        return predict_simplex(theta, self.logB, self.w, mu)
+    likclib.access.restype = c_double
+
+    logB_ptr = B.ctypes.data_as(POINTER(c_double))
+    return likclib.access(logB_ptr, i, l, j, k, B.ctypes.strides)
+
+
+def log1mexp(x):
+    """
+    log(1-exp(-|x|)) computed using the methods described in
+    this paper: https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+
+    I've also added another condition to prevent underflow.
+
+    NOTE: note in use currently outside negll() -- critical code in C.
+    """
+    assert isinstance(x, np.ndarray), "x must be a float-like np.ndarray"
+    assert np.all(x < 0), "x must be < 0"
+    min_negexp = np.finfo(x.dtype).minexp / np.log2(np.exp(1))
+    a0 = np.log(2)
+    out = np.zeros_like(x)
+    #out = np.full_file(x, np.e)
+    not_underflow = x > min_negexp
+    abs_x = np.abs(x[not_underflow])
+    out[not_underflow] = np.where(abs_x < a0, np.log(-np.expm1(-abs_x)), np.log1p(-np.exp(-abs_x)))
+    return out
+
+
+def negll(theta, Y, logB, w):
+    nS = Y[:, 0]
+    nD = Y[:, 1]
+    nx, nw, nt, nf = logB.shape
+    # mut weight params
+    pi0, mu, W = theta[0], theta[1], theta[2:]
+    W = W.reshape((nt, nf))
+    # interpolate B(w)'s
+    logBw = np.zeros(nx, dtype=float)
+    for i in range(nx):
+        for j in range(nt):
+            for k in range(nf):
+                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+    #pibar = pi0 * np.exp(logBw)
+    log_pibar = np.log(pi0) + logBw
+    #llm = nD*log_pibar + xlog1py(nS, -np.exp(log_pibar))
+    llm = nD*log_pibar + nS*log1mexp(log_pibar)
+    return -np.sum(llm)
+
+
+def interp_logBw_c(x, w, B, i, j, k):
+    """
+    Linearly interpolate log(B) over the mutation parameter w using the C
+    function. This is to test against the Python implementation.
+    """
+    nx, nw, nt, nf = B.shape
+    B = np.require(B, np.float64, ['ALIGNED'])
+    likclib.interp_logBw.argtypes = (c_double,           # x
+                                     POINTER(c_double),  # *w
+                                     POINTER(c_double),  # *logB
+                                     c_ssize_t,          # nw
+                                     c_ssize_t,          # i
+                                     c_ssize_t,          # j
+                                     c_ssize_t,          # k
+                                     POINTER(np.ctypeslib.c_intp)) # *strides
+
+    likclib.interp_logBw.restype = c_double
+
+    return likclib.interp_logBw(x,
+                                w.ctypes.data_as(POINTER(c_double)),
+                                B.ctypes.data_as(POINTER(c_double)),
+                                nw, i, j, k, B.ctypes.strides)
+
+def negll_c(theta, Y, logB, w, two_alleles=False,
+            version=3):
+    """
+    θ is [π0, μ, w11, w12, ...] and should
+    have dimension (nt x nf) + 2
+    """
+    nx, nw, nt, nf = logB.shape
+    nS = np.require(Y[:, 0].flat, np.float64, ['ALIGNED'])
+    nD = np.require(Y[:, 1].flat, np.float64, ['ALIGNED'])
+    assert nS.shape[0] == nx
+    assert theta.size == (nt * nf) + 2
+    theta = np.require(theta, np.float64, ['ALIGNED'])
+    logB = np.require(logB, np.float64, ['ALIGNED'])
+    nS_ptr = nS.ctypes.data_as(POINTER(c_double))
+    nD_ptr = nD.ctypes.data_as(POINTER(c_double))
+    theta_ptr = theta.ctypes.data_as(POINTER(c_double))
+    logB_ptr = logB.ctypes.data_as(POINTER(c_double))
+    w_ptr = w.ctypes.data_as(POINTER(c_double))
+    negloglik_argtypes = (POINTER(c_double), POINTER(c_double),
+                          POINTER(c_double), POINTER(c_double),
+                          POINTER(c_double),
+                          # weird type for dims/strides
+                          POINTER(np.ctypeslib.c_intp),
+                          POINTER(np.ctypeslib.c_intp),
+                          c_int)
+    negloglik_restype = c_double
+
+    likclib.negloglik.argtypes = negloglik_argtypes
+    likclib.negloglik.restype = negloglik_restype
+
+    likclib.negloglik2.argtypes = negloglik_argtypes
+    likclib.negloglik2.restype = negloglik_restype
+
+    likclib.negloglik3.argtypes = negloglik_argtypes
+    likclib.negloglik3.restype = negloglik_restype
+
+    args = (theta_ptr, nS_ptr, nD_ptr, logB_ptr, w_ptr,
+            logB.ctypes.shape, logB.ctypes.strides,
+            int(two_alleles))
+
+    if version == 1:
+        return likclib.negloglik(*args)
+    elif version == 2:
+        return likclib.negloglik2(*args)
+    elif version == 3:
+        return likclib.negloglik3(*args)
+    else:
+        raise ValueError("unsupported version")
 

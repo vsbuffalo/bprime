@@ -48,7 +48,6 @@ rule save_data:
     """
     mkdir -p {params.name}
     bgspy data --seqlens {input.seqlens} --recmap {input.recmap_file} \
-      --model {params.model} \
       --counts-dir {input.counts_dir} --neutral {input.neut_file} \
       --access {input.access_file} --bs-file {input.bs_file} \
       --window {wildcards.window} \

@@ -20,7 +20,10 @@ Bclib_ext = Extension('Bclib',
 
 
 setup(
-        name="bgspy",
-        version="0.01",
-        ext_modules=[likclib_ext, Bclib_ext],
-        )
+      name="bgspy",
+      version="0.01",
+      ext_modules=[likclib_ext, Bclib_ext],
+      entry_points = {
+        'console_scripts': ['bgspy=bgspy.command_line:cli'],
+     }
+)

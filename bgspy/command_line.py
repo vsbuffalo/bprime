@@ -6,7 +6,7 @@ from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.utils import Grid
-from bgspy.likelihood import fit_likelihood
+from bgspy.pipeline import summarize_data, fit
 from bgspy.bootstrap import load_from_bs_dir
 
 SPLIT_LENGTH_DEFAULT = 10_000
@@ -227,12 +227,6 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
               help='tab-delimited file of chromosome names and their length')
 @click.option('--recmap', required=True, type=click.Path(exists=True),
               help='HapMap formatted recombination map')
-@click.option('--counts-dir', required=False, type=click.Path(exists=True),
-              help='directory to Numpy .npy per-basepair counts')
-@click.option('--model', required=False, default='free', help='model type',
-              type=click.Choice(['free', 'fixed', 'simplex'], case_sensitive=False))
-@click.option('--chrom', default=None, help='fit only on specified chromosome')
-@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
 @click.option('--neutral', required=True, type=click.Path(exists=True),
               help='neutral region BED file')
 @click.option('--access', required=True, type=click.Path(exists=True),
@@ -247,22 +241,21 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--window',
               help='size (in basepairs) of the window',
               type=int, default=1_000_000)
+@click.option('--counts-dir', required=False, type=click.Path(exists=True),
+              help='directory to Numpy .npy per-basepair counts')
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
-def data(seqlens, recmap, counts_dir, model, chrom, mu, 
-         neutral, access, fasta, bs_file, output, window, outliers):
+def data(seqlens, recmap, neutral, access, fasta, 
+         bs_file, counts_dir, output, window, outliers):
     outliers = tuple([float(x) for x in outliers.split(',')])
-    # for fixed mu
-    mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
-    fit_likelihood(seqlens_file=seqlens, recmap_file=recmap,
+    summarize_data(seqlens_file=seqlens, recmap_file=recmap,
+                   neut_file=neutral, access_file=access, fasta_file=fasta,
+                   bs_file=bs_file,
                    counts_dir=counts_dir,
-                   neut_file=neutral,
-                   access_file=access, fasta_file=fasta,
-                   bs_file=bs_file, 
-                   model=model, fit_chrom=chrom, mu=mu,
-                   save_data=output, only_save_data=True,
-                   window=window, outliers=outliers)
+                   window=window,
+                   outliers=outliers,
+                   output_file=output)
 
 # @click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
 #               help="a tree sequence file from a simulation")
@@ -288,7 +281,7 @@ def data(seqlens, recmap, counts_dir, model, chrom, mu,
 def fit(data, model, mu, softmax, output, ncores, nstarts):
     # for fixed mu
     mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
-    fit_likelihood(model=model, mu=mu,
+    fit(model=model, mu=mu,
                    softmax=softmax,
                    fit_outfile=output, 
                    ncores=ncores,

@@ -1,3 +1,24 @@
+"""
+Notes on MLE optimization.
+
+Initially I tried optimizing over the linearly-interpolated B grid,
+which would eventually find a solution, but the results were noisy 
+across runs and took a long time to converge to an optima. When doing 
+this I tried various parameterizations
+
+    - Free mutation model: each DFE x μ term was unique and only 
+       bounded to be positive
+    - Simplex model: a variation of what we use now (below) 
+
+
+Random notes:
+ - nlopt has an issue with LD_LBFGS failing on some random starts. 
+   Googling around, this also happens with Julia's nlopt library so 
+   seems to be a higher-level issue, but I could not confirm this.
+   So we use scipy.minimize.
+"""
+
+
 import warnings
 import multiprocessing
 from collections import Counter
@@ -7,7 +28,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 #import tqdm.notebook as tqdm
 import tqdm.autonotebook as tqdm
-from tabulate import tabulate
 import nlopt
 from scipy.optimize import minimize
 
@@ -33,8 +53,10 @@ def extract_opt_info(x):
         assert success == 0 or success in NL_OPT_CODES.keys()
     return nll, res, success
 
+
 def array_all(x):
     return tuple([np.array(a) for a in x])
+
 
 def run_optims(workerfunc, starts, progress=True, ncores=50,
                return_raw=False):
@@ -67,118 +89,6 @@ def run_optims(workerfunc, starts, progress=True, ncores=50,
     return OptimResult(nlls, thetas, success, np.array(starts))
 
 
-def nlopt_mutation_worker(start, func, nt, nf, bounds,
-                          xtol_rel=1e-3, maxeval=1000000, algo='ISRES'):
-    """
-    Use nlopt to do bounded optimization for the free-mutation
-    model.
-    """
-    nparams = nt * nf + 1
-    if algo == 'ISRES':
-        nlopt_algo = nlopt.GN_ISRES
-    elif algo == 'NEWUOA':
-        nlopt_algo = nlopt.LN_NEWUOA_BOUND
-    elif algo == 'NELDERMEAD':
-        nlopt_algo = nlopt.LN_NELDERMEAD
-    else:
-        raise ValueError("algo must be 'isres' or 'cobyla'")
-
-    opt = nlopt.opt(nlopt_algo, nparams)
-    opt.set_min_objective(func)
-    lb, ub = bounds
-    opt.set_lower_bounds(lb)
-    opt.set_upper_bounds(ub)
-    opt.set_xtol_rel(xtol_rel)
-    opt.set_maxeval(maxeval)
-    assert start.size == nparams
-    mle = opt.optimize(start)
-    nll = opt.last_optimum_value()
-    success = opt.last_optimize_result()
-    return nll, mle, success
-
-
-def constraint_matrix(nt, nf, fixed_mu=False):
-    """
-    Build a constrain matrix A for the simplex model.
-    The constraint matrix is dot'd with the θ vector
-    and compared to the contraints.
-
-    The dimensionality of A is nparams x nconstraints.
-    For the simplex model, the number of contraints is the
-    number of features -- the DFE of each feature must sum
-    to one. The dot product A·θ should return the sums of
-    the DFE weights down each column.
-
-    """
-    offset = 2 - int(fixed_mu)
-    nparams = nt*nf + offset
-    A = np.zeros((nf, nparams))
-    for i in range(nf):
-        W = A[i, offset:].reshape((nt, nf))
-        W[:, i] = 1.
-    return A
-
-
-def inequality_constraint_functions(nt, nf, log10_W_bounds, mu=None):
-    """
-    Return two functions for testing whether inequality constraints 
-    are met (for nlopt).  NOTE: due to an unfortunate naming accident
-    w = μW in the command line code.
-
-    The constraint is that:
-
-       l < μW < u
-
-    where l and u are the lower and upper bounds for w (in code), or
-    M (in math), the product of μW.
-
-    These are rearranged to give explicit lower and upper bounds, that must
-    be less than zero:
-
-       l - μW < 0
-       μW - u < 0
-
-    This also works if the fixed mutation model is used.
-    """
-    fixed_mu = mu is not None
-    A = constraint_matrix(nt, nf, fixed_mu=fixed_mu)
-    lower, upper = 10**log10_W_bounds[0], 10**log10_W_bounds[1]
-
-    def func_l(result, x, grad):
-        if not fixed_mu:
-            u = x[1]
-        else:
-            u = mu
-        M = lower - (u * A.dot(x))
-        for i in range(nf):
-            result[i] = M[i]
-
-    def func_u(result, x, grad):
-        if not fixed_mu:
-            u = x[1]
-        else:
-            u = mu
-        M = (u * A.dot(x)) - upper
-        for i in range(nf):
-            result[i] = M[i]
-
-    return func_l, func_u
-
-
-def equality_constraint_function(nt, nf, fixed_mu=False):
-    """
-    Ensure that all the DFE weights sum to 1. Returns a function
-    for nlopt to test this (will be equal to zero, within nlopt's
-    tolerance, if contraint is met).
-    """
-    A = constraint_matrix(nt, nf, fixed_mu)
-
-    def func(result, x, grad):
-        M = A.dot(x)
-        for i in range(nf):
-            result[i] = M[i] - 1.
-    return func
-
 
 def convert_softmax(theta_sm, nt, nf):
     """
@@ -188,110 +98,6 @@ def convert_softmax(theta_sm, nt, nf):
     with np.errstate(under='ignore'):
         theta[2:] = softmax(theta[2:].reshape(nt, nf), axis=0).flat
     return theta
-
-
-def nlopt_softmax_worker(start, func, nt, nf, 
-                         bounds=None,
-                         constraint_tol=1e-3, xtol_rel=1e-3,
-                         maxeval=1000000, algo='GN_ISRES',
-                         **kwargs):
-    """
-    not for fixed mu (TODO)
-    """
-    # get the nlopt optimiziation routine
-    nlopt_algo = getattr(nlopt, algo)
-    nparams = nt * nf + 2
-
-    opt = nlopt.opt(nlopt_algo, nparams)
-    opt.set_min_objective(func)
-
-
-    if bounds is not None:
-        # set the bounds of all parameters
-        nbounds = len(bounds[0])
-        #softmax_bounds = [-np.inf] * nbounds, [np.inf] * nbounds
-        softmax_bounds = [-1e9] * nbounds, [1e9] * nbounds
-        # pi0
-        softmax_bounds[0][0] = bounds[0][0]
-        softmax_bounds[1][0] = bounds[1][0]
-        # mu
-        softmax_bounds[0][1] = bounds[0][1]
-        softmax_bounds[1][1] = bounds[1][1]
-        lb, ub = softmax_bounds
-        opt.set_lower_bounds(lb)
-        opt.set_upper_bounds(ub)
-
-    # set the x relative tolerance
-    opt.set_xtol_rel(xtol_rel)
-
-    # set max number of evaluations
-    opt.set_maxeval(maxeval)
-    assert start.size == nparams
-    # __import__('pdb').set_trace()
-    mle = opt.optimize(start)
-    mle = convert_softmax(mle, nt, nf)
-    nll = opt.last_optimum_value()
-    success = opt.last_optimize_result()
-    return nll, mle, success
-
-def scipy_softmax_worker(start, func, nt, nf):
-    res = minimize(func, start, method='L-BFGS-B')
-    return res.fun, res.x, res.success
-
-
-def nlopt_simplex_worker(start, func, nt, nf, bounds,
-                         log10_W_bounds, mu=None,
-                         constraint_tol=1e-3, xtol_rel=1e-3,
-                         maxeval=1000000, algo='ISRES'):
-    """
-    Use nlopt to do constrained (inequality to bound DFE weights
-    and equality to enforce the simplex) and bounded optimization
-    for the simplex model (possibly with fixed mu)
-    """
-    fixed_mu = mu is not None
-    # we have one fewer parameter to optimize over with fixed mu
-    offset = 1 + int(not fixed_mu)
-    nparams = nt * nf + offset
-
-    # get the nlopt optimiziation routine
-    nlopt_algo = getattr(nlopt, algo)
-
-    opt = nlopt.opt(nlopt_algo, nparams)
-    opt.set_min_objective(func)
-
-    # inequality constraint for l < μW < u
-    # NOTE: these bounds are for the product μW, 
-    # so they are *wider* than MU_BOUNDS. These should 
-    # be bounded by the B interpolation range.
-    hl, hu = inequality_constraint_functions(nt, nf, mu=mu,
-                                             log10_W_bounds=log10_W_bounds)
-    # tolerances for inequality constraint
-    tols = np.repeat(constraint_tol, nf)
-
-    # specify the simplex inequality constraints, that each entry be
-    # 0 ≤ W ≤ 1 (up to the tolerance)
-    opt.add_inequality_mconstraint(hl, tols)
-    opt.add_inequality_mconstraint(hu, tols)
-
-    # add the equality constraint -- that DFE must sum to 1
-    ce = equality_constraint_function(nt, nf, fixed_mu)
-    opt.add_equality_mconstraint(ce, tols)
-
-    # set the bounds of all parameters
-    lb, ub = bounds
-    opt.set_lower_bounds(lb)
-    opt.set_upper_bounds(ub)
-
-    # set the x relative tolerance
-    opt.set_xtol_rel(xtol_rel)
-
-    # set max number of evaluations
-    opt.set_maxeval(maxeval)
-    assert start.size == nparams
-    mle = opt.optimize(start)
-    nll = opt.last_optimum_value()
-    success = opt.last_optimize_result()
-    return nll, mle, success
 
 
 def optim_plot(only_success=True, logy=False, tail=0.5, x_percent=False, downsample=None, **runs):
@@ -332,7 +138,8 @@ def optim_plot(only_success=True, logy=False, tail=0.5, x_percent=False, downsam
 
 
 def optim_diagnotics_plot(fit, top_n=100, figsize=None,
-                          pi_scale=1e3, mu_scale=1e8, add_nll=False):
+                          pi_scale=1e3, mu_scale=1e8,
+                          add_nll=False, filter_success=True):
     """
     Thanks to Nate Pope for this visualization suggestion!
     """
@@ -341,6 +148,12 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     nt, nf, t = fit.nt, fit.nf, fit.t
     nlls = opt.nlls_
     thetas = opt.thetas_
+    success = opt.success_
+
+    if filter_success:
+        nlls = nlls[success]
+        thetas = thetas[success]
+        success = success[success]
     if len(thetas) < top_n:
         msg = "top_n < number of optimization results, truncating!"
         warnings.warn(msg)
@@ -356,25 +169,45 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
 
     fig, ax = plt.subplots(ncols=1, nrows=nf+2 + int(add_nll),
                            figsize=figsize, sharex=True, 
-                           height_ratios=[1]*nf + [1.2]*(2+add_nll))
+                           height_ratios=[1.2]*nf + [1]*(2+add_nll))
 
+    norm = mpl.colors.Normalize(vmin=0, vmax=1)
     for i in range(nf):
-        ax[i].imshow(dfes[:, :, i].T, cmap='inferno')
+        #ax[i].imshow(dfes[:, :, i].T, cmap='inferno')
+        x = np.arange(top_n)
+        ax[i].pcolormesh(dfes[:, :, i].T, cmap='inferno', norm=norm)
         ax[i].set_ylabel(f"{features[i]}")
-        ax[i].set_yticks(np.arange(nt), np.log10(t).astype(int))
+        ax[i].set_yticks(np.arange(nt)+0.5, 
+                         [f"${10}^{{{x}}}$" for x in np.log10(t).astype(int)])
         ax[i].xaxis.set_visible(False)
-        ax[i].tick_params(axis='y', which='major', labelsize=5)
+        ax[i].tick_params(axis='y', which='major', labelsize=4, 
+                          width=0.5, length=3)
         ax[i].set_aspect('auto')
         i += 1
 
+    # label size for line plots
+    line_lsize = 6
+    line_lw = 1
+
     ax[i].set_ylabel(f"$\pi_0$ ($\\times^{{{int(-np.log10(pi_scale))}}}$)")
     ax[i].plot(np.arange(len(thetas))[:top_n], 
-               [x[0]*pi_scale for x in thetas][:top_n], c='0.22')
+               [x[0]*pi_scale for x in thetas][:top_n],
+               linewidth=line_lw, c='0.22')
+    ax[i].scatter(np.arange(len(thetas))[:top_n], 
+               [x[0]*pi_scale for x in thetas][:top_n],
+                  c=[{True: 'k', False: 'r'}[x] for x in success][:top_n],
+                  s=2, zorder=2)
+ 
+    ax[i].tick_params(axis='both', which='major', labelsize=line_lsize)
 
     i += 1
     ax[i].set_ylabel(f"$\mu$ ($\\times^{{{int(-np.log10(mu_scale))}}}$)")
     ax[i].plot(np.arange(len(thetas))[:top_n], 
-               [x[1]*mu_scale for x in thetas][:top_n], c='0.22')
+               [x[1]*mu_scale for x in thetas][:top_n],
+               linewidth=line_lw,
+               c='0.22')
+
+    ax[i].tick_params(axis='both', which='major', labelsize=line_lsize)
     i += 1
 
     if add_nll:
@@ -391,6 +224,10 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
 
 class OptimResult:
     def __init__(self, nlls, thetas, success, starts=None):
+        prop_success = np.mean(success)
+        if prop_success <= 0.9:
+            msg = f"only {np.round(prop_success*100, 2)}% optimizations terminated successfully!"
+            warnings.warn(msg)
         # order from best to worst
         idx = np.argsort(nlls)
         self.rank_ = idx

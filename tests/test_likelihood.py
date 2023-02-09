@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
-from bgspy.likelihood import negll_numba, negll_c, access, interp_logBw_c
-from bgspy.likelihood import negll, random_start_mutation
+from bgspy.likelihood import negll, negll_c, access, interp_logBw_c
+from bgspy.likelihood import random_start_mutation
 
 def reparam_theta(theta, nt, nf):
     # the theta for the negll_numba func excludes
@@ -83,25 +83,23 @@ def test_compare_C():
        1.4003e-01, 2.1054e-01])
     assert(theta.size == 2 + nf*nt)
 
-    numba_results = negll_numba(theta, Y, B, w)
     py_results = negll(theta, Y, B, w)
     c_results = negll_c(theta, Y, B, w)
-    np.testing.assert_almost_equal(py_results, numba_results, decimal=1)
     # the sum in numba is a little unstable, but fine for quantities this large
-    np.testing.assert_almost_equal(c_results, numba_results, decimal=0)
+    np.testing.assert_almost_equal(c_results, py_results, decimal=0)
 
     # now let's crank through a few more noisy ones for additional checks
     for _ in range(20):
         theta_jitter = np.random.normal(0, 1e-10) + theta
         theta_jitter[:1] = theta[:1]
-        numba_results = negll_numba(theta_jitter, Y, B, w)
+        py_results = negll(theta_jitter, Y, B, w)
         c_results = negll_c(theta_jitter, Y, B, w)
-        np.testing.assert_almost_equal(c_results, numba_results, decimal=1)
+        np.testing.assert_almost_equal(c_results, py_results, decimal=1)
 
 
 def test_compare_C_random():
     """
-    Compare the python/numba loglikelihood implementations to the C.
+    Compare the python loglikelihood implementations to the C.
     """
     with open('likelihood_test_data.pkl', 'rb') as f:
         dat = pickle.load(f)
@@ -122,7 +120,8 @@ def test_compare_C_random():
 
 def test_new_likelihood_versus_old():
     """
-    Compare the python/numba loglikelihood implementations to the C.
+    Compare the various C version of the *deprecated* linearly
+    interpolated likelihood.
     """
     with open('likelihood_test_data.pkl', 'rb') as f:
        dat = pickle.load(f)
