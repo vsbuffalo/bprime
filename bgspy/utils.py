@@ -1,14 +1,14 @@
-from dataclasses import dataclass
 import pickle
-import sys
 import re
 import warnings
 import gzip
 import os
 import tqdm
-import pyBigWig
-from collections import namedtuple, defaultdict, deque, Counter
-from functools import partial
+try:
+    import pyBigWig
+except ImportError:
+    pass
+from collections import namedtuple, defaultdict, Counter
 import math
 import itertools
 from math import floor, log10
@@ -21,7 +21,6 @@ import pandas as pd
 import newick
 
 
-
 GCs = set([ord(b) for b in 'GCgc'])
 
 SEED_MAX = 2**32-1
@@ -30,7 +29,7 @@ SEED_MAX = 2**32-1
 lowess = sm.nonparametric.lowess
 
 # simple named tuple when we just want to store w/t grids
-Grid = namedtuple('Grid', ('w','t'))
+Grid = namedtuple('Grid', ('w', 't'))
 
 
 # this dtype allows for simple metadata storage
@@ -77,6 +76,7 @@ class BinnedStat:
     def pairs(self):
         # ignores the first bin, which is data for points left of zero
         return (self.midpoints, self.stat)
+
 
 class BScores:
     """
