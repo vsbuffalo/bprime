@@ -351,7 +351,10 @@ double negloglik3(const double *theta,
             }
         }
         log_pi = log_pi0 + logBw_i;
-        ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+        //ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
+        double u = (nD[i]+nS[i])*exp(log_pi0);
+        double sigma2 = u*(1-exp(log_pi));
+        ll += -0.5*log(sigma2) - 0.5/sigma2 * pow(nD[i]-u, 2);
     }
 
     free(W);

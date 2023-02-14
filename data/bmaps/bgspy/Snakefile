@@ -6,7 +6,7 @@ from bgspy.genome import Genome
 
 #NCORES = 70
 NCORES = 50
-NCORES_BP = 40
+NCORES_BP = 20
 
 # ===== For Simulations =====
 # 
