@@ -171,7 +171,7 @@ maps = [
         ## tracks with genes taken out of phastcons
         "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes.pkl",
         "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes_full.pkl",
-
+        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_full"
         ]
 
 rescaled_sims = []

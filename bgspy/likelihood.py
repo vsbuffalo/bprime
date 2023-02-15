@@ -229,15 +229,17 @@ class BGSLikelihood:
     (note Bs are stored in log-space.)
     bins
     """
+
     def __init__(self,
                  Y, w, t, logB, bins=None, features=None,
-                 log10_pi0_bounds=PI0_BOUNDS, 
+                 log10_pi0_bounds=PI0_BOUNDS,
                  log10_mu_bounds=MU_BOUNDS):
         self.w = w
         self.t = t
         if bins is not None:
             # TODO: this is disabled for now because it throws an error with
-            # notebooks that's uncessary (even when bins really is GenomicBinnedData)
+            # notebooks that's uncessary (even when bins really is
+            # GenomicBinnedData)
             assert isinstance(bins, GenomicBinnedData)
             assert bins.nbins() == Y.shape[0]
         self.bins = bins
@@ -247,7 +249,7 @@ class BGSLikelihood:
 
         try:
             assert logB.ndim == 4
-            #assert logB.shape[1] == w.size # TODO FIX
+            #assert logB.shape[1] == w.size # TODO (low priority)
             assert logB.shape[2] == t.size
         except AssertionError:
             msg = "B dimensions ({logB.shape}) do not match (supplied w and t dimensions)"
@@ -317,7 +319,6 @@ class BGSLikelihood:
         else:
             self.theta_ = optim_res.thetas_[index]
             self.nll_ = optim_res.nlls_[index]
- 
 
     def load_bootstraps(self, nlls, thetas):
         """
@@ -346,7 +347,7 @@ class BGSLikelihood:
         """
         Do the jackknife.
 
-	If you want to compute across a cluster, set the chunks tuple,
+        If you want to compute across a cluster, set the chunks tuple,
         (nchunks, chunk_id)
 
         If you want to recycle the MLE θ, pass a starts keyword argument
