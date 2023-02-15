@@ -101,7 +101,8 @@ def summarize_data(# annotation
     vprint("-- saving pre-fit model data --")
     with open(output_file, 'wb') as f:
         dat = {'bins': bgs_bins, 'Y': Y, 
-               'bp': bp, 'gm': gm, 'features': features}
+               'bp': bp, 'features': features,
+               't': gm.t, 'w': gm.w}
         if not bp_only:
             dat['b'] = b
         pickle.dump(dat, f)
@@ -110,8 +111,7 @@ def summarize_data(# annotation
 
 def fit(data, output_file, ncores=70, nstarts=200):
     dat = load_pickle(data)
-    bins, Y, bp, gm = (dat['bins'], dat['Y'], 
-                       dat['bp'], dat['gm'])
+    bins, Y, bp = (dat['bins'], dat['Y'], dat['bp'])
     features = dat['features']
     b = dat.get('b', None)
 
