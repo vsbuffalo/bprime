@@ -37,7 +37,7 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 # mutation rate hard bounds
 # these are set for human. I'm targetting the uncertainty 
 # with the mutational slowdown, e.g. see Moorjani et al 2016
-MU_BOUNDS = tuple(np.log10((0.9e-8,  5e-8)))
+MU_BOUNDS = tuple(np.log10((1e-9,  1e-7)))
 
 
 # π0 bounds: lower is set by lowest observed π in humans
@@ -97,7 +97,9 @@ def fit_B_curve_params(b, w):
     for i in tqdm.tqdm(range(nx)):
         for j in range(nt):
             for k in range(nf):
-                popt, pcov = curve_fit(mut_curve, w, np.exp(b[i, :, j, k]))
+                popt, pcov = curve_fit(mut_curve, w, 
+                                       np.exp(b[i, :, j, k]),
+                                       maxfev=int(1e6))
                 assert(len(popt) == 1)
                 params[i, 0, j, k] = popt[0]
     return params
