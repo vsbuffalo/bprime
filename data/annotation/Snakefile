@@ -307,7 +307,8 @@ rule human_100kb:
 ## === Human Recombination Maps
 
 ## ==== DeCode Recombination Map
-decode = ["decode_sex_averaged.txt"]
+decode = [] # ignore for now
+#@decode = ["decode_sex_averaged.txt"]
 rule decode_map:
   output: "decode_sex_averaged.txt"
   shell:
@@ -357,7 +358,7 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_phastcons_not_genes_cds_genes.bed.gz",
 
         # with encode regulatory elements -- currently not used
-        "conserved_cds_utrs_regulatory_phastcons.bed.gz",
+        #"conserved_cds_utrs_regulatory_phastcons.bed.gz",
 
         # simplified phastcons -- merged 100bp adjacent
         "conserved_cds_utrs_phastcons_simplified.bed.gz",
