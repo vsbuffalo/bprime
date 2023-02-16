@@ -141,8 +141,10 @@ def predict_chrom_plot(model, chrom, ratio=True,
     predicts_full = model.bins.merge_filtered_data(predicts)
 
     y = predicts_full[chrom_idx]
+    ylab = "$\\pi$"
     if ratio:
         y = mean_ratio(y)
+        ylab = "$\\pi/\\bar{\\pi}$"
 
     ax.plot(midpoints, y, label=label)
     if ratio:
@@ -150,6 +152,8 @@ def predict_chrom_plot(model, chrom, ratio=True,
     ax.plot(midpoints, pi, c='g', alpha=0.4, label='data')
     if add_r2:
         ax.set_title(f"$R^2 = {np.round(model.R2(), 2)}$")
+    ax.set_ylabel(ylab)
+    ax.set_xlabel("position")
     return fig, ax
 
 

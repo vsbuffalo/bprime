@@ -393,7 +393,8 @@ class BGSLikelihood:
         rgx = re.compile(r'loo_(\w+)\.pkl')
         chroms = [rgx.match(f).groups()[0] for f in files]
         nlls = np.stack([f.nll_ for f in fits])
-     
+
+        self.jack_fits_ = dict(zip(chroms, fits))
         self.jack_nlls_ = nlls
         self.jack_thetas_ = thetas
         self.jack_chroms_ = chroms
@@ -552,12 +553,13 @@ class BGSLikelihood:
         Tni = self.jack_thetas_
         n = Tni.shape[0]
         Tn = Tni.mean(axis=0)
+        # TODO uses the jackknife estimates! should be option
         Q = np.sum((Tni - Tn[None, :])**2, axis=0)
         sigma2_jack = (n-1)/n * Q
         sigma_jack = np.sqrt(sigma2_jack)
         self.sigma_ = sigma_jack
         return sigma_jack
-     
+
     def loo_R2(self):
         assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
         jk_thetas = self.jack_thetas_
@@ -768,7 +770,7 @@ class SimplexModel(BGSLikelihood):
             R2 = self.R2(theta=theta)
 
         cis = None
-        if self.sigma_ is not None:
+        if hasattr(self, 'sigma_') and self.sigma_ is not None:
             cis = self.sigma_ci()
 
         Ne = pi0 / (4*mu)
@@ -804,7 +806,7 @@ class SimplexModel(BGSLikelihood):
 
         base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
         base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
-        if self.jack_thetas_ is not None:
+        if hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None:
             loo_R2 = np.mean(list(self.loo_R2().values()))
             base_rows += f"  {np.round(100*loo_R2, 4)}% (out-sample)"
         base_rows += "\n"
@@ -819,12 +821,12 @@ class SimplexModel(BGSLikelihood):
         base_rows += self.summary()
         return base_rows
 
-    def sigma_ci(self):
+    def sigma_ci(self, factor=2):
         """
         """
         theta = self.theta_
         sigma = self.sigma_
-        lower, upper = theta - 2*sigma, theta + 2*sigma
+        lower, upper = theta - factor*sigma, theta + factor*sigma
         return lower, upper
 
     def predict(self, optim=None, theta=None, B=False):

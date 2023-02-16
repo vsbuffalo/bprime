@@ -322,7 +322,7 @@ rule decode_map:
 
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
-hapmap = ["hapmap_genetic_map.txt"]
+hapmap = ["hapmap_genetic_map.txt", "aamap_hg38.bed"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
@@ -344,6 +344,37 @@ rule chrom_maplens:
     map = RecMap(input[0])
 
  
+## ==== Hinch et al African American Recombination Map
+rule raw_aa:
+  output: "aamap.tar.gz"
+  shell:
+    """
+    wget https://www.well.ox.ac.uk/~anjali/AAmap/aamap.tar.gz
+    """
+
+rule aa_recmap:
+  input: "aamap.tar.gz"
+  output: "aamap_hg36.bed"
+  shell:
+    """
+    tar -xvzf {input[0]}
+    python ../../tools/combine_aamap.py AAmap/ > {output[0]}
+    """
+
+rule liftover_hg36_hg38:
+   output: "hg18ToHg38.over.chain.gz"
+   shell:
+     """
+     wget http://hgdownload.soe.ucsc.edu/goldenPath/hg18/liftOver/hg18ToHg38.over.chain.gz
+     """
+
+rule aa_recmap_hg38:
+   input: chain="hg18ToHg38.over.chain.gz", recmap="aamap_hg36.bed"
+   output: "aamap_hg38.bed"
+   shell:
+     """
+     liftOver {input.recmap} {input.chain} {output[0]} aamap_unmapped
+     """
 
 ## === Conservation Tracks
 cons = ["conserved_phastcons.bed.gz",
@@ -441,17 +472,17 @@ rule conserved_cds_phastcons_merged:
     zcat {input[0]} | cut -f1,2,3 | gzip > {output}
     """
 
-rule conserved_cds_utrs_regulatory_phastcons:
-  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", regulatory="hg38.regulatory.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_regulatory_phastcons.bed.gz"
-  shell:
-    """
-    python ../../tools/combine_features.py --seqlens {input.seqlens} \
-      --bed cds {input.cds} --bed utr {input.utrs} \
-      --bedfile {input.regulatory} \
-      --bed phastcons {input.phastcons} | \
-      gzip > {output}
-    """
+#rule conserved_cds_utrs_regulatory_phastcons:
+#  input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", regulatory="hg38.regulatory.bed.gz", seqlens="hg38_seqlens.tsv"
+#  output: "conserved_cds_utrs_regulatory_phastcons.bed.gz"
+#  shell:
+#    """
+#    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+#      --bed cds {input.cds} --bed utr {input.utrs} \
+#      --bedfile {input.regulatory} \
+#      --bed phastcons {input.phastcons} | \
+#      gzip > {output}
+#    """
 
 rule conserved_cds_utrs_phastcons:
   input: cds="hg38.ensembl_cds.bed.gz", utrs="hg38.ensembl_utrs.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
