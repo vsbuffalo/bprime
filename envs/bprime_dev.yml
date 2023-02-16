@@ -26,6 +26,7 @@ dependencies:
   - pytest
   - pyBigWig
   - ripgrep
+  - ucsc-liftover
   - neovim
   - jupyterlab_widgets
   - ipywidgets

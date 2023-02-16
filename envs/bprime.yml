@@ -19,6 +19,7 @@ dependencies:
   - statsmodels
   - pyslim
   - ipykernel
+  - ucsc-liftover
   - click
   - bedtools
   - bioawk
