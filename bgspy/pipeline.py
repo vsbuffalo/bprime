@@ -139,7 +139,7 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     else:
         m_bp.fit(starts=starts, ncores=ncores)
 
-    msg = "saving intermediate model results"
+    msg = "saving B' model results"
     logging.info(msg)
     obj = {'mbp': m_bp}
     with open(output_file, 'wb') as f:
@@ -154,8 +154,10 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
             m_b._load_optim(jk_opt)
         else:
             m_b.fit(starts=nstarts, ncores=ncores)
+    else:
+        return # we're done, so leave
 
-    logging.info("saving model results")
+    logging.info("adding B to model results")
     obj = {'mb': m_b, 'mbp': m_bp}
     with open(output_file, 'wb') as f:
         pickle.dump(obj, f)

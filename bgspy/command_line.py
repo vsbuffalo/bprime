@@ -359,6 +359,7 @@ def jackknife(data, fit, output, fit_dir, chrom,
      - starts only work for B' fits.
     """
     # get the starting theta if recycling the mle (e.g. if fit is specified)
+    start = None
     if fit is not None:
         if nstarts != 1:
             raise click.UsageError("you cannot specify a fixed start and set --nstarts")

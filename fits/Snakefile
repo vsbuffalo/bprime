@@ -8,7 +8,7 @@ NSTARTS_LOO = 50_000
 
 # test stuff
 NSTARTS = 10_000
-NSTARTS_LOO = 1_000
+NSTARTS_LOO = 50_000
 
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,
@@ -84,16 +84,15 @@ rule fit:
 #     """
 
 rule loo_fit:
-  input: fit='fit_{window}/mle.pkl', 
-  output: 'fit_{window}/loo/loo_r2_{chrom}.npz'
+  input: 'model_data_{window}.pkl'
+  output: 'fit_{window}/loo/loo_{chrom}.npz'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
-    bgspy fit --fit {input.fit} \
+    bgspy jackknife \
       --data {input[0]} \
-      --r2-file {output[0]} \
-      --fit-dir loo \
-      --loo-chrom {wildcards.chrom} \
+      --output {output[0]} \
+      --chrom {wildcards.chrom} \
       --ncores {params.ncores} --nstarts {params.nstarts}
     """
 
