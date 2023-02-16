@@ -784,6 +784,9 @@ class SimplexModel(BGSLikelihood):
         else:
             base_rows += f" (whole genome)\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
+        nstarts = self.optim.thetas.shape[0]
+        frac = np.round(self.optim.frac_success, 2)*100
+        base_rows += f"number of successful starts: {nstarts} ({frac}% total)\n"
         base_rows += f"π0 = {pi0:0.6g}"
 
         if cis is not None:
