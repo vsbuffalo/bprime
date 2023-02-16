@@ -1,14 +1,10 @@
 # main annotation files
 #
 
-machine = 'server'
+machine = 'cluster'
 
-NSTARTS = 10_000
-NSTARTS_LOO = 50_000
-
-# test stuff
-NSTARTS = 10_000
-NSTARTS_LOO = 50_000
+NSTARTS = 100_000
+NSTARTS_LOO = 100_000
 
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,
@@ -85,7 +81,7 @@ rule fit:
 
 rule loo_fit:
   input: 'model_data_{window}.pkl'
-  output: 'fit_{window}/loo/loo_{chrom}.npz'
+  output: 'fit_{window}/loo/loo_{chrom}.pkl'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
@@ -102,8 +98,8 @@ boots_results = []
 for window in windows:
   mle_results.append(f'fit_{window}/mle.pkl')
   for chrom in CHROMS:
-      loo_r2 = f"fit_{window}/loo/loo_r2_{chrom}.npz"
-      loo_results.append(loo_r2)
+      loo = f"fit_{window}/loo/loo_{chrom}.pkl"
+      loo_results.append(loo)
 
 rule mle:
   input: mle_results

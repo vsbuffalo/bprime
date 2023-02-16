@@ -1,5 +1,6 @@
 ## likelihood.py -- functions for likelihood stuff
 import os
+import re
 import logging
 import copy
 import pickle
@@ -71,6 +72,33 @@ def R2(x, y):
 
 def check_bounds(x, lb, ub):
     assert np.all((x >= lb) & (x <= ub))
+
+
+def W_summary(W, features, nt, nf, t, cis=None):
+    """
+    pretty-print the W matrix, optionally with CIs
+    """
+    header = ()
+    if features is not None:
+        header = [''] + features
+    W = W.reshape((nt, nf))
+    t = t[:, None]
+    nt, nf = nt, nf
+    rows = []
+    theta_i = 2
+    if cis is not None:
+        lower, upper = cis
+    for i in range(nt):
+        row = [t[i]]
+        for j in range(nf):
+            entry = f"{W[i, j]:.3f}"
+            if cis is not None:
+                l, u = lower[theta_i], upper[theta_i]
+                entry += f" ({l:.3f}, {u:.3f})"
+            row.append(entry)
+            theta_i += 1
+        rows.append(row)
+    return tabulate(rows, headers=header)
 
 
 # -------- main likelihood methods -----------
@@ -354,15 +382,25 @@ class BGSLikelihood:
             self.theta_ = optim_res.thetas_[index]
             self.nll_ = optim_res.nlls_[index]
 
-    def load_bootstraps(self, nlls, thetas):
+    def load_jackknives(self, fit_dir):
         """
-        Load the bootstrap results by setting attributes.
+        Load the chromosome jackknife results by setting attributes.
         """
-        self.boot_nlls_ = nlls
-        self.boot_thetas_ = thetas
-
+        files = [f for f in os.listdir(fit_dir) if f.endswith('.pkl')]
+        join = os.path.join
+        fits = [load_pickle(join(fit_dir, f))['mbp'] for f in files]
+        thetas = np.stack([f.theta_ for f in fits])
+        rgx = re.compile(r'loo_(\w+)\.pkl')
+        chroms = [rgx.match(f).groups()[0] for f in files]
+        nlls = np.stack([f.nll_ for f in fits])
+     
+        self.jack_nlls_ = nlls
+        self.jack_thetas_ = thetas
+        self.jack_chroms_ = chroms
+ 
     def bootstrap(self, nboot, blocksize, **kwargs):
         """
+        DEPRECATED
         Resample bin indices and fit each time.
         """
         msg = "bins attribute must be set to a GenomicBinnedData object"
@@ -389,8 +427,8 @@ class BGSLikelihood:
         """
         msg = "bins attribute must be set to a GenomicBinnedData object"
         assert self.bins is not None, msg
-
         chrom_idx = set(self.bins.chrom_indices(chrom))
+        assert len(chrom_idx)
         all_idx = set(range(self.Y.shape[0]))
         in_sample_idx = np.array(list(all_idx.difference(chrom_idx)))
         # return the fit directly
@@ -453,48 +491,6 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-    def loo_chrom(self, out_sample_chrom=None, loo_fits_dir=None, 
-                  **fit_kwargs):
-        """
-        Estimate R2 by leave-one-out of a whole chromosome, run a new fit,
-        and then estimate of R2 of the out sample chromosome.
-
-        If out_sample_chrom is None, this loops over all chromosomes. However,
-        to accomodate running things in parallel on a cluster, out_sample_chrom can
-        bet set manually.
-
-        If fits_dir is specified, this will write each LOO fit to this directory.
-
-        The ML estimate can be recycled via the **fit_kwargs.
-        """
-        if out_sample_chrom is None:
-            all_chroms = self.bins.bins().keys()
-        else:
-            assert out_sample_chrom in self.bins.keys(), f"LOO chrom {chrom} not in bins!"
-            all_chroms = [out_sample_chrom]
-
-        r2s = []
-        jk_thetas = []
-        for chrom in all_chroms:
-            in_sample = self.bins.chrom_indices(chrom, exclude=True)
-            out_sample = self.bins.chrom_indices(chrom, exclude=False)
-            logging.info(f"loo_chrom: fitting, leaving out {chrom}")
-            fit_optim = self.fit(**fit_kwargs, _indices=in_sample)
-            # mimic a new fit
-            new_fit = copy.copy(self)
-            new_fit._load_optim(fit_optim)
-            r2s.append(new_fit.R2(_idx=out_sample))
-            jk_thetas.append(new_fit.theta_)
-            # monkey patch in some idx
-            new_fit._out_sample = out_sample
-            new_fit._in_sample = in_sample
-            if loo_fits_dir is not None:
-                if not os.path.exists(loo_fits_dir):
-                    os.makedirs(loo_fits_dir)
-                fpath = os.path.join(loo_fits_dir, f"mle_loo_{chrom}.pkl")
-                new_fit.save(fpath)
-        return np.array(r2s), np.array(jk_thetas)
-
     def dfe_plot2(self, figax=None, figsize=None):
         """
         """
@@ -549,6 +545,33 @@ class BGSLikelihood:
         if _idx is None:
             return R2(pred_pi, pi)
         return R2(pred_pi[_idx], pi[_idx])
+
+    def loo_stderr(self):
+        assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
+        theta = self.theta_
+        Tni = self.jack_thetas_
+        n = Tni.shape[0]
+        Tn = Tni.mean(axis=0)
+        Q = np.sum((Tni - Tn[None, :])**2, axis=0)
+        sigma2_jack = (n-1)/n * Q
+        sigma_jack = np.sqrt(sigma2_jack)
+        self.sigma_ = sigma_jack
+        return sigma_jack
+     
+    def loo_R2(self):
+        assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
+        jk_thetas = self.jack_thetas_
+        n = jk_thetas.shape[0]
+        pi = pi_from_pairwise_summaries(self.Y)
+        r2s = dict()
+        for i in range(n):
+            chrom = self.jack_chroms_[i]
+            chrom_idx = self.bins.chrom_indices(chrom)
+            theta = jk_thetas[i, ...]
+            chrom_b = self.logB_fit[chrom_idx, ...]
+            pred_pi = predict_simplex(theta, chrom_b, self.w)
+            r2s[chrom] = R2(pred_pi, pi[chrom_idx])
+        return r2s
 
     def resid(self):
         pred_pi = self.predict()
@@ -744,33 +767,60 @@ class SimplexModel(BGSLikelihood):
             W = theta[2:]
             R2 = self.R2(theta=theta)
 
+        cis = None
+        if self.sigma_ is not None:
+            cis = self.sigma_ci()
+
         Ne = pi0 / (4*mu)
         if self.theta_ is None:
             return "no model fit."
         base_rows = ""
         base_rows += "\n\nSimplex model ML estimates:"
+        if index is not None:
+            base_rows += f"WARNING: for non-MLE (optimization {index})"
+            base_rows += ", interpret CIs at your own risk!"
         if hasattr(self, '_chrom_fit') and self._chrom_fit is not None:
             base_rows += f" (chromosome {self._chrom_fit} only)\n"
         else:
             base_rows += f" (whole genome)\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
-        base_rows += f"π0 = {pi0:0.6g}\n"
-        base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
-        base_rows += f"μ = {mu:0.4g}\n"
-        base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)\n"
-        header = ()
-        if self.features is not None:
-            header = [''] + self.features
+        base_rows += f"π0 = {pi0:0.6g}"
 
-        W = W.reshape((self.nt, self.nf))
-        tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
-        base_rows += "W = \n" + tabulate(tab, headers=header)
+        if cis is not None:
+            l, u = cis[0][0], cis[1][0]
+            base_rows += f" ({l:.3f}, {u:.3f})\n"
+        else:
+            base_rows += "\n"
+
+        base_rows += f"μ = {mu:0.4g}"
+        if self.sigma_ is not None:
+            l, u = cis[0][1], cis[1][1]
+            base_rows += f" ({l:.3g}, {u:.3g})\n"
+        else:
+            base_rows += "\n"
+
+        base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
+        base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)\n"
+        base_rows += "W = \n"
+        sigma_ci = None
+        if self.sigma_ is not None:
+            sigma_ci = self.sigma_ci()
+        base_rows += W_summary(W, self.features, 
+                               self.nt, self.nf, self.t, sigma_ci)
         return base_rows
 
     def __repr__(self):
         base_rows = super().__repr__()
         base_rows += self.summary()
         return base_rows
+
+    def sigma_ci(self):
+        """
+        """
+        theta = self.theta_
+        sigma = self.sigma_
+        lower, upper = theta - 2*sigma, theta + 2*sigma
+        return lower, upper
 
     def predict(self, optim=None, theta=None, B=False):
         """

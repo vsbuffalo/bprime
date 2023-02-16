@@ -376,6 +376,23 @@ def jackknife(data, fit, output, fit_dir, chrom,
             ignore_B=True)
 
 
+@click.option('--fit-dir', required=True, 
+              help="fit directory for reading whole fits"
+                   " (reads all .pkl files)")
+@click.option('--output', required=True, type=click.Path(writable=True),
+              help='an .npz output file')
+@click.option('--fit', default=None, type=click.Path(exists=True),
+              help='pickle file of main MLE fit')
+def collect(fit_dir, output, fit):
+    """
+    TODO:
+        - for B' only
+    """
+    main_fits = load_pickle(fit)
+    mbp = main_fits['mbp']
+    mbp.load_jackknives(fit_dir)
+
+
 
 
 # @cli.command()
