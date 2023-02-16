@@ -788,25 +788,27 @@ class SimplexModel(BGSLikelihood):
 
         if cis is not None:
             l, u = cis[0][0], cis[1][0]
-            base_rows += f" ({l:.3f}, {u:.3f})\n"
+            base_rows += f" ({l:.5f}, {u:.5f})\n"
         else:
             base_rows += "\n"
 
         base_rows += f"μ = {mu:0.4g}"
-        if self.sigma_ is not None:
+        if cis:
             l, u = cis[0][1], cis[1][1]
             base_rows += f" ({l:.3g}, {u:.3g})\n"
         else:
             base_rows += "\n"
 
         base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
-        base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)\n"
+        base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
+        if self.jack_thetas_ is not None:
+            loo_R2 = np.mean(list(self.loo_R2().values()))
+            base_rows += f"  {np.round(100*loo_R2, 4)}% (out-sample)"
+        base_rows += "\n"
+
         base_rows += "W = \n"
-        sigma_ci = None
-        if self.sigma_ is not None:
-            sigma_ci = self.sigma_ci()
         base_rows += W_summary(W, self.features, 
-                               self.nt, self.nf, self.t, sigma_ci)
+                               self.nt, self.nf, self.t, cis)
         return base_rows
 
     def __repr__(self):
