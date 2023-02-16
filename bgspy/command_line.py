@@ -6,7 +6,7 @@ import os
 from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
-from bgspy.utils import Grid
+from bgspy.utils import Grid, load_pickle
 from bgspy.pipeline import summarize_data, mle_fit
 from bgspy.bootstrap import load_from_bs_dir
 
@@ -277,13 +277,16 @@ def data(seqlens, recmap, neutral, access, fasta,
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
               type=int, default=None)
-def fit(data, output, ncores, nstarts):
+@click.option('--chrom', default=None, 
+              help="optional chromosome to leave out")
+def fit(data, output, ncores, nstarts, chrom):
     # for fixed mu
     #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     mle_fit(data=data,
-        output_file=output,
-        ncores=ncores,
-        nstarts=nstarts)
+            output_file=output,
+            ncores=ncores,
+            nstarts=nstarts,
+            chrom=chrom)
 
 
 @cli.command()
@@ -293,13 +296,13 @@ def fit(data, output, ncores, nstarts):
               help='pickle file of fitted results')
 @click.option('--force-feature', default=None,
               help='force all predictions using DFE estimates of this feature (experimental)')
-@click.option('--outfile', required=True,
+@click.option('--output', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--split', default=False, is_flag=True,
               help="split into different files for each feature "
-                   "(uses '<outfile>_<feature_a>.bed', etc)")
-def subrate(bs_file, fit, force_feature, outfile, split):
+              "(uses '<output>_<feature_a>.bed', etc)")
+def subrate(bs_file, fit, force_feature, output, split):
     """
     """
     m = BGSModel.load(bs_file)
@@ -317,138 +320,28 @@ def subrate(bs_file, fit, force_feature, outfile, split):
     assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
     if not split:
-        rdf.to_csv(outfile, sep='\t', header=False, index=False)
+        rdf.to_csv(output, sep='\t', header=False, index=False)
         return
     for feature in m.genome.segments.feature_map:
-        if outfile.endswith('.bed'):
-            filename = outfile.replace('.bed', f'_{feature}.bed')
+        if output.endswith('.bed'):
+            filename = output.replace('.bed', f'_{feature}.bed')
         else:
-            filename = f'{outfile}_{feature}.bed'
+            filename = f'{output}_{feature}.bed'
         rdfx = rdf.loc[rdf['feature'] == feature]
         rdfx.to_csv(filename, sep='\t', header=False, index=False)
 
 
 @cli.command()
-@click.option('--fit', required=True, type=click.Path(exists=True),
-              help='pickle file of fitted results')
-@click.option('--seqlens', required=True, type=click.Path(exists=True),
-              help='tab-delimited file of chromosome names and their length')
-@click.option('--recmap', required=True, type=click.Path(exists=True),
-              help='HapMap formatted recombination map')
-@click.option('--counts-dir', required=True, type=click.Path(exists=True),
-              help='directory to Numpy .npy per-basepair counts')
-@click.option('--neutral', required=True, type=click.Path(exists=True),
-              help='neutral region BED file')
-@click.option('--access', required=True, type=click.Path(exists=True),
-              help='accessible regions BED file (e.g. no centromeres)')
-@click.option('--fasta', required=True, type=click.Path(exists=True),
-              help='FASTA reference file (e.g. to mask Ns and lowercase'+
-                   '/soft-masked bases')
-@click.option('--bs-file', required=True, type=click.Path(exists=True),
-              help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--outfile', required=True,
-              type=click.Path(dir_okay=False, writable=True),
-              help="pickle file for results")
-
-@click.option('--only-Bp', default=True, is_flag=True, help="only calculate B'")
-@click.option('--ncores',
-              help='number of cores to use for multi-start optimization',
-              type=int, default=None)
-@click.option('--nstarts',
-              help='number of starts for multi-start optimization',
-              type=int, default=None)
-@click.option('--window',
-              help='size (in basepairs) of the window',
-              type=int, default=1_000_000)
-@click.option('--outliers',
-              help='quantiles for trimming bin π',
-              type=str, default='0.0,0.995')
-@click.option('--J', type=int, help='number of jackknife replicates')
-def jackknife(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
-              bs_file, outfile, only_bp, ncores, nstarts, window, outliers,
-              j, blocksize):
-    outliers = tuple([float(x) for x in outliers.split(',')])
-    # internally we use blocksize to represent the number of adjacent windows
-    msg = (f"specified blocksize ({blocksize}) creates blocks less "
-            "than the width of one window ({window})")
-    assert int(blocksize / window) > 1, msg
-    blocksize  = int(blocksize / window)
-    fit_likelihood(fit_file=fit,
-                   seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, neut_file=neutral,
-                   access_file=access, fasta_file=fasta,
-                   bp_only=only_bp,
-                   bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
-                   nstarts=nstarts, window=window, outliers=outliers,
-                   J=j, blocksize=blocksize, recycle_mle=True)
-
-
-
-@cli.command()
-@click.option('--fit', required=True, type=click.Path(exists=True),
-              help='pickle file of fitted results')
-@click.option('--seqlens', required=True, type=click.Path(exists=True),
-              help='tab-delimited file of chromosome names and their length')
-@click.option('--recmap', required=True, type=click.Path(exists=True),
-              help='HapMap formatted recombination map')
-@click.option('--counts-dir', required=True, type=click.Path(exists=True),
-              help='directory to Numpy .npy per-basepair counts')
-@click.option('--neutral', required=True, type=click.Path(exists=True),
-              help='neutral region BED file')
-@click.option('--access', required=True, type=click.Path(exists=True),
-              help='accessible regions BED file (e.g. no centromeres)')
-@click.option('--fasta', required=True, type=click.Path(exists=True),
-              help='FASTA reference file (e.g. to mask Ns and lowercase'+
-                   '/soft-masked bases')
-@click.option('--bs-file', required=True, type=click.Path(exists=True),
-              help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--outfile', required=True,
-              type=click.Path(dir_okay=False, writable=True),
-              help="pickle file for results")
-
-@click.option('--only-Bp', default=True, is_flag=True, 
-              help="only calculate B'")
-@click.option('--ncores',
-              help='number of cores to use for multi-start optimization',
-              type=int, default=None)
-@click.option('--nstarts',
-              help='number of starts for multi-start optimization',
-              type=int, default=None)
-@click.option('--window',
-              help='size (in basepairs) of the window',
-              type=int, default=1_000_000)
-@click.option('--outliers',
-              help='quantiles for trimming bin π',
-              type=str, default='0.0,0.995')
-@click.option('--B', type=int, help='number of bootstrap replicates')
-@click.option('--blocksize', type=int,
-              help='number of basepairs for block size for bootstrap')
-def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
-              bs_file, outfile, only_bp, ncores, nstarts, window, outliers,
-              b, blocksize):
-    outliers = tuple([float(x) for x in outliers.split(',')])
-    # internally we use blocksize to represent the number of adjacent windows
-    msg = (f"specified blocksize ({blocksize}) creates blocks less "
-            "than the width of one window ({window})")
-    assert int(blocksize / window) > 1, msg
-    blocksize  = int(blocksize / window)
-    fit_likelihood(fit_file=fit,
-                   seqlens_file=seqlens, recmap_file=recmap,
-                   counts_dir=counts_dir, neut_file=neutral,
-                   access_file=access, fasta_file=fasta,
-                   bp_only=only_bp,
-                   bs_file=bs_file, bootjack_outfile=outfile, ncores=ncores,
-                   nstarts=nstarts, window=window, outliers=outliers,
-                   B=b, blocksize=blocksize, recycle_mle=True)
-
-@cli.command()
-@click.option('--fit', required=True, type=click.Path(exists=True),
-              help='pickle file of fitted results')
-@click.option('--r2-file', required=True, type=click.Path(writable=True),
-              help='R2 .npz output file')
+@click.option('--data', required=True, default=None, type=click.Path(exists=True),
+              help="pickle of pre-computed summary statistics")
+@click.option('--fit', default=None, type=click.Path(exists=True),
+              help=('pickle file of fitted results, for starting at MLE '
+                    '(ignore for random starts)'))
+@click.option('--output', required=True, type=click.Path(writable=True),
+              help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
-@click.option('--loo-chrom', default=None,
-              help="leave-one-out chromosome, e.g. for paralelel processing")
+@click.option('--chrom', default=None,
+              help="leave-one-out chromosome, e.g. for parallel processing across a cluster")
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=1)
@@ -456,48 +349,65 @@ def bootstrap(fit, seqlens, recmap, counts_dir, neutral, access, fasta,
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def R2(fit, r2_file, fit_dir, loo_chrom, ncores, nstarts, include_bs):
+def jackknife(data, fit, output, fit_dir, chrom,
+              ncores, nstarts, include_bs):
     """
     Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
     and predicting the observed diversity on the excluded chromosome.
+    
+    TODO: 
+     - starts only work for B' fits.
     """
-    fit_likelihood(fit_file=fit, r2_file=r2_file, ncores=ncores,
-                   loo_fits_dir=fit_dir,
-                   bp_only=(not include_bs), loo_chrom=loo_chrom,
-                   loo_nstarts=nstarts, recycle_mle=True)
+    # get the starting theta if recycling the mle (e.g. if fit is specified)
+    if fit is not None:
+        if nstarts != 1:
+            raise click.UsageError("you cannot specify a fixed start and set --nstarts")
+        fit = load_pickle(fit)
+        start = fit['mbp'].theta_
+        nstarts = None
+
+    mle_fit(data=data,
+            output_file=output,
+            ncores=ncores,
+            nstarts=nstarts,
+            start=start,
+            chrom=chrom,
+            ignore_B=True)
 
 
-@cli.command()
-@click.option('--fit', required=True, type=click.Path(exists=True),
-              help='pickle file of fitted results')
-@click.option('--bootstrap-dir', required=True, type=click.Path(exists=True),
-              help=('directory of bootstrap results (e.g. if run with '
-                    'Snakemake) to collect'))
-@click.option('--outfile', required=False,
-              type=click.Path(dir_okay=False, writable=True),
-              help="pickle file for new fit object")
-def collect_straps(fit, bootstrap_dir, outfile):
-    """
-    Collection all the bootstrap files (e.g. if run on a cluster with Snakemake).
 
-    If outfile is specified, the bootstraps are collect into arrays
-    and put into the BGSLikelihood model as attributes and both
-    B' and B' are saved
-    """
-    with open(fit, 'rb') as f:
-        sm_b, sm_bp = pickle.load(f)
 
-    tmp = load_from_bs_dir(bootstrap_dir)
-    b_boot_nlls, b_boot_thetas, bp_boot_nlls, bp_boot_thetas = tmp
+# @cli.command()
+# @click.option('--fit', required=True, type=click.Path(exists=True),
+                #               help='pickle file of fitted results')
+# @click.option('--bootstrap-dir', required=True, type=click.Path(exists=True),
+                #               help=('directory of bootstrap results (e.g. if run with '
+                                                                       #                     'Snakemake) to collect'))
+# @click.option('--outfile', required=False,
+                #               type=click.Path(dir_okay=False, writable=True),
+                #               help="pickle file for new fit object")
+# def collect_straps(fit, bootstrap_dir, outfile):
+#     """
+#     Collection all the bootstrap files (e.g. if run on a cluster with Snakemake).
 
-    # join all the strap
-    sm_b.boot_nlls_ = b_boot_nlls
-    sm_b.boot_thetas_ = b_boot_thetas
-    sm_bp.boot_nlls_ = bp_boot_nlls
-    sm_bp.boot_thetas_ = bp_boot_thetas
+    # If outfile is specified, the bootstraps are collect into arrays
+    # and put into the BGSLikelihood model as attributes and both
+    # B' and B' are saved
+    # """
+    # with open(fit, 'rb') as f:
+    #     sm_b, sm_bp = pickle.load(f)
 
-    with open(outfile, 'wb') as f:
-        pickle.dump((sm_b, sm_bp), f)
+    # tmp = load_from_bs_dir(bootstrap_dir)
+    # b_boot_nlls, b_boot_thetas, bp_boot_nlls, bp_boot_thetas = tmp
+
+    # # join all the strap
+    # sm_b.boot_nlls_ = b_boot_nlls
+    # sm_b.boot_thetas_ = b_boot_thetas
+    # sm_bp.boot_nlls_ = bp_boot_nlls
+    # sm_bp.boot_thetas_ = bp_boot_thetas
+
+    # with open(outfile, 'wb') as f:
+    #     pickle.dump((sm_b, sm_bp), f)
 
 
 if __name__ == "__main__":

@@ -217,7 +217,7 @@ def random_start_simplex(nt, nf, pi0=None, mu=None,
     return theta
 
 
-def predict_simplex(theta, logB, w, mu=None):
+def predict_simplex(theta, logB, w, mu=None, use_grid=False):
     """
     Prediction function for SimplexModel and FixedMutationModel.
 
@@ -236,7 +236,10 @@ def predict_simplex(theta, logB, w, mu=None):
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
-                logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+                if use_grid:
+                    logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
+                else:
+                    logBw[i] += -mu*W[j, k]*logB[i, 0, j, k]
     return pi0*np.exp(logBw)
 
 
@@ -374,9 +377,9 @@ class BGSLikelihood:
         self.boot_thetas_ = thetas
         return nlls, thetas
 
-    def jackknife(self, njack=None, chunks=None, **kwargs):
+    def jackknife_chrom(self, chrom, **kwargs):
         """
-        Do the jackknife.
+        Do the jackknife, leaving out the specified chromosome.
 
         If you want to compute across a cluster, set the chunks tuple,
         (nchunks, chunk_id)
@@ -386,27 +389,12 @@ class BGSLikelihood:
         """
         msg = "bins attribute must be set to a GenomicBinnedData object"
         assert self.bins is not None, msg
-        res = []
-        idx = np.arange(self.Y.shape[0])
-        if chunks is None:
-            # what samples are we going to remove?
-            jack_idx = np.random.choice(idx, njack, replace=False)
-        else:
-            rng = np.arange(*remove_range)
-            if njack is not None:
-                njack = len(rng)
-            else:
-                assert njack <= len(rng), "len(njack) must be <= len(range)"
-            jack_idx = np.random.choice(rng, njack, replace=False)
 
-        for j in tqdm.tqdm(jack_idx):
-            jidx = list(set(idx).difference(jack_idx))
-            res.append(self.fit(**kwargs, _indices=jidx))
-
-        nlls, thetas = process_bootstraps(res)
-        self.boot_nlls_ = nlls
-        self.boot_thetas_ = thetas
-        return nlls, thetas
+        chrom_idx = set(self.bins.chrom_indices(chrom))
+        all_idx = set(range(self.Y.shape[0]))
+        in_sample_idx = np.array(list(all_idx.difference(chrom_idx)))
+        # return the fit directly
+        return self.fit(**kwargs, _indices=in_sample_idx)
 
     def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -745,19 +733,18 @@ class SimplexModel(BGSLikelihood):
     
     def summary(self, index=None):
         if index is None:
-            Ne = self.mle_pi0 # FIX TODO
+            pi0 = self.mle_pi0 # FIX TODO
             mu = self.mle_mu
-            pi0 = 4*mu*Ne
             W = self.mle_W
             R2 = self.R2()
         else:
             theta = self.optim.thetas[index, ...]
-            Ne = theta[0]
             mu = theta[1]
-            pi0 = 4*mu*Ne
+            pi0 = theta[0]
             W = theta[2:]
             R2 = self.R2(theta=theta)
 
+        Ne = pi0 / (4*mu)
         if self.theta_ is None:
             return "no model fit."
         base_rows = ""
@@ -767,10 +754,10 @@ class SimplexModel(BGSLikelihood):
         else:
             base_rows += f" (whole genome)\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
-        base_rows += f"π0 = {pi0}\n"
-        base_rows += f"Ne = {Ne}\n"
-        base_rows += f"μ = {mu}\n"
-        base_rows += f"R² = {np.round(100*R2, 4)}\n"
+        base_rows += f"π0 = {pi0:0.6g}\n"
+        base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
+        base_rows += f"μ = {mu:0.4g}\n"
+        base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)\n"
         header = ()
         if self.features is not None:
             header = [''] + self.features
@@ -794,7 +781,7 @@ class SimplexModel(BGSLikelihood):
         best MLE).
         """
         if theta is not None:
-            return predict_simplex(theta, self.logB, self.w)
+            return predict_simplex(theta, self.logB_fit, self.w)
         if optim is None:
             theta = np.copy(self.theta_)
         else:
@@ -806,7 +793,7 @@ class SimplexModel(BGSLikelihood):
         if B:
             # rescale so B is returned, π0 = 1
             theta[0] = 1.
-        return predict_simplex(theta, self.logB, self.w)
+        return predict_simplex(theta, self.logB_fit, self.w)
 
 
 # -------- older likelihood functions -----------

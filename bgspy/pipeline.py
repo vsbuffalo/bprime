@@ -106,109 +106,59 @@ def summarize_data(# annotation
         pickle.dump(dat, f)
 
 
-def mle_fit(data, output_file, ncores=70, nstarts=200, verbose=True):
+def mle_fit(data, output_file, ncores=70, nstarts=200, 
+            verbose=True, chrom=None, 
+            start=None, ignore_B=False):
+    """
+    Load the binned data, fit B' (and optionally B) models, and
+    save the results.
+    """
     dat = load_pickle(data)
     bins, Y, bp = dat['bins'], dat['Y'], dat['bp']
     w, t = dat['w'], dat['t']
     features = dat['features']
     b = dat.get('b', None)
 
+    # deal with start
+    if start is not None:
+        starts = [start]
+    else:
+        starts = nstarts
 
-    logging.info("fitting B' model")
+    msg = "fitting B' model"
+    if chrom is not None:
+        msg += f" (leaving out {chrom})"
+    logging.info(msg)
     m_bp = SimplexModel(w=w, t=t, logB=bp, Y=Y,
                         bins=bins, features=features)
-    m_bp.fit(starts=nstarts, ncores=ncores)
+    if chrom is not None:
+        jk_opt = m_bp.jackknife_chrom(starts=starts, ncores=ncores, 
+                                       chrom=chrom)
+        # we need to load manually...
+        m_bp._load_optim(jk_opt)
+    else:
+        m_bp.fit(starts=starts, ncores=ncores)
 
+    msg = "saving intermediate model results"
+    logging.info(msg)
+    obj = {'mbp': m_bp}
+    with open(output_file, 'wb') as f:
+        pickle.dump(obj, f)
 
-    if b is not None:
+    if b is not None and not ignore_B:
         logging.info("fitting B model")
         m_b = SimplexModel(w=w, t=t, logB=b, Y=Y,
                            bins=bins, features=features)
-        m_b.fit(starts=nstarts, ncores=ncores)
+        if chrom is not None:
+            jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, chrom=chrom)
+            m_b._load_optim(jk_opt)
+        else:
+            m_b.fit(starts=nstarts, ncores=ncores)
 
     logging.info("saving model results")
     obj = {'mb': m_b, 'mbp': m_bp}
-    with open(fit_outfile, 'wb') as f:
+    with open(output_file, 'wb') as f:
         pickle.dump(obj, f)
 
-
-def boostrap():
-    # TODO
-    #  --------- bootstrap ----------
-    bootstrap = B is not None
-    msg = "cannot do both bootstrap and jackknife"
-    if bootstrap:
-        assert fit_chrom is None, "cannot set fit_chrom"
-        assert J is None, msg
-        vprint('note: recycling MLE for bootstrap')
-        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
-        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-
-        nlls_b, thetas_b = None, None # in case only-Bp
-        if not bp_only:
-            print("-- bootstrapping B --")
-            nlls_b, thetas_b = m_b.bootstrap(nboot=B, blocksize=blocksize,
-                                             starts=starts_b, ncores=ncores)
-        print("-- bootstrapping B' --")
-        nlls_bp, thetas_bp = m_bp.bootstrap(nboot=B, blocksize=blocksize,
-                                            starts=starts_bp, ncores=ncores)
-        if bootjack_outfile is not None:
-            np.savez(bootjack_outfile, 
-                     nlls_b=nlls_b, thetas_b=thetas_b,
-                     nlls_bp=nlls_bp, thetas_bp=thetas_bp)
-            print("-- bootstrapping results saved --")
-            return
-
-    #  --------- jackknife ----------
-    jackknife = J is not None
-    if jackknife:
-        assert fit_chrom is None, "cannot set fit_chrom"
-        assert B is None, msg
-        vprint('note: recycling MLE for jackknife')
-        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
-        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-
-        nlls_b, thetas_b = None, None  # in case only-Bp
-        if not bp_only:
-            print("-- jackknife B --")
-            nlls_b, thetas_b = m_b.jackknife(njack=J, 
-                                             starts=starts_b, ncores=ncores)
-        print("-- jackknife B' --")
-        nlls_bp, thetas_bp = m_bp.jackknife(njack=J,
-                                            starts=starts_bp, ncores=ncores)
-        if bootjack_outfile is not None:
-            np.savez(bootjack_outfile, 
-                     nlls_b=nlls_b, thetas_b=thetas_b,
-                     nlls_bp=nlls_bp, thetas_bp=thetas_bp)
-            print("-- jackknife results saved --")
-            return
-
-    #  --------- leave-one-out ----------
-    if loo_chrom is not False:
-        assert fit_chrom is None, "cannot set fit_chrom"
-        # can be False (don't do LOO), True (do LOO for all chroms), or string
-        # chromosome name (do LOO, exluding chromosome)
-        starts_b = nstarts if not recycle_mle else [m_b.theta_] * nstarts
-        starts_bp = nstarts if not recycle_mle else [m_bp.theta_] * nstarts
-        b_r2 = None
-        if loo_chrom is True:
-           # iterate through everything
-           out_sample_chrom = None
-        else:
-           # single chrom specified...
-           out_sample_chrom = loo_chrom
-        if not bp_only:
-            print("-- leave-one-out R2 estimation for B --")
-            b_r2 = m_b.loo_chrom_R2(starts=loo_nstarts,
-                                    out_sample_chrom=out_sample_chrom,
-                                    loo_fits_dir=loo_fits_dir,
-                                    ncores=ncores)
-        print("-- leave-one-out R2 estimation for B' --")
-        bp_r2 = m_bp.loo_chrom_R2(starts=loo_nstarts,
-                                  out_sample_chrom=out_sample_chrom,
-                                  loo_fits_dir=loo_fits_dir,
-                                  ncores=ncores)
-
-        np.savez(r2_file, b_r2=b_r2, bp_r2=bp_r2)
 
 
