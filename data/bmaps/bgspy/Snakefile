@@ -8,6 +8,8 @@ from bgspy.genome import Genome
 NCORES = 50
 NCORES_BP = 20
 
+HUMAN_RECMAP = "../../annotation/aamap_hg38.txt"
+
 # ===== For Simulations =====
 # 
 # Note: for next sim run, just use grid-string params, perhaps 
@@ -74,35 +76,20 @@ rule bmap_chr10_rescale:
 rule bmap_hg38:
   input: 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
-         recmap="../../annotation/aamap_hg38.bed"
+         recmap=HUMAN_RECMAP,
+         cons="../../annotation/conserved_{track}.bed.gz"
   output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP
   shell:
     """
     python ../../../bgspy/command_line.py calcb \
-      --recmap {input.recmap} --annot "../../annotation/conserved_{wildcards.track}.bed.gz" \
+      --recmap {input.recmap} --annot {input.cons} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.popsize} \
       --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
       --step {wildcards.step}
     """
 
-#rule bmap_hg38_weaksel:
-#  input: 
-#         seqlens_file="../../annotation/hg38_seqlens.tsv", 
-#         recmap="../../annotation/hapmap_genetic_map.txt"
-#  output: pkl_b_file="bmap_hg37_ratchet_{step}step_{popsize}N_{track}.pkl"
-#  params: ncores=NCORES, ncores_bp=NCORES_BP
-#  shell:
-#    """
-#    python ../../../bgspy/command_line.py calcb \
-#      --recmap {input.recmap} --annot "../../annotation/conserved_{wildcards.track}.bed.gz" \
-#      --seqlens {input.seqlens_file} \
-#      --t 1e-10,1e-9,1e-8,1e-7,1e-6,1e-5 --w 1e-11,1e-10,1e-9,1e-8 \
-#      --output {output} --popsize {wildcards.popsize} \
-#      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
-#      --step {wildcards.step}
-#    """
 
 #rule bmap_hg38_full:
 #  input: 
@@ -126,7 +113,7 @@ rule bmap_hg38:
 rule bmap_hg38_rescaled:
   input: 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
-         recmap="../../annotation/aamap_hg38.bed", 
+         recmap=HUMAN_RECMAP,
          fit="../../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl",
 	 pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
   output: pkl_b_file="bmap_rescaled_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
@@ -154,24 +141,24 @@ maps = [
 
         ## merged genomic features with phastcons as a catch all + all other bp as 'other'
         # note: this uses the simplified phastcons track, merging all ranges 100bp within each other
-        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl",
+        #"bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl",
 
         # genomic features with phastcons; CDS takes priority, phastcons catches everything else
-        "bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
+        #"bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl",
 
         # genomic features with phastcons; CDS takes priority, phastcons catches
-        "bmap_hg38_6x7grid_10000step_10000N_cds_phastcons.pkl",
+        #"bmap_hg38_6x7grid_10000step_10000N_cds_phastcons.pkl",
 
         # genomic features with phastcons; CDS takes priority, phastcons catches
-        "bmap_hg38_6x7grid_10000step_10000N_cds_phastcons_full.pkl",
+        #"bmap_hg38_6x7grid_10000step_10000N_cds_phastcons_full.pkl",
 
         ## merged CDS+phastcons for simple sim checks
-        "bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl",
+        #"bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl",
 
         ## tracks with genes taken out of phastcons
         "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes.pkl",
         "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes_full.pkl",
-        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_full"
+        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_full.pkl"
         ]
 
 rescaled_sims = []

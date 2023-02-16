@@ -70,7 +70,7 @@ def calc_B_chunk_worker(args):
         if np.any(b + rf*(rf*c + d) == 0):
             raise ValueError("divide by zero in calc_B_chunk_worker")
         x = a/(b*rf**2 + c*rf + d)
-        assert(not np.any(np.isnan(x)))
+        assert(not np.any(np.isnan(x))), f"x={x}, a={a}, b={b}, c={c}, d={d}, rf={rf}"
         B = np.einsum('ts,w,sf->wtf', x, mut_grid, F)
         # the einsum below is for when a features dimension exists, e.g.
         # there are feature-specific μ's and t's -- commented out now...

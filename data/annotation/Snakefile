@@ -322,7 +322,7 @@ rule decode_map:
 
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
-hapmap = ["hapmap_genetic_map.txt", "aamap_hg38.bed"]
+hapmap = ["hapmap_genetic_map.txt", "aamap_hg38.txt"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
@@ -370,10 +370,12 @@ rule liftover_hg36_hg38:
 
 rule aa_recmap_hg38:
    input: chain="hg18ToHg38.over.chain.gz", recmap="aamap_hg36.bed"
-   output: "aamap_hg38.bed"
+   output: "aamap_hg38.txt"
    shell:
      """
-     liftOver {input.recmap} {input.chain} {output[0]} aamap_unmapped
+     liftOver {input.recmap} {input.chain} tmp_aarm.bed aamap_unmapped
+     bioawk -t '{{ print $1,$2,$4 }}' tmp_aarm.bed  > {output[0]}
+     rm -f tmp_aarm.bed
      """
 
 ## === Conservation Tracks
