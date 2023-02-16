@@ -1,5 +1,6 @@
 ## likelihood.py -- functions for likelihood stuff
 import os
+import logging
 import copy
 import pickle
 import itertools
@@ -83,6 +84,7 @@ def mut_curve(x, a):
     """
     return np.exp(-a * x)
 
+
 def fit_B_curve_params(b, w):
     """
     Five the mutation curve for each DFE x feature combination.
@@ -94,7 +96,7 @@ def fit_B_curve_params(b, w):
     np.seterr(under='ignore')
     nx, nw, nt, nf = b.shape
     params = np.empty((nx, 1, nt, nf))
-    for i in tqdm.tqdm(range(nx)):
+    for i in range(nx):
         for j in range(nt):
             for k in range(nf):
                 popt, pcov = curve_fit(mut_curve, w, 
@@ -102,7 +104,20 @@ def fit_B_curve_params(b, w):
                                        maxfev=int(1e6))
                 assert(len(popt) == 1)
                 params[i, 0, j, k] = popt[0]
+
+    # next we check that the residuals aren't unusually high
+    # the threshold here is set just by some EDA
+    resid = []
+    for li in range(b.shape[0]):
+        grid = np.exp(b[li, :, :, :])
+        func = np.exp(-w[:, None, None] * params[li, :, :, :])
+        e2 = (grid-func)**2
+        resid.append(e2.mean())
+    resid = np.array(resid)
+    msg = "unusually high residual in B'(μ) fitting"
+    assert np.all(resid < 1e-4), msg
     return params
+
 
 def negll_softmax(theta, Y, B, w):
     """
@@ -145,6 +160,8 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     """
     l = [10**log10_pi0_bounds[0]]
     u = [10**log10_pi0_bounds[1]]
+    #l = [(1000)]
+    #u = [(100_000)]
     l += [10**log10_mu_bounds[0]]
     u += [10**log10_mu_bounds[1]]
     # if we use softmax, it should technically be unbounded
@@ -173,7 +190,7 @@ def random_start_simplex(nt, nf, pi0=None, mu=None,
     and μ, and Dirichlet under the DFE weights for W, under the simplex model.
     """
     if pi0 is None:
-        pi0 = np.random.uniform(10**log10_pi0_bounds[0], 
+        pi0 = np.random.uniform(10**log10_pi0_bounds[0],
                                 10**log10_pi0_bounds[1], 1)
     if mu is None:
         mu = np.random.uniform(10**log10_mu_bounds[0],
@@ -182,6 +199,7 @@ def random_start_simplex(nt, nf, pi0=None, mu=None,
     nparams = nt*nf + 2
     theta = np.empty(nparams)
     if softmax:
+        #theta[0] = np.random.uniform(1000, 100_000, 1)
         theta[0] = pi0
         theta[1] = mu
         theta[2:] = np.random.normal(0, 1, nt*nf)
@@ -236,6 +254,17 @@ class BGSLikelihood:
                  Y, w, t, logB, bins=None, features=None,
                  log10_pi0_bounds=PI0_BOUNDS,
                  log10_mu_bounds=MU_BOUNDS):
+
+        # this was an experiment to test if it made a difference
+        # to add a truly neutral class. Because the default lowest
+        # wμ point (1e-7) is so close to zero, 
+        add_neutral_class = False
+        if add_neutral_class:
+            nx, nw, nt, nf = logB.shape
+            logBn = np.zeros((nx, nw, nt+1, nf), dtype=logB.dtype)
+            logBn[:, :, 1:, :] = logB
+            logB = logBn
+            t = np.array([0] + t.tolist())
         self.w = w
         self.t = t
         if bins is not None:
@@ -436,7 +465,8 @@ class BGSLikelihood:
             nlls[i] = negll(thetas[i, ...], Y, self.logB, self.w)
         return grid, thetas, nlls
 
-    def loo_chrom_R2(self, out_sample_chrom=None, loo_fits_dir=None, **fit_kwargs):
+    def loo_chrom(self, out_sample_chrom=None, loo_fits_dir=None, 
+                  **fit_kwargs):
         """
         Estimate R2 by leave-one-out of a whole chromosome, run a new fit,
         and then estimate of R2 of the out sample chromosome.
@@ -456,15 +486,17 @@ class BGSLikelihood:
             all_chroms = [out_sample_chrom]
 
         r2s = []
+        jk_thetas = []
         for chrom in all_chroms:
             in_sample = self.bins.chrom_indices(chrom, exclude=True)
             out_sample = self.bins.chrom_indices(chrom, exclude=False)
-            print(f"fitting, leaving out {chrom}")
+            logging.info(f"loo_chrom: fitting, leaving out {chrom}")
             fit_optim = self.fit(**fit_kwargs, _indices=in_sample)
             # mimic a new fit
             new_fit = copy.copy(self)
             new_fit._load_optim(fit_optim)
             r2s.append(new_fit.R2(_idx=out_sample))
+            jk_thetas.append(new_fit.theta_)
             # monkey patch in some idx
             new_fit._out_sample = out_sample
             new_fit._in_sample = in_sample
@@ -473,7 +505,31 @@ class BGSLikelihood:
                     os.makedirs(loo_fits_dir)
                 fpath = os.path.join(loo_fits_dir, f"mle_loo_{chrom}.pkl")
                 new_fit.save(fpath)
-        return np.array(r2s)
+        return np.array(r2s), np.array(jk_thetas)
+
+    def dfe_plot2(self, figax=None, figsize=None):
+        """
+        """
+        nf = self.nf
+        fig, ax = get_figax(figax, nrows=nf, 
+                            figsize=figsize, sharex=True)
+        xt = np.log10(self.t)
+
+        for i in range(nf):
+            feat = self.features[i]
+            ax[i].bar(xt, self.mle_W[:, i], align='edge', label=feat)
+            if i < nf-1:
+                ax[i].xaxis.set_visible(False)
+            #ax[i].set_title(feat)
+            ax[i].text(0.5, 0.9, feat, 
+                       horizontalalignment='center',
+                       verticalalignment='top',
+                       transform=ax[i].transAxes, fontsize=8)
+        xtl = [f"$10^{{{int(x)}}}$" for x in xt]
+        ax[nf-1].set_xticks(np.log10(self.t), xtl, fontsize=5)
+        #ax.set_ylabel('probability')
+        #ax.legend()
+
 
     def dfe_plot(self, figax=None):
         """
@@ -588,7 +644,7 @@ class SimplexModel(BGSLikelihood):
         self.start_pi0_ = None
         self.start_mu_ = None
         # fit the exponential over the grid of mutation points
-        self.logB_fit = fit_B_curve_params(logB, w)
+        self.logB_fit = fit_B_curve_params(self.logB, w)
 
     def random_start(self, pi0=None, mu=None):
         """
@@ -688,6 +744,20 @@ class SimplexModel(BGSLikelihood):
         return self.theta_[2:].reshape(self.nt, self.nf)
     
     def summary(self, index=None):
+        if index is None:
+            Ne = self.mle_pi0 # FIX TODO
+            mu = self.mle_mu
+            pi0 = 4*mu*Ne
+            W = self.mle_W
+            R2 = self.R2()
+        else:
+            theta = self.optim.thetas[index, ...]
+            Ne = theta[0]
+            mu = theta[1]
+            pi0 = 4*mu*Ne
+            W = theta[2:]
+            R2 = self.R2(theta=theta)
+
         if self.theta_ is None:
             return "no model fit."
         base_rows = ""
@@ -697,14 +767,15 @@ class SimplexModel(BGSLikelihood):
         else:
             base_rows += f" (whole genome)\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
-        base_rows += f"π0 = {self.mle_pi0}\n"
-        base_rows += f"μ = {self.mle_mu}\n"
-        base_rows += f"R² = {np.round(100*self.R2(), 4)}\n"
+        base_rows += f"π0 = {pi0}\n"
+        base_rows += f"Ne = {Ne}\n"
+        base_rows += f"μ = {mu}\n"
+        base_rows += f"R² = {np.round(100*R2, 4)}\n"
         header = ()
         if self.features is not None:
             header = [''] + self.features
 
-        W = self.mle_W.reshape((self.nt, self.nf))
+        W = W.reshape((self.nt, self.nf))
         tab = np.concatenate((self.t[:, None], np.round(W, 3)), axis=1)
         base_rows += "W = \n" + tabulate(tab, headers=header)
         return base_rows

@@ -1,4 +1,5 @@
 import click
+import logging
 import numpy as np
 import pickle
 import os
@@ -6,7 +7,7 @@ from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.utils import Grid
-from bgspy.pipeline import summarize_data, fit
+from bgspy.pipeline import summarize_data, mle_fit
 from bgspy.bootstrap import load_from_bs_dir
 
 SPLIT_LENGTH_DEFAULT = 10_000
@@ -279,7 +280,7 @@ def data(seqlens, recmap, neutral, access, fasta,
 def fit(data, output, ncores, nstarts):
     # for fixed mu
     #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
-    fit(data=data,
+    mle_fit(data=data,
         output_file=output,
         ncores=ncores,
         nstarts=nstarts)
@@ -500,4 +501,6 @@ def collect_straps(fit, bootstrap_dir, outfile):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format='%(levelname)s: %(message)s',
+                        level=logging.INFO)
     res = cli()

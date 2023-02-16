@@ -318,8 +318,10 @@ double negloglik3(const double *theta,
     ssize_t nt = logB_dim[2];
     ssize_t nf = logB_dim[3];
 
+    //double Ne = theta[0];
     double pi0 = theta[0];
     double mu = theta[1];
+    //double pi0 = 4*mu*Ne;
     ssize_t nW = nt*nf;
     double *W = calloc(nW, sizeof(double));
     memcpy(W, theta + 2, nW * sizeof(double));
@@ -353,6 +355,7 @@ double negloglik3(const double *theta,
         log_pi = log_pi0 + logBw_i;
         ll += nD[i]*log_pi + nS[i]*log1p(-exp(log_pi));
         // gaussian approximation to binomial -- has overflow issues
+        // gaussian approximation to binomial -- has overflow issues
         //double u = (nD[i]+nS[i])*exp(log_pi0);
         //double sigma2 = u*(1-exp(log_pi));
         //ll += -0.5*log(sigma2) - 0.5/sigma2 * pow(nD[i]-u, 2);
@@ -360,7 +363,7 @@ double negloglik3(const double *theta,
 
     free(W);
     free(strides);
-    fflush(stdout);
+    //fflush(stdout);
     return -ll;
 }
 

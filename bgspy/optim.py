@@ -87,6 +87,7 @@ def run_optims(workerfunc, starts, progress=True, ncores=50,
         return nlls, thetas, success
     return OptimResult(nlls, thetas, success, np.array(starts))
 
+
 def scipy_softmax_worker(start, func, nt, nf, 
                          bounds,
                          method='L-BFGS-B'):
@@ -100,6 +101,7 @@ def scipy_softmax_worker(start, func, nt, nf,
     mle = convert_softmax(mle, nt, nf)
     success = int(res.success) # this is so it matches nlopt
     return nll, mle, success
+
 
 def convert_softmax(theta_sm, nt, nf):
     """
@@ -190,7 +192,7 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
         ax[i].pcolormesh(dfes[:, :, i].T, cmap=cmap, norm=norm)
         ax[i].set_ylabel(f"{features[i]}")
         ax[i].set_yticks(np.arange(nt)+0.5, 
-                         [f"${10}^{{{x}}}$" for x in np.log10(t).astype(int)])
+                         [f"${10}^{{{x}}}$" for x in np.log10(1e-12+t).astype(int)])
         ax[i].xaxis.set_visible(False)
         ax[i].tick_params(axis='y', which='major', labelsize=4, 
                           width=0.5, length=3)

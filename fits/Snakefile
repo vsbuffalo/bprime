@@ -3,17 +3,17 @@
 
 machine = 'server'
 
-NSTARTS = 1000
-NSTARTS_BOOT = 500
+NSTARTS = 200_000
+NSTARTS_JK = 500
 NSTARTS_LOO = 50
 
 if machine == 'cluster':
     NCORES = 40
-    NCORES_BOOT = 40
+    NCORES_JK = 40
     NCORES_LOO = NCORES
 else:
-    NCORES = 60
-    NCORES_BOOT = 60
+    NCORES = 70
+    NCORES_JK = 60
     NCORES_LOO = NCORES
 
 
@@ -21,7 +21,6 @@ CHROMS = [f'chr{x}' for x in range(1, 23)]
 
 # from config
 name = config["name"]
-model = config["model"]
 mu = config.get("mu", None)
 seqlens_file = config["seqlens_file"]
 recmap_file = config["recmap_file"]
@@ -43,7 +42,7 @@ rule save_data:
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
   output: 'model_data_{window}.pkl'
-  params: model=model, mu=mu, name=name
+  params: name=name
   shell:
     """
     mkdir -p {params.name}
@@ -55,41 +54,23 @@ rule save_data:
       --output {output[0]}
     """
 
-
-rule fit_softmax:
-  input: 'model_data_{window}.pkl'
-  output: 'fit_{window}/mle_softmax.pkl'
-  params: ncores=NCORES, nstarts=10000, model=model, mu=mu, name=name
-  shell:
-    """
-    mkdir -p {params.name}
-    bgspy fit \
-      --model {params.model} --mu {params.mu} \
-      --data {input[0]} \
-      --softmax \
-      --ncores {params.ncores} --nstarts {params.nstarts} \
-      --output {output[0]}
-    """
-
 rule fit:
   input: 'model_data_{window}.pkl'
   output: 'fit_{window}/mle.pkl'
-  params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu, name=name
+  params: ncores=NCORES, nstarts=NSTARTS, mu=mu, name=name
   shell:
     """
     mkdir -p {params.name}
     bgspy fit \
-      --model {params.model} --mu {params.mu} \
       --data {input[0]} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
       --output {output[0]}
     """
 
 rule jackknife:
-  # note that this only runs one bootstrap, we set nboot = ncores
   input: fit='fit_{window}/mle.pkl', 
-  output: 'fit_{window}/bootstraps/bootstrap_{boot}.npz'
-  params: ncores=NCORES_BOOT, nstarts=NSTARTS_BOOT, blocksize=blocksize
+  output: 'fit_{window}/jackknifes/jackknifes_{boot}.npz'
+  params: ncores=NCORES_JK, nstarts=NSTARTS_JK, blocksize=blocksize
   shell:
     """
     bgspy jackknife --fit {input.fit} \
@@ -116,8 +97,7 @@ loo_results = []
 mle_results = []
 boots_results = []
 for window in windows:
-  #mle_results.append(f'fit_{window}/mle.pkl')
-  mle_results.append(f'fit_{window}/mle_softmax.pkl')
+  mle_results.append(f'fit_{window}/mle.pkl')
   #boots = [f"window_{window}/bootstraps/bootstrap_{b}.npz" for 
   #         b in range(NBOOT_PARALLEL)]
   #boots_results.extend(boots)

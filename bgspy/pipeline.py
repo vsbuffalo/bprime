@@ -1,13 +1,16 @@
 import warnings
+import logging
 import pickle
 import numpy as np
 from bgspy.models import BGSModel
-from bgspy.utils import load_seqlens 
+from bgspy.utils import load_seqlens, load_pickle
 from bgspy.sim_utils import mutate_simulated_tree
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
+from bgspy.likelihood import SimplexModel
 
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
+
 
 def summarize_data(# annotation
          seqlens_file, recmap_file, neut_file, access_file, fasta_file,
@@ -32,16 +35,12 @@ def summarize_data(# annotation
         4. The loaded BGSModel containing the B/B's.
 
     """
-    def vprint(*args, **kwargs):
-        if verbose:
-            print(*args, **kwargs)
-
     # infer the genome name if not supplies
     name = seqlens_file.replace('_seqlens.tsv', '') if name is None else name
     seqlens = load_seqlens(seqlens_file)
     if only_autos:
         seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
-    vprint("-- loading genome --")
+    logging.info("loading genome")
     g = Genome(name, seqlens=seqlens)
     g.load_recmap(recmap_file)
     gd = GenomeData(g)
@@ -56,14 +55,13 @@ def summarize_data(# annotation
         ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
         gd.load_counts_from_ts(ts, chrom=sim_chrom)
 
-
     gd.load_neutral_masks(neut_file)
     gd.load_accessibile_masks(access_file)
     gd.load_fasta(fasta_file, soft_mask=True)
     gd.trim_ends(thresh_cM=thresh_cM)
 
     # bin the diversity data
-    vprint("-- binning pairwise diversity --")
+    logging.info("binning pairwise diversity") 
     bgs_bins = gd.bin_pairwise_summaries(window,
                                          filter_accessible=True,
                                          filter_neutral=True)
@@ -73,7 +71,7 @@ def summarize_data(# annotation
     bgs_bins.mask_outliers(outliers)
 
     # genome models
-    vprint("-- loading Bs --")
+    logging.info("loading Bs")
     gm = BGSModel.load(bs_file)
 
     # features -- load for labels
@@ -87,18 +85,18 @@ def summarize_data(# annotation
 
     # bin Bs
     if not bp_only:
-        vprint("-- binning B --")
+        logging.info("binning B")
         b = bgs_bins.bin_Bs(gm.BScores)
 
     # B' is always fit
-    vprint("-- binning B' --")
+    logging.info("binning B'")
     bp = bgs_bins.bin_Bs(gm.BpScores)
 
     # get the diversity data
-    vprint("-- making diversity matrix Y --")
+    logging.info("making diversity matrix Y")
     Y = bgs_bins.Y()
 
-    vprint("-- saving pre-fit model data --")
+    logging.info("saving pre-fit model data")
     with open(output_file, 'wb') as f:
         dat = {'bins': bgs_bins, 'Y': Y, 
                'bp': bp, 'features': features,
@@ -108,19 +106,30 @@ def summarize_data(# annotation
         pickle.dump(dat, f)
 
 
-
-def fit(data, output_file, ncores=70, nstarts=200):
+def mle_fit(data, output_file, ncores=70, nstarts=200, verbose=True):
     dat = load_pickle(data)
-    bins, Y, bp = (dat['bins'], dat['Y'], dat['bp'])
+    bins, Y, bp = dat['bins'], dat['Y'], dat['bp']
+    w, t = dat['w'], dat['t']
     features = dat['features']
     b = dat.get('b', None)
 
-    # TODO FIT
 
+    logging.info("fitting B' model")
+    m_bp = SimplexModel(w=w, t=t, logB=bp, Y=Y,
+                        bins=bins, features=features)
+    m_bp.fit(starts=nstarts, ncores=ncores)
+
+
+    if b is not None:
+        logging.info("fitting B model")
+        m_b = SimplexModel(w=w, t=t, logB=b, Y=Y,
+                           bins=bins, features=features)
+        m_b.fit(starts=nstarts, ncores=ncores)
+
+    logging.info("saving model results")
     obj = {'mb': m_b, 'mbp': m_bp}
     with open(fit_outfile, 'wb') as f:
         pickle.dump(obj, f)
-    vprint("-- model saved --")
 
 
 def boostrap():

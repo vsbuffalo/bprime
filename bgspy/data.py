@@ -1,4 +1,5 @@
 import os
+import logging
 import warnings
 from collections import defaultdict
 import itertools
@@ -64,7 +65,7 @@ def load_dacfile(dacfile, neut_masks=None):
             dacs.append(int(dac))
             i += 1
     if neut_masks is not None:
-        print(f"{skipped_sites} sites in non-neutral regions skipped.")
+        logging.info(f"{skipped_sites} sites in non-neutral regions skipped.")
     for chrom in positions:
         try:
             assert(sorted(positions[chrom]) == positions[chrom])
@@ -439,7 +440,7 @@ class GenomeData:
             bins.n_[chrom] = binstat.n
         if mask_inaccessible_bins_frac is not None and self.accesssible_masks is not None:
             f = mask_inaccessible_bins_frac
-            print(f"masking bins based on whether {f*100}% of basepairs are inaccessible.")
+            logging.info(f"masking bins based on whether {f*100}% of basepairs are inaccessible.")
             bins.mask_accessible(self.accesssible_masks,
                                  mask_inaccessible_bins_frac)
         bins.labels = self.labels

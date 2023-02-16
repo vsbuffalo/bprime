@@ -182,6 +182,7 @@ def Q2_sum_integral2(Z, M, tmax=1000, thresh=1e-5):
     #vals[0] = 0  # normally it's NaN, but the series value is 0, so we set it to that
     return (2/M)*np.array(vals)
 
+
 def ave_het(Ne_t, return_parts=False):
     """
     DEPRECATED: Slow test function.
@@ -195,9 +196,11 @@ def ave_het(Ne_t, return_parts=False):
 ### Recombination Functions
 # Functions that don't integrate over a map length
 
+
 @np.vectorize
 def Ne_asymp(V, Vm, rf, N):
     return N * np.exp(-V/2 * Qr_asymp(V, Vm, rf)**2)
+
 
 @np.vectorize
 def Ne_asymp2(a, V, N):
@@ -207,19 +210,34 @@ def Ne_asymp2(a, V, N):
         return 0
     return N * np.exp(-x)
 
+
 def Qr_asymp(V, Vm, rf):
     a = (1-Vm/V)*(1-rf)
     return 1/(1-a)
 
+
 def Qr_asymp2(a):
     return 1/(1-a)
+
 
 def Qr_fixed(t, V, Vm, rf):
     a = (1-Vm/V)*(1-rf)
     return (1-a**(t+1)) / (1-a)
 
+
 def Qr_fixed2(t, a):
     return (1-a**(t+1)) / (1-a)
+
+
+def pfix(N, s, p0=None):
+    """
+    probability of fixation of an allele at frequency
+    p0 (set to 1/(2N) if not specified. This is a useful
+    way to check the scale of the selection coefficient grid;
+    effectively neutral sites have pfix ~ 1/2N (the neutral rate)
+    """
+    p0 = 0.5/N if p0 is None else p0
+    return (1-np.exp(-2*N*s*p0))/(1-np.exp(-2*N*s))
 
 
 @np.vectorize
@@ -243,6 +261,7 @@ def Ne_t_full(T, N, V, Vm, rf, as_B=False, return_parts=False):
     if as_B:
         return Ne_sum/(2*N)
     return Ne_sum/2
+
 
 @np.vectorize
 def Ne_t_full2(N, V, a, as_B=False, return_parts=False):
@@ -269,6 +288,7 @@ def Ne_t_full2(N, V, a, as_B=False, return_parts=False):
 
 #### Main compututional functions
 # stuff used for the business end of things
+
 
 def bgs_segment_sc16(mu, sh, L, rbp, N, asymptotic=True, T_factor=10,
                      dont_fallback=False, return_parts=False):
