@@ -322,7 +322,7 @@ rule decode_map:
 
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
-hapmap = ["hapmap_genetic_map.txt", "aamap_hg38.txt"]
+hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.bed"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
@@ -369,14 +369,38 @@ rule liftover_hg36_hg38:
      """
 
 rule aa_recmap_hg38:
+   # note: the liftover messes things up, so we have to go in and clean up after
    input: chain="hg18ToHg38.over.chain.gz", recmap="aamap_hg36.bed"
-   output: "aamap_hg38.txt"
+   output: "aamap_hg38_raw.bed"
    shell:
      """
-     liftOver {input.recmap} {input.chain} tmp_aarm.bed aamap_unmapped
-     bioawk -t '{{ print $1,$2,$4 }}' tmp_aarm.bed  > {output[0]}
-     rm -f tmp_aarm.bed
+     liftOver -minMatch=0.99 {input.recmap} {input.chain} {output[0]} aamap_unmapped
      """
+
+rule aa_recmap_hg38_fixed:
+   input: "aamap_hg38_raw.bed"
+   output: "aamap_hg38.bed"
+   run:
+     import pandas as pd
+     d = pd.read_table(input[0], sep='\t',
+                  names=('chrom', 'start', 'end', 'rate'))
+     fixed = []
+     for chrom, df in d.groupby('chrom'):
+         df = df.copy().sort_values(['start', 'end'])
+         # filter local rate outliers
+         # See notebook for more details
+         df = df.loc[df['rate'] < 0.002]
+         df['dist'] = df['rate'] * (df['end']-df['start'])
+         
+         if chrom == 'chr6':
+             # filter out the chr6 outlier
+             df = df.loc[df['dist'] < 2.5]
+         
+         df['cumm'] = np.cumsum(df['dist'])
+         fixed.append(df)
+     dfixed = pd.concat(fixed).reset_index()
+     dfixed.to_csv(output[0], sep='\t', index=False)
+
 
 ## === Conservation Tracks
 cons = ["conserved_phastcons.bed.gz",

@@ -1,6 +1,10 @@
 """
 Clean up and combine the African-American 
 recmap (why people don't use standard formats is a mystery!)
+
+Note that this file's data column is cumulative rates,
+so I take the difference between adjacent markers for local
+estimates
 """
 import sys
 from os.path import join
@@ -14,6 +18,17 @@ for chrom, file in zip(chroms, files):
     with open(join(dir, file)) as f:
         header = next(f)
         assert header.startswith("Physical")
+        line = next(f)
+        pos, rate = line.strip().split()
+        last_pos, last_rate = int(pos), float(rate)
         for line in f:
             pos, rate = line.strip().split()
-            print('\t'.join((chrom, pos, str(int(pos)+1), rate)))
+            pos, rate = int(pos), float(rate)
+            assert pos > last_pos
+            # in cM/bp -- for cM/Mb we multiply 
+            # 1e6 bp / Mb = 1e6
+            local_rate = (rate-last_rate)/(pos - last_pos)
+            assert local_rate >= 0
+            row = map(str, (chrom, last_pos, pos, local_rate))
+            print('\t'.join(row))
+            last_pos, last_rate = pos, rate
