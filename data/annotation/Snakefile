@@ -386,6 +386,7 @@ rule aa_recmap_hg38_fixed:
                   names=('chrom', 'start', 'end', 'rate'))
      fixed = []
      for chrom, df in d.groupby('chrom'):
+         # pandas sucks.
          df = df.copy().sort_values(['start', 'end'])
          # filter local rate outliers
          # See notebook for more details
@@ -398,7 +399,7 @@ rule aa_recmap_hg38_fixed:
          
          df['cumm'] = np.cumsum(df['dist'])
          fixed.append(df)
-     dfixed = pd.concat(fixed).reset_index()
+     dfixed = pd.concat(fixed, axis=0)
      dfixed.to_csv(output[0], sep='\t', index=False)
 
 
