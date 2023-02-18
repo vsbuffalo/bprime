@@ -379,15 +379,16 @@ rule aa_recmap_hg38:
      """
 
 rule aa_recmap_hg38_fixed:
-   input: "aamap_hg38_raw.bed"
+   input: recmap="aamap_hg38_raw.bed", seqlens="hg38_seqlens.tsv"
    output: "aamap_hg38.tsv"
    run:
      import pandas as pd
-     d = pd.read_table(input[0], sep='\t',
+     from bgspy.utils import load_seqlens
+     sls = load_seqlens(input.seqlens)
+     d = pd.read_table(input.recmap, sep='\t',
                        names=('chrom', 'start', 'end', 'rate'))
      fixed = []
      for chrom, df in d.groupby('chrom'):
-         # pandas sucks.
          # filter local rate outliers
          # See notebook for more details
          df = df.sort_values(['end'])
@@ -397,14 +398,28 @@ rule aa_recmap_hg38_fixed:
          if chrom == 'chr6':
              # filter out the chr6 outlier
              df = df.loc[df['dist'] < 2.5]
-         
-         df['cumm'] = np.cumsum(df['dist'])
-         new_rate = np.diff(df['cumm']) / (df['end']-df['start'])[1:]
-         new_chrom = [chrom] * len(new_rate)
-         new_end = df['end'].values
 
-         assert np.all(np.diff(df['end']) > 0)
-         fixed.append(pd.DataFrame(dict(chrom=new_chrom, end=new_end[:-1], rate=new_rate)))
+         # filtering done, now we have to recreate the 
+         # rates from the corrected cumulative map.
+         ends = list(df['end'].values)
+         starts = df['start'].values
+         rates = df['rate'].values
+         spans = ends - starts
+         cum_rate = (1/100 * np.cumsum(rates * spans)).tolist()
+         new_rate = np.diff(cum_rate)  # note this is still scaled by span
+
+         new_rates = list(new_rate)
+         new_ends = list(ends[:-1])
+         new_ends.insert(0, 0)
+         new_rates.insert(0, np.nan)
+         new_ends.append(sls[chrom])
+         new_ends, new_rates = np.array(new_ends), np.array(new_rates) / np.diff(new_ends)
+        
+         assert np.all(np.diff(ends) > 0)
+         new_chrom = [chrom] * (len(new_rates)-1)
+         # hapmap: each line is the rate between that position and the next line
+         # so we have to do some re-indexing here
+         fixed.append(pd.DataFrame(dict(chrom=new_chrom, end=new_ends[1:-1], rate=new_rates[1:])))
 
      dfixed = pd.concat(fixed, axis=0)
      dfixed = dfixed.loc[:, ['chrom', 'end', 'rate']]
