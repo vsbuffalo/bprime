@@ -374,7 +374,8 @@ rule aa_recmap_hg38:
    output: "aamap_hg38_raw.bed"
    shell:
      """
-     liftOver -minMatch=0.99 {input.recmap} {input.chain} {output[0]} aamap_unmapped
+     liftOver -minMatch=0.99 {input.recmap} {input.chain} tmp_aa.bed aamap_unmapped
+     sort  --version-sort -k 1,1 -k3,3n tmp_aa.bed > {output[0]}
      """
 
 rule aa_recmap_hg38_fixed:
@@ -387,9 +388,9 @@ rule aa_recmap_hg38_fixed:
      fixed = []
      for chrom, df in d.groupby('chrom'):
          # pandas sucks.
-         df = df.sort_values(['start', 'end'])
          # filter local rate outliers
          # See notebook for more details
+         df = df.sort_values(['end'])
          df = df.loc[df['rate'] < 0.002]
          df['dist'] = df['rate'] * (df['end']-df['start'])
          
@@ -398,24 +399,12 @@ rule aa_recmap_hg38_fixed:
              df = df.loc[df['dist'] < 2.5]
          
          df['cumm'] = np.cumsum(df['dist'])
-         df['rate'] = np.array([0] + (np.diff(df['cumm'])).tolist())
-         df['rate'] = df['rate']/(df['end']-df['start'])
+         new_rate = np.diff(df['cumm']) / (df['end']-df['start'])[1:]
+         new_chrom = [chrom] * len(new_rate)
+         new_end = df['end'].values
 
-         #assert np.all(np.diff(df['end']) > 0)
-         # this is an important check that the end positions are in order
-         bad = np.diff(df['end']) <= 0
-         if bad.sum():
-             print(f"length before: {df.shape[0]}")
-             import warnings
-             warnings.warn(f"removing {bad.sum()} out of order map entries in {chrom}!")
-             # pandas really, really sucks.
-             # seriously, look at how stupidly hard this simple operation is:
-             # https://stackoverflow.com/questions/46494583/drop-a-row-in-pandas-dataframe-base-on-integer-index-location
-             bad_pos = set(np.where(bad)[0])
-             keep_idx = list(set(np.arange(df.shape[0])).difference(bad_pos))
-             df = df.iloc[keep_idx]
-             print(f"length after: {df.shape[0]}")
-         fixed.append(df)
+         assert np.all(np.diff(df['end']) > 0)
+         fixed.append(pd.DataFrame(dict(chrom=new_chrom, end=new_end[:-1], rate=new_rate)))
 
      dfixed = pd.concat(fixed, axis=0)
      dfixed = dfixed.loc[:, ['chrom', 'end', 'rate']]

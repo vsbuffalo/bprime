@@ -106,19 +106,27 @@ class RecMap(object):
             if data[-1][0] > end:
                 msg = f"{chrom} has an end passed the reference sequence!"
                 raise ValueError(msg)
-            elif data[-1][0] < end:
+            #elif data[-1][0] < end:
                 # NOTE: we put a None here since we need one fewer end rec rate
-                data.append((end, None))
+            #    data.append((end, 0))
             # else: it goes to the end, everything's good
-            if data[0][0] != 0:
-                assert data[0][0] > 0  # no negative positions
-                # we need to pre-prend zero
-                data.insert(0, (0, np.nan))
 
-            ends = np.array([e for e, _ in data])
-            # note: chop off the end
-            rec_rates = self.conversion_factor*np.array([r for _, r in data[:-1]])
+            ends = [e for e, _ in data]
+            rec_rates = [r for _, r in data]
+            assert ends[0] != 0, " we can't a rate left of pos 0"
+            ends.insert(0, 0)  # add in the left-most position
+            # the hapmap format format is each line is rate between it and *next*
+            # so popping in a zero means we don't know the rate -- fill with nan
+            rec_rates.insert(0, np.nan)
+            # if we don't go to end, we add that in -- note that the last
+            # rate we have is to end.
+            if ends[-1] < self.seqlens[chrom]:
+                ends.append(self.seqlens[chrom])
+
+            rec_rates = self.conversion_factor*np.array(rec_rates)
             rates[chrom] = tsk.RateMap(position=ends, rate=rec_rates)
+
+        self._rm = rates
 
         cum_rates = dict()
         for chrom, ratemap in rates.items():
