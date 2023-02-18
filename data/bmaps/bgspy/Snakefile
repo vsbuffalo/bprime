@@ -8,7 +8,7 @@ from bgspy.genome import Genome
 NCORES = 50
 NCORES_BP = 20
 
-HUMAN_RECMAP = "../../annotation/aamap_hg38.txt"
+HUMAN_RECMAP = "../../annotation/aamap_hg38.tsv"
 
 # ===== For Simulations =====
 # 

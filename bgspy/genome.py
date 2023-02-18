@@ -112,6 +112,7 @@ class Segments:
         """
         L = self.lengths
         rbp = self.rates
+        assert np.all(~np.isnan(rbp))
         if t.ndim == 1:
             t = t[:, None]
         print(f"calculating classic B components...\t", end='', flush=True)
@@ -351,7 +352,9 @@ def process_annotation(features, recmap, split_length=None):
     map_pos = np.concatenate(map_pos, axis=0)
     assert(map_pos.shape[0] == ranges.shape[0])
     print(f"done.")
+    assert np.sum(np.isnan(map_pos)) == 0, "some interpolatd map positions are nan!"
     rates = np.array(split_rates, dtype='float32')
+    assert np.sum(np.isnan(split_rates)) == 0, "some segment recombination rates are nan!"
     features = np.array([feature_map[x] for x in split_features])
     return Segments(ranges, rates, map_pos, features, feature_map, index)
 

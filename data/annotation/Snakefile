@@ -415,6 +415,9 @@ rule aa_recmap_hg38_fixed:
          new_ends.append(sls[chrom])
          new_ends, new_rates = np.array(new_ends), np.array(new_rates) / np.diff(new_ends)
         
+         # it's currently in Morgans/bp
+         # convert to cM/Mb
+         new_rates = 1e8*new_rates
          assert np.all(np.diff(ends) > 0)
          new_chrom = [chrom] * (len(new_rates)-1)
          # hapmap: each line is the rate between that position and the next line

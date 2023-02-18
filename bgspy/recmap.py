@@ -117,7 +117,7 @@ class RecMap(object):
             ends.insert(0, 0)  # add in the left-most position
             # the hapmap format format is each line is rate between it and *next*
             # so popping in a zero means we don't know the rate -- fill with nan
-            rec_rates.insert(0, np.nan)
+            rec_rates.insert(0, 0)
             # if we don't go to end, we add that in -- note that the last
             # rate we have is to end.
             if ends[-1] < self.seqlens[chrom]:
@@ -126,14 +126,14 @@ class RecMap(object):
             rec_rates = self.conversion_factor*np.array(rec_rates)
             rates[chrom] = tsk.RateMap(position=ends, rate=rec_rates)
 
-        self._rm = rates
+        #self._rm = rates  # we can store the ratemaps for debugging
 
         cum_rates = dict()
         for chrom, ratemap in rates.items():
             cumrate = ratemap.get_cumulative_mass(ratemap.right)
             cum_rates[chrom] = RecPair(ratemap.right, cumrate)
 
-        self.rates = rates
+        self.rates = {c: RecPair(x.right, x.rate) for c, x in rates.items()}
         self.cum_rates = cum_rates
         self.cum_interpol = rate_interpol(cum_rates, kind=self.cum_interpolation)
         self.inverse_cum_interpol = rate_interpol(cum_rates, inverse=True,
