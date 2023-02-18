@@ -156,7 +156,7 @@ def calc_B(genome, mut_grid, step):
         positions = bin_chrom(end, step)
         Bpos[chrom] = positions
         # pre-compute the map positions for each physical position
-        map_pos = recmap.lookup(chrom, positions, cummulative=True)
+        map_pos = recmap.lookup(chrom, positions, cumulative=True)
         assert(len(positions) == len(map_pos))
         # get the segments on this chromosome
         idx = segments.index[chrom]

@@ -322,7 +322,7 @@ rule decode_map:
 
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
-hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.bed"]
+hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.tsv"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
@@ -379,15 +379,15 @@ rule aa_recmap_hg38:
 
 rule aa_recmap_hg38_fixed:
    input: "aamap_hg38_raw.bed"
-   output: "aamap_hg38.bed"
+   output: "aamap_hg38.tsv"
    run:
      import pandas as pd
      d = pd.read_table(input[0], sep='\t',
-                  names=('chrom', 'start', 'end', 'rate'))
+                       names=('chrom', 'start', 'end', 'rate'))
      fixed = []
      for chrom, df in d.groupby('chrom'):
          # pandas sucks.
-         df = df.copy().sort_values(['start', 'end'])
+         df = df.sort_values(['start', 'end'])
          # filter local rate outliers
          # See notebook for more details
          df = df.loc[df['rate'] < 0.002]
@@ -398,8 +398,27 @@ rule aa_recmap_hg38_fixed:
              df = df.loc[df['dist'] < 2.5]
          
          df['cumm'] = np.cumsum(df['dist'])
+         df['rate'] = np.array([0] + (np.diff(df['cumm'])).tolist())
+         df['rate'] = df['rate']/(df['end']-df['start'])
+
+         #assert np.all(np.diff(df['end']) > 0)
+         # this is an important check that the end positions are in order
+         bad = np.diff(df['end']) <= 0
+         if bad.sum():
+             print(f"length before: {df.shape[0]}")
+             import warnings
+             warnings.warn(f"removing {bad.sum()} out of order map entries in {chrom}!")
+             # pandas really, really sucks.
+             # seriously, look at how stupidly hard this simple operation is:
+             # https://stackoverflow.com/questions/46494583/drop-a-row-in-pandas-dataframe-base-on-integer-index-location
+             bad_pos = set(np.where(bad)[0])
+             keep_idx = list(set(np.arange(df.shape[0])).difference(bad_pos))
+             df = df.iloc[keep_idx]
+             print(f"length after: {df.shape[0]}")
          fixed.append(df)
+
      dfixed = pd.concat(fixed, axis=0)
+     dfixed = dfixed.loc[:, ['chrom', 'end', 'rate']]
      dfixed.to_csv(output[0], sep='\t', index=False)
 
 

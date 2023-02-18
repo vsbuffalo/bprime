@@ -48,7 +48,7 @@ class MapPosChunkIterator(object):
         # chromosomes
         chrom_pos = {c: bin_chrom(l, step) for c, l in genome.seqlens.items()}
         # Get the map positions of the spots to calc B at
-        chrom_mpos = {c: genome.recmap.lookup(c, p, cummulative=True) for c, p
+        chrom_mpos = {c: genome.recmap.lookup(c, p, cumulative=True) for c, p
                       in chrom_pos.items()}
 
         self.chrom_pos = chrom_pos

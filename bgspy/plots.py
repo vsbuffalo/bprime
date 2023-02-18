@@ -105,7 +105,7 @@ def predict_sparkplot(model,
     m = model
     fig, ax = get_figax(figax)
     bins = m.bins.flat_bins(filter_masked=False)
-    midpoints = m.bins.cumm_midpoints(filter_masked=False)
+    midpoints = m.bins.cum_midpoints(filter_masked=False)
 
     predicts = m.predict()
     # fill the predicted values into the full unmask-filtered matrix

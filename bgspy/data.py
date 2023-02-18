@@ -241,17 +241,17 @@ def trim_map_ends(recmap, thresh_cM):
     """
     ends = dict()
     for chrom in recmap.rates:
-        pos = recmap.cumm_rates[chrom].end
-        cumm_rates = recmap.cumm_rates[chrom].rate
+        pos = recmap.cum_rates[chrom].end
+        cum_rates = recmap.cum_rates[chrom].rate
 
         start = thresh_cM / 100
 
         # note: we use pos[1] because first is NaN
         lower, upper = pos[1], pos[-1]
-        if any(cumm_rates < start):
-            lower = np.min(pos[cumm_rates < start])
-        end = cumm_rates[-1] - thresh_cM / 100
-        upper = np.max(pos[cumm_rates < end])
+        if any(cum_rates < start):
+            lower = np.min(pos[cum_rates < start])
+        end = cum_rates[-1] - thresh_cM / 100
+        upper = np.max(pos[cum_rates < end])
         ends[chrom] = lower, upper
     return ends
 
@@ -708,7 +708,7 @@ class GenomicBins:
                 chroms.append(chrom_map[chrom])
         return np.array(chroms)
 
-    def cumm_midpoints(self, pad = 0, filter_masked=True):
+    def cum_midpoints(self, pad = 0, filter_masked=True):
         mids = []
         offset = 0
         for chrom, bins in self.bins(filter_masked=filter_masked).items():
@@ -836,7 +836,7 @@ class GenomicBinnedData(GenomicBins):
         for i, (chrom, Y) in enumerate(self.data(filter_masked).items()):
             pi = pi_from_pairwise_summaries(Y)
             bins = self.flat_midpoints(filter_masked)
-            mbins = np.array([float(recmap.lookup(c, p, cummulative=True)) for c, p in bins])
+            mbins = np.array([float(recmap.lookup(c, p, cumulative=True)) for c, p in bins])
             for j, lag in enumerate(all_lags):
                 y1, y2 = pi[:-lag], pi[lag:]
                 if not len(y1) or not len(y2):
@@ -1014,8 +1014,8 @@ class GenomicBinnedData(GenomicBins):
         recbins = np.full(len(flatbins), np.nan)
         i = 0
         for chrom, start, end in flatbins:
-            r1 = recmap.lookup(chrom, start, cummulative=True)
-            r2 = recmap.lookup(chrom, end, cummulative=True)
+            r1 = recmap.lookup(chrom, start, cumulative=True)
+            r2 = recmap.lookup(chrom, end, cumulative=True)
             recbins[i] = (r2-r1) / (end-start)
             i += 1
         return recbins

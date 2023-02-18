@@ -344,8 +344,8 @@ def process_annotation(features, recmap, split_length=None):
     map_pos = []
     for chrom in index:
         idx = index[chrom]
-        map_start = rm.lookup(chrom, ranges[idx, 0], cummulative=True)
-        map_end = rm.lookup(chrom, ranges[idx, 1], cummulative=True)
+        map_start = rm.lookup(chrom, ranges[idx, 0], cumulative=True)
+        map_end = rm.lookup(chrom, ranges[idx, 1], cumulative=True)
         assert(len(map_start) == len(idx))
         map_pos.append(np.stack((map_start, map_end)).T)
     map_pos = np.concatenate(map_pos, axis=0)
@@ -530,13 +530,13 @@ class Genome(object):
         For calculating B within a region where it matters.
         """
         if mpos is None and pos is not None:
-            mpos = self.recmap.cumm_interpol[chrom](pos)
+            mpos = self.recmap.cum_interpol[chrom](pos)
         elif pos is None and mpos is not None:
             pass
         else:
             raise ValueError("mpos and pos cannot both be None or both be set")
-        lower = max(mpos - map_dist, self.recmap.cumm_rates[chrom].rate[0])
-        upper = min(mpos + map_dist, self.recmap.cumm_rates[chrom].rate[-1])
+        lower = max(mpos - map_dist, self.recmap.cum_rates[chrom].rate[0])
+        upper = min(mpos + map_dist, self.recmap.cum_rates[chrom].rate[-1])
         # now use inverse to get the indices
         lower_idx, upper_idx = self._map2idx[chrom](lower), self._map2idx[chrom](upper)
         return int(lower_idx), int(upper_idx)
