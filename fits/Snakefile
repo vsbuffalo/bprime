@@ -3,8 +3,8 @@
 
 machine = 'cluster'
 
-NSTARTS = 500_000
-NSTARTS_LOO = 500_000
+NSTARTS = 10_000
+NSTARTS_LOO = 10_000
 
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,

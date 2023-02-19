@@ -17,7 +17,7 @@
         "time" : "5-00:00:00",
         "n" : 1,
         "account" : "kernlab",
-        "partition" : "kern,kerngpu",
+        "partition" : "kern,kerngpu,preempt",
         "mem" : "2GB",
         "cores" : "40",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/fits/",
