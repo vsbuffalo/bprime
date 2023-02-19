@@ -701,7 +701,7 @@ class SimplexModel(BGSLikelihood):
     def fit(self, starts=1, ncores=None, 
             start_pi0=None, start_mu=None,
             chrom=None, progress=True, _indices=None,
-            engine='scipy', method='L-BFGS-B'):
+            engine='nlopt', method='LN_BOBYQA'):
         """
         Fit likelihood models with numeric optimization (using nlopt).
 

@@ -22,10 +22,17 @@ Random notes:
     bounds. I tried putting an artificial bound on this but 
     it did not seem to work.
 
-
 SimplexModels:
   - softmax, which allows for unconstrained simplex optimization
   - simplex with inequality and equality constraints
+
+I experimented with the constrained simplex model in notebooks, but it seemed
+to be finicky. Generally, turning a constrained problem into an unconstrained
+one is advised.
+
+See the `optim_tests/` directory and the `notebooks/mle_diagnostics.ipynb`
+notebook for more on this. Generally, I find softmax parameterization
+with nlopt's BOBYQA out performs everything else.
 
 """
 
@@ -262,7 +269,7 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     if add_nll:
         y = np.sort(nlls)[:top_n]
         nlls_scale = int(-np.log10(np.max(y)))
-        ax[i].plot(np.arange(len(nlls))[:top_n], 
+        ax[i].step(np.arange(len(nlls))[:top_n], 
                    y*10**nlls_scale, c='0.22')
         ax[i].set_ylabel(f'NLL ($\\times 10^{{{nlls_scale}}}$)')
         ax[i].set_xlabel('rank')
