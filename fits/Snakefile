@@ -1,7 +1,9 @@
 # main annotation files
-#
+import socket
 
-machine = 'cluster'
+# we scale down the number of cores if we're doing this on the cluster
+clustername = 'talapas'
+machine = 'cluster' if socket.gethostname().startswith(clustername) else None
 
 NSTARTS = 10_000
 NSTARTS_LOO = 10_000
@@ -13,8 +15,9 @@ if machine == 'cluster':
     NCORES = 40
     NCORES_LOO = NCORES
 else:
+    # just blast through a bunch without parallel snakemake jobs
     NCORES = 70
-    NCORES_LOO = 5
+    NCORES_LOO = 70
 
 
 CHROMS = [f'chr{x}' for x in range(1, 23)]

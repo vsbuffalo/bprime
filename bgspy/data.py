@@ -246,7 +246,7 @@ def trim_map_ends(recmap, thresh_cM):
 
         start = thresh_cM / 100
 
-        # note: we use pos[1] because first is NaN
+        # note: we use pos[1] because first is NaN or 0
         lower, upper = pos[1], pos[-1]
         if any(cum_rates < start):
             lower = np.min(pos[cum_rates < start])

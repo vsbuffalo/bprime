@@ -101,7 +101,8 @@ class RecMap(object):
 
         # go through and pre-prend zeros and append ends if needed
         rates = dict()
-        for chrom, data in raw_rates.items():
+        for chrom in self.seqlens.keys():
+            data = raw_rates[chrom]
             end = self.seqlens[chrom]
             if data[-1][0] > end:
                 msg = f"{chrom} has an end passed the reference sequence!"
@@ -131,9 +132,10 @@ class RecMap(object):
         cum_rates = dict()
         for chrom, ratemap in rates.items():
             cumrate = ratemap.get_cumulative_mass(ratemap.right)
-            cum_rates[chrom] = RecPair(ratemap.right, cumrate)
+            cum_rates[chrom] = RecPair(ratemap.right.astype(int), 
+                                       cumrate)
 
-        self.rates = {c: RecPair(x.right, x.rate) for c, x in rates.items()}
+        self.rates = {c: RecPair(x.right.astype(int), x.rate) for c, x in rates.items()}
         self.cum_rates = cum_rates
         self.cum_interpol = rate_interpol(cum_rates, kind=self.cum_interpolation)
         self.inverse_cum_interpol = rate_interpol(cum_rates, inverse=True,
