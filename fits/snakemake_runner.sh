@@ -5,7 +5,7 @@ CLUSTER_CONFIG="./cluster_talapas.json"
 SNAKEFILE="./Snakefile"
 RULE="all"
 
-usage() { echo "Usage: $0 -c <config.json> [-d (dry-run)]" 1>&2; exit 1; }
+usage() { echo "Usage: $0 -c <config.json> [-r (rule name)] [-d (dry-run)]" 1>&2; exit 1; }
 
 while getopts c:l:s:r:d flag
 do

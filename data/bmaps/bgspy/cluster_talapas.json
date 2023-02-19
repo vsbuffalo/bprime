@@ -5,7 +5,7 @@
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu",
-        "mem" : "4GB",
+        "mem" : "6GB",
         "cores" : "40",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/data/bmaps/bgspy/",
         "name" : "bcalc_{rule}_{wildcards}",
