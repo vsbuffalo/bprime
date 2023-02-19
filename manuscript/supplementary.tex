@@ -627,6 +627,40 @@ $\widehat{\mathbf{W}}$, i.e. $\widehat{\mathbf{w}}_k$
 The predicted ratchet rate for segment $g$ $\lambda_d(g)$ is based on these
 values.
 
+%Our $B$ is,
+%
+%\begin{align}
+%  B = \frac{1}{2N} \sum_{t=0}^\infty \prod_{i=0}^t \left(1 - \frac{1}{2N_e(i)}\right).
+%\end{align}
+%
+%This sum takes many terms to converge, which makes calculating the $B$ between
+%each focal neutral site and segment intractably slow (even when the equilibrium
+%$\widetilde{V}$ for the segment pre-calculated). We approximate this in the
+%following way for faster numerical calculations. Let $g(t) = \prod_{i=0}^t (1 -
+%\nicefrac{1}{2N_e(i)})$. Then, taking the first-order series expansion around
+%the logarithm of the terms and approximating the sum with an integral,
+%
+%\begin{align}
+%  g(t) &\approx \exp\left(- \frac{1}{2N} \int_0^t \exp\left(\frac{V}{2} Q(x)^2 \right) dx \right) 
+%       %&\approx \exp\left(- \int_0^t \frac{\exp\left(\frac{V}{2} Q(i)^2\right)}{2N}  dx \right)
+%\end{align}
+%
+%$B$ is the case of $\lim b \to \infty$ for $B(b)$. Approximating the sum in
+%$B(b)$ with an integral,
+%
+%\begin{align}
+%  B(b) &= \int_0^b \exp\left(- \frac{1}{2N} \int_0^t \exp\left(\frac{V}{2} Q(x)^2 \right) dx \right) dt \\
+%       %&\approx \exp\left(- \int_0^t \frac{\exp\left(\frac{V}{2} Q(i)^2\right)}{2N}  dx \right)
+%\end{align}
+%
+%Now, let $z = \log(t)$, then
+%
+%\begin{align}
+%  B(w) &= \int_0^w \exp\left(- \frac{1}{2N} \int_0^{\log(z)} \exp\left(\frac{V}{2} Q(x)^2 \right) dx \right) \exp(t) dz \\
+%       %&\approx \exp\left(- \int_0^t \frac{\exp\left(\frac{V}{2} Q(i)^2\right)}{2N}  dx \right)
+%\end{align}
+%
+%
 \printbibliography
 
 \end{document}
