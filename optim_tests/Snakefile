@@ -1,0 +1,38 @@
+import time
+from bgspy.likelihood import SimplexModel
+from bgspy.utils import save_pickle, load_pickle
+
+NCORES = 20
+MODEL_FILE = "../fits/hg38_phastcons_not_genes_cds_genes_full/model_data_1000000.pkl"
+
+rule fit:
+  input: MODEL_FILE
+  output: "prelim-fits/{engine}___{method}___{nstarts}.pkl"
+  run:
+    dat = load_pickle(input[0])
+    Y, bgs_bins, features, bp = dat['Y'], dat['bins'], dat['features'], dat['bp']
+    w, t = dat['w'], dat['t']
+
+    mb = SimplexModel(w=w, t=t, logB=bp, Y=Y, 
+                      bins=bgs_bins, features=features)
+
+    t0 = time.time()
+    mb.fit(ncores=NCORES, starts=int(wildcards.nstarts),
+           method=wildcards.method, 
+           engine=wildcards.engine)
+    t1 = time.time()
+    save_pickle({'fit': mb, 'time': t1-t0}, output[0])
+
+
+runs = [
+        ('scipy', 'L-BFGS-B'),
+        ('nlopt', 'LN_COBYLA'),
+        ('nlopt', 'LN_NELDERMEAD'),
+        ('nlopt', 'LN_BOBYQA')
+]
+
+results =  [f"prelim-fits/{e}___{m}___200.pkl" for e, m in runs]
+results += [f"prelim-fits/{e}___{m}___2000.pkl" for e, m in runs]
+
+rule all:
+  input: results

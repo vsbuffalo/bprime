@@ -16,6 +16,17 @@ Random notes:
    Googling around, this also happens with Julia's nlopt library so 
    seems to be a higher-level issue, but I could not confirm this.
    So we use scipy.minimize.
+
+ - global nlopt algorithms like GN_ISRES would be good to try 
+    againt softmax simplex models, but they require finite 
+    bounds. I tried putting an artificial bound on this but 
+    it did not seem to work.
+
+
+SimplexModels:
+  - softmax, which allows for unconstrained simplex optimization
+  - simplex with inequality and equality constraints
+
 """
 
 
@@ -99,7 +110,31 @@ def scipy_softmax_worker(start, func, nt, nf,
     nll = res.fun
     mle = res.x
     mle = convert_softmax(mle, nt, nf)
-    success = int(res.success) # this is so it matches nlopt
+    success = int(res.success)  # this is so it matches nlopt
+    return nll, mle, success
+
+
+def nlopt_softmax_worker(start, func, nt, nf, bounds,
+                         method, xtol_rel=1e-3,
+                         constraint_tol=1e-11,
+                         maxeval=1000000):
+    """
+    nlopt softmax wrapper
+    """
+    nparams = nt*nf + 2
+    method = getattr(nlopt, method)
+    opt = nlopt.opt(method, nparams)
+    opt.set_min_objective(func)
+    lb, ub = bounds
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
+    opt.set_xtol_rel(xtol_rel)
+    opt.set_maxeval(maxeval)
+    assert start.size == nparams
+    mle = opt.optimize(start)
+    nll = opt.last_optimum_value()
+    success = opt.last_optimize_result()
+    mle = convert_softmax(mle, nt, nf)
     return nll, mle, success
 
 

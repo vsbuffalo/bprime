@@ -24,7 +24,7 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 from scipy import interpolate
 from bgspy.utils import signif, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
-from bgspy.optim import run_optims, scipy_softmax_worker
+from bgspy.optim import run_optims, scipy_softmax_worker, nlopt_softmax_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
@@ -162,6 +162,15 @@ def negll_softmax(theta, Y, B, w):
     assert np.allclose(W.sum(axis=0), np.ones(W.shape[1]))
     sm_theta[2:] = W.flat
     return negll_c(sm_theta, Y, B, w, version=3)
+
+
+def negll_softmax_nlopt(theta, grad, Y, B, w):
+    """
+    The nlopt wrapper to the above function, since
+    nlopt requires a grad second argument even if 
+    not known.
+    """
+    return negll_softmax(theta, Y, B, w)
 
 
 def negll_simplex(theta, Y, B, w):
@@ -626,7 +635,7 @@ class BGSLikelihood:
                 f.write(f"{feat}\t{dfe}\n")
 
     def __repr__(self):
-        rows = [f"MLE (interpolated w): {self.nw} x {self.nt} x {self.nf}"]
+        rows = [f"{type(self).__name__} (interpolated w): {self.nw} x {self.nt} x {self.nf}"]
         rows.append(f"  w grid: {signif(self.w)} (before interpolation)")
         rows.append(f"  t grid: {signif(self.t)}")
         return "\n".join(rows)
@@ -673,17 +682,26 @@ class SimplexModel(BGSLikelihood):
             self.start_mu_ = mu
         return start
 
-    def bounds(self):
+    def bounds(self, paired=True, global_softmax_bound=False):
+        """
+        By default, we assume scipy minimize. Scipy expects zipped
+        lists. For nlopt, (lower, upper) bounds are needed, so set 
+        paired = False. For global nlopt routines, we need fixed
+        bounds for softmax; we use 1e4 since these shouldn't get 
+        too large, but as a warning, note that this can cause 
+        optimization issues.
+        """
         return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds,
                               softmax=True,
-                              global_softmax_bound=False,
-                              paired=True)
+                              bounded_softmax=global_softmax_bound,
+                              paired=paired)
 
     def fit(self, starts=1, ncores=None, 
             start_pi0=None, start_mu=None,
-            chrom=None, progress=True, _indices=None):
+            chrom=None, progress=True, _indices=None,
+            engine='scipy', method='L-BFGS-B'):
         """
         Fit likelihood models with numeric optimization (using nlopt).
 
@@ -693,6 +711,8 @@ class SimplexModel(BGSLikelihood):
         _indices: indices to include in fit; this is primarily internal, for
                   bootstrapping
         """
+        WORKERS = {'nlopt': nlopt_softmax_worker, 'scipy': scipy_softmax_worker}
+        NEGLL_FUNCS = {'nlopt': negll_softmax_nlopt, 'scipy': negll_softmax}
         if isinstance(starts, int):
             starts = [self.random_start(pi0=start_pi0, mu=start_mu) for _
                       in range(starts)]
@@ -704,7 +724,7 @@ class SimplexModel(BGSLikelihood):
         Y = self.Y
         assert self.logB_fit is not None
         logB = self.logB_fit
-         
+
         # if we have pre-specified indices, we're doing 
         # jackknife or bootstrap
         bootstrap = _indices is not None
@@ -719,15 +739,22 @@ class SimplexModel(BGSLikelihood):
             Y = Y[idx, ...]
             logB = logB[idx, ...]
 
-        nll_func = partial(negll_softmax, Y=Y, B=logB, w=self.w)
+        # set up optimization function closure, and the 
+        # optimization worker.
+        negll_func = NEGLL_FUNCS[engine]
+        nll_func = partial(negll_func, Y=Y, B=logB, w=self.w)
+        worker_func = WORKERS[engine]
 
-        worker = partial(scipy_softmax_worker, 
-                         func=nll_func, 
-                         bounds=self.bounds(), 
-                         nt=self.nt, nf=self.nf, method='L-BFGS-B')
+        is_nlopt = 'nlopt' == engine
+        is_nlopt_global = method.startswith('GN_') and is_nlopt
+        bounds = self.bounds(paired=not is_nlopt, global_softmax_bound=is_nlopt_global)
+        worker = partial(worker_func,
+                         func=nll_func,
+                         bounds=bounds,
+                         nt=self.nt, nf=self.nf, method=method)
 
         # run the optimization routine on muliple starts
-        res = run_optims(worker, starts, ncores=ncores, 
+        res = run_optims(worker, starts, ncores=ncores,
                          progress=progress)
 
         if bootstrap:
@@ -757,6 +784,8 @@ class SimplexModel(BGSLikelihood):
         return self.theta_[2:].reshape(self.nt, self.nf)
     
     def summary(self, index=None):
+        if self.theta_ is None:
+            return "\n[not fit yet]\n"  # not fit yet
         if index is None:
             pi0 = self.mle_pi0 # FIX TODO
             mu = self.mle_mu

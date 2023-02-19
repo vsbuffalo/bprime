@@ -1337,6 +1337,9 @@ def read_gff(filename, parse_attributes=False):
                 cols['attribute'] = attrs
             yield cols
 
+def save_pickle(obj, path):
+    with open(path, 'wb') as f:
+        return pickle.dump(obj, f)
 
 def load_pickle(path):
     with open(path, 'rb') as f:
