@@ -106,9 +106,9 @@ def summarize_data(# annotation
         pickle.dump(dat, f)
 
 
-def mle_fit(data, output_file, ncores=70, nstarts=200, 
-            verbose=True, chrom=None, 
-            start=None, ignore_B=False):
+def mle_fit(data, output_file, ncores=70, nstarts=200,
+            verbose=True, chrom=None,
+            start=None, bp_only=False):
     """
     Load the binned data, fit B' (and optionally B) models, and
     save the results.
@@ -145,7 +145,7 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     with open(output_file, 'wb') as f:
         pickle.dump(obj, f)
 
-    if b is not None and not ignore_B:
+    if b is not None and not bp_only:
         logging.info("fitting B model")
         m_b = SimplexModel(w=w, t=t, logB=b, Y=Y,
                            bins=bins, features=features)

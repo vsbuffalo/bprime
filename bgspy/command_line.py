@@ -247,8 +247,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
-@click.option('--Bp-only', default=False, is_flag=True,
-              help="only calculate B'")
+@click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
 def data(seqlens, recmap, neutral, access, fasta, 
          bs_file, counts_dir, output, window, outliers, bp_only):
     outliers = tuple([float(x) for x in outliers.split(',')])
@@ -279,14 +278,15 @@ def data(seqlens, recmap, neutral, access, fasta,
               type=int, default=None)
 @click.option('--chrom', default=None, 
               help="optional chromosome to leave out")
-def fit(data, output, ncores, nstarts, chrom):
+@click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
+def fit(data, output, ncores, nstarts, chrom, bp_only):
     # for fixed mu
     #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             nstarts=nstarts,
-            chrom=chrom)
+            chrom=chrom, bp_only=bp_only)
 
 
 @cli.command()

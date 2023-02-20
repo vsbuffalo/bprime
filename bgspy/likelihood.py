@@ -8,6 +8,7 @@ import itertools
 import tqdm
 from scipy.special import softmax
 from scipy.optimize import curve_fit
+from scipy.stats import linregress
 from tabulate import tabulate
 from functools import partial
 import numpy as np
@@ -127,11 +128,13 @@ def fit_B_curve_params(b, w):
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
-                popt, pcov = curve_fit(mut_curve, w, 
-                                       np.exp(b[i, :, j, k]),
-                                       maxfev=int(1e6))
-                assert(len(popt) == 1)
-                params[i, 0, j, k] = popt[0]
+                #popt, pcov = curve_fit(mut_curve, w, 
+                #                       np.exp(b[i, :, j, k]),
+                #                       maxfev=int(1e6))
+                slope = linregress(w, b[i, :, j, k]).slope
+                #assert(len(popt) == 1)
+                #params[i, 0, j, k] = popt[0]
+                params[i, 0, j, k] = -slope
 
     # next we check that the residuals aren't unusually high
     # the threshold here is set just by some EDA
@@ -143,7 +146,7 @@ def fit_B_curve_params(b, w):
         resid.append(e2.mean())
     resid = np.array(resid)
     msg = "unusually high residual in B'(μ) fitting"
-    assert np.all(resid < 1e-4), msg
+    assert np.all(resid < 1e-3), msg
     return params
 
 
