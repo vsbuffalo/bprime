@@ -33,6 +33,18 @@ rule seqlens:
       sort  --version-sort -k 1,1 -k2,2n > {output}
     """
 
+rule seqlens_hg18:
+  output: "hg18_seqlens.tsv"
+  shell: 
+    """
+    mysql --user=genome --host=genome-mysql.cse.ucsc.edu -B -N  -A -e \
+     "select chrom, size from hg18.chromInfo where hg18.chromInfo.chrom not like '_'" | \
+      grep -v "_" | sort --version-sort | \
+      grep -P '^chr[0-9X]+'  > {output[0]}
+    """
+
+# this is needed for validating the liftover
+genome += ["hg18_seqlens.tsv"] 
 
 ## === Human Annotation Data
 annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", 
@@ -322,7 +334,8 @@ rule decode_map:
 
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
-hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.tsv"]
+hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.tsv", "aamap_back_to_hg18.tsv",  
+          "aamap_hg37_raw.tsv",  "aamap_hg37_to_hg38_raw.bed"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
@@ -350,6 +363,55 @@ rule raw_aa:
   shell:
     """
     wget https://www.well.ox.ac.uk/~anjali/AAmap/aamap.tar.gz
+    """
+
+rule aa_hg37:
+  output: "maps_b37.tar.gz"
+  shell:
+    """
+    wget https://www.well.ox.ac.uk/~anjali/AAmap/maps_b37.tar.gz
+    """
+
+rule aa_recmap37:
+  input: "maps_b37.tar.gz"
+  output: "maps_b37/maps_chr.1"  # single place holder
+  shell:
+    """
+    tar -xvzf {input[0]}
+    """
+
+rule aa_recmap37_combine:
+  input: "maps_b37/maps_chr.1"
+  output: "aamap_hg37_raw.tsv"
+  run: 
+    import pandas as pd
+    chroms = list(range(1, 23))
+    ds = []
+    for c in chroms:
+      # ugh why do people use spaaaaces
+      d = pd.read_table(f"maps_b37/maps_chr.{c}", sep=' ')
+      d['chrom'] = f"chr{c}"
+      d = d.loc[:, ('chrom', "Physical_Pos", "AA_Map")]
+      d.columns = ('chrom', 'end', 'rate')
+      ds.append(d)
+    d = pd.concat(ds)
+    d.to_csv(output[0], sep='\t', header=False, index=False)
+
+
+rule liftover_hg19_hg38:
+   output: "hg19ToHg38.over.chain.gz"
+   shell:
+     """
+     wget https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz
+     """
+
+rule aa_liftover2:
+  input: recmap="aamap_hg37_raw.bed", chain="hg19ToHg38.over.chain.gz"
+  output: "aamap_hg37_to_hg38_raw.bed"
+  shell:
+    """
+    liftOver -minMatch=0.99 {input.recmap} {input.chain} tmp_aa37.bed aamap37_unmapped
+    sort  --version-sort -k 1,1 -k3,3n tmp_aa37.bed > {output[0]}
     """
 
 rule aa_recmap:
@@ -428,6 +490,30 @@ rule aa_recmap_hg38_fixed:
      dfixed = dfixed.loc[:, ['chrom', 'end', 'rate']]
      dfixed.to_csv(output[0], sep='\t', index=False)
 
+
+rule liftover_hg38_hg19:
+   output: "hg38ToHg19.over.chain.gz"
+   shell:
+     """
+     wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz
+     """
+
+rule liftover_hg19_hg18:
+   output: "hg19ToHg18.over.chain.gz"
+   shell:
+     """
+     wget https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg18.over.chain.gz
+     """
+
+rule aa_back_validate:
+   input: chain1="hg38ToHg19.over.chain.gz", chain2="hg19ToHg18.over.chain.gz", recmap="aamap_hg38_raw.bed"
+   output: "aamap_back_to_hg18.tsv"
+   shell:
+     """
+     liftOver -minMatch=0.99 {input.recmap} {input.chain1} tmp_aa_1.bed aamap_unmapped_1
+     liftOver -minMatch=0.99 tmp_aa_1.bed {input.chain2} tmp_aa_back.bed aamap_unmapped_2
+     sort  --version-sort -k 1,1 -k3,3n tmp_aa_back.bed | cut -f1,3,4 > {output[0]}
+     """
 
 ## === Conservation Tracks
 cons = ["conserved_phastcons.bed.gz",

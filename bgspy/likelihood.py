@@ -601,7 +601,8 @@ class BGSLikelihood:
     def chrom_resid_plot(self, figax=None):
         return chrom_resid_plot(self, figax)
 
-    def predict_plot(self, chrom, ratio=True, label='prediction', figax=None):
+    def predict_plot(self, chrom, ratio=True, label='prediction',
+                     figax=None):
         return predict_chrom_plot(self, chrom, ratio=ratio,
                                   label=label, figax=figax)
 

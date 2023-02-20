@@ -1,6 +1,6 @@
 {
     "name": "phastcons_not_genes_cds_full_genes",
-    "windows": [1000000],
+    "windows": [100000, 1000000],
     "blocksize": 2000000,
     "seqlens_file": "../../data/annotation/hg38_seqlens.tsv",
     "recmap_file": "../../data/annotation/aamap_hg38.tsv",

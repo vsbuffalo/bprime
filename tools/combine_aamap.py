@@ -12,7 +12,7 @@ from os.path import join
 dir = sys.argv[1]
 
 chroms = [f"chr{c}" for c in range(1, 23)] + ['chrX']
-files = [f"AAmap.{c}.txt" for c in chroms]
+files = [f"maps_chr.{c}.txt" for c in range(1, 23)]
 
 for chrom, file in zip(chroms, files):
     with open(join(dir, file)) as f:
