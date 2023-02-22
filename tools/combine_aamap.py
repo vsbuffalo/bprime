@@ -12,7 +12,7 @@ from os.path import join
 dir = sys.argv[1]
 
 chroms = [f"chr{c}" for c in range(1, 23)] + ['chrX']
-files = [f"maps_chr.{c}.txt" for c in range(1, 23)]
+files = [f"AAmap.chr{c}.txt" for c in range(1, 23)]
 
 for chrom, file in zip(chroms, files):
     with open(join(dir, file)) as f:
@@ -25,10 +25,6 @@ for chrom, file in zip(chroms, files):
             pos, rate = line.strip().split()
             pos, rate = int(pos), float(rate)
             assert pos > last_pos
-            # in cM/bp -- for cM/Mb we multiply 
-            # 1e6 bp / Mb = 1e6
-            local_rate = (rate-last_rate)/(pos - last_pos)
-            assert local_rate >= 0
-            row = map(str, (chrom, last_pos, pos, local_rate))
+            row = map(str, (chrom, last_pos, pos, rate))
             print('\t'.join(row))
             last_pos, last_rate = pos, rate

@@ -335,7 +335,7 @@ rule decode_map:
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
 hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.tsv", "aamap_back_to_hg18.tsv",  
-          "aamap_hg37_raw.tsv",  "aamap_hg37_to_hg38_raw.bed"]
+          "aamap_hg37_raw.tsv",  "aamap_hg37_to_hg38_raw.bed", "aamap_hg36.bed"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
