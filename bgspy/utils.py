@@ -783,8 +783,10 @@ def dist_to_segment(focal, seg_map_pos, haldane=False):
         dists = haldanes_mapfun(dists)
     return dists
 
+
 def rel_error(est, truth):
     return 100*np.abs((est - truth)/truth)
+
 
 def readfile(filename):
     is_gzip = filename.endswith('.gz')
