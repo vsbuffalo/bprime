@@ -54,15 +54,45 @@ have [start, end) ranges.
 
 import defopt
 import numpy as np
+from scipy.interpolate import interp1d
+import os
+from pathlib import Path
 import tempfile
 import subprocess
 import pandas as pd
 
+# next two funcs are lifted from bgspy
+# so this is stand alone
+def readfile(filename):
+    is_gzip = filename.endswith('.gz')
+    if is_gzip:
+        return gzip.open(filename, mode='rt')
+    return open(filename, mode='r')
 
-def read_cumulative(file, seqlens, end_inclusive=True):
+
+def load_seqlens(file):
+    seqlens = dict()
+    params = []
+    with readfile(file) as f:
+        for line in f:
+            if line.startswith('#'):
+                params.append(line.strip().lstrip('#'))
+                continue
+            chrom, end = line.strip().split('\t')
+            seqlens[chrom] = int(end)
+    return seqlens
+
+
+def read_cumulative(file, seqlens, is_hapmap=False,
+                    end_inclusive=True):
     """
     """
-    d = pd.read_table(file, names=('chrom', 'pos', 'cumrate'))
+    if is_hapmap:
+        hapmap_cols = ('chrom', 'pos', 'rate', 'cumrate')
+        d = pd.read_table(file, names=hapmap_cols)
+        end_inclusive = False
+    else:
+        d = pd.read_table(file, names=('chrom', 'pos', 'cumrate'))
     new_rates = dict()
     for chrom, df in d.groupby('chrom'):
         pos = df['pos'].tolist()
@@ -88,6 +118,8 @@ def read_cumulative(file, seqlens, end_inclusive=True):
         # since we added on the start and end, start=0, 
         # number of cum. rates is L+1
         cumrates = np.array(cumrates)
+        msg = "rates are not cumulative for {chrom}"
+        assert np.all(np.diff(cumrates) >= 0), msg
         pos = np.array(pos)
         L = len(cumrates)-1
         assert L == len(starts)
@@ -95,7 +127,8 @@ def read_cumulative(file, seqlens, end_inclusive=True):
         assert len(cumrates) == len(pos)
         spans = np.diff(pos)
         rates = np.diff(cumrates) / spans
-        new_rates[chrom] = (pos, rates, cumrates)
+        #new_rates[chrom] = (pos, rates, cumrates)
+        new_rates[chrom] = (pos, cumrates)
     return new_rates
 
 
@@ -129,30 +162,170 @@ def write_bed(file, rates_dict):
                 f.write(f"{chrom}\t{s}\t{e}\t{r}\n")
 
 
-def read_bed(file):
+def read_cumulative_bed(file):
+    """
+    Read a BED written by write_bed, full of cumulative rates.
+    This assumes this goes to the end of the chromosome.
+    """
     d = pd.read_table(file, names=('chrom', 'start', 'end', 'rate'))
-    out = dict()
+    rates_dict = dict()
     for chrom, df in d.groupby('chrom'):
-        starts, ends, rates = df.start.values, df.end.values, df.rate.values
-        out[chrom] = (starts, ends, rates)
-    return out
+        starts, ends = df.start.tolist(), df.end.tolist()
+        rates = df.rate.tolist()
+        pos = [starts[0]] + ends
+        # append on final cumulative rate
+        rates = rates + [rates[-1]]
+        rates_dict[chrom] = (pos, rates)
+    return rates_dict
 
 
 def run_liftover(oldmap, chain, minmatch=0.99):
-    newmap = tempfile.NamedTemporaryFile().name
-    unmap = oldmap.replace('.bed', '') + "_unmapped.bed"
-    cmd = ["liftOver", f"-minMatch={minmatch}", oldmap, chain, newmap, unmap]
-    subprocess.run(cmd)
-    liftover = read_bed(newmap)
+    with tempfile.NamedTemporaryFile() as fp:
+        newmap = fp.name
+        unmap = oldmap.replace('.bed', '') + "_unmapped.bed"
+        cmd = ["liftOver", f"-minMatch={minmatch}", oldmap,
+               chain, newmap, unmap]
+        subprocess.run(cmd)
+        liftover = read_cumulative_bed(newmap)
     return liftover
 
 
-def sort_bed(rate_dict):    
+def sort_rates(rate_dict):
     for chrom, data in rate_dict.items():
-        starts, ends, rates = data
-        idx = np.lexsort((starts, ends))
-        rate_dict[chrom] = (starts[idx], ends[idx], rates[idx])
+        pos, rates = data
+        pos, rates = np.array(pos), np.array(rates)
+        idx = np.argsort(pos)
+        rate_dict[chrom] = (pos[idx], rates[idx])
     return rate_dict
 
 
+def write_hapmap(rates_dict, file, is_cumulative=True):
+    """
+    Write a HapMap-formatted file.
+    """
+    assert is_cumulative, "not implemented"
+    with open(file, 'w') as f:
+        for chrom, data in rates_dict.items():
+            pos, cumrates = data
+            rates = cumulative_to_rates(cumrates, pos)
+            for e, r, cr in zip(pos, rates, cumrates):
+                f.write(f"{chrom}\t{e}\t{r}\t{cr}\n")
 
+
+def remove_nonmontonic(rate_dict):
+    """
+    Clean a recombination map (cumulative) by removing
+    non-monotonic points.
+
+    Example: 
+      0 1 1 3 4 1 5 4 7
+                x   x
+    """
+    for chrom, data in rate_dict.items():
+        pos, rates = data
+
+        assert np.all(np.diff(pos) >= 0), "positions are not sorted!"
+
+        keep_idx = np.where(np.diff(rates) >= 0)[0] + 1
+        pos, rates = pos[keep_idx], rates[keep_idx]
+
+    return rate_dict
+
+
+def generate_interpolators(rates_dict):
+    interps = dict()
+    for chrom, data in rates_dict.items():
+        pos, rates = data
+        interps[chrom] = interp1d(pos, rates)
+    return interps
+
+def validation_plots(liftback_map, old_map, dir):
+    """
+    """
+    # we interpolate the new map lifted back to old
+    # coordinates
+    interps = generate_interpolators(liftback_map)
+
+    if not os.path.exists(dir):
+        os.markdirs(dir)
+
+    fig, ax = plt.subplots()
+    for i, (chrom, data) in enumerate(old_map.items()):
+        pos, rates = data
+        pred = interps[chrom](pos)
+        ax.scatter(rates, pred)
+
+    fig.savefig(os.path.join(dir, 'diagnostic.pdf'))
+
+
+def read_hapmap(file, seqlens):
+    """
+    Read a hapmap file into a 
+    """
+
+
+def main(*, mapfile: str, genome: str, 
+         outfile: str,
+         chain_to: str, chain_from: str):
+    """
+    Take a cumulative recombination map file and lift it over
+    using the --chain-to. The --chain-from option is for 
+    validation.
+
+    NOTE: this will overwrite <mapfile>.bed if it exists!
+
+    :param mapfile: the input TSV file of chrom, position, 
+                     and cumulative map position.
+    :param chain_to: chain file from the genome of the mapfile
+                      to the new genome.
+    :param chain_from: chain file from the new genome back to the
+                       initial genome, for validation.
+    """
+    sl = load_seqlens(genome)
+    oldmap = read_cumulative(mapfile, sl)
+    path = mapfile.replace('.tsv', '').replace('.txt', '')
+    #with tempfile.NamedTemporaryFile() as fp:
+    with open(path + '.bed', 'w') as fp:
+        mapfile_bed = fp.name
+
+        # write the cumulative map to a temporary BED file
+        write_bed(mapfile_bed, oldmap)
+
+        # run liftover
+        new_map = run_liftover(mapfile_bed, chain_to)
+
+        # drop all markers that mapped to chromosomes not 
+        # in the original map
+        chroms = list(new_map.keys())
+        for chrom in chroms:
+            if chrom not in oldmap:
+                del new_map[chrom]
+
+        # clean up the lifted over rates, first sorting
+        new_map_sorted = sort_rates(new_map)
+
+        # then removing non-monotonic
+        clean_new_map = remove_nonmontonic(new_map)
+
+        # save to hapmap -- this is the final outfile
+        write_hapmap(clean_new_map, outfile)
+
+    # validation, by lifting back
+    new_map = read_cumulative(outfile, sl, is_hapmap=True)
+    #with tempfile.NamedTemporaryFile() as fp:
+    with open(path + '_tmp.bed', 'w') as fp:
+        new_mapfile_bed = fp.name
+
+        # output the BED version
+        write_bed(new_mapfile_bed, new_map)
+
+        # lift back
+        liftback_map = run_liftover(new_mapfile_bed, chain_from)
+
+        # create validation plots
+        valid_dir = os.path.join(path, "validation_plots")
+        validation_plots(liftback_map, oldmap, valid_dir)
+
+
+if __name__ == "__main__":
+    defopt.run(main)
