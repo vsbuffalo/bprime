@@ -80,6 +80,10 @@ def readfile(filename):
     return open(filename, mode='r')
 
 
+def check_file(file):
+    assert os.path.isfile(file), f"{file} does not exist"
+
+
 def load_seqlens(file):
     seqlens = dict()
     params = []
@@ -411,6 +415,7 @@ def main(*, mapfile: str, genome: str,
 
         # run liftover
         logging.info("lifting over map")
+        check_file(chain_to)
         new_map = run_liftover(mapfile_bed, chain_to)
 
         # drop all markers that mapped to chromosomes not 
@@ -444,6 +449,8 @@ def main(*, mapfile: str, genome: str,
     if not chain_from:
         # no liftback validation
         return
+
+    check_file(chain_from)
 
     # validation, by lifting back
     logging.info("starting validation")

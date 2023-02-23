@@ -334,8 +334,7 @@ rule decode_map:
 
 ## ==== HapMap Recombination Map 
 hapmap_files = [f"HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_{chrom}.txt" for chrom in AUTOS ]
-hapmap = ["hapmap_genetic_map.txt", "aamap_hg38_raw.bed", "aamap_hg38.tsv", "aamap_back_to_hg18.tsv",  
-          "aamap_hg37_raw.tsv",  "aamap_hg37_to_hg38_raw.bed", "aamap_hg36.tsv"]
+hapmap = ["hapmap_genetic_map.txt", "aamap_hg36.tsv", "aamap_hg38.tsv"]
 
 rule download_hapmap:
   output: "hapmap_genetic_map.txt"
@@ -366,6 +365,7 @@ rule raw_aa:
     """
 
 rule aa_hg37:
+  # NOTE: this map looks to have very severe errors due to liftover
   output: "maps_b37.tar.gz"
   shell:
     """
@@ -373,6 +373,7 @@ rule aa_hg37:
     """
 
 rule aa_recmap37:
+  # untar the liftover map
   input: "maps_b37.tar.gz"
   output: "maps_b37/maps_chr.1"  # single place holder
   shell:
@@ -380,7 +381,18 @@ rule aa_recmap37:
     tar -xvzf {input[0]}
     """
 
+rule aa_recmap:
+  input: "aamap.tar.gz"
+  output: "aamap_hg36.tsv"
+  shell:
+    """
+    tar -xvzf {input[0]}
+    python ../../tools/combine_aamap.py AAmap/ > {output[0]}
+    """
+
 rule aa_recmap37_combine:
+  # get only the AA map out of this liftover map (the original
+  # combines hapmap, decode, etc)
   input: "maps_b37/maps_chr.1"
   output: "aamap_hg37_raw.tsv"
   run: 
@@ -405,115 +417,17 @@ rule liftover_hg19_hg38:
      wget https://hgdownload.soe.ucsc.edu/goldenPath/hg19/liftOver/hg19ToHg38.over.chain.gz
      """
 
-rule aa_liftover2:
-  input: recmap="aamap_hg37_raw.bed", chain="hg19ToHg38.over.chain.gz"
-  output: "aamap_hg37_to_hg38_raw.bed"
+rule aa_liftover:
+  # NOTE: this also produces a validation directory of validiation/diagnostic plots.
+  # Also, the threshold seems to remove some estimates that unusually high in the 
+  # original map, which seems okay.
+  input: recmap="aamap_hg36.tsv", chain="hg18ToHg38.over.chain.gz", genome="hg18_seqlens.tsv"
+  output: "aamap_hg38.tsv"
   shell:
     """
-    liftOver -minMatch=0.99 {input.recmap} {input.chain} tmp_aa37.bed aamap37_unmapped
-    sort  --version-sort -k 1,1 -k3,3n tmp_aa37.bed > {output[0]}
+    python ../../tools/liftover_recmap.py --mapfile {input.recmap} --chain-to {input.chain} \
+      --genome {input.genome} --outfile {output[0]} --thresh 100
     """
-
-rule aa_recmap:
-  input: "aamap.tar.gz"
-  output: "aamap_hg36.tsv"
-  shell:
-    """
-    tar -xvzf {input[0]}
-    python ../../tools/combine_aamap.py AAmap/ > {output[0]}
-    """
-
-rule liftover_hg36_hg38:
-   output: "hg18ToHg38.over.chain.gz"
-   shell:
-     """
-     wget http://hgdownload.soe.ucsc.edu/goldenPath/hg18/liftOver/hg18ToHg38.over.chain.gz
-     """
-
-rule aa_recmap_hg38:
-   # note: the liftover messes things up, so we have to go in and clean up after
-   input: chain="hg18ToHg38.over.chain.gz", recmap="aamap_hg36.bed"
-   output: "aamap_hg38_raw.bed"
-   shell:
-     """
-     liftOver -minMatch=0.99 {input.recmap} {input.chain} tmp_aa.bed aamap_unmapped
-     sort  --version-sort -k 1,1 -k3,3n tmp_aa.bed > {output[0]}
-     """
-
-rule aa_recmap_hg38_fixed:
-   input: recmap="aamap_hg38_raw.bed", seqlens="hg38_seqlens.tsv"
-   output: "aamap_hg38.tsv"
-   run:
-     import pandas as pd
-     from bgspy.utils import load_seqlens
-     sls = load_seqlens(input.seqlens)
-     d = pd.read_table(input.recmap, sep='\t',
-                       names=('chrom', 'start', 'end', 'rate'))
-     fixed = []
-     for chrom, df in d.groupby('chrom'):
-         # filter local rate outliers
-         # See notebook for more details
-         df = df.sort_values(['end'])
-         df = df.loc[df['rate'] < 0.002]
-         df['dist'] = df['rate'] * (df['end']-df['start'])
-         
-         if chrom == 'chr6':
-             # filter out the chr6 outlier
-             df = df.loc[df['dist'] < 2.5]
-
-         # filtering done, now we have to recreate the 
-         # rates from the corrected cumulative map.
-         ends = list(df['end'].values)
-         starts = df['start'].values
-         rates = df['rate'].values
-         spans = ends - starts
-         cum_rate = (1/100 * np.cumsum(rates * spans)).tolist()
-         new_rate = np.diff(cum_rate)  # note this is still scaled by span
-
-         new_rates = list(new_rate)
-         new_ends = list(ends[:-1])
-         new_ends.insert(0, 0)
-         new_rates.insert(0, np.nan)
-         new_ends.append(sls[chrom])
-         new_ends, new_rates = np.array(new_ends), np.array(new_rates) / np.diff(new_ends)
-        
-         # it's currently in Morgans/bp
-         # convert to cM/Mb
-         new_rates = 1e8*new_rates
-         assert np.all(np.diff(ends) > 0)
-         new_chrom = [chrom] * (len(new_rates)-1)
-         # hapmap: each line is the rate between that position and the next line
-         # so we have to do some re-indexing here
-         fixed.append(pd.DataFrame(dict(chrom=new_chrom, end=new_ends[1:-1], rate=new_rates[1:])))
-
-     dfixed = pd.concat(fixed, axis=0)
-     dfixed = dfixed.loc[:, ['chrom', 'end', 'rate']]
-     dfixed.to_csv(output[0], sep='\t', index=False)
-
-
-rule liftover_hg38_hg19:
-   output: "hg38ToHg19.over.chain.gz"
-   shell:
-     """
-     wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz
-     """
-
-rule liftover_hg19_hg18:
-   output: "hg19ToHg18.over.chain.gz"
-   shell:
-     """
-     wget https://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg18.over.chain.gz
-     """
-
-rule aa_back_validate:
-   input: chain1="hg38ToHg19.over.chain.gz", chain2="hg19ToHg18.over.chain.gz", recmap="aamap_hg38_raw.bed"
-   output: "aamap_back_to_hg18.tsv"
-   shell:
-     """
-     liftOver -minMatch=0.99 {input.recmap} {input.chain1} tmp_aa_1.bed aamap_unmapped_1
-     liftOver -minMatch=0.99 tmp_aa_1.bed {input.chain2} tmp_aa_back.bed aamap_unmapped_2
-     sort  --version-sort -k 1,1 -k3,3n tmp_aa_back.bed | cut -f1,3,4 > {output[0]}
-     """
 
 ## === Conservation Tracks
 cons = ["conserved_phastcons.bed.gz",
