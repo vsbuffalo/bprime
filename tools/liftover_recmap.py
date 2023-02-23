@@ -233,12 +233,16 @@ def sort_rates(rate_dict):
 def write_hapmap(rates_dict, file, is_cumulative=True):
     """
     Write a HapMap-formatted file.
+
+    By default, the rate column is in cM/Mb.
     """
     assert is_cumulative, "not implemented"
     with open(file, 'w') as f:
         for chrom, data in rates_dict.items():
             pos, cumrates = data
-            rates = cumulative_to_rates(cumrates, pos)
+            # convert to cM/Mb
+            rates = cumulative_to_rates(cumrates, pos)*1e8
+            # these are in Morgans/basepair
             for e, r, cr in zip(pos, rates, cumrates):
                 f.write(f"{chrom}\t{e}\t{r}\t{cr}\n")
 

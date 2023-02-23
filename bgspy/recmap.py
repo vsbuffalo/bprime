@@ -1,4 +1,5 @@
 import warnings
+import logging
 from collections import namedtuple, defaultdict
 from scipy import interpolate
 import tskit as tsk
@@ -99,9 +100,16 @@ class RecMap(object):
             chrom = chrom.decode()
             raw_rates[chrom].append((end, rate))
 
+        # this prevents issues where if a chrom is accessed that's not
+        # in the raw_rates defaultdict it will create it
+        raw_rates = dict(raw_rates)
+
         # go through and pre-prend zeros and append ends if needed
         rates = dict()
         for chrom in self.seqlens.keys():
+            if chrom not in raw_rates:
+                logging.info(f"{chrom} not found in the recombination map, so skipping...")
+                continue
             data = raw_rates[chrom]
             end = self.seqlens[chrom]
             if data[-1][0] > end:

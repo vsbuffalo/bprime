@@ -147,7 +147,7 @@ class BGSModel(object):
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
         if recalc_segments or self.genome.segments._segment_parts is None:
-            logging.info("pre-computing segment contributions...\t", end='')
+            logging.info("pre-computing segment contributions...\t")
             self.genome.segments._calc_segparts(self.w, self.t)
         Bs, B_pos = calc_B_parallel(self.genome, self.w,
                                     step=step, nchunks=nchunks,
