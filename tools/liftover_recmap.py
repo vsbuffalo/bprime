@@ -4,6 +4,7 @@ Liftover the recombination maps from Hinch et al. (2011).
 These maps only have cumulative positions. From looking 
 at the data, the format is:
 
+
     chrom    physical position (inclusive)     cumulative map distance from end
 
 This differs from the more standard HapMap recombination map format,
@@ -49,6 +50,9 @@ r = ΔC/ΔP
 Note that this requires that all coordinates are 0-indexed, and
 have [start, end) ranges.
 
+NOTE: throughout, this version uses 'rates' to mean both cumulative
+and per-basepair rate. This is unclear and should be corrected in 
+future versions (TODO).
 """
 
 import logging
@@ -260,12 +264,13 @@ def find_monotonic(pos, rates):
     return np.where(~bad_markers)[0], np.where(bad_markers)[0]
 
 
-def rate_plot(rates_dict, removed_positions=None, outfile=None, marginal_rates=False):
+def rate_plot(rates_dict, alt_rates_dict=None, removed_positions=None,
+              outfile=None, marginal_rates=False, sharey=True):
     chroms = sorted(rates_dict.keys(), key=lambda x: x.replace('chr', ''))
     nchroms = len(rates_dict)
     nc, nr = 4, ceil(nchroms / 4)
     fig, ax = plt.subplots(ncols=nc, nrows=nr,
-                           figsize=(12, 5), sharex=True, sharey=True)
+                           figsize=(12, 5), sharex=True, sharey=sharey)
 
     entries = list(itertools.product(list(range(nc)), list(range(nr))))
     for i, chrom in enumerate(chroms):
@@ -274,25 +279,35 @@ def rate_plot(rates_dict, removed_positions=None, outfile=None, marginal_rates=F
         pos, rates = rates_dict[chrom]
         if marginal_rates:
             rates = cumulative_to_rates(rates, pos)
+            pos = pos[1:]
 
         fax.plot(pos, rates, linewidth=0.5)
-        rm = removed_positions[chrom]
-        fax.scatter(rm, [0]*len(rm), c='r', s=0.1)
+
+        if alt_rates_dict is not None:
+            pos, rates = alt_rates_dict[chrom]
+            if marginal_rates:
+                rates = cumulative_to_rates(rates, pos)
+                pos = pos[1:]
+            fax.plot(pos, rates, linewidth=0.5)
+
+        #rm = removed_positions[chrom]
+        #fax.scatter(rm, [0]*len(rm), c='r', s=0.1)
 
         fax.text(0.5, 0.8, chrom, fontsize=6, 
                  horizontalalignment='center',
                  transform=fax.transAxes)
 
     if outfile is not None:
+        plt.tight_layout()
         fig.savefig(outfile)
-    
 
-def remove_nonmontonic(rate_dict):
+
+def clean_map(rate_dict, thresh=None):
     """
     Clean a recombination map (cumulative) by removing
     non-monotonic points.
 
-    Example: 
+    Example:
       0 1 1 3 4 1 5 4 7
                 x   x
     """
@@ -310,10 +325,22 @@ def remove_nonmontonic(rate_dict):
         msg = f"{nrm} ({rmp}%) non-monotonic sites removed from {chrom}"
         logging.info(msg)
         pos, rates = pos[keep_idx], rates[keep_idx]
+        if thresh is not None:
+            # get the marginal rates and remove outliers
+            marginal_rates = cumulative_to_rates(rates, pos)
+            # note: we lose the first position here
+            outlier_thresh = np.std(marginal_rates) * thresh
+            keep_idx = np.where(marginal_rates < outlier_thresh)[0] + 1
+            nrm = len(pos) - len(keep_idx)
+            rmp = np.round(100 * nrm / len(pos), 2)
+            pos, rates = pos[keep_idx], rates[keep_idx]
+            msg = (f"{nrm} ({rmp}%) markers removed on {chrom} because per-basepair "
+                   f"rates > {thresh}σ (={np.round(outlier_thresh, 5)})")
+            logging.info(msg)
         assert_cumulative(rates)
         out_dict[chrom] = (pos, rates)
         removed_positions[chrom] = remove_pos
-    return out_dict, removed_positions 
+    return out_dict, removed_positions
 
 
 def generate_interpolators(rates_dict):
@@ -346,9 +373,10 @@ def read_hapmap(file, seqlens):
     pass
 
 
-def main(*, mapfile: str, genome: str, 
-         outfile: str,
-         chain_to: str, chain_from: str=None):
+def main(*, mapfile: str, genome: str,
+         outfile: str, chain_to: str,
+         thresh: float=None,
+         chain_from: str=None):
     """
     Take a cumulative recombination map file and lift it over
     using the --chain-to. The --chain-from option is for 
@@ -360,8 +388,10 @@ def main(*, mapfile: str, genome: str,
                      and cumulative map position.
     :param chain_to: chain file from the genome of the mapfile
                       to the new genome.
+    :param thresh: markers with a per-basepair rate above
+                   thresh x (stderr of chrom) are removed.
     :param chain_from: chain file from the new genome back to the
-                       initial genome, for validation.
+                       initial genome, for validation. 
     """
     sl = load_seqlens(genome)
     logging.info("reading map")
@@ -398,7 +428,7 @@ def main(*, mapfile: str, genome: str,
 
         # then removing non-monotonic
         logging.info("removing non-monotonic cumulative rates")
-        clean_new_map, removed_positions = remove_nonmontonic(new_map)
+        clean_new_map, removed_positions = clean_map(new_map, thresh=thresh)
 
         # save to hapmap -- this is the final outfile
         logging.info("writing new map")
@@ -406,10 +436,10 @@ def main(*, mapfile: str, genome: str,
 
         # output the rate plots for validation
         plot_file = os.path.join(valid_dir, "liftover_cumulative.pdf")
-        rate_plot(clean_new_map, removed_positions, plot_file)
+        rate_plot(clean_new_map, oldmap, outfile=plot_file)
 
         plot_file = os.path.join(valid_dir, "liftover_rates.pdf")
-        rate_plot(clean_new_map, removed_positions, plot_file, marginal_rates=True)
+        rate_plot(clean_new_map, oldmap, outfile=plot_file, marginal_rates=True, sharey=False)
 
     if not chain_from:
         # no liftback validation

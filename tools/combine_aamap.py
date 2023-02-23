@@ -25,6 +25,6 @@ for chrom, file in zip(chroms, files):
             pos, rate = line.strip().split()
             pos, rate = int(pos), float(rate)
             assert pos > last_pos
-            row = map(str, (chrom, last_pos, pos, rate))
+            row = map(str, (chrom, pos, rate))
             print('\t'.join(row))
             last_pos, last_rate = pos, rate
