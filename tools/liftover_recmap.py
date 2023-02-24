@@ -105,7 +105,7 @@ def read_cumulative(file, seqlens, end_inclusive=True):
 
         chrom	basepair	cumulative_rate
 
-    where `cumulative_rate` is the rate in Morgans
+    where `cumulative_rate` is the rate in centiMorgans
     from position = 0 to `basepair` (which is inclusive
     if `end_inclusive=True`.
 
@@ -143,7 +143,9 @@ def read_cumulative(file, seqlens, end_inclusive=True):
         assert L == len(ends)
         assert len(cumrates) == len(pos)
         spans = np.diff(pos)
-        rates = np.diff(cumrates) / spans
+        # these would be in centiMorgans per basepair
+        # so we convert them to cM/Mb
+        rates = np.diff(cumrates) / (spans / 1e6)
         #new_rates[chrom] = (pos, rates, cumrates)
         new_rates[chrom] = (pos, cumrates)
     return new_rates
@@ -153,20 +155,24 @@ def cumulative_to_rates(cumulative, pos):
     """
     Given end-to-end positions and cumulative 
     rates, compute the marginal per-basepair rates.
+
+    NOTE: assumes cumulative in cM.
     """
     assert len(cumulative) == len(pos)
     spans = np.diff(pos)
     rates = np.diff(cumulative)
-    return rates / spans
+    return rates / (spans / 1e6)
 
 
 def rates_to_cumulative(rates, pos):
     """
     Given end-to-end positions are marginal (per-basepair rates)
     compute the cumulative map distance at each position.
+
+    NOTE: assumes rates in cM/Mb.
     """
     assert len(rates) == len(pos)-1
-    spans = np.diff(pos)
+    spans = np.diff(pos) / 1e6  # convert to Mb
     return np.array([0] + np.cumsum(rates * spans).tolist())
 
 
@@ -263,7 +269,7 @@ def write_hapmap(rates_dict, file, header=True):
             # these are in Morgans/basepair
             for e, r, cr in zip(pos, rates, cumrates):
                 # this is in cM/bp so covert to cM/Mb
-                f.write(f"{chrom}\t{e}\t{r}\t{cr/1e6}\n")
+                f.write(f"{chrom}\t{e}\t{r}\t{cr}\n")
 
 
 def check_positions_sorted(pos):
@@ -402,10 +408,10 @@ def read_hapmap(file, seqlens):
         chr1    6    2.3
         chr1    10   3.2
 
-    Optionally, there is a total map distance from position
-    0 fourth column. The rate column in row i gives the rate
-    between the rows i (inclusive) and i+1 (exclusive).
-
+    with units in cM. Optionally, there is a total map distance
+    from position 0 fourth column in cM. The rate column
+    in row i gives the rate between the rows i (inclusive)
+    and i+1 (exclusive).
 
     The above example defines the following rate map:
 

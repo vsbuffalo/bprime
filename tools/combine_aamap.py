@@ -26,6 +26,6 @@ for chrom, file in zip(chroms, files):
             pos, rate = int(pos), float(rate)
             #assert pos > last_pos
             # convert from cM to Morgans
-            row = map(str, (chrom, pos, rate/100))
+            row = map(str, (chrom, pos, rate))
             print('\t'.join(row))
             #last_pos, last_rate = pos, rate

@@ -33,18 +33,18 @@ rule seqlens:
       sort  --version-sort -k 1,1 -k2,2n > {output}
     """
 
-rule seqlens_hg18:
-  output: "hg18_seqlens.tsv"
+rule seqlens_other:
+  output: "{genome}_seqlens.tsv"
   shell: 
     """
     mysql --user=genome --host=genome-mysql.cse.ucsc.edu -B -N  -A -e \
-     "select chrom, size from hg18.chromInfo where hg18.chromInfo.chrom not like '_'" | \
+     "select chrom, size from {wildcards.genome}.chromInfo where {wildcards.genome}.chromInfo.chrom not like '_'" | \
       grep -v "_" | sort --version-sort | \
       grep -P '^chr[0-9X]+'  > {output[0]}
     """
 
 # this is needed for validating the liftover
-genome += ["hg18_seqlens.tsv"] 
+genome += ["hg18_seqlens.tsv", "hg19_seqlens.tsv"] 
 
 ## === Human Annotation Data
 annot = ["hg38_seqlens.tsv", "phastConsElements100way.txt.gz", 
