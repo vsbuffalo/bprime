@@ -1,14 +1,10 @@
 """
-Liftover the recombination maps from Hinch et al. (2011).
+liftover_recmap
 
-These maps only have cumulative positions. From looking 
-at the data, the format is:
-
-
-    chrom    physical position (inclusive)     cumulative map distance from end
-
-This differs from the more standard HapMap recombination map format,
-in that there are no per-basepair rates.
+This was made particularly for lifting over the Hinch et al. 
+recombination map to hg38. This map and others do not follow
+the HapMap recombination map format, so there is a subcommand to
+convert these. 
 
 It's terribly easy to have off-by-one errors here, so I've 
 included my notes. 
@@ -102,16 +98,19 @@ def assert_cumulative(cumrates):
     assert np.all(np.diff(cumrates) >= 0), msg
 
 
-def read_cumulative(file, seqlens, is_hapmap=False,
-                    end_inclusive=True):
+def read_cumulative(file, seqlens, end_inclusive=True):
     """
+    Certain recombination maps are in a tab-delimited
+    cumulative format, with rows like
+
+        chrom	basepair	cumulative_rate
+
+    where `cumulative_rate` is the rate in Morgans
+    from position = 0 to `basepair` (which is inclusive
+    if `end_inclusive=True`.
+
     """
-    if is_hapmap:
-        hapmap_cols = ('chrom', 'pos', 'rate', 'cumrate')
-        d = pd.read_table(file, names=hapmap_cols)
-        end_inclusive = False
-    else:
-        d = pd.read_table(file, names=('chrom', 'pos', 'cumrate'))
+    d = pd.read_table(file, names=('chrom', 'pos', 'cumrate'))
     new_rates = dict()
     for chrom, df in d.groupby('chrom'):
         pos = df['pos'].tolist()
@@ -166,6 +165,7 @@ def rates_to_cumulative(rates, pos):
     Given end-to-end positions are marginal (per-basepair rates)
     compute the cumulative map distance at each position.
     """
+    assert len(rates) == len(pos)-1
     spans = np.diff(pos)
     return np.array([0] + np.cumsum(rates * spans).tolist())
 
@@ -221,6 +221,20 @@ def run_liftover(oldmap, chain, minmatch=0.99):
     return liftover
 
 
+def sort_chroms(chromosomes):
+    chromosomes = list(chromosomes)
+    END = 1e6
+    def chromosome_key(chrom):
+        chrom_number = chrom.replace('chr', '')
+        if chrom_number.isdigit():
+            assert int(chrom_number) < END
+            return int(chrom_number)
+        else:
+            return {'X': END, 'Y': END+1, 'Mt': END+1}[chrom_number]
+    chromosomes.sort(key=chromosome_key)
+    return chromosomes
+
+ 
 def sort_rates(rate_dict):
     for chrom, data in rate_dict.items():
         pos, rates = data
@@ -230,21 +244,26 @@ def sort_rates(rate_dict):
     return rate_dict
 
 
-def write_hapmap(rates_dict, file, is_cumulative=True):
+def write_hapmap(rates_dict, file, header=True):
     """
     Write a HapMap-formatted file.
 
-    By default, the rate column is in cM/Mb.
+    By default, the rate column is in cM/Mb and the map 
+    column is in cM.
     """
-    assert is_cumulative, "not implemented"
     with open(file, 'w') as f:
-        for chrom, data in rates_dict.items():
+        if header:
+            f.write("chrom\tpos\trate_cM_Mb\tmap_cM\n")
+        chroms = sort_chroms(rates_dict.keys())
+        for chrom in chroms:
+            data = rates_dict[chrom]
             pos, cumrates = data
-            # convert to cM/Mb
-            rates = cumulative_to_rates(cumrates, pos)*1e8
+            check_positions_sorted(pos)
+            rates = cumulative_to_rates(cumrates, pos)
             # these are in Morgans/basepair
             for e, r, cr in zip(pos, rates, cumrates):
-                f.write(f"{chrom}\t{e}\t{r}\t{cr}\n")
+                # this is in cM/bp so covert to cM/Mb
+                f.write(f"{chrom}\t{e}\t{r}\t{cr/1e6}\n")
 
 
 def check_positions_sorted(pos):
@@ -288,8 +307,7 @@ def rate_plot(rates_dict, alt_rates_dict=None, removed_positions=None,
         if marginal_rates:
             rates = cumulative_to_rates(rates, pos)
             pos = pos[1:]
-
-        fax.plot(pos, rates, linewidth=0.5)
+        fax.plot(pos, rates, linewidth=0.5, zorder=10)
 
         if alt_rates_dict is not None:
             pos, rates = alt_rates_dict[chrom]
@@ -377,14 +395,91 @@ def validation_plots(liftback_map, old_map, dir):
 
 def read_hapmap(file, seqlens):
     """
+    Read in a standard HapMap recombination file. The format
+    looks like,
+
+        chr1    5    1.1
+        chr1    6    2.3
+        chr1    10   3.2
+
+    Optionally, there is a total map distance from position
+    0 fourth column. The rate column in row i gives the rate
+    between the rows i (inclusive) and i+1 (exclusive).
+
+
+    The above example defines the following rate map:
+
+         1.1       2.3         3.2
+       [5, 6)    [6, 10)     [10, end)
+
+    Note that unless the last row is the to the end of the 
+    chromosome, the end is implied (and thus needs need 
+    supplementary chromosome length data. Note that
+    the rate at the end is not informative unless the file
+    is not to the end but the end is specified elsewhere.
+
+    If the end is specified as 12 in the example above,
+    then the ratemap is:
+
+         1.1       2.3         3.2
+       [5, 6)    [6, 10)     [10, 12)
+
+    Through this code, we rely on a full rate map like tskit
+    which includes zero and the end point.
+
+    Notes: tskit.RateMap.read_hapmap() reads in a four-column
+    HapMap-formatted recombination map, and seems to only use
+    the total map distance in fourth column.
     """
-    pass
+    is_four_col = len(open(file).readline().split('\t')) == 4
+    three_col = ('chrom', 'pos', 'rate')
+    four_col = ('chrom', 'pos', 'rate', 'cumrate')
+    header = four_col if is_four_col else three_col
+    has_header = open(file).readline().lower().startswith('chrom')
+    d = pd.read_table(file, skiprows=int(has_header), names=header)
+    new_rates = dict()
+    new_cumulative = dict()
+    for chrom, df in d.groupby('chrom'):
+        pos = df['pos'].tolist()
+        rates = df['rate'].tolist()
+        cumrates = df['cumrate'].tolist()
+        if pos[0] != 0:
+            assert pos[0] > 0  # something is horribly wrong
+            pos.insert(0, 0)
+            # with cumulative data this must be the case
+            rates.insert(0, 0)
+        if pos[-1] != seqlens[chrom]:
+            # let's add the end in -- not this already has a rate!
+            pos.append(seqlens[chrom])
+
+        starts = np.array(pos[:-1])
+        # note: some maps could have the end be inclusive
+        ends = np.array(pos[1:])
+        # since we added on the start and end, start=0, 
+        # number of cumulative rates is L+1
+        rates = np.array(rates)
+        pos = np.array(pos)
+        check_positions_sorted(starts)
+        check_positions_sorted(ends)
+        L = len(rates)
+        assert L == len(starts)
+        assert L == len(ends)
+
+        # now we need to convert these to cumulative
+        cumulative = rates_to_cumulative(rates, pos)
+
+        # TODO: check that rates and cumulative 
+        # map positions all match
+        #spans = np.diff(pos)
+
+        new_rates[chrom] = (pos, cumulative)
+    return new_rates
 
 
-def main(*, mapfile: str, genome: str,
-         outfile: str, chain_to: str,
-         thresh: float=None,
-         chain_from: str=None):
+def liftover(*, mapfile: str, genome: str,
+             outfile: str, chain_to: str,
+             thresh: float=None,
+             chain_from: str=None):
     """
     Take a cumulative recombination map file and lift it over
     using the --chain-to. The --chain-from option is for 
@@ -394,6 +489,7 @@ def main(*, mapfile: str, genome: str,
 
     :param mapfile: the input TSV file of chrom, position, 
                      and cumulative map position.
+    :param genome: a TSV of chromosome lengths.
     :param chain_to: chain file from the genome of the mapfile
                       to the new genome.
     :param thresh: markers with a per-basepair rate above
@@ -403,7 +499,7 @@ def main(*, mapfile: str, genome: str,
     """
     sl = load_seqlens(genome)
     logging.info("reading map")
-    oldmap = read_cumulative(mapfile, sl)
+    oldmap = read_hapmap(mapfile, sl)
     path = mapfile.replace('.tsv', '').replace('.txt', '')
 
     valid_dir = path + "_validation_plots"
@@ -437,7 +533,7 @@ def main(*, mapfile: str, genome: str,
 
         # then removing non-monotonic
         logging.info("removing non-monotonic cumulative rates")
-        clean_new_map, removed_positions = clean_map(new_map, thresh=thresh)
+        clean_new_map, removed_positions = clean_map(new_map_sorted, thresh=thresh)
 
         # save to hapmap -- this is the final outfile
         logging.info("writing new map")
@@ -478,6 +574,21 @@ def main(*, mapfile: str, genome: str,
         pickle.dump(dict(liftback_map=liftback_map, oldmap=oldmap, clean_new_map=clean_new_map), f)
 
 
+def cumulative_to_hapmap(file: str, *, outfile: str, 
+                         genome: str, inclusive: bool=True):
+    """
+    Read in a three-column cumulative map and convert it to
+    a HapMap format.
+
+    :param file: input three-column TSV of cumulative map position.
+    :param genome: a TSV of chromosome lengths.
+    :inclusive: whether to treat the physical position as inclusive.
+    """
+    sl = load_seqlens(genome)
+    recmap = read_cumulative(file, sl, end_inclusive=inclusive)
+    write_hapmap(recmap, outfile)
+
 if __name__ == "__main__":
     logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
-    defopt.run(main)
+    defopt.run({'liftover': liftover, 'convert': cumulative_to_hapmap})
+

@@ -12,7 +12,7 @@ from os.path import join
 dir = sys.argv[1]
 
 chroms = [f"chr{c}" for c in range(1, 23)] + ['chrX']
-files = [f"AAmap.chr{c}.txt" for c in ['X'] + list(range(1, 23))]
+files = [f"AAmap.{c}.txt" for c in chroms]
 
 for chrom, file in zip(chroms, files):
     with open(join(dir, file)) as f:
@@ -20,11 +20,12 @@ for chrom, file in zip(chroms, files):
         assert header.startswith("Physical")
         line = next(f)
         pos, rate = line.strip().split()
-        last_pos, last_rate = int(pos), float(rate)
+        #last_pos, last_rate = int(pos), float(rate)
         for line in f:
             pos, rate = line.strip().split()
             pos, rate = int(pos), float(rate)
-            assert pos > last_pos
-            row = map(str, (chrom, pos, rate))
+            #assert pos > last_pos
+            # convert from cM to Morgans
+            row = map(str, (chrom, pos, rate/100))
             print('\t'.join(row))
-            last_pos, last_rate = pos, rate
+            #last_pos, last_rate = pos, rate

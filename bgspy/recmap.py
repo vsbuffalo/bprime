@@ -4,9 +4,11 @@ from collections import namedtuple, defaultdict
 from scipy import interpolate
 import tskit as tsk
 import numpy as np
+import pandas as pd
 from bgspy.utils import readfile, get_unique_indices
 
 RecPair = namedtuple('RecPair', ('end', 'rate'))
+
 
 def rate_interpol(rate_dict, inverse=False, **kwargs):
     """
@@ -33,6 +35,21 @@ def rate_interpol(rate_dict, inverse=False, **kwargs):
         interpol = interpolate.interp1d(x, y, fill_value=ends, **kwargs)
         interpols[chrom] = interpol
     return interpols
+
+
+def check_positions_sorted(pos):
+    msg = "positions are not sorted!"
+    assert np.all(np.diff(pos) >= 0), msg
+
+
+def rates_to_cumulative(rates, pos):
+    """
+    Given end-to-end positions are marginal (per-basepair rates)
+    compute the cumulative map distance at each position.
+    """
+    assert len(rates) == len(pos)-1
+    spans = np.diff(pos)
+    return np.array([0] + np.cumsum(rates * spans).tolist())
 
 
 class RecMap(object):
@@ -83,72 +100,61 @@ class RecMap(object):
         c2: = w2*r2 + w1*r1
         c3: = w3*r3 + w2*r2 + w1*r1
         """
+        file = self.mapfile
+        is_four_col = len(open(file).readline().split('\t')) == 4
+        three_col = ('chrom', 'pos', 'rate')
+        four_col = ('chrom', 'pos', 'rate', 'cumrate')
+        header = four_col if is_four_col else three_col
+        has_header = open(file).readline().lower().startswith('chrom')
+        d = pd.read_table(file, skiprows=int(has_header), names=header)
+        new_rates = dict()
+        ratemaps = dict()
+        for chrom, df in d.groupby('chrom'):
+            pos = df['pos'].tolist()
+            rates = df['rate'].tolist()
+            if is_four_col:
+                cumrates = df['cumrate'].tolist()
+                # currently we don't do anything with this yet but
+                # it could be used for validation
+            if pos[0] != 0:
+                assert pos[0] > 0  # something is horribly wrong
+                pos.insert(0, 0)
+                # technically this is missing, but it's fine
+                rates.insert(0, 0)
+            if pos[-1] != self.seqlens[chrom]:
+                # let's add the end in -- note this already has a rate!
+                pos.append(self.seqlens[chrom])
 
-        # check if has forth cumulative rate column
-        has_cumrate = len(next(open(self.mapfile)).split('\t')) == 4
-        cols = {'names': ['chrom', 'end', 'rate'],
-                'formats': ['S5', 'int', 'float']}
-        if has_cumrate:
-            cols['names'].append('cum')
-            cols['formats'].append('float')
+            rates = np.array(rates)
+            pos = np.array(pos)
+            check_positions_sorted(pos)
+            assert len(rates)+1 == len(pos)
+            # TODO: check that rates and cumulative 
+            # map positions all match
+            new_rates[chrom] = (pos, rates)
+            rates = self.conversion_factor*np.array(rates)
+            # I use tskit to store the rate data and calculate the 
+            # cumulative rate distances... it's robust and simplifies 
+            # things
+            ratemaps[chrom] = tsk.RateMap(position=pos, rate=rates)
 
-        d = np.loadtxt(self.mapfile, skiprows=int(header), dtype=cols)
-        raw_rates = defaultdict(list)
-        for i in range(d.shape[0]):
-            row = d[i]
-            chrom, end, rate, *cum = row
-            chrom = chrom.decode()
-            raw_rates[chrom].append((end, rate))
-
-        # this prevents issues where if a chrom is accessed that's not
-        # in the raw_rates defaultdict it will create it
-        raw_rates = dict(raw_rates)
-
-        # go through and pre-prend zeros and append ends if needed
-        rates = dict()
-        for chrom in self.seqlens.keys():
-            if chrom not in raw_rates:
-                logging.info(f"{chrom} not found in the recombination map, so skipping...")
-                continue
-            data = raw_rates[chrom]
-            end = self.seqlens[chrom]
-            if data[-1][0] > end:
-                msg = f"{chrom} has an end passed the reference sequence!"
-                raise ValueError(msg)
-            #elif data[-1][0] < end:
-                # NOTE: we put a None here since we need one fewer end rec rate
-            #    data.append((end, 0))
-            # else: it goes to the end, everything's good
-
-            ends = [e for e, _ in data]
-            rec_rates = [r for _, r in data]
-            assert ends[0] != 0, " we can't a rate left of pos 0"
-            ends.insert(0, 0)  # add in the left-most position
-            # the hapmap format format is each line is rate between it and *next*
-            # so popping in a zero means we don't know the rate -- fill with nan
-            rec_rates.insert(0, 0)
-            # if we don't go to end, we add that in -- note that the last
-            # rate we have is to end.
-            if ends[-1] < self.seqlens[chrom]:
-                ends.append(self.seqlens[chrom])
-
-            rec_rates = self.conversion_factor*np.array(rec_rates)
-            rates[chrom] = tsk.RateMap(position=ends, rate=rec_rates)
+        # all rates loaded in now, alias the name
+        rates = new_rates
 
         #self._rm = rates  # we can store the ratemaps for debugging
 
         cum_rates = dict()
-        for chrom, ratemap in rates.items():
+        for chrom, ratemap in ratemaps.items():
             cumrate = ratemap.get_cumulative_mass(ratemap.right)
-            cum_rates[chrom] = RecPair(ratemap.right.astype(int), 
+            cum_rates[chrom] = RecPair(ratemap.right.astype(int),
                                        cumrate)
 
-        self.rates = {c: RecPair(x.right.astype(int), x.rate) for c, x in rates.items()}
+        self.rates = {c: RecPair(x.right.astype(int), x.rate) for c, x in ratemaps.items()}
         self.cum_rates = cum_rates
         self.cum_interpol = rate_interpol(cum_rates, kind=self.cum_interpolation)
         self.inverse_cum_interpol = rate_interpol(cum_rates, inverse=True,
                                                    kind=self.cum_interpolation)
-        simple_rates = {c: (x.right, x.rate) for c, x in rates.items()}
+        simple_rates = {c: (x.right, x.rate) for c, x in ratemaps.items()}
         self.rate_interpol = rate_interpol(simple_rates, kind=self.rate_interpolation)
 
     def lookup(self, chrom, pos, cumulative=False):

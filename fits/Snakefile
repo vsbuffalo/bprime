@@ -6,7 +6,7 @@ clustername = 'talapas'
 machine = 'cluster' if socket.gethostname().startswith(clustername) else None
 
 NSTARTS = 10_000
-NSTARTS_LOO = 0_000
+NSTARTS_LOO = 10_000
 
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,

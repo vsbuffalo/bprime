@@ -382,12 +382,14 @@ rule aa_recmap37:
     """
 
 rule aa_recmap:
-  input: "aamap.tar.gz"
+  input: tar="aamap.tar.gz", genome="hg18_seqlens.tsv"
   output: "aamap_hg36.tsv"
   shell:
     """
-    tar -xvzf {input[0]}
-    python ../../tools/combine_aamap.py AAmap/ > {output[0]}
+    tar -xvzf {input.tar}
+    python ../../tools/combine_aamap.py AAmap/ > aamap_hg36_raw.tsv
+    python ../../tools/liftover_recmap.py convert aamap_hg36_raw.tsv \
+      --genome {input.genome} --outfile {output[0]}
     """
 
 rule aa_recmap37_combine:
@@ -425,7 +427,7 @@ rule aa_liftover:
   output: "aamap_hg38.tsv"
   shell:
     """
-    python ../../tools/liftover_recmap.py --mapfile {input.recmap} --chain-to {input.chain} \
+    python ../../tools/liftover_recmap.py liftover --mapfile {input.recmap} --chain-to {input.chain} \
       --genome {input.genome} --outfile {output[0]} --thresh 100
     """
 
