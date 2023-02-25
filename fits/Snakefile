@@ -82,7 +82,7 @@ rule fit:
 #       --outfile {output[0]}
 #     """
 
-rule loo_fit:
+rule jackknife:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
@@ -90,7 +90,24 @@ rule loo_fit:
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
-    bgspy jackknife \
+    bgspy jackblock \
+      --blocksize 1000000 \
+      --data {input.data} \
+      --output {output[0]} \
+      --chrom {wildcards.chrom} \
+      --ncores {params.ncores} --nstarts {params.nstarts}
+    """
+
+
+rule loo_chrom:
+  # note that this doesn't actually require fit object, but 
+  # I prefer that gets calculated first
+  input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
+  output: 'fit_{window}/loo/loo_{chrom}.pkl'
+  params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
+  shell:
+    """
+    bgspy jackchrom \
       --data {input.data} \
       --output {output[0]} \
       --chrom {wildcards.chrom} \

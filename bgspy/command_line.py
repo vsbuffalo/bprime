@@ -339,6 +339,8 @@ def subrate(bs_file, fit, force_feature, output, split):
 @click.option('--fit', default=None, type=click.Path(exists=True),
               help=('pickle file of fitted results, for starting at MLE '
                     '(ignore for random starts)'))
+@click.option('--blocksize', required=True, type=int,
+              help='the blocksize, in number of consecutive windows')
 @click.option('--output', required=True, type=click.Path(writable=True),
               help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
@@ -351,29 +353,47 @@ def subrate(bs_file, fit, force_feature, output, split):
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def jackknife(data, fit, output, fit_dir, chrom,
+def jackblock(data, fit, blocksize, output, fit_dir, chrom,
+              ncores, nstarts, include_bs):
+    """
+    """
+    mle_fit(data=data,
+            output_file=output,
+            ncores=ncores,
+            nstarts=nstarts,
+            loo_chrom=chrom,
+            bp_only=True)
+
+
+@cli.command()
+@click.option('--data', required=True, default=None, type=click.Path(exists=True),
+              help="pickle of pre-computed summary statistics")
+@click.option('--fit', default=None, type=click.Path(exists=True),
+              help=('pickle file of fitted results, for starting at MLE '
+                    '(ignore for random starts)'))
+@click.option('--output', required=True, type=click.Path(writable=True),
+              help='an .npz output file')
+@click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
+@click.option('--chrom', default=None,
+              help="leave-one-out chromosome, e.g. for parallel processing across a cluster")
+@click.option('--ncores',
+              help='number of cores to use for multi-start optimization',
+              type=int, default=1)
+@click.option('--nstarts',
+              help='number of starts for multi-start optimization',
+              type=int, default=1)
+@click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
+def jackchrom(data, fit, output, fit_dir, chrom,
               ncores, nstarts, include_bs):
     """
     Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
     and predicting the observed diversity on the excluded chromosome.
 
-    TODO:
-     - starts only work for B' fits.
     """
-    # get the starting theta if recycling the mle (e.g. if fit is specified)
-    start = None
-    if fit is not None:
-        if nstarts != 1:
-            raise click.UsageError("you cannot specify a fixed start and set --nstarts")
-        fit = load_pickle(fit)
-        start = fit['mbp'].theta_
-        nstarts = None
-
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             nstarts=nstarts,
-            start=start,
             loo_chrom=chrom,
             bp_only=True)
 

@@ -7,7 +7,18 @@ import numpy as np
 BootstrapResults = namedtuple('BootstrapResults',
                               ('b_nll', 'b_theta',
                                'bp_nll', 'bp_theta'))
+def split_list(list, chunksize):
+    for i in range(0, len(list), chunksize):
+        yield list[i:i + chunk_size]
 
+
+def block_bins(bins, blocksize):
+    i = 0
+    blocks = []
+    for chrom in bins.keys():
+        indices = bins.chrom_indices(chrom)
+        blocks.append(list(split_list(indices, blocksize)))
+    return blocks
 
 def resample_blocks(bins, blocksize, nsamples=None, exclude_chroms=None):
     """

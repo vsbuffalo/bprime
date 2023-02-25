@@ -418,6 +418,32 @@ class BGSLikelihood:
             self.theta_ = optim_res.thetas_[index]
             self.nll_ = optim_res.nlls_[index]
 
+    def jackknife_chrom(self, chrom, **kwargs):
+        """
+        Do the jackknife, leaving out the specified chromosome.
+        """
+        msg = "bins attribute must be set to a GenomicBinnedData object"
+        assert self.bins is not None, msg
+        chrom_idx = set(self.bins.chrom_indices(chrom))
+        assert len(chrom_idx)
+        all_idx = set(range(self.Y.shape[0]))
+        in_sample_idx = np.array(list(all_idx.difference(chrom_idx)))
+        # return the fit directly
+        obj = self.fit(**kwargs, _indices=in_sample_idx)
+        obj._chrom_loo_fit = chrom
+        return obj
+
+    def jackknife_block(self, blocksize, blocknum=None, **kwargs):
+        """
+        """
+        blocks = block_bins(self.bins, blocksize)
+        if blocknum is not None:
+            blocks = [blocks[blocknum]]
+        for block_indices in blocks:
+            obj = self.fit(**kwargs, _indices=block_indices)
+            obj._indices_fit = block_indices
+            
+
     def load_jackknives(self, fit_dir):
         """
         Load the chromosome jackknife results by setting attributes.
@@ -434,27 +460,6 @@ class BGSLikelihood:
         self.jack_nlls_ = nlls
         self.jack_thetas_ = thetas
         self.jack_chroms_ = chroms
- 
-    def jackknife_chrom(self, chrom, **kwargs):
-        """
-        Do the jackknife, leaving out the specified chromosome.
-
-        If you want to compute across a cluster, set the chunks tuple,
-        (nchunks, chunk_id)
-
-        If you want to recycle the MLE θ, pass a starts keyword argument
-        with the MLE vector (optionally repeated for multiple starts.
-        """
-        msg = "bins attribute must be set to a GenomicBinnedData object"
-        assert self.bins is not None, msg
-        chrom_idx = set(self.bins.chrom_indices(chrom))
-        assert len(chrom_idx)
-        all_idx = set(range(self.Y.shape[0]))
-        in_sample_idx = np.array(list(all_idx.difference(chrom_idx)))
-        # return the fit directly
-        obj = self.fit(**kwargs, _indices=in_sample_idx)
-        self._chrom_loo_fit = chrom
-        return obj
 
     def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -581,20 +586,24 @@ class BGSLikelihood:
         self.sigma_ = sigma_jack
         return sigma_jack
 
-    def loo_R2(self):
+    def loo_R2(self, return_raw=False):
         assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
         jk_thetas = self.jack_thetas_
         n = jk_thetas.shape[0]
         pi = pi_from_pairwise_summaries(self.Y)
         r2s = dict()
+        weights = dict()
         for i in range(n):
-            chrom = self.jack_chroms_[i]
-            chrom_idx = self.bins.chrom_indices(chrom)
+            loo_chrom = self.jack_chroms_[i]
+            chrom_idx = self.bins.chrom_indices(loo_chrom)
             theta = jk_thetas[i, ...]
             chrom_b = self.logB_fit[chrom_idx, ...]
             pred_pi = predict_simplex(theta, chrom_b, self.w)
-            r2s[chrom] = R2(pred_pi, pi[chrom_idx])
-        return r2s
+            r2s[loo_chrom] = R2(pred_pi, pi[chrom_idx])
+            weights[loo_chrom] = len(pred_pi)
+        if return_raw: 
+            return r2s, weights
+        return np.average(list(r2s.values()), weights=list(weights.values()))
 
     def resid(self):
         pred_pi = self.predict()
@@ -678,6 +687,21 @@ class SimplexModel(BGSLikelihood):
                          log10_mu_bounds=log10_mu_bounds)
         # fit the exponential over the grid of mutation points
         self.logB_fit = fit_B_curve_params(self.logB, w)
+
+    @staticmethod
+    def from_data(file):
+        """
+        Load a model data pickle file, e.g. from the command line
+        tool bgspy data.
+        """
+        dat = load_pickle(file)
+        Y, bins = dat['Y'], dat['bins']
+        features, bp = dat['features'], dat['bp']
+        w, t = dat['w'], dat['t']
+        obj = SimplexModel(w=w, t=t, logB=bp, Y=Y,
+                           bins=bins, features=features)
+
+        return obj
 
     def random_start(self, mu=None):
         """
@@ -779,7 +803,8 @@ class SimplexModel(BGSLikelihood):
                          progress=progress)
 
         if bootstrap:
-            # we don't clobber the existing results since this ins't a fit.
+            # we don't clobber the existing results since 
+            # this ins't a fit, so we return the optim results.
             return res
 
         if chrom is not None:
@@ -868,7 +893,7 @@ class SimplexModel(BGSLikelihood):
         base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
         base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
         if hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None:
-            loo_R2 = np.mean(list(self.loo_R2().values()))
+            loo_R2 = self.loo_R2()
             base_rows += f"  {np.round(100*loo_R2, 4)}% (out-sample)"
         base_rows += "\n"
 

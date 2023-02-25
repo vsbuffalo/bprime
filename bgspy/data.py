@@ -701,6 +701,9 @@ class GenomicBins:
         return np.array(chroms)
 
     def chrom_ints(self, filter_masked=True):
+        """
+        Return an array of all chromosome numbers as integers.
+        """
         chroms = []
         chrom_map = {c: i for i, c in enumerate(self.seqlens.keys())}
         for chrom, bins in self.bins(filter_masked=filter_masked).items():

@@ -112,7 +112,14 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
             loo_chrom=None, chrom=None,
             start=None, bp_only=False):
     """
-    Load the binned data, fit B' (and optionally B) models, and
+    The general fitting pipeline, for MLE fits, chromosome-specific 
+    fits, leave-one-out chromosome fits, and block-jackknifing.
+
+    Basic pipeline:
+      - Load the binned data
+      - Fit B' (and optionally B) model, possibly LOO or single
+        chromosome.
+      - Save the results.
     save the results.
     """
     dat = load_pickle(data)
@@ -133,13 +140,19 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     logging.info(msg)
     m_bp = SimplexModel(w=w, t=t, logB=bp, Y=Y,
                         bins=bins, features=features)
+
+    # NOTE: for loo/block JK we need to manually load the 
+    # optim results.
     if loo_chrom is not None:
         jk_opt = m_bp.jackknife_chrom(starts=starts, ncores=ncores,
                                       chrom=loo_chrom, mu=mu)
-        # we need to load manually...
+        m_bp._load_optim(jk_opt)
+    elif blocksize is not None:
+        jk_opt = m_bp.jackknife_block(starts=starts, ncores=ncores,
+                                      blocksize=blocksize, mu=mu)
         m_bp._load_optim(jk_opt)
     else:
-        m_bp.fit(starts=starts, ncores=ncores, 
+        m_bp.fit(starts=starts, ncores=ncores,
                  mu=mu, chrom=chrom)
 
     msg = "saving B' model results"
@@ -152,6 +165,8 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
         logging.info("fitting B model")
         m_b = SimplexModel(w=w, t=t, logB=b, Y=Y,
                            bins=bins, features=features)
+        if blocksize is not None:
+            raise NotImplementedError, "B' block jackknifing not implemented"
         if loo_chrom is not None:
             jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, 
                                          chrom=loo_chrom, mu=mu)
