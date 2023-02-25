@@ -1,11 +1,11 @@
 #!/bin/bash
 
 if [ "$#" -ne 1 ]; then
-    echo "error: specify JSON file"
+    echo "error: specify YAML file"
     exit 1
 fi
 
-dir=$(readlink -f $(basename $1 .json))
+dir=$(readlink -f $(basename $1 .yml))
 curr_dir=$(readlink -f .)
 
 mkdir $dir

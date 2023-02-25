@@ -110,6 +110,8 @@ class RecMap(object):
         new_rates = dict()
         ratemaps = dict()
         for chrom, df in d.groupby('chrom'):
+            if chrom not in self.seqlens:
+                continue
             pos = df['pos'].tolist()
             rates = df['rate'].tolist()
             if is_four_col:

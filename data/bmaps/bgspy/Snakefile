@@ -8,7 +8,7 @@ from bgspy.genome import Genome
 NCORES = 40
 NCORES_BP = 20
 
-HUMAN_RECMAP = "../../annotation/aamap_hg38.tsv"
+AA_RECMAP = "../../annotation/aamap_hg38.tsv"
 
 # ===== For Simulations =====
 # 
@@ -76,9 +76,9 @@ rule bmap_chr10_rescale:
 rule bmap_hg38:
   input: 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
-         recmap=HUMAN_RECMAP,
+         recmap=AA_RECMAP,
          cons="../../annotation/conserved_{track}.bed.gz"
-  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
+  output: pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_{track}_aamap.pkl"
   params: ncores=NCORES, ncores_bp=NCORES_BP
   shell:
     """
@@ -113,7 +113,7 @@ rule bmap_hg38:
 rule bmap_hg38_rescaled:
   input: 
          seqlens_file="../../annotation/hg38_seqlens.tsv", 
-         recmap=HUMAN_RECMAP,
+         recmap=AA_RECMAP,
          fit="../../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl",
 	 pkl_b_file="bmap_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
   output: pkl_b_file="bmap_rescaled_hg38_{grid_str}grid_{step}step_{popsize}N_{track}.pkl"
@@ -156,9 +156,9 @@ maps = [
         #"bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl",
 
         ## tracks with genes taken out of phastcons
-        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes.pkl",
-        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes_full.pkl",
-        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_full.pkl"
+        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes_aamap.pkl",
+        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_genes_full_aamap.pkl",
+        "bmap_hg38_6x7grid_10000step_10000N_phastcons_not_genes_cds_full_aamap.pkl"
         ]
 
 rescaled_sims = []

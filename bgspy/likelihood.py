@@ -25,7 +25,8 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 from scipy import interpolate
 from bgspy.utils import signif, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
-from bgspy.optim import run_optims, scipy_softmax_worker, nlopt_softmax_worker
+from bgspy.optim import run_optims, scipy_softmax_worker
+from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
@@ -176,6 +177,19 @@ def negll_softmax_nlopt(theta, grad, Y, B, w):
     return negll_softmax(theta, Y, B, w)
 
 
+def negll_softmax_fixedmu_nlopt(theta, grad, Y, B, w, mu):
+    """
+    The nlopt wrapper to the above function, since
+    nlopt requires a grad second argument even if 
+    not known.
+    """
+    new_theta = np.empty(len(theta)+1)
+    new_theta[0] = theta[0]
+    new_theta[1] = mu
+    new_theta[2:] = theta[1:]
+    return negll_softmax(new_theta, Y, B, w)
+
+
 def negll_simplex(theta, Y, B, w):
     """
     Simplex model wrapper for negll_c().
@@ -185,7 +199,7 @@ def negll_simplex(theta, Y, B, w):
 
 def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
                    log10_mu_bounds=MU_BOUNDS,
-                   softmax=False, bounded_softmax=False,
+                   mu=None, softmax=True, bounded_softmax=False,
                    global_softmax_bound=1e4,
                    paired=True):
     """
@@ -202,8 +216,9 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     u = [10**log10_pi0_bounds[1]]
     #l = [(1000)]
     #u = [(100_000)]
-    l += [10**log10_mu_bounds[0]]
-    u += [10**log10_mu_bounds[1]]
+    if mu is None:
+        l += [10**log10_mu_bounds[0]]
+        u += [10**log10_mu_bounds[1]]
     # if we use softmax, it should technically be unbounded
     # but this handles the case where global optimization is used,
     # which nlopt requires bounds for -- we set these to something
@@ -221,7 +236,7 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     return lb, ub
 
 
-def random_start_simplex(nt, nf, pi0=None, mu=None,
+def random_start_simplex(nt, nf, mu=None,
                          log10_pi0_bounds=PI0_BOUNDS,
                          log10_mu_bounds=MU_BOUNDS, 
                          softmax=True):
@@ -229,31 +244,36 @@ def random_start_simplex(nt, nf, pi0=None, mu=None,
     Create a random start position, uniform over the bounds for π0
     and μ, and Dirichlet under the DFE weights for W, under the simplex model.
     """
-    if pi0 is None:
-        pi0 = np.random.uniform(10**log10_pi0_bounds[0],
-                                10**log10_pi0_bounds[1], 1)
-    if mu is None:
+    mu_is_fixed = mu is not None
+    if not mu_is_fixed:
         mu = np.random.uniform(10**log10_mu_bounds[0],
                                10**log10_mu_bounds[1], 1)
+    pi0 = np.random.uniform(10**log10_pi0_bounds[0],
+                            10**log10_pi0_bounds[1], 1)
 
-    nparams = nt*nf + 2
+    fixed_mu_offset = 1 + int(not mu_is_fixed)
+    nparams = nt*nf + fixed_mu_offset
     theta = np.empty(nparams)
     if softmax:
         #theta[0] = np.random.uniform(1000, 100_000, 1)
         theta[0] = pi0
-        theta[1] = mu
-        theta[2:] = np.random.normal(0, 1, nt*nf)
+        if not mu_is_fixed:
+            theta[1] = mu
+        theta[fixed_mu_offset:] = np.random.normal(0, 1, nt*nf)
         return theta
 
     W = np.empty((nt, nf))
     for i in range(nf):
         W[:, i] = np.random.dirichlet([1.] * nt)
         assert np.abs(W[:, i].sum() - 1.) < 1e-5
-    theta = np.empty(nt*nf + 2)
+    theta = np.empty(nt*nf + fixed_mu_offset)
     theta[0] = pi0
-    theta[1] = mu
-    theta[2:] = W.flat
-    check_bounds(theta, *bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds))
+    if mu_is_fixed:
+        theta[1] = mu
+    theta[fixed_mu_offset:] = W.flat
+    bounds = bounds_simplex(nt, nf, log10_pi0_bounds,
+                            log10_mu_bounds, mu=mu)
+    check_bounds(theta, *bounds)
     return theta
 
 
@@ -271,12 +291,12 @@ def predict_simplex(theta, logB, w, mu=None, use_grid=False):
     else:
         pi0, W = theta[0], theta[1:]
     W = W.reshape((nt, nf))
-    # interpolate B(w)'s
     logBw = np.zeros(nx, dtype=float)
     for i in range(nx):
         for j in range(nt):
             for k in range(nf):
                 if use_grid:
+                    # this is deprecated, can be removed in future
                     logBw[i] += np.interp(mu*W[j, k], w, logB[i, :, j, k])
                 else:
                     logBw[i] += -mu*W[j, k]*logB[i, 0, j, k]
@@ -320,6 +340,10 @@ class BGSLikelihood:
         self.log10_pi0_bounds = log10_pi0_bounds
         # the bounds for mu alone
         self.log10_mu_bounds = log10_mu_bounds
+        self._indices_fit = None
+        self._chrom_loo_fit = None
+        self._chrom_fit = None
+        self._fixed_mu = None
 
         try:
             assert logB.ndim == 4
@@ -411,23 +435,6 @@ class BGSLikelihood:
         self.jack_thetas_ = thetas
         self.jack_chroms_ = chroms
  
-    def bootstrap(self, nboot, blocksize, **kwargs):
-        """
-        DEPRECATED
-        Resample bin indices and fit each time.
-        """
-        msg = "bins attribute must be set to a GenomicBinnedData object"
-        assert self.bins is not None, msg
-        res = []
-        for b in tqdm.trange(nboot):
-            idx = self.bins.resample_blocks(blocksize=blocksize,
-                                            filter_masked=True)
-            res.append(self.fit(**kwargs, _indices=idx))
-        nlls, thetas = process_bootstraps(res)
-        self.boot_nlls_ = nlls
-        self.boot_thetas_ = thetas
-        return nlls, thetas
-
     def jackknife_chrom(self, chrom, **kwargs):
         """
         Do the jackknife, leaving out the specified chromosome.
@@ -445,7 +452,9 @@ class BGSLikelihood:
         all_idx = set(range(self.Y.shape[0]))
         in_sample_idx = np.array(list(all_idx.difference(chrom_idx)))
         # return the fit directly
-        return self.fit(**kwargs, _indices=in_sample_idx)
+        obj = self.fit(**kwargs, _indices=in_sample_idx)
+        self._chrom_loo_fit = chrom
+        return obj
 
     def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -667,26 +676,19 @@ class SimplexModel(BGSLikelihood):
                          bins=bins, features=features,
                          log10_pi0_bounds=log10_pi0_bounds,
                          log10_mu_bounds=log10_mu_bounds)
-        self.start_pi0_ = None
-        self.start_mu_ = None
         # fit the exponential over the grid of mutation points
         self.logB_fit = fit_B_curve_params(self.logB, w)
 
-    def random_start(self, pi0=None, mu=None):
+    def random_start(self, mu=None):
         """
         Random starts, on a linear scale for μ and π0.
         """
-        start = random_start_simplex(self.nt, self.nf,
-                                     pi0=pi0, mu=mu,
+        start = random_start_simplex(self.nt, self.nf, mu=mu,
                                      log10_pi0_bounds=self.log10_pi0_bounds,
                                      log10_mu_bounds=self.log10_mu_bounds)
-        if pi0 is not None:
-            self.start_pi0_ = pi0
-        if mu is not None:
-            self.start_mu_ = mu
         return start
 
-    def bounds(self, paired=True, global_softmax_bound=False):
+    def bounds(self, paired=True, global_softmax_bound=False, mu=None):
         """
         By default, we assume scipy minimize. Scipy expects zipped
         lists. For nlopt, (lower, upper) bounds are needed, so set 
@@ -698,28 +700,33 @@ class SimplexModel(BGSLikelihood):
         return bounds_simplex(self.nt, self.nf,
                               self.log10_pi0_bounds,
                               self.log10_mu_bounds,
-                              softmax=True,
+                              mu=mu,
                               bounded_softmax=global_softmax_bound,
                               paired=paired)
 
-    def fit(self, starts=1, ncores=None, 
-            start_pi0=None, start_mu=None,
-            chrom=None, progress=True, _indices=None,
+    def fit(self, starts=1, ncores=None,
+            mu=None, chrom=None, 
+            progress=True, _indices=None,
             engine='nlopt', method='LN_BOBYQA'):
         """
         Fit likelihood models with numeric optimization (using nlopt).
 
         starts: either an integer number of random starts or a list of starts.
         ncores: number of cores to use for multiprocessing.
-        start_pi0/start_mu: starting values for pi0 and mu.
+        chrom: only fit specified chromosome.
         _indices: indices to include in fit; this is primarily internal, for
                   bootstrapping
         """
-        WORKERS = {'nlopt': nlopt_softmax_worker, 'scipy': scipy_softmax_worker}
-        NEGLL_FUNCS = {'nlopt': negll_softmax_nlopt, 'scipy': negll_softmax}
+        mu_is_fixed = mu is not None
+        self._fixed_mu = mu
+        WORKERS = {'nlopt': nlopt_softmax_worker, 
+                   'scipy': scipy_softmax_worker,
+                   'fixed': nlopt_softmax_fixedmu_worker}
+        NEGLL_FUNCS = {'nlopt': negll_softmax_nlopt,
+                       'fixed': negll_softmax_fixedmu_nlopt,
+                       'scipy': negll_softmax}
         if isinstance(starts, int):
-            starts = [self.random_start(pi0=start_pi0, mu=start_mu) for _
-                      in range(starts)]
+            starts = [self.random_start(mu=mu) for _ in range(starts)]
 
         if ncores is not None:
             # don't request more cores than we need
@@ -729,7 +736,7 @@ class SimplexModel(BGSLikelihood):
         assert self.logB_fit is not None
         logB = self.logB_fit
 
-        # if we have pre-specified indices, we're doing 
+        # if we have pre-specified indices, we're doing
         # jackknife or bootstrap
         bootstrap = _indices is not None
         if bootstrap:
@@ -737,6 +744,7 @@ class SimplexModel(BGSLikelihood):
             assert chrom is None, msg
             Y = Y[_indices, ...]
             logB = logB[_indices, ...]
+            self._indices_fit = _indices
 
         if chrom is not None:
             idx = self.bins.chrom_indices(chrom)
@@ -745,14 +753,23 @@ class SimplexModel(BGSLikelihood):
 
         # set up optimization function closure, and the 
         # optimization worker.
+        if mu_is_fixed:
+            # if μ is fixed, we used a special fixed nlopt routine
+            engine = 'fixed'
         negll_func = NEGLL_FUNCS[engine]
-        nll_func = partial(negll_func, Y=Y, B=logB, w=self.w)
+
+        if mu_is_fixed:
+            nll_func = partial(negll_func, Y=Y, B=logB,
+                               w=self.w, mu=mu)
+        else:
+            nll_func = partial(negll_func, Y=Y, B=logB, w=self.w)
         worker_func = WORKERS[engine]
 
-        is_nlopt = 'nlopt' == engine
+        is_nlopt = 'nlopt' == engine or mu_is_fixed
         is_nlopt_global = method.startswith('GN_') and is_nlopt
-        bounds = self.bounds(paired=not is_nlopt, global_softmax_bound=is_nlopt_global)
-        worker = partial(worker_func,
+        bounds = self.bounds(paired=not is_nlopt, mu=mu,
+                             global_softmax_bound=is_nlopt_global)
+        worker = partial(worker_func, 
                          func=nll_func,
                          bounds=bounds,
                          nt=self.nt, nf=self.nf, method=method)
@@ -778,6 +795,8 @@ class SimplexModel(BGSLikelihood):
         """
         Extract out the mutation rate, μ.
         """
+        if self._fixed_mu is not None:
+            return self._fixed_mu
         return self.theta_[1]
 
     @property
@@ -785,20 +804,22 @@ class SimplexModel(BGSLikelihood):
         """
         Extract out the W matrix.
         """
-        return self.theta_[2:].reshape(self.nt, self.nf)
-    
+        # if we have a free μ, we change the offset
+        i = 1 + int(self._fixed_mu is None)
+        return self.theta_[i:].reshape(self.nt, self.nf)
+
     def summary(self, index=None):
         if self.theta_ is None:
             return "\n[not fit yet]\n"  # not fit yet
         if index is None:
-            pi0 = self.mle_pi0 # FIX TODO
+            pi0 = self.mle_pi0  # FIX TODO
             mu = self.mle_mu
             W = self.mle_W
             R2 = self.R2()
         else:
             theta = self.optim.thetas[index, ...]
-            mu = theta[1]
             pi0 = theta[0]
+            mu = theta[1] if self._fixed_mu is None else self._fixed_mu
             W = theta[2:]
             R2 = self.R2(theta=theta)
 
@@ -814,8 +835,14 @@ class SimplexModel(BGSLikelihood):
         if index is not None:
             base_rows += f"WARNING: for non-MLE (optimization {index})"
             base_rows += ", interpret CIs at your own risk!"
+        # hasattr used for back-compatability; can be removed in future
         if hasattr(self, '_chrom_fit') and self._chrom_fit is not None:
             base_rows += f" (chromosome {self._chrom_fit} only)\n"
+        elif hasattr(self, '_chrom_loo_fit') and self._chrom_loo_fit is not None:
+            base_rows += f" (chromosome {self._chrom_loo_fit} left out)\n"
+        elif hasattr(self, '_indices_fit') and self._indices_fit is not None:
+            perc = np.round(100*len(self._indices_fit) / self.Y.shape[0], 2)
+            base_rows += f" (at pre-spcified indices {prec}% of total)\n"
         else:
             base_rows += f" (whole genome)\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
@@ -830,7 +857,8 @@ class SimplexModel(BGSLikelihood):
         else:
             base_rows += "\n"
 
-        base_rows += f"μ = {mu:0.4g}"
+        fixed_str = "(FIXED)" if self._fixed_mu is not None else ""
+        base_rows += f"μ = {mu:0.4g} {fixed_str}"
         if cis:
             l, u = cis[0][1], cis[1][1]
             base_rows += f" ({l:.3g}, {u:.3g})\n"
@@ -871,7 +899,8 @@ class SimplexModel(BGSLikelihood):
         best MLE).
         """
         if theta is not None:
-            return predict_simplex(theta, self.logB_fit, self.w)
+            return predict_simplex(theta, self.logB_fit, self.w,
+                                   mu=self._fixed_mu)
         if optim is None:
             theta = np.copy(self.theta_)
         else:
@@ -883,7 +912,8 @@ class SimplexModel(BGSLikelihood):
         if B:
             # rescale so B is returned, π0 = 1
             theta[0] = 1.
-        return predict_simplex(theta, self.logB_fit, self.w)
+        return predict_simplex(theta, self.logB_fit, self.w,
+                               mu=self._fixed_mu)
 
 
 # -------- older likelihood functions -----------

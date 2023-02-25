@@ -22,7 +22,7 @@ def summarize_data(# annotation
          # optional sim data for sim run
          sim_tree_file=None, sim_chrom=None, sim_mu=None,
          # filters
-         thresh_cM=0.3, outliers=(0.0, 0.995),
+         thresh_cM=1, outliers=(0.0, 0.995),
          # other
          bp_only=False, name=None, only_autos=True, verbose=True):
     """
@@ -42,6 +42,7 @@ def summarize_data(# annotation
         seqlens = {c: l for c, l in seqlens.items() if c not in AVOID_CHRS}
     logging.info("loading genome")
     g = Genome(name, seqlens=seqlens)
+    # the recombination map is used for the cM end filtering
     g.load_recmap(recmap_file)
     gd = GenomeData(g)
     is_sim = sim_tree_file is not None
@@ -107,7 +108,8 @@ def summarize_data(# annotation
 
 
 def mle_fit(data, output_file, ncores=70, nstarts=200,
-            verbose=True, chrom=None,
+            mu=None, verbose=True, 
+            loo_chrom=None, chrom=None,
             start=None, bp_only=False):
     """
     Load the binned data, fit B' (and optionally B) models, and
@@ -131,13 +133,14 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     logging.info(msg)
     m_bp = SimplexModel(w=w, t=t, logB=bp, Y=Y,
                         bins=bins, features=features)
-    if chrom is not None:
-        jk_opt = m_bp.jackknife_chrom(starts=starts, ncores=ncores, 
-                                       chrom=chrom)
+    if loo_chrom is not None:
+        jk_opt = m_bp.jackknife_chrom(starts=starts, ncores=ncores,
+                                      chrom=loo_chrom, mu=mu)
         # we need to load manually...
         m_bp._load_optim(jk_opt)
     else:
-        m_bp.fit(starts=starts, ncores=ncores)
+        m_bp.fit(starts=starts, ncores=ncores, 
+                 mu=mu, chrom=chrom)
 
     msg = "saving B' model results"
     logging.info(msg)
@@ -149,11 +152,13 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
         logging.info("fitting B model")
         m_b = SimplexModel(w=w, t=t, logB=b, Y=Y,
                            bins=bins, features=features)
-        if chrom is not None:
-            jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, chrom=chrom)
+        if loo_chrom is not None:
+            jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, 
+                                         chrom=loo_chrom, mu=mu)
             m_b._load_optim(jk_opt)
         else:
-            m_b.fit(starts=nstarts, ncores=ncores)
+            m_b.fit(starts=nstarts, ncores=ncores,
+                    chrom=chrom, mu=mu)
     else:
         return # we're done, so leave
 

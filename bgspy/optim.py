@@ -121,6 +121,30 @@ def scipy_softmax_worker(start, func, nt, nf,
     return nll, mle, success
 
 
+def nlopt_softmax_fixedmu_worker(start, func, nt, nf, bounds,
+                                 method, xtol_rel=1e-3,
+                                 constraint_tol=1e-11,
+                                 maxeval=1000000):
+    """
+    nlopt softmax wrapper
+    """
+    nparams = nt*nf + 1
+    method = getattr(nlopt, method)
+    opt = nlopt.opt(method, nparams)
+    opt.set_min_objective(func)
+    lb, ub = bounds
+    opt.set_lower_bounds(lb)
+    opt.set_upper_bounds(ub)
+    opt.set_xtol_rel(xtol_rel)
+    opt.set_maxeval(maxeval)
+    assert start.size == nparams
+    mle = opt.optimize(start)
+    nll = opt.last_optimum_value()
+    success = opt.last_optimize_result()
+    mle = convert_softmax(mle, nt, nf, mu_is_fixed=True)
+    return nll, mle, success
+
+
 def nlopt_softmax_worker(start, func, nt, nf, bounds,
                          method, xtol_rel=1e-3,
                          constraint_tol=1e-11,
@@ -145,13 +169,15 @@ def nlopt_softmax_worker(start, func, nt, nf, bounds,
     return nll, mle, success
 
 
-def convert_softmax(theta_sm, nt, nf):
+def convert_softmax(theta_sm, nt, nf, mu_is_fixed=False):
     """
     Given an MLE θ in softmax space for W, convert it back
     """
     theta = np.copy(theta_sm)
+    fixed_mu_offset = int(not mu_is_fixed)
     with np.errstate(under='ignore'):
-        theta[2:] = softmax(theta[2:].reshape(nt, nf), axis=0).flat
+        i = 1+fixed_mu_offset
+        theta[i:] = softmax(theta[i:].reshape(nt, nf), axis=0).flat
     return theta
 
 
@@ -199,6 +225,8 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     """
     Thanks to Nate Pope for this visualization suggestion!
     """
+    fixed_mu = fit._fixed_mu is not None
+    fixed_mu_offset = 1 + int(not fixed_mu)
     opt = fit.optim 
     features = fit.features
     nt, nf, t = fit.nt, fit.nf, fit.t
@@ -218,14 +246,14 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     mu_pi0 = []
  
     for i in range(top_n):
-        dfes.append(thetas[i][2:].reshape(nt, nf))
+        dfes.append(thetas[i][fixed_mu_offset:].reshape(nt, nf))
 
     # mu_pi0 = np.stack(mu_pi0)
     dfes = np.stack(dfes)
 
-    fig, ax = plt.subplots(ncols=1, nrows=nf+2 + int(add_nll),
+    fig, ax = plt.subplots(ncols=1, nrows=nf+fixed_mu_offset+int(add_nll),
                            figsize=figsize, sharex=True, 
-                           height_ratios=[1.2]*nf + [1]*(2+add_nll))
+                           height_ratios=[1.2]*nf + [1]*(fixed_mu_offset+add_nll))
 
     norm = mpl.colors.Normalize(vmin=0, vmax=1)
     for i in range(nf):
@@ -256,12 +284,13 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
  
     ax[i].tick_params(axis='both', which='major', labelsize=line_lsize)
 
-    i += 1
-    ax[i].set_ylabel(f"$\mu$ ($\\times^{{{int(-np.log10(mu_scale))}}}$)")
-    ax[i].plot(np.arange(len(thetas))[:top_n], 
-               [x[1]*mu_scale for x in thetas][:top_n],
-               linewidth=line_lw,
-               c='0.22')
+    if not fixed_mu:
+        i += 1
+        ax[i].set_ylabel(f"$\mu$ ($\\times^{{{int(-np.log10(mu_scale))}}}$)")
+        ax[i].plot(np.arange(len(thetas))[:top_n], 
+                   [x[1]*mu_scale for x in thetas][:top_n],
+                   linewidth=line_lw,
+                   c='0.22')
 
     ax[i].tick_params(axis='both', which='major', labelsize=line_lsize)
     i += 1

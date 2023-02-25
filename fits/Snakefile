@@ -5,8 +5,8 @@ import socket
 clustername = 'talapas'
 machine = 'cluster' if socket.gethostname().startswith(clustername) else None
 
-NSTARTS = 10_000
-NSTARTS_LOO = 10_000
+NSTARTS = 2_000
+NSTARTS_LOO = 2_000
 
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,
@@ -33,7 +33,7 @@ fasta_file = config["fasta_file"]
 counts_dir = config["counts_dir"]
 Bs_file = config["Bs_file"]
 windows = [int(w) for w in config["windows"]]
-blocksize = int(config["blocksize"])
+#blocksize = int(config["blocksize"])
 
 # the data that goes into the likelihood model
 model_data = [f'model_data_{w}.pkl' for w in windows]
@@ -83,13 +83,15 @@ rule fit:
 #     """
 
 rule loo_fit:
-  input: 'model_data_{window}.pkl'
+  # note that this doesn't actually require fit object, but 
+  # I prefer that gets calculated first
+  input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
   output: 'fit_{window}/loo/loo_{chrom}.pkl'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
     bgspy jackknife \
-      --data {input[0]} \
+      --data {input.data} \
       --output {output[0]} \
       --chrom {wildcards.chrom} \
       --ncores {params.ncores} --nstarts {params.nstarts}

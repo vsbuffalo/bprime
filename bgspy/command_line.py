@@ -270,23 +270,25 @@ def data(seqlens, recmap, neutral, access, fasta,
 #@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
 @click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
+@click.option('--mu', help='fixed mutation rate (by default, free)', 
+              type=float, default=None)
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=None)
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
               type=int, default=None)
-@click.option('--chrom', default=None, 
-              help="optional chromosome to leave out")
+@click.option('--chrom', default=None,
+              help="only fit on using this chromosome (default: genome-wide)")
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
-def fit(data, output, ncores, nstarts, chrom, bp_only):
+def fit(data, output, mu, ncores, nstarts, chrom, bp_only):
     # for fixed mu
     #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             nstarts=nstarts,
-            chrom=chrom, bp_only=bp_only)
+            mu=mu, chrom=chrom, bp_only=bp_only)
 
 
 @cli.command()
@@ -354,8 +356,8 @@ def jackknife(data, fit, output, fit_dir, chrom,
     """
     Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
     and predicting the observed diversity on the excluded chromosome.
-    
-    TODO: 
+
+    TODO:
      - starts only work for B' fits.
     """
     # get the starting theta if recycling the mle (e.g. if fit is specified)
@@ -372,8 +374,8 @@ def jackknife(data, fit, output, fit_dir, chrom,
             ncores=ncores,
             nstarts=nstarts,
             start=start,
-            chrom=chrom,
-            ignore_B=True)
+            loo_chrom=chrom,
+            bp_only=True)
 
 
 @click.option('--fit-dir', required=True, 
@@ -391,6 +393,9 @@ def collect(fit_dir, output, fit):
     main_fits = load_pickle(fit)
     mbp = main_fits['mbp']
     mbp.load_jackknives(fit_dir)
+    mbp.loo_stderr()
+    mbp.loo_R2()
+    # TODO
 
 
 
