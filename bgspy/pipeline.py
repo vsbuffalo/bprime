@@ -12,6 +12,11 @@ from bgspy.likelihood import SimplexModel
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
+def load_model(dir):
+    """Load the model directory from a snakemake-based run.
+    """
+    pass
+
 def summarize_data(# annotation
          seqlens_file, recmap_file, neut_file, access_file, fasta_file,
          bs_file, output_file,

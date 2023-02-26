@@ -502,7 +502,8 @@ class BGSLikelihood:
         self.jack_fits_ = dict(zip(indices, fits))
         self.jack_nlls_ = nlls
         self.jack_thetas_ = thetas
-        self.jack_indicies = indices
+        self.jack_indices = indices
+        self.jackknife_stderr()
 
     def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -616,9 +617,9 @@ class BGSLikelihood:
             return R2(pred_pi, pi)
         return R2(pred_pi[_indices], pi[_indices])
 
-    def loo_stderr(self):
+    def jackknife_stderr(self):
         """
-        Leave-one-out chromosome standard errors.
+        Calculate the jackknife standard errors.
         """
         assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
         theta = self.theta_
