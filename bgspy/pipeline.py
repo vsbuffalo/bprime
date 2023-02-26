@@ -139,15 +139,13 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     # NOTE: for loo/block JK we need to manually load the 
     # optim results.
     if loo_chrom is not None:
-        jk_opt = m_bp.jackknife_chrom(starts=starts, ncores=ncores,
-                                      chrom=loo_chrom, mu=mu)
-        m_bp._load_optim(jk_opt)
+        m_bp = m_bp.jackknife_chrom(starts=starts, ncores=ncores,
+                                       chrom=loo_chrom, mu=mu)
     elif blocksize is not None:
         assert blocksize > 1, "blocksize must be > 1"
-        jk_opt = m_bp.jackknife_block(starts=starts, ncores=ncores,
-                                      blocksize=blocksize, 
-                                      blocknum=blocknum, mu=mu)
-        m_bp._load_optim(jk_opt)
+        m_bp = m_bp.jackknife_block(starts=starts, ncores=ncores,
+                                    blocksize=blocksize, 
+                                    blocknum=blocknum, mu=mu)
     else:
         m_bp.fit(starts=starts, ncores=ncores,
                  mu=mu, chrom=chrom)
@@ -168,9 +166,8 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     if blocksize is not None:
         raise NotImplementedError("B' block jackknifing not implemented")
     if loo_chrom is not None:
-        jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, 
+        m_b = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, 
                                      chrom=loo_chrom, mu=mu)
-        m_b._load_optim(jk_opt)
     else:
         m_b.fit(starts=nstarts, ncores=ncores, chrom=chrom, mu=mu)
 

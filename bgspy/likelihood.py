@@ -448,8 +448,11 @@ class BGSLikelihood:
         blocks = block_bins(self.bins, blocksize)
 
         if blocknum is not None:
+            # the jackknife out-sample
             out_block_idx = blocks.pop(blocknum)
+            # combine the rest of the blocks
             block_indices = np.array(list(itertools.chain(*blocks)))
+            # fit the model on these indices
             obj = self.fit(**kwargs, _indices=block_indices)
             obj._indices_fit = block_indices
             # store metadata 
@@ -492,14 +495,14 @@ class BGSLikelihood:
         join = os.path.join
         fits = [load_pickle(join(fit_dir, f))['mbp'] for f in files]
         thetas = np.stack([f.theta_ for f in fits])
-        rgx = re.compile(r'loo_(\w+)\.pkl')
-        chroms = [rgx.match(f).groups()[0] for f in files]
+        rgx = re.compile(r'jackknife_([\w.]+)\.pkl')
+        indices = [rgx.match(f).groups()[0] for f in files]
         nlls = np.stack([f.nll_ for f in fits])
 
-        self.jack_fits_ = dict(zip(chroms, fits))
+        self.jack_fits_ = dict(zip(indices, fits))
         self.jack_nlls_ = nlls
         self.jack_thetas_ = thetas
-        self.jack_chroms_ = chroms
+        self.jack_indicies = indices
 
     def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -918,7 +921,7 @@ class SimplexModel(BGSLikelihood):
         if self.theta_ is None:
             return "no model fit."
         base_rows = ""
-        base_rows += "\n\nSimplex model ML estimates:"
+        base_rows += "\n\nML estimates:"
         if index is not None:
             base_rows += f"WARNING: for non-MLE (optimization {index})"
             base_rows += ", interpret CIs at your own risk!"
@@ -954,7 +957,7 @@ class SimplexModel(BGSLikelihood):
 
         base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
         base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
-        if hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None:
+        if hasattr(self, 'loo_thetas_') and self.loo_thetas_ is not None:
             loo_R2 = self.loo_R2()
             base_rows += f"  {np.round(100*loo_R2, 4)}% (out-sample)"
         base_rows += "\n"

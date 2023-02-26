@@ -1,7 +1,6 @@
 ---
 name: hg38__phastcons_not_genes_cds_genes_full__aamap
 windows:
-- 100000
 - 1000000
 N: 10000
 seqlens_file: "../../data/annotation/hg38_seqlens.tsv"
