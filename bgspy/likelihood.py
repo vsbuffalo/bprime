@@ -97,7 +97,7 @@ def W_summary(W, features, nt, nf, t, cis=None):
             entry = f"{W[i, j]:.3f}"
             if cis is not None:
                 l, u = lower[theta_i], upper[theta_i]
-                entry += f" ({l:.3f}, {u:.3f})"
+                entry += f" ({l:.4f}, {u:.4f})"
             row.append(entry)
             theta_i += 1
         rows.append(row)
@@ -487,7 +487,7 @@ class BGSLikelihood:
             jackknife_results.append(obj)
         return jackknife_results, r2s
 
-    def load_jackknives(self, fit_dir):
+    def load_jackknives(self, fit_dir, label=False):
         """
         Load the jackknife results by setting attributes.
         """
@@ -498,11 +498,15 @@ class BGSLikelihood:
         rgx = re.compile(r'jackknife_([\w.]+)\.pkl')
         indices = [rgx.match(f).groups()[0] for f in files]
         nlls = np.stack([f.nll_ for f in fits])
-
-        self.jack_fits_ = dict(zip(indices, fits))
+        r2s = [f._block_r2 for f in fits]
+        
+        if label:
+            fits = dict(zip(indices, fits))
+        self.jack_fits_ = fits
         self.jack_nlls_ = nlls
         self.jack_thetas_ = thetas
         self.jack_indices = indices
+        self.jack_r2s = r2s
         self.jackknife_stderr()
 
     def ci(self, method='quantile'):
@@ -604,6 +608,10 @@ class BGSLikelihood:
         ax.set_ylabel('probability')
         ax.legend()
 
+    def pi(self):
+        pi = pi_from_pairwise_summaries(self.Y)
+        return pi
+
     def R2(self, _indices=None, **kwargs):
         """
         The R² value of the predictions against actual results.
@@ -674,11 +682,20 @@ class BGSLikelihood:
         return predict_chrom_plot(self, chrom, ratio=ratio,
                                   label=label, figax=figax)
 
-    def scatter_plot(self, figax=None, **scatter_kwargs):
+    def scatter_plot(self, figax=None, highlight_chrom=None, chrom_cols=False, **scatter_kwargs):
         fig, ax = get_figax(figax)
         pred_pi = self.predict()
         pi = pi_from_pairwise_summaries(self.Y)
-        ax.scatter(pi, pred_pi)
+        if chrom_cols:
+            ax.scatter(pred_pi, pi, s=1, c=self.bins.chrom_ints())
+        else:
+            ax.scatter(pred_pi, pi, c='0.22', s=1)
+        if highlight_chrom is not None:
+            idx = self.bins.chrom_indices(highlight_chrom)
+            ax.scatter(pred_pi[idx], pi[idx], s=2, c='r')
+        ax.axline((0, 0), slope=1)
+        ax.set_ylabel('predicted $\\hat{\pi}$')
+        ax.set_xlabel('observed $\pi$')
 
     @property
     def mle_pi0(self):
@@ -936,6 +953,11 @@ class SimplexModel(BGSLikelihood):
             base_rows += f" (at pre-spcified indices {perc}% of total)\n"
         else:
             base_rows += f" (whole genome)\n"
+
+        # jackknife info
+        if hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None:
+            base_rows += f"number jackknife samples: {self.jack_thetas_.shape[0]}\n"
+ 
         base_rows += f"negative log-likelihood: {self.nll_}\n"
         nstarts = self.optim.thetas.shape[0]
         frac = np.round(self.optim.frac_success, 2)*100
