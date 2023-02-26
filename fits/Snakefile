@@ -78,11 +78,11 @@ rule bmap:
   input: seqlens_file=seqlens_file,
          recmap=recmap_file,
          features=features_file
-  output: pkl_b_file=Bs_file
+  output: pkl_b_file="bmap_{grid_str}grid_{step}step_{N}N_{name}.pkl"
   params: ncores=NCORES_B, ncores_bp=NCORES_BP
   shell:
     """
-    python ../../../bgspy/command_line.py calcb \
+    bgspy calcb \
       --recmap {input.recmap} --annot {input.features} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.N} \

@@ -24,5 +24,18 @@
         "name" : "mle_{rule}_{wildcards}",
         "output" : "logs/out/{rule}_{jobid}.out",
         "error" : "logs/error/{rule}_{jobid}.err"
+    },
+    "bmap":
+    {
+        "time" : "1-00:00:00",
+        "n" : 1,
+        "account" : "kernlab",
+        "partition" : "kern,kerngpu",
+        "mem" : "6GB",
+        "cores" : "40",
+        "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/fits/",
+        "name" : "bcalc_{rule}_{wildcards}",
+        "output" : "logs/out/{rule}_{jobid}.out",
+        "error" : "logs/error/{rule}_{jobid}.err"
     }
 }
