@@ -14,8 +14,6 @@ is_dev =  socket.gethostname().startswith(dev)
 NSTARTS = 2_000
 NSTARTS_LOO = 2_000
 
-BLOCKSIZE = 25_000_000  # 25Mb ~1/10th of chr1
-
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,
 # -j
@@ -46,7 +44,8 @@ fasta_file = config["fasta_file"]
 counts_dir = config["counts_dir"]
 N = config["N"]
 windows = [int(w) for w in config["windows"]]
-#blocksize = int(config["blocksize"])
+blocksizes = config["blocksizes"]
+genome_size = int(config["approx_genome_size"])
 
 
 ## ------ created data
@@ -68,9 +67,16 @@ for window in windows:
       loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
       loo_results.append(loo)
   # block-level jackknife
-  for frac in np.linspace(0, 1, 1000):
-      frac = np.round(frac, 5)
-      jk_results.append(f'fit_{window}/jackknife/jackknife_{frac}.pkl')
+  for blocksize in blocksizes:
+      # this is a very close approximation to the block-jackknife, 
+      # were samples at evenly spaced fraction positions are taken
+      # and left out; this prevents us from having to know the number
+      # of blocks a priori, which is easier when pushing computation to the
+      # cluster
+      nboot_samples = int(genome_size / blocksize)
+      for frac in np.linspace(0, 1, nboot_samples):
+          frac = np.round(frac, 5)
+          jk_results.append(f'fit_{window}/jackknife/{blocksize}/jackknife_{frac}.pkl')
     
 
 ## ------- rules
@@ -127,12 +133,12 @@ rule block_jackknife:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
-  output: 'fit_{window}/jackknife/jackknife_{frac}.pkl'
+  output: 'fit_{window}/jackknife/{blocksize}/jackknife_{frac}.pkl'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
     bgspy jackblock \
-      --blockwidth {BLOCKSIZE} \
+      --blockwidth {wildcards.blocksize} \
       --data {input.data} \
       --output {output[0]} \
       --blockfrac {wildcards.frac} \

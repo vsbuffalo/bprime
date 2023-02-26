@@ -1,8 +1,12 @@
 ---
 name: hg38__phastcons_not_genes_cds_genes_full__aamap
 windows:
+- 500000
 - 1000000
+- 1500000
+# fixed parameters
 N: 10000
+# files
 seqlens_file: "../../data/annotation/hg38_seqlens.tsv"
 recmap_file: "../../data/annotation/aamap_hg38.tsv"
 access_file: "../../data/annotation/no_centro.bed"
@@ -10,3 +14,8 @@ features_file: "../../data/annotation/conserved_phastcons_not_genes_cds_genes_fu
 fasta_file: "../../data/annotation/hg38.fa.gz"
 neut_file: "../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz"
 counts_dir: "../../data/h1kg/hg1k_counts/"
+# for block-jackknifing
+approx_genome_size: 2900000000
+blocksizes:
+- 25000000
+
