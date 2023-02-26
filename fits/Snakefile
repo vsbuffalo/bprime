@@ -22,28 +22,73 @@ BLOCKSIZE = 25_000_000  # 25Mb ~1/10th of chr1
 if machine == 'cluster':
     NCORES = 40
     NCORES_LOO = NCORES
+    NCORES_B = 40
+    NCORES_BP = 20
 else:
     # just blast through a bunch without parallel snakemake jobs
     NCORES = 70
     NCORES_LOO = 70
+    NCORES_B = 40
+    NCORES_BP = 20
+
 
 CHROMS = [f'chr{x}' for x in range(1, 23)]
 
-# from config
+# from config file
 name = config["name"]
 mu = config.get("mu", None)
 seqlens_file = config["seqlens_file"]
 recmap_file = config["recmap_file"]
 access_file = config["access_file"]
+features_file = config["features_file"]
 neut_file = config["neut_file"]
 fasta_file = config["fasta_file"]
 counts_dir = config["counts_dir"]
-Bs_file = config["Bs_file"]
+N = config["N"]
 windows = [int(w) for w in config["windows"]]
 #blocksize = int(config["blocksize"])
 
+
+## ------ created data
+# name auto-generated
+Bs_file = f"bmap_6x7grid_100000step_{N}N_{name}.pkl"
+
 # the data that goes into the likelihood model
 model_data = [f'model_data_{w}.pkl' for w in windows]
+
+# the data needed for all fits in this model
+loo_results = []
+jk_results = []
+mle_results = []
+boots_results = []
+for window in windows:
+  mle_results.append(f'fit_{window}/mle.pkl')
+  # chromosome-level LOO for R2, etc
+  for chrom in CHROMS:
+      loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
+      loo_results.append(loo)
+  # block-level jackknife
+  for frac in np.linspace(0, 1, 1000):
+      frac = np.round(frac, 5)
+      jk_results.append(f'fit_{window}/jackknife/jackknife_{frac}.pkl')
+    
+
+## ------- rules
+rule bmap:
+  input: seqlens_file=seqlens_file,
+         recmap=recmap_file,
+         features=features_file
+  output: pkl_b_file=Bs_file
+  params: ncores=NCORES_B, ncores_bp=NCORES_BP
+  shell:
+    """
+    python ../../../bgspy/command_line.py calcb \
+      --recmap {input.recmap} --annot {input.features} \
+      --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.N} \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step}
+    """
 
 rule save_data:
   # only get the data, e.g. for testing, for this model
@@ -77,18 +122,6 @@ rule fit:
       --output {output[0]}
     """
 
-# rule jackknife:
-#   input: fit='fit_{window}/mle.pkl', 
-#   output: 'fit_{window}/jackknifes/jackknifes_{boot}.npz'
-#   params: ncores=NCORES_JK, nstarts=NSTARTS_JK, blocksize=blocksize
-#   shell:
-#     """
-#     bgspy jackknife --fit {input.fit} \
-#       --B {params.ncores} --blocksize {params.blocksize} \
-#       --ncores {params.ncores} --nstarts {params.nstarts} \
-#       --outfile {output[0]}
-#     """
-
 rule block_jackknife:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
@@ -121,23 +154,7 @@ rule loo_chrom:
       --ncores {params.ncores} --nstarts {params.nstarts}
     """
 
-# the data needed for all fits in this model
-loo_results = []
-jk_results = []
-mle_results = []
-boots_results = []
-for window in windows:
-  mle_results.append(f'fit_{window}/mle.pkl')
-  # chromosome-level LOO for R2, etc
-  for chrom in CHROMS:
-      loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
-      loo_results.append(loo)
-  # block-level jackknife
-  for frac in np.linspace(0, 1, 1000):
-      frac = np.round(frac, 4)
-      jk_results.append(f'fit_{window}/jackknife/jackknife_{frac}.pkl')
-    
-
+## ----- CLI rules 
 rule mle:
   input: mle_results
 
