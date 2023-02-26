@@ -8,7 +8,7 @@ from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.utils import Grid, load_pickle
 from bgspy.pipeline import summarize_data, mle_fit
-from bgspy.bootstrap import load_from_bs_dir
+from bgspy.bootstrap import block_bins
 
 SPLIT_LENGTH_DEFAULT = 10_000
 STEP_DEFAULT = 10_000
@@ -339,8 +339,14 @@ def subrate(bs_file, fit, force_feature, output, split):
 @click.option('--fit', default=None, type=click.Path(exists=True),
               help=('pickle file of fitted results, for starting at MLE '
                     '(ignore for random starts)'))
-@click.option('--blocksize', required=True, type=int,
+@click.option('--blocksize', type=int,
               help='the blocksize, in number of consecutive windows')
+@click.option('--blockwidth', type=int, help="the blockwidth in basepairs")
+@click.option('--blocknum', default=None, type=int,
+              help='which block to run the fit on (e.g. for cluster use)')
+@click.option('--blockfrac', default=None, type=float,
+              help='for not a full jackknife, drop the block at this fraction '
+                   "(this approach doesn't require a prior knowledge of number of blocks")
 @click.option('--output', required=True, type=click.Path(writable=True),
               help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
@@ -353,15 +359,32 @@ def subrate(bs_file, fit, force_feature, output, split):
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def jackblock(data, fit, blocksize, output, fit_dir, chrom,
-              ncores, nstarts, include_bs):
+def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output, 
+              fit_dir, chrom, ncores, nstarts, include_bs):
     """
+    Run the block-jackknifing routine. There are two modes:
+        1. Run with --blocksize set only, and all blocks will be 
+            jackknifed.
+        2. Run with --blocksize and --blocknum, and only that 
+            block number is left out (e.g. for cluster use).
     """
+    if blockfrac is not None or blockwidth is not None:
+        # we need to figure out the block width or num blocks
+        bins = load_pickle(data)['bins']
+        if blockwidth is not None:
+            blocksize = int(blockwidth / bins.width)
+        blocks = block_bins(bins, blocksize)
+        nblocks = len(blocks)
+        if blockfrac is not None:
+            blocknum = int(blockfrac * nblocks)
+    logging.info("blockwidth={blockwidth}bp, blockfrac={blockfrac}, blocknum={blocknum}")
+    assert blocksize > 1, "blocksize must be > 1"
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             nstarts=nstarts,
             loo_chrom=chrom,
+            blocksize=blocksize, blocknum=blocknum,
             bp_only=True)
 
 

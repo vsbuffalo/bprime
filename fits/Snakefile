@@ -1,12 +1,20 @@
-# main annotation files
+"""
+Main Snakemake-based model fitting pipeline.
+"""
 import socket
+import numpy as np
 
+## personal stuff for my project (sorry, safe to ignore)
 # we scale down the number of cores if we're doing this on the cluster
 clustername = 'talapas'
 machine = 'cluster' if socket.gethostname().startswith(clustername) else None
 
+
+## general stuff 
 NSTARTS = 2_000
 NSTARTS_LOO = 2_000
+
+BLOCKSIZE = 25_000_000  # 25Mb ~1/10th of chr1
 
 # note: ncores_loo is per-job;
 # you'll want to account number of total jobs,
@@ -18,7 +26,6 @@ else:
     # just blast through a bunch without parallel snakemake jobs
     NCORES = 70
     NCORES_LOO = 70
-
 
 CHROMS = [f'chr{x}' for x in range(1, 23)]
 
@@ -82,19 +89,19 @@ rule fit:
 #       --outfile {output[0]}
 #     """
 
-rule jackknife:
+rule block_jackknife:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
-  output: 'fit_{window}/loo/loo_{chrom}.pkl'
+  output: 'fit_{window}/jackknife/jackknife_{frac}.pkl'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
     bgspy jackblock \
-      --blocksize 1000000 \
+      --blockwidth {BLOCKSIZE} \
       --data {input.data} \
       --output {output[0]} \
-      --chrom {wildcards.chrom} \
+      --blockfrac {wildcards.frac}
       --ncores {params.ncores} --nstarts {params.nstarts}
     """
 
@@ -114,20 +121,31 @@ rule loo_chrom:
       --ncores {params.ncores} --nstarts {params.nstarts}
     """
 
+# the data needed for all fits in this model
 loo_results = []
+jk_results = []
 mle_results = []
 boots_results = []
 for window in windows:
   mle_results.append(f'fit_{window}/mle.pkl')
+  # chromosome-level LOO for R2, etc
   for chrom in CHROMS:
-      loo = f"fit_{window}/loo/loo_{chrom}.pkl"
+      loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
       loo_results.append(loo)
+  # block-level jackknife
+  for frac in np.linspace(0, 1, 1000):
+      frac = np.round(frac, 4)
+      jk_results.append(f'fit_{window}/jackknife/jackknife_{frac}.pkl')
+    
 
 rule mle:
   input: mle_results
 
 rule jackknife:
-  input: loo_results, mle_results
+  input: mle_results, jk_results
+
+rule loo:
+  input: mle_results, loo_results
 
 rule data:
   input: model_data

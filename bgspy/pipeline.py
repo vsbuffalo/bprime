@@ -109,7 +109,8 @@ def summarize_data(# annotation
 
 def mle_fit(data, output_file, ncores=70, nstarts=200,
             mu=None, verbose=True, 
-            loo_chrom=None, chrom=None,
+            loo_chrom=None, chrom=None,  # for LOO on only one chrom
+            blocksize=None, blocknum=None,  # for block-jackknifing
             start=None, bp_only=False):
     """
     The general fitting pipeline, for MLE fits, chromosome-specific 
@@ -122,12 +123,6 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
       - Save the results.
     save the results.
     """
-    dat = load_pickle(data)
-    bins, Y, bp = dat['bins'], dat['Y'], dat['bp']
-    w, t = dat['w'], dat['t']
-    features = dat['features']
-    b = dat.get('b', None)
-
     # deal with start
     if start is not None:
         starts = [start]
@@ -138,9 +133,9 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     if chrom is not None:
         msg += f" (leaving out {chrom})"
     logging.info(msg)
-    m_bp = SimplexModel(w=w, t=t, logB=bp, Y=Y,
-                        bins=bins, features=features)
+    m_bp = SimplexModel.from_data(data)
 
+    ## fitting (main MLE, loo-chrom, block jackknife)
     # NOTE: for loo/block JK we need to manually load the 
     # optim results.
     if loo_chrom is not None:
@@ -148,35 +143,38 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
                                       chrom=loo_chrom, mu=mu)
         m_bp._load_optim(jk_opt)
     elif blocksize is not None:
+        assert blocksize > 1, "blocksize must be > 1"
         jk_opt = m_bp.jackknife_block(starts=starts, ncores=ncores,
-                                      blocksize=blocksize, mu=mu)
+                                      blocksize=blocksize, 
+                                      blocknum=blocknum, mu=mu)
         m_bp._load_optim(jk_opt)
     else:
         m_bp.fit(starts=starts, ncores=ncores,
                  mu=mu, chrom=chrom)
-
+    
+    # save the B' results
     msg = "saving B' model results"
     logging.info(msg)
     obj = {'mbp': m_bp}
     with open(output_file, 'wb') as f:
         pickle.dump(obj, f)
 
-    if b is not None and not bp_only:
-        logging.info("fitting B model")
-        m_b = SimplexModel(w=w, t=t, logB=b, Y=Y,
-                           bins=bins, features=features)
-        if blocksize is not None:
-            raise NotImplementedError, "B' block jackknifing not implemented"
-        if loo_chrom is not None:
-            jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, 
-                                         chrom=loo_chrom, mu=mu)
-            m_b._load_optim(jk_opt)
-        else:
-            m_b.fit(starts=nstarts, ncores=ncores,
-                    chrom=chrom, mu=mu)
+    if bp_only:
+        return
+   
+    # we also need to fit the classic B
+    logging.info("fitting B model")
+    m_b = SimplexModel.from_data(data, use_classic_B=True)
+    if blocksize is not None:
+        raise NotImplementedError("B' block jackknifing not implemented")
+    if loo_chrom is not None:
+        jk_opt = m_b.jackknife_chrom(starts=nstarts, ncores=ncores, 
+                                     chrom=loo_chrom, mu=mu)
+        m_b._load_optim(jk_opt)
     else:
-        return # we're done, so leave
+        m_b.fit(starts=nstarts, ncores=ncores, chrom=chrom, mu=mu)
 
+    # save the B results
     logging.info("adding B to model results")
     obj = {'mb': m_b, 'mbp': m_bp}
     with open(output_file, 'wb') as f:

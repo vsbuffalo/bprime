@@ -2,7 +2,7 @@
 import os
 import re
 import logging
-import copy
+from copy import copy
 import pickle
 import itertools
 import tqdm
@@ -23,14 +23,15 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 #     pass
 
 from scipy import interpolate
-from bgspy.utils import signif, load_pickle
+from bgspy.utils import signif, load_pickle, si_prefix
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, scipy_softmax_worker
 from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
-from bgspy.bootstrap import process_bootstraps, pivot_ci, percentile_ci
+from bgspy.bootstrap import block_bins
+
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')
@@ -433,20 +434,59 @@ class BGSLikelihood:
         obj._chrom_loo_fit = chrom
         return obj
 
-    def jackknife_block(self, blocksize, blocknum=None, **kwargs):
+    def jackknife_block(self, blocksize, blocknum=None, 
+                        calc_loo_R2=True, **kwargs):
         """
+        Use the block-jackknife to estimate uncertainty. This 
+        will use blocksize-sized blocks (in number of consecutive
+        windows, so the physical size of the block will vary with
+        the window size.
+
+        TODO: this could be refactored a bit to remove redundancy.
         """
+        # generate the blocks
         blocks = block_bins(self.bins, blocksize)
+
         if blocknum is not None:
-            blocks = [blocks[blocknum]]
-        for block_indices in blocks:
+            out_block_idx = blocks.pop(blocknum)
+            block_indices = np.array(list(itertools.chain(*blocks)))
             obj = self.fit(**kwargs, _indices=block_indices)
             obj._indices_fit = block_indices
-            
+            # store metadata 
+            obj._blocksize = blocksize
+            obj._blocknum = blocknum
+            obj._blocksize_bp = blocksize*self.bins.width
+            # for out-sample prediction
+            obj._out_block_indices = out_block_idx
+            if calc_loo_R2:
+                r2 = obj.R2(_indices = out_block_idx)
+                obj._block_r2 = r2  # TODO could weight by num idx but minor
+            return obj
+        
+        # we're going to do this for all blocks (mostly for testing)
+        jackknife_results = []
+        r2s = []
+        for i, out_block_idx in tqdm.tqdm(enumerate(blocks)):
+            block_indices = copy(blocks)
+            block_indices.pop(i)  # drop this block
+            block_indices = np.array(list(itertools.chain(*block_indices)))
+            obj = self.fit(**kwargs, _indices=block_indices, progress=False)
+            obj._indices_fit = block_indices
+            # store metadata 
+            obj._blocksize = blocksize
+            obj._blocknum = blocknum
+            obj._blocksize_bp = blocksize*self.bins.width
+            # for out-sample prediction
+            obj._out_block_indices = out_block_idx
+            if calc_loo_R2:
+                r2 = obj.R2(_indices = out_block_idx)
+                r2s.append(r2)  # TODO could weight by num idx but minor
+            jackknife_results.append(obj)
+        return jackknife_results, r2s
 
     def load_jackknives(self, fit_dir):
         """
-        Load the chromosome jackknife results by setting attributes.
+        Load the jackknife results by setting attributes.
         """
         files = [f for f in os.listdir(fit_dir) if f.endswith('.pkl')]
         join = os.path.join
@@ -560,20 +600,23 @@ class BGSLikelihood:
         ax.set_ylabel('probability')
         ax.legend()
 
-    def R2(self, _idx=None, **kwargs):
+    def R2(self, _indices=None, **kwargs):
         """
         The R² value of the predictions against actual results.
 
-        _idx: the indices of values to use, e.g. for cross-validation or LOO
+        _indices: the indices of values to use, e.g. for cross-validation or LOO
               bootstrapping.
         """
         pred_pi = self.predict(**kwargs)
         pi = pi_from_pairwise_summaries(self.Y)
-        if _idx is None:
+        if _indices is None:
             return R2(pred_pi, pi)
-        return R2(pred_pi[_idx], pi[_idx])
+        return R2(pred_pi[_indices], pi[_indices])
 
     def loo_stderr(self):
+        """
+        Leave-one-out chromosome standard errors.
+        """
         assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
         theta = self.theta_
         Tni = self.jack_thetas_
@@ -587,6 +630,9 @@ class BGSLikelihood:
         return sigma_jack
 
     def loo_R2(self, return_raw=False):
+        """
+        Leave-one-out chromosome R2.
+        """
         assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
         jk_thetas = self.jack_thetas_
         n = jk_thetas.shape[0]
@@ -660,22 +706,25 @@ class BGSLikelihood:
         rows = [f"{type(self).__name__} (interpolated w): {self.nw} x {self.nt} x {self.nf}"]
         rows.append(f"  w grid: {signif(self.w)} (before interpolation)")
         rows.append(f"  t grid: {signif(self.t)}")
+        bs = self.bins.width
+        rows.append(f"  blocksize: {si_prefix(bs)}bp")
         return "\n".join(rows)
 
 
 class SimplexModel(BGSLikelihood):
     """
-    BGSLikelihood Model with the DFE matrix W on a simplex, free 
-    π0 and free μ (within bounds).
+    BGSLikelihood Model with the DFE matrix W on a simplex, free
+    π0 and free μ (within bounds) by default. μ can be fixed too.
 
     There are two main way to parameterize the simplex for optimization.
 
       1. No reparameterization: 0 < W < 1, with constrained optimization.
       2. Softmax: the columns of W are optimized over all reals,
           and mapped to the simplex space with softmax.
-    
-    Initially we tried no reparameterization, but this was slow and 
-    fragile. Softmax seems to work quite well.
+
+    Initially we tried no reparameterization, but this was slow and
+    fragile. Softmax seems to work quite well so is the implementation
+    here.
     """
     def __init__(self, Y, w, t, logB, bins=None,
                  features=None, 
@@ -689,16 +738,24 @@ class SimplexModel(BGSLikelihood):
         self.logB_fit = fit_B_curve_params(self.logB, w)
 
     @staticmethod
-    def from_data(file):
+    def from_data(file, use_classic_B=False):
         """
         Load a model data pickle file, e.g. from the command line
         tool bgspy data.
         """
         dat = load_pickle(file)
         Y, bins = dat['Y'], dat['bins']
-        features, bp = dat['features'], dat['bp']
+        features = dat['features']
+        if not use_classic_B:
+            b = dat['bp']
+        else:
+            try:
+                b = dat['b']
+            except KeyError:
+                msg = f"B is not computed in {file}, but use_classic_B=True"
+                raise KeyError(msg)
         w, t = dat['w'], dat['t']
-        obj = SimplexModel(w=w, t=t, logB=bp, Y=Y,
+        obj = SimplexModel(w=w, t=t, logB=b, Y=Y,
                            bins=bins, features=features)
 
         return obj
@@ -761,15 +818,15 @@ class SimplexModel(BGSLikelihood):
         logB = self.logB_fit
 
         # if we have pre-specified indices, we're doing
-        # jackknife or bootstrap
-        bootstrap = _indices is not None
-        if bootstrap:
-            msg = "currently only whole-genome bootstrap/jackknife supported"
+        # jackknife or leaving a chrosome out
+        resample = _indices is not None
+        if resample:
+            msg = "currently only whole-genome jackknife supported"
             assert chrom is None, msg
             Y = Y[_indices, ...]
             logB = logB[_indices, ...]
-            self._indices_fit = _indices
 
+        # chromosome-specific fit
         if chrom is not None:
             idx = self.bins.chrom_indices(chrom)
             Y = Y[idx, ...]
@@ -802,18 +859,23 @@ class SimplexModel(BGSLikelihood):
         res = run_optims(worker, starts, ncores=ncores,
                          progress=progress)
 
-        if bootstrap:
-            # we don't clobber the existing results since 
-            # this ins't a fit, so we return the optim results.
-            return res
+        if resample:
+            # We don't clobber the existing results since 
+            # this ins't a fit, so we return copy this object and 
+            # load them there.
+            obj = copy(self)
+            obj._load_optim(res)
+            obj._indices_fit = _indices
+            return obj
 
         if chrom is not None:
-            obj = copy.copy(self)
+            obj = copy(self)
             obj._load_optim(res)
             obj._chrom_fit = chrom
             return obj
 
         self._load_optim(res)
+        return res
 
     @property
     def mle_mu(self):
@@ -867,7 +929,7 @@ class SimplexModel(BGSLikelihood):
             base_rows += f" (chromosome {self._chrom_loo_fit} left out)\n"
         elif hasattr(self, '_indices_fit') and self._indices_fit is not None:
             perc = np.round(100*len(self._indices_fit) / self.Y.shape[0], 2)
-            base_rows += f" (at pre-spcified indices {prec}% of total)\n"
+            base_rows += f" (at pre-spcified indices {perc}% of total)\n"
         else:
             base_rows += f" (whole genome)\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
@@ -923,12 +985,17 @@ class SimplexModel(BGSLikelihood):
         this rank of optimization results is given (e.g. optim = 0 is the
         best MLE).
         """
+        logB_fit = self.logB_fit
         if theta is not None:
-            return predict_simplex(theta, self.logB_fit, self.w,
+            return predict_simplex(theta, logB_fit, self.w,
                                    mu=self._fixed_mu)
         if optim is None:
             theta = np.copy(self.theta_)
         else:
+            # predict off a certain optimization result
+            # this is deprecated, from before the optimization became
+            # much more stable. It still me be useful later though 
+            # for debugging.
             thetas = self.optim.thetas_
             if optim == 'random':
                 theta = np.copy(thetas[np.random.randint(0, thetas.shape[0]), :])
@@ -937,7 +1004,7 @@ class SimplexModel(BGSLikelihood):
         if B:
             # rescale so B is returned, π0 = 1
             theta[0] = 1.
-        return predict_simplex(theta, self.logB_fit, self.w,
+        return predict_simplex(theta, logB_fit, self.w,
                                mu=self._fixed_mu)
 
 
