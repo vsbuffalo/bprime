@@ -69,7 +69,10 @@ def R2(x, y):
     x = x[complete_idx]
     y = y[complete_idx]
     ssxm, ssxym, _, ssym = np.cov(x, y, bias=True).flat
-    return ssxym / np.sqrt(ssxm * ssym)
+    try:
+        return ssxym / np.sqrt(ssxm * ssym)
+    except FloatingPointError:
+        return np.nan
 
 
 def check_bounds(x, lb, ub):

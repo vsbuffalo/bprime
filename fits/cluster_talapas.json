@@ -1,10 +1,10 @@
 {
     "__default__" :
     {
-        "time" : "5-00:00:00",
+        "time" : "0-01:00:00",
         "n" : 1,
         "account" : "kernlab",
-        "partition" : "kern,kerngpu",
+        "partition" : "kern,kerngpu,preempt",
         "mem" : "5GB",
         "cores" : "40",
         "chdir": "/gpfs/projects/kernlab/vsb/projects/bprime/fits/",
@@ -14,7 +14,7 @@
     },
     "fit" :
     {
-        "time" : "5-00:00:00",
+        "time" : "0-01:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu,preempt",
@@ -27,7 +27,7 @@
     },
     "bmap":
     {
-        "time" : "1-00:00:00",
+        "time" : "0-05:00:00",
         "n" : 1,
         "account" : "kernlab",
         "partition" : "kern,kerngpu",
