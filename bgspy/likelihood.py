@@ -676,10 +676,11 @@ class BGSLikelihood:
     def chrom_resid_plot(self, figax=None):
         return chrom_resid_plot(self, figax)
 
-    def predict_plot(self, chrom, ratio=True, label='prediction',
+    def predict_plot(self, chrom, ratio=True, lw=1.1,
+                     label='prediction',
                      figax=None):
         return predict_chrom_plot(self, chrom, ratio=ratio,
-                                  label=label, figax=figax)
+                                  label=label, figax=figax, lw=lw)
 
     def scatter_plot(self, figax=None, highlight_chrom=None, chrom_cols=False, **scatter_kwargs):
         fig, ax = get_figax(figax)

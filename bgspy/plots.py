@@ -128,7 +128,7 @@ def predict_sparkplot(model,
 
 
 def predict_chrom_plot(model, chrom, ratio=True,
-                       label='prediction',
+                       label='prediction', lw=2,
                        add_r2=False, figax=None):
     m = model
     fig, ax = get_figax(figax)
@@ -146,10 +146,10 @@ def predict_chrom_plot(model, chrom, ratio=True,
         y = mean_ratio(y)
         ylab = "$\\pi/\\bar{\\pi}$"
 
-    ax.plot(midpoints, y, label=label)
+    ax.plot(midpoints, y, label=label, linewidth=lw)
     if ratio:
         pi = mean_ratio(pi)
-    ax.plot(midpoints, pi, c='g', alpha=0.4, label='data')
+    ax.plot(midpoints, pi, c='g', alpha=0.4, label='data', linewidth=lw)
     if add_r2:
         ax.set_title(f"$R^2 = {np.round(model.R2(), 2)}$")
     ax.set_ylabel(ylab)
