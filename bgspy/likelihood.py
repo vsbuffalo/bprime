@@ -1,13 +1,12 @@
 ## likelihood.py -- functions for likelihood stuff
 import os
 import re
-import logging
 from copy import copy
 import pickle
 import itertools
 import tqdm
+from si_prefix import si_format
 from scipy.special import softmax
-from scipy.optimize import curve_fit
 from scipy.stats import linregress
 from tabulate import tabulate
 from functools import partial
@@ -23,7 +22,7 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 #     pass
 
 from scipy import interpolate
-from bgspy.utils import signif, load_pickle, si_prefix
+from bgspy.utils import signif, load_pickle
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, scipy_softmax_worker
 from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
@@ -445,7 +444,7 @@ class BGSLikelihood:
         TODO: this could be refactored a bit to remove redundancy.
         """
         # generate the blocks
-        blocks = block_bins(self.bins, blocksize)
+        blocks = moving_block_bins(self.bins, blocksize)
 
         if blocknum is not None:
             # the jackknife out-sample
@@ -499,7 +498,7 @@ class BGSLikelihood:
         indices = [rgx.match(f).groups()[0] for f in files]
         nlls = np.stack([f.nll_ for f in fits])
         r2s = [f._block_r2 for f in fits]
-        
+
         if label:
             fits = dict(zip(indices, fits))
         self.jack_fits_ = fits
@@ -728,7 +727,7 @@ class BGSLikelihood:
         rows.append(f"  w grid: {signif(self.w)} (before interpolation)")
         rows.append(f"  t grid: {signif(self.t)}")
         bs = self.bins.width
-        rows.append(f"  blocksize: {si_prefix(bs)}bp")
+        rows.append(f"  window size: {si_format(bs)}bp")
         return "\n".join(rows)
 
 

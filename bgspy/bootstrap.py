@@ -22,6 +22,19 @@ def block_bins(bins, blocksize):
         blocks.extend(list(split_list(indices, blocksize)))
     return blocks
 
+
+def moving_block_bins(bins, blocksize):
+    assert isinstance(blocksize, int), type(blocksize)
+    i = 0
+    blocks = []
+    for chrom in bins.keys():
+        indices = bins.chrom_indices(chrom)
+        n = len(indices)
+        for i in range(0, n-blocksize+1, 1):
+            blocks.append(indices[i:(i+blocksize)])
+    return blocks
+
+
 def resample_blocks(bins, blocksize, nsamples=None, exclude_chroms=None):
     """
     Note that because mask filters can block out large regions of chromosome,
