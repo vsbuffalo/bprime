@@ -453,7 +453,7 @@ class BGSLikelihood:
             # the jackknife out-sample
             out_block_idx = blocks.pop(blocknum)
             # combine the rest of the blocks
-            block_indices = np.array(list(itertools.chain(*blocks)))
+            block_indices = np.array(list(set(itertools.chain(*blocks))))
             # fit the model on these indices
             obj = self.fit(**kwargs, _indices=block_indices)
             obj._indices_fit = block_indices
