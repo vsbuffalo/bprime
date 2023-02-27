@@ -1,9 +1,9 @@
 ---
 name: hg38__phastcons_not_genes_cds_genes_full__aamap
 windows:
-- 500000
+#- 500000
 - 1000000
-- 1500000
+#- 1500000
 # fixed parameters
 N: 10000
 # files
@@ -15,7 +15,7 @@ fasta_file: "../../data/annotation/hg38.fa.gz"
 neut_file: "../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz"
 counts_dir: "../../data/h1kg/hg1k_counts/"
 # for block-jackknifing
-approx_genome_size: 2900000000
+num_jackknife_samples: 1000
 blocksizes:
 - 25000000
 

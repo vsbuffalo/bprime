@@ -29,7 +29,7 @@ from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
-from bgspy.bootstrap import block_bins
+from bgspy.bootstrap import moving_block_bins
 
 
 # load the library (relative to this file in src/)
@@ -472,9 +472,12 @@ class BGSLikelihood:
         jackknife_results = []
         r2s = []
         for i, out_block_idx in tqdm.tqdm(enumerate(blocks)):
+            # note that this is not the most efficient here...
             block_indices = copy(blocks)
             block_indices.pop(i)  # drop this block
-            block_indices = np.array(list(itertools.chain(*block_indices)))
+            # because of the moving block, there are numerous redundant indices
+            # we remove here with set
+            block_indices = np.array(list(set(itertools.chain(*block_indices))))
             obj = self.fit(**kwargs, _indices=block_indices, progress=False)
             obj._indices_fit = block_indices
             # store metadata 

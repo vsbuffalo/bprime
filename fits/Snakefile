@@ -45,8 +45,7 @@ counts_dir = config["counts_dir"]
 N = config["N"]
 windows = [int(w) for w in config["windows"]]
 blocksizes = config["blocksizes"]
-genome_size = int(config["approx_genome_size"])
-
+njack_samples = config["num_jackknife_samples"]
 
 ## ------ created data
 # name auto-generated
@@ -73,8 +72,8 @@ for window in windows:
       # and left out; this prevents us from having to know the number
       # of blocks a priori, which is easier when pushing computation to the
       # cluster
-      nboot_samples = int(genome_size / blocksize)
-      for frac in np.linspace(0, 1, nboot_samples):
+      # non-inclusive, otherwise index error
+      for frac in np.linspace(0, 1, njack_samples)[:-1]:
           frac = np.round(frac, 5)
           jk_results.append(f'fit_{window}/jackknife/{blocksize}/jackknife_{frac}.pkl')
     
