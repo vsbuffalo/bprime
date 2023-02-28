@@ -15,7 +15,7 @@ fasta_file: "../../data/annotation/hg38.fa.gz"
 neut_file: "../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz"
 counts_dir: "../../data/h1kg/hg1k_counts/"
 # for block-jackknifing
-num_jackknife_samples: 1000
+num_jackknife_samples: 200
 blocksizes:
 - 25000000
 

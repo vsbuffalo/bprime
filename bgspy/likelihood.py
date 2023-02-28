@@ -1,5 +1,6 @@
 ## likelihood.py -- functions for likelihood stuff
 import os
+import warnings
 import re
 from copy import copy
 import pickle
@@ -497,6 +498,9 @@ class BGSLikelihood:
         Load the jackknife results by setting attributes.
         """
         files = [f for f in os.listdir(fit_dir) if f.endswith('.pkl')]
+        if not len(files):
+            warnings.warn(f"no .pkl model files found in {fit_dir}")
+            return None
         join = os.path.join
         fits = [load_pickle(join(fit_dir, f))['mbp'] for f in files]
         thetas = np.stack([f.theta_ for f in fits])
@@ -513,6 +517,31 @@ class BGSLikelihood:
         self.jack_indices = indices
         self.jack_r2s = r2s
         self.jackknife_stderr()
+
+    def load_loo(self, loo_dir):
+        """
+        Load the Leave-one-out chromosome directory.
+
+        TODO this could be merged with load_jackknives and 
+        made to be a more general function with code outside the
+        class.
+        """
+        files = [f for f in os.listdir(loo_dir) if f.endswith('.pkl')]
+        if not len(files):
+            warnings.warn(f"no .pkl model files found in {loo_dir}")
+            return None
+        join = os.path.join
+        fits = [load_pickle(join(loo_dir, f))['mbp'] for f in files]
+        thetas = np.stack([f.theta_ for f in fits])
+        rgx = re.compile(r'loo_([\w.]+)\.pkl')
+        chroms = [rgx.match(f).groups()[0] for f in files]
+        nlls = np.stack([f.nll_ for f in fits])
+
+        fits = dict(zip(chroms, fits))
+        self.loo_fits_ = fits
+        self.loo_nlls_ = nlls
+        self.loo_thetas_ = thetas
+        self.loo_chroms_ = chroms
 
     def ci(self, method='quantile'):
         assert self.boot_thetas_ is not None, "bootstrap() has not been run"
@@ -630,13 +659,22 @@ class BGSLikelihood:
             return R2(pred_pi, pi)
         return R2(pred_pi[_indices], pi[_indices])
 
-    def jackknife_stderr(self):
+    def jackknife_stderr(self, use_loo_chrom=False):
         """
         Calculate the jackknife standard errors.
         """
-        assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
+        # the MLE fit -- currently we use the bootstrap mean
         theta = self.theta_
-        Tni = self.jack_thetas_
+        if not use_loo_chrom:
+            msg = "SimplexModel.jack_thetas_ is None, load jackknife results first"
+            assert self.jack_thetas_ is not None, msg
+            thetas = self.jack_thetas_
+        else:
+            msg = ("use_loo_chrom=True set but SimplexModel.loo_thetas_ is None, "
+                   "load leave-one-out chromosome reults first")
+            assert self.loo_thetas_ is not None, msg
+            thetas = self.loo_thetas_
+        Tni = thetas
         n = Tni.shape[0]
         Tn = Tni.mean(axis=0)
         # TODO uses the jackknife estimates! should be option
@@ -644,26 +682,29 @@ class BGSLikelihood:
         sigma2_jack = (n-1)/n * Q
         sigma_jack = np.sqrt(sigma2_jack)
         self.sigma_ = sigma_jack
+        self.std_error_type = 'loo' if use_loo_chrom else 'moving block jackknife'
         return sigma_jack
 
     def loo_R2(self, return_raw=False):
         """
         Leave-one-out chromosome R2.
         """
-        assert hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None
-        jk_thetas = self.jack_thetas_
-        n = jk_thetas.shape[0]
+        assert hasattr(self, 'loo_thetas_') and self.loo_thetas_ is not None
+        loo_thetas = self.loo_thetas_
+        n = loo_thetas.shape[0]
         pi = pi_from_pairwise_summaries(self.Y)
         r2s = dict()
         weights = dict()
         for i in range(n):
-            loo_chrom = self.jack_chroms_[i]
+            loo_chrom = self.loo_chroms_[i]
             chrom_idx = self.bins.chrom_indices(loo_chrom)
-            theta = jk_thetas[i, ...]
+            theta = loo_thetas[i, ...]
             chrom_b = self.logB_fit[chrom_idx, ...]
             pred_pi = predict_simplex(theta, chrom_b, self.w)
             r2s[loo_chrom] = R2(pred_pi, pi[chrom_idx])
             weights[loo_chrom] = len(pred_pi)
+        self.loo_chrom_r2s = r2s
+        self.loo_chrom_weights = weights
         if return_raw: 
             return r2s, weights
         return np.average(list(r2s.values()), weights=list(weights.values()))
@@ -682,11 +723,8 @@ class BGSLikelihood:
     def chrom_resid_plot(self, figax=None):
         return chrom_resid_plot(self, figax)
 
-    def predict_plot(self, chrom, ratio=True, lw=1.1,
-                     label='prediction',
-                     figax=None):
-        return predict_chrom_plot(self, chrom, ratio=ratio,
-                                  label=label, figax=figax, lw=lw)
+    def predict_plot(self, chrom, figax=None, **kwargs):
+        return predict_chrom_plot(self, chrom, figax=figax, **kwargs)
 
     def scatter_plot(self, figax=None, highlight_chrom=None, chrom_cols=False, **scatter_kwargs):
         fig, ax = get_figax(figax)
@@ -763,6 +801,23 @@ class SimplexModel(BGSLikelihood):
                          log10_mu_bounds=log10_mu_bounds)
         # fit the exponential over the grid of mutation points
         self.logB_fit = fit_B_curve_params(self.logB, w)
+        self._reset()
+
+    def _reset(self):
+        # this is filled in with later model fits
+        self.theta_ = None
+        self.nll_ = None
+        self.jack_fits_ = None
+        self.jack_nlls_ = None
+        self.jack_thetas_ = None
+        self.jack_indices = None
+        self.jack_r2s = None
+        self.loo_fits_ = None
+        self.loo_nlls_ = None
+        self.loo_thetas_ = None
+        self.loo_chroms_ = None
+        self.sigma_ = None
+        self.std_error_type = None
 
     @staticmethod
     def from_data(file, use_classic_B=False):
@@ -825,6 +880,10 @@ class SimplexModel(BGSLikelihood):
         _indices: indices to include in fit; this is primarily internal, for
                   bootstrapping
         """
+        # the model is being re-fit; we need to 
+        # clear out any older state from jackknife stuff, etc
+        # as it's no longer valid
+        self._reset()
         mu_is_fixed = mu is not None
         self._fixed_mu = mu
         WORKERS = {'nlopt': nlopt_softmax_worker, 
@@ -963,7 +1022,8 @@ class SimplexModel(BGSLikelihood):
         # jackknife info
         if hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None:
             base_rows += f"number jackknife samples: {self.jack_thetas_.shape[0]}\n"
- 
+        
+        base_rows += f"standard error method: {self.std_error_type}\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
         nstarts = self.optim.thetas.shape[0]
         frac = np.round(self.optim.frac_success, 2)*100
