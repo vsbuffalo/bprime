@@ -147,10 +147,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         assert rescale_bp_file is not None, "--rescale-Bp-file must also be set!"
         gm = BGSModel.load(rescale_bp_file)
         fits = pickle.load(open(rescale_fit, 'rb'))
-        if len(fits) == 2:
-            bfit, bpfit = fits
-        else:
-            bpfit = fits
+        bfit, bpfit = fits['mb'], fits['mbp']
         rescale = (gm.BpScores, None, None, bpfit)
 
     # manual rescaling from a single fixed set of parameters is set.
@@ -247,9 +244,12 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--outliers',
               help='quantiles for trimming bin π',
               type=str, default='0.0,0.995')
+@click.option('--soft-mask', is_flag=True, default=True, 
+              help="whether to exclude soft-masked regions in the reference")
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
 def data(seqlens, recmap, neutral, access, fasta, 
-         bs_file, counts_dir, output, window, outliers, bp_only):
+         bs_file, counts_dir, output, window, outliers, 
+         soft_mask, bp_only):
     outliers = tuple([float(x) for x in outliers.split(',')])
     summarize_data(seqlens_file=seqlens, recmap_file=recmap,
                    neut_file=neutral, access_file=access, fasta_file=fasta,
@@ -257,6 +257,7 @@ def data(seqlens, recmap, neutral, access, fasta,
                    counts_dir=counts_dir,
                    window=window,
                    outliers=outliers,
+                   soft_mask=soft_mask,
                    output_file=output, bp_only=bp_only)
 
 # @click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
@@ -280,15 +281,15 @@ def data(seqlens, recmap, neutral, access, fasta,
               type=int, default=None)
 @click.option('--chrom', default=None,
               help="only fit on using this chromosome (default: genome-wide)")
-@click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
-def fit(data, output, mu, ncores, nstarts, chrom, bp_only):
+@click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
+def fit(data, output, mu, ncores, nstarts, chrom, only_bp):
     # for fixed mu
     #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             nstarts=nstarts,
-            mu=mu, chrom=chrom, bp_only=bp_only)
+            mu=mu, chrom=chrom, bp_only=only_bp)
 
 
 @cli.command()

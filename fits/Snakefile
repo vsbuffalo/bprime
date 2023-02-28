@@ -43,6 +43,7 @@ neut_file = config["neut_file"]
 fasta_file = config["fasta_file"]
 counts_dir = config["counts_dir"]
 N = config["N"]
+fit_rescaled = config["fit_rescaled"]
 windows = [int(w) for w in config["windows"]]
 blocksizes = config["blocksizes"]
 njack_samples = config["num_jackknife_samples"]
@@ -50,6 +51,7 @@ njack_samples = config["num_jackknife_samples"]
 ## ------ created data
 # name auto-generated
 Bs_file = f"bmap_6x7grid_100000step_{N}N_{name}.pkl"
+Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x7grid_100000step_{N}N_{name}.pkl"
 
 # the data that goes into the likelihood model
 model_data = [f'model_data_{w}.pkl' for w in windows]
@@ -58,9 +60,12 @@ model_data = [f'model_data_{w}.pkl' for w in windows]
 loo_results = []
 jk_results = []
 mle_results = []
+mle_results_rescaled = []
 boots_results = []
 for window in windows:
   mle_results.append(f'fit_{window}/mle.pkl')
+  if fit_rescaled:
+      mle_results_rescaled.append(f'fit_{window}_rescaled/mle.pkl')
   # chromosome-level LOO for R2, etc
   for chrom in CHROMS:
       loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
@@ -83,7 +88,7 @@ rule bmap:
   input: seqlens_file=seqlens_file,
          recmap=recmap_file,
          features=features_file
-  output: pkl_b_file="bmap_{grid_str}grid_{step}step_{N}N_{name}.pkl"
+  output: pkl_b_file="bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
   params: ncores=NCORES_B, ncores_bp=NCORES_BP
   shell:
     """
@@ -101,7 +106,7 @@ rule save_data:
          access_file=access_file, fasta_file=fasta_file,
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
-  output: 'model_data_{window}.pkl'
+  output: 'model_data_{window,\d+}.pkl'
   params: name=name
   shell:
     """
@@ -116,7 +121,7 @@ rule save_data:
 
 rule fit:
   input: 'model_data_{window}.pkl'
-  output: 'fit_{window}/mle.pkl'
+  output: 'fit_{window,\d+}/mle.pkl'
   params: ncores=NCORES, nstarts=NSTARTS, mu=mu, name=name
   benchmark: "benchmarks/fit_{window}.txt"
   shell:
@@ -132,7 +137,7 @@ rule block_jackknife:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
-  output: 'fit_{window}/jackknife/{blocksize}/jackknife_{frac}.pkl'
+  output: 'fit_{window,\d+}/jackknife/{blocksize}/jackknife_{frac}.pkl'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
@@ -149,7 +154,7 @@ rule loo_chrom:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
-  output: 'fit_{window}/loo_chrom/loo_{chrom}.pkl'
+  output: 'fit_{window,\d+}/loo_chrom/loo_{chrom}.pkl'
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
@@ -158,6 +163,59 @@ rule loo_chrom:
       --output {output[0]} \
       --chrom {wildcards.chrom} \
       --ncores {params.ncores} --nstarts {params.nstarts}
+    """
+
+# ----- locally-rescaled fits -----
+rule bmap_rescale:
+  input: seqlens_file=seqlens_file,
+         recmap=recmap_file,
+         features=features_file,
+         fit='fit_{window}/mle.pkl',
+         b=Bs_file
+  output: pkl_b_file="bmap_rescaled_{window,\d+}_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
+  params: ncores=NCORES_B, ncores_bp=NCORES_BP
+  shell:
+    """
+    bgspy calcb \
+      --recmap {input.recmap} --annot {input.features} \
+      --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.N} \
+      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --step {wildcards.step} \
+      --rescale-fit {input.fit} --only-Bp \
+      --rescale-Bp-file {input.b}
+    """
+
+rule save_data_rescale:
+  input: seqlens=seqlens_file, recmap_file=recmap_file,
+         access_file=access_file, fasta_file=fasta_file,
+         neut_file=neut_file, counts_dir=counts_dir,
+         bs_file=Bs_file_rescaled
+  output: 'model_data_{window,\d+}_rescaled.pkl'
+  params: name=name
+  shell:
+    """
+    mkdir -p {params.name}
+    bgspy data --seqlens {input.seqlens} --recmap {input.recmap_file} \
+      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
+      --access {input.access_file} --bs-file {input.bs_file} \
+      --window {wildcards.window} \
+      --fasta {input.fasta_file} \
+      --output {output[0]}
+    """
+
+rule fit_rescaled:
+  input: 'model_data_{window,\d+}_rescaled.pkl'
+  output: 'fit_{window,\d+}_rescaled/mle.pkl'
+  params: ncores=NCORES, nstarts=NSTARTS, mu=mu, name=name
+  benchmark: "benchmarks/fit_{window}_rescaled.txt"
+  shell:
+    """
+    mkdir -p {params.name}
+    bgspy fit \
+      --data {input[0]} \
+      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --output {output[0]} --only-Bp
     """
 
 ## ----- CLI rules 
@@ -173,7 +231,10 @@ rule jackknife:
 rule loo:
   input: mle_results, loo_results
 
+rule rescaled:
+  input: mle_results_rescaled
+
 rule all:
-  input: model_data, mle_results, loo_results, jk_results
+  input: model_data, mle_results, loo_results, jk_results, mle_results_rescaled
 
 

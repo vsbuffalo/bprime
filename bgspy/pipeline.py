@@ -27,7 +27,7 @@ def summarize_data(# annotation
          # optional sim data for sim run
          sim_tree_file=None, sim_chrom=None, sim_mu=None,
          # filters
-         thresh_cM=1, outliers=(0.0, 0.995),
+         thresh_cM=1, outliers=(0.0, 0.995), soft_mask=True,
          # other
          bp_only=False, name=None, only_autos=True, verbose=True):
     """
@@ -63,7 +63,7 @@ def summarize_data(# annotation
 
     gd.load_neutral_masks(neut_file)
     gd.load_accessibile_masks(access_file)
-    gd.load_fasta(fasta_file, soft_mask=True)
+    gd.load_fasta(fasta_file, soft_mask=soft_mask)
     gd.trim_ends(thresh_cM=thresh_cM)
 
     # bin the diversity data
