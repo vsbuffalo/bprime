@@ -15,6 +15,7 @@ dependencies:
   - matplotlib
   - jupyterlab
   - defopt
+  - cyvcf2
   - si-prefix
   - tqdm
   - pandas
