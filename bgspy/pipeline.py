@@ -60,7 +60,7 @@ def summarize_data(# annotation
         assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
         ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
         gd.load_counts_from_ts(ts, chrom=sim_chrom)
-
+    
     gd.load_neutral_masks(neut_file)
     gd.load_accessibile_masks(access_file)
     gd.load_fasta(fasta_file, soft_mask=soft_mask)
@@ -75,6 +75,72 @@ def summarize_data(# annotation
     del gd  # we don't need it after this, it's summarized
     # mask bins that are outliers
     bgs_bins.mask_outliers(outliers)
+
+    # genome models
+    logging.info("loading Bs")
+    gm = BGSModel.load(bs_file)
+
+    # features -- load for labels
+    features = list(gm.segments.feature_map.keys())
+
+    # handle if we're doing B too or just B'
+    m_b = None
+    if gm.Bs is None:
+        warnings.warn(f"BGSModel.Bs is not set, so not fitting classic Bs (this is likely okay.)")
+        bp_only = True  # this has to be true now, no B
+
+    # bin Bs
+    if not bp_only:
+        logging.info("binning B")
+        b = bgs_bins.bin_Bs(gm.BScores)
+
+    # B' is always fit
+    logging.info("binning B'")
+    bp = bgs_bins.bin_Bs(gm.BpScores)
+
+    # get the diversity data
+    logging.info("making diversity matrix Y")
+    Y = bgs_bins.Y()
+
+    logging.info("saving pre-fit model data")
+    with open(output_file, 'wb') as f:
+        dat = {'bins': bgs_bins, 'Y': Y, 
+               'bp': bp, 'features': features,
+               't': gm.t, 'w': gm.w}
+        if not bp_only:
+            dat['b'] = b
+        pickle.dump(dat, f)
+
+
+def summarize_sim_data(sim_tree_file,
+                       bs_file, output_file,
+                       # window size
+                       window,
+                       sim_mu=None,
+                       # other
+                       bp_only=False, verbose=True):
+
+    """
+    """
+    # because we're likely processing a lot of sim
+    # trees, we store metadata for downstream stuff
+    md = dict(sim_tree_file = sim_tree_file, sim_mu=sim_mu)
+    logging.info("loading tree")
+    tree = tsk.load(sim_tree_file)
+    # the metadata from the sims
+    tmd = tree.metadata['SLiM']['user_metadata']
+    
+    # we fake out the genome/seqlens -- todo this should
+    # be metadata in future sims
+    seqlens = {'sim_chrom': tree.sequence_length}
+    g = Genome(name, seqlens=seqlens)
+    gd = GenomeData(g)
+    ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
+    gd.load_counts_from_ts(ts, chrom=sim_chrom)
+
+    # bin the diversity data
+    logging.info("binning pairwise diversity") 
+    bgs_bins = gd.bin_pairwise_summaries(window)
 
     # genome models
     logging.info("loading Bs")
@@ -154,7 +220,7 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     else:
         m_bp.fit(starts=starts, ncores=ncores,
                  mu=mu, chrom=chrom)
-    
+
     # save the B' results
     msg = "saving B' model results"
     logging.info(msg)
@@ -164,7 +230,7 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
 
     if bp_only:
         return
-   
+
     # we also need to fit the classic B
     logging.info("fitting B model")
     m_b = SimplexModel.from_data(data, use_classic_B=True)

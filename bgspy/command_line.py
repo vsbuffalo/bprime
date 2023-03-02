@@ -112,7 +112,8 @@ def cli():
               "(--t/--w ignored if this is set)", default=None)
 @click.option('--chrom', help="process a single chromosome", default=None)
 @click.option('--popsize', help="population size for B'", type=int, default=None)
-@click.option('--split-length', default=SPLIT_LENGTH_DEFAULT, help='conserved segments larger than split-length will be broken into chunks')
+@click.option('--split-length', default=SPLIT_LENGTH_DEFAULT,
+              help='conserved segments larger than split-length will be broken into chunks')
 @click.option('--step', help='step size for B in basepairs (default: 1kb)',
               default=STEP_DEFAULT)
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
@@ -124,14 +125,15 @@ def cli():
 @click.option('--ncores', help='number of cores to use for calculating B', type=int, default=None)
 @click.option('--ncores-Bp', help="number of cores to use for calculating B' (more memory intensive)",
               type=int, default=None)
-#@click.option('--fill-nan', default=True, is_flag=True,
-#              help="fill NANs from B' with B values")
 @click.option('--output', required=True, help='output file',
               type=click.Path(exists=False, writable=True))
 def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
           chrom, popsize, split_length, step, only_bp, only_b,
           rescale_fit, rescale, rescale_bp_file, nchunks, ncores,
           ncores_bp, output):
+    """
+    Calculate B and/or B'.
+    """
 
     N = popsize
     if ncores_bp is None and ncores is not None:
@@ -199,6 +201,10 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
               help='output file for a pickle of the segments',
               type=click.Path(exists=False, writable=True))
 def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
+    """
+    Calculate segment stats.
+    """
+    #TODO check this, as it's not been used in age.
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        w=None, t=None, chroms=None, name=None,
                        split_length=split_length)
@@ -250,6 +256,15 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 def data(seqlens, recmap, neutral, access, fasta, 
          bs_file, counts_dir, output, window, outliers, 
          soft_mask, bp_only):
+    """
+    Pre-process genomic count data for MLE fit.
+
+
+    Load genomic data from numpy .npz ref/alt counts, read in accessible and
+    neutral regions, summarize into windows, filter outliers, and bin B/B'
+    to prepare for MLE fit. This outputs a pickle file of the windowed
+    genomic and B/B' data.
+    """
     outliers = tuple([float(x) for x in outliers.split(',')])
     summarize_data(seqlens_file=seqlens, recmap_file=recmap,
                    neut_file=neutral, access_file=access, fasta_file=fasta,
@@ -260,9 +275,26 @@ def data(seqlens, recmap, neutral, access, fasta,
                    soft_mask=soft_mask,
                    output_file=output, bp_only=bp_only)
 
-# @click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
-#               help="a tree sequence file from a simulation")
-# @click.option('--sim-mu', required=False, type=float, help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
+
+@cli.command()
+@click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
+              help="a tree sequence file from a simulation")
+@click.option('--sim-mu', required=False, type=float, 
+              help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
+@click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
+@click.option('--bs-file', required=True, type=click.Path(exists=True),
+              help="BGSModel genome model pickle file (contains B' and B)")
+@click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for results")
+@click.option('--window',
+              help='size (in basepairs) of the window',
+              type=int, default=1_000_000)
+def simdata(sim_tree_file, bs_file, output, window, sim_mu, bp_only):
+    """
+    Pre-process a tskit.TreeSequence simulated tree.
+    """
+    summarize_sim_data(sim_tree_file, bs_file, output,
+                       window, sim_mu, bp_only)
 
 
 @cli.command()
@@ -283,6 +315,9 @@ def data(seqlens, recmap, neutral, access, fasta,
               help="only fit on using this chromosome (default: genome-wide)")
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
 def fit(data, output, mu, ncores, nstarts, chrom, only_bp):
+    """
+    Run the MLE fit on pre-processed data.
+    """
     # for fixed mu
     #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     mle_fit(data=data,
@@ -291,24 +326,6 @@ def fit(data, output, mu, ncores, nstarts, chrom, only_bp):
             nstarts=nstarts,
             mu=mu, chrom=chrom, bp_only=only_bp)
 
-@cli.command()
-@click.option('--tree', default=None, type=click.Path(exists=True),
-              help="pickle of pre-computed summary statistics")
-#@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
-@click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
-              help="pickle file for results")
-@click.option('--mu', help='fixed mutation rate (by default, free)', 
-              type=float, default=None)
-@click.option('--ncores',
-              help='number of cores to use for multi-start optimization',
-              type=int, default=None)
-@click.option('--nstarts',
-              help='number of starts for multi-start optimization',
-              type=int, default=None)
-@click.option('--chrom', default=None,
-              help="only fit on using this chromosome (default: genome-wide)")
-@click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
-def fit_sims(tree, output, mu, ncores, nstarts, only_bp):
 
 @cli.command()
 @click.option('--bs-file', required=True, type=click.Path(exists=True),
@@ -325,6 +342,7 @@ def fit_sims(tree, output, mu, ncores, nstarts, only_bp):
               "(uses '<output>_<feature_a>.bed', etc)")
 def subrate(bs_file, fit, force_feature, output, split):
     """
+    Take a fit and predict the substitution rates.
     """
     m = BGSModel.load(bs_file)
     bfit, bpfit = pickle.load(open(fit, 'rb'))
@@ -381,7 +399,9 @@ def subrate(bs_file, fit, force_feature, output, split):
 def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output, 
               fit_dir, chrom, ncores, nstarts, include_bs):
     """
-    Run the block-jackknifing routine. There are two modes:
+    Run the block-jackknifing routine. 
+
+    There are two modes:
         1. Run with --blocksize set only, and all blocks will be 
             jackknifed.
         2. Run with --blocksize and --blocknum, and only that 
@@ -425,12 +445,14 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output,
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def jackchrom(data, fit, output, fit_dir, chrom,
+def loo(data, fit, output, fit_dir, chrom,
               ncores, nstarts, include_bs):
     """
-    Estimate R2 by leaving out a chromosome, fitting to the rest of the genome,
-    and predicting the observed diversity on the excluded chromosome.
-
+    Leave-one-out chromosome fit. 
+    
+    This is used for estimating out-sample R2 by leaving out a chromosome,
+    fitting to the rest of the genome, and predicting the observed diversity on
+    the excluded chromosome.
     """
     mle_fit(data=data,
             output_file=output,
@@ -458,41 +480,6 @@ def collect(fit_dir, output, fit):
     mbp.loo_stderr()
     mbp.loo_R2()
     # TODO
-
-
-
-
-# @cli.command()
-# @click.option('--fit', required=True, type=click.Path(exists=True),
-                #               help='pickle file of fitted results')
-# @click.option('--bootstrap-dir', required=True, type=click.Path(exists=True),
-                #               help=('directory of bootstrap results (e.g. if run with '
-                                                                       #                     'Snakemake) to collect'))
-# @click.option('--outfile', required=False,
-                #               type=click.Path(dir_okay=False, writable=True),
-                #               help="pickle file for new fit object")
-# def collect_straps(fit, bootstrap_dir, outfile):
-#     """
-#     Collection all the bootstrap files (e.g. if run on a cluster with Snakemake).
-
-    # If outfile is specified, the bootstraps are collect into arrays
-    # and put into the BGSLikelihood model as attributes and both
-    # B' and B' are saved
-    # """
-    # with open(fit, 'rb') as f:
-    #     sm_b, sm_bp = pickle.load(f)
-
-    # tmp = load_from_bs_dir(bootstrap_dir)
-    # b_boot_nlls, b_boot_thetas, bp_boot_nlls, bp_boot_thetas = tmp
-
-    # # join all the strap
-    # sm_b.boot_nlls_ = b_boot_nlls
-    # sm_b.boot_thetas_ = b_boot_thetas
-    # sm_bp.boot_nlls_ = bp_boot_nlls
-    # sm_bp.boot_thetas_ = bp_boot_thetas
-
-    # with open(outfile, 'wb') as f:
-    #     pickle.dump((sm_b, sm_bp), f)
 
 
 if __name__ == "__main__":

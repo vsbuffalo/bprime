@@ -159,7 +159,7 @@ rule loo_chrom:
   params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
   shell:
     """
-    bgspy jackchrom \
+    bgspy loo \
       --data {input.data} \
       --output {output[0]} \
       --chrom {wildcards.chrom} \
