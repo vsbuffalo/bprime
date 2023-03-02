@@ -50,8 +50,8 @@ njack_samples = config["num_jackknife_samples"]
 
 ## ------ created data
 # name auto-generated
-Bs_file = f"bmap_6x7grid_100000step_{N}N_{name}.pkl"
-Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x7grid_100000step_{N}N_{name}.pkl"
+Bs_file = f"bmap_6x8grid_100000step_{N}N_{name}.pkl"
+Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x8grid_100000step_{N}N_{name}.pkl"
 
 # the data that goes into the likelihood model
 model_data = [f'model_data_{w}.pkl' for w in windows]
@@ -130,6 +130,7 @@ rule fit:
     bgspy fit \
       --data {input[0]} \
       --ncores {params.ncores} --nstarts {params.nstarts} \
+      --mu {params.mu} \
       --output {output[0]}
     """
 

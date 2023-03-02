@@ -24,7 +24,7 @@ LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 MIN_W = np.sqrt(1e-8 * 1e-7)
 #HUMAN_W = (-10, np.log10(MIN_W))
 HUMAN_W = (-11, -7)
-HUMAN_T = (-7, -1)
+HUMAN_T = (-8, -1)
 
 
 def grid_maker(nw, nt, w_range=HUMAN_W, t_range=HUMAN_T):
@@ -291,6 +291,24 @@ def fit(data, output, mu, ncores, nstarts, chrom, only_bp):
             nstarts=nstarts,
             mu=mu, chrom=chrom, bp_only=only_bp)
 
+@cli.command()
+@click.option('--tree', default=None, type=click.Path(exists=True),
+              help="pickle of pre-computed summary statistics")
+#@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
+@click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
+              help="pickle file for results")
+@click.option('--mu', help='fixed mutation rate (by default, free)', 
+              type=float, default=None)
+@click.option('--ncores',
+              help='number of cores to use for multi-start optimization',
+              type=int, default=None)
+@click.option('--nstarts',
+              help='number of starts for multi-start optimization',
+              type=int, default=None)
+@click.option('--chrom', default=None,
+              help="only fit on using this chromosome (default: genome-wide)")
+@click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
+def fit_sims(tree, output, mu, ncores, nstarts, only_bp):
 
 @cli.command()
 @click.option('--bs-file', required=True, type=click.Path(exists=True),

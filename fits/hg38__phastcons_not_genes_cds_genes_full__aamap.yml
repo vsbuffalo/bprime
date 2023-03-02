@@ -18,5 +18,6 @@ counts_dir: "../../data/h1kg/hg1k_counts/"
 num_jackknife_samples: 200
 blocksizes:
 - 25000000
-- 50000000
+#- 50000000
+fit_rescaled: true
 
