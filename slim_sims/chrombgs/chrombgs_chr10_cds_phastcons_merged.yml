@@ -16,18 +16,16 @@ params:
   mu:
     type: float
     grid:
-    - 3.16e-08
+    - 1.5e-08
   sh:
     type: float
     grid:
-    - 1.0e-05
-    - 0.0001
     - 0.001
   chr:
     type: str
     grid:
     - '10'
-nreps: 1000
+nreps: 10
 
 # mle fit 
 b_file: ../../data/bmaps/bgspy/bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl
