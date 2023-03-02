@@ -307,7 +307,7 @@ def simdata(sim_tree, bs_file, output, window, sim_mu, bp_only):
               required=True, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--mu', help='fixed mutation rate (by default, free)', 
-              type=float, default=None)
+              default=None)
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=None)
@@ -322,7 +322,7 @@ def fit(data, output, mu, ncores, nstarts, chrom, only_bp):
     Run the MLE fit on pre-processed data.
     """
     # for fixed mu
-    #mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
+    mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
