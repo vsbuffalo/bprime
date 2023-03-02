@@ -7,7 +7,7 @@ from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.utils import Grid, load_pickle
-from bgspy.pipeline import summarize_data, mle_fit
+from bgspy.pipeline import summarize_data, mle_fit, summarize_sim_data
 from bgspy.bootstrap import block_bins
 
 SPLIT_LENGTH_DEFAULT = 10_000
@@ -277,31 +277,34 @@ def data(seqlens, recmap, neutral, access, fasta,
 
 
 @cli.command()
-@click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
+@click.option('--sim-tree', required=True,
               help="a tree sequence file from a simulation")
-@click.option('--sim-mu', required=False, type=float, 
+@click.option('--sim-mu', required=True, type=float,
               help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
 @click.option('--bs-file', required=True, type=click.Path(exists=True),
               help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
+@click.option('--output', default=None, required=True,
+              type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--window',
               help='size (in basepairs) of the window',
               type=int, default=1_000_000)
-def simdata(sim_tree_file, bs_file, output, window, sim_mu, bp_only):
+def simdata(sim_tree, bs_file, output, window, sim_mu, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
     """
-    summarize_sim_data(sim_tree_file, bs_file, output,
-                       window, sim_mu, bp_only)
+    summarize_sim_data(sim_tree, bs_file, output,
+                       window, 'chr10', sim_mu, bp_only)
 
 
 @cli.command()
-@click.option('--data', default=None, type=click.Path(exists=True),
+@click.option('--data', required=True, default=None,
+              type=click.Path(exists=True),
               help="pickle of pre-computed summary statistics")
 #@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
-@click.option('--output', default=None, type=click.Path(dir_okay=False, writable=True),
+@click.option('--output',
+              required=True, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--mu', help='fixed mutation rate (by default, free)', 
               type=float, default=None)
@@ -310,7 +313,7 @@ def simdata(sim_tree_file, bs_file, output, window, sim_mu, bp_only):
               type=int, default=None)
 @click.option('--nstarts',
               help='number of starts for multi-start optimization',
-              type=int, default=None)
+              type=int, default=500)
 @click.option('--chrom', default=None,
               help="only fit on using this chromosome (default: genome-wide)")
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")

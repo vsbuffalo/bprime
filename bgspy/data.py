@@ -609,6 +609,8 @@ class GenomicBins:
         GenomeData object) -- if the mean number of unaccessible
         sited in a window is above frac, this bin is masked.
         """
+        if chrom_masks is None:
+            return  # nothing to mask
         if self.masks_ is None:
             self.clear_masks()
 

@@ -31,7 +31,7 @@ def mutate_simulated_tree(ts, rate, seed=None,
     if remove_existing_mutations:
         ts = delete_mutations(ts)
     return msprime.sim_mutations(ts, rate=rate, random_seed=seed, 
-                                 model=msprime.BinaryMutationModel)
+                                 model=msprime.BinaryMutationModel())
 
 def fixed_params(params):
     """

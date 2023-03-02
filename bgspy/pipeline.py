@@ -1,9 +1,9 @@
 import warnings
 import logging
 import pickle
-import numpy as np
+import tskit as tsk
 from bgspy.models import BGSModel
-from bgspy.utils import load_seqlens, load_pickle
+from bgspy.utils import load_seqlens
 from bgspy.sim_utils import mutate_simulated_tree
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
@@ -23,9 +23,7 @@ def summarize_data(# annotation
          # window size
          window,
          # data
-         counts_dir=None, 
-         # optional sim data for sim run
-         sim_tree_file=None, sim_chrom=None, sim_mu=None,
+         counts_dir,
          # filters
          thresh_cM=1, outliers=(0.0, 0.995), soft_mask=True,
          # other
@@ -50,17 +48,7 @@ def summarize_data(# annotation
     # the recombination map is used for the cM end filtering
     g.load_recmap(recmap_file)
     gd = GenomeData(g)
-    is_sim = sim_tree_file is not None
-    if counts_dir is not None:
-        assert not is_sim, "set either counts directory or sim tree file"
-        gd.load_counts_dir(counts_dir)
-    else:
-        assert counts_dir is None, "set either counts directory or sim tree file"
-        assert sim_chrom is not None, "sim_chrom needs to be specified when loading from a treeseq"
-        assert sim_mu is not None, "set a mutation rate to turn treeseqs to counts"
-        ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
-        gd.load_counts_from_ts(ts, chrom=sim_chrom)
-    
+    gd.load_counts_dir(counts_dir)
     gd.load_neutral_masks(neut_file)
     gd.load_accessibile_masks(access_file)
     gd.load_fasta(fasta_file, soft_mask=soft_mask)
@@ -116,7 +104,7 @@ def summarize_sim_data(sim_tree_file,
                        bs_file, output_file,
                        # window size
                        window,
-                       sim_mu=None,
+                       sim_chrom, sim_mu=None,
                        # other
                        bp_only=False, verbose=True):
 
@@ -129,11 +117,13 @@ def summarize_sim_data(sim_tree_file,
     tree = tsk.load(sim_tree_file)
     # the metadata from the sims
     tmd = tree.metadata['SLiM']['user_metadata']
+    # add in metadata from SLiM user md
+    md = md | tmd
     
     # we fake out the genome/seqlens -- todo this should
     # be metadata in future sims
-    seqlens = {'sim_chrom': tree.sequence_length}
-    g = Genome(name, seqlens=seqlens)
+    seqlens = {sim_chrom: tree.sequence_length}
+    g = Genome('sim', seqlens=seqlens)
     gd = GenomeData(g)
     ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
     gd.load_counts_from_ts(ts, chrom=sim_chrom)
@@ -170,9 +160,9 @@ def summarize_sim_data(sim_tree_file,
 
     logging.info("saving pre-fit model data")
     with open(output_file, 'wb') as f:
-        dat = {'bins': bgs_bins, 'Y': Y, 
+        dat = {'bins': bgs_bins, 'Y': Y,
                'bp': bp, 'features': features,
-               't': gm.t, 'w': gm.w}
+               't': gm.t, 'w': gm.w, 'md': md}
         if not bp_only:
             dat['b'] = b
         pickle.dump(dat, f)
