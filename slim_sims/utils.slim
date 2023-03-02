@@ -3,6 +3,105 @@ function (logical)contains(string x, string y) {
   return length(strsplit(x, y)) > 1;
 }
 
+function (object)mut(integer i) {
+  if (length(i) == 1) 
+    return executeLambda(format("m%d;", i));
+  // build a vector of mutatin types.
+  m_concat = "c(m" + paste(i, sep=", m") + ")";
+  return executeLambda(m_concat + ";");
+}
+
+// Load in a TSV DFE file
+// first line is:
+//   grid        1e-1,1e-2,...
+// next are:
+//   feature     0.1,0.2,...
+function (object)load_tsv_dfe(string _dfe_file) {
+  dfe = Dictionary();
+  dfe_map = Dictionary();
+  first = T;
+  for (line in readFile(_dfe_file)) {
+    parts = strsplit(line, "\t");
+    feature = parts[0];
+    dist = asFloat(strsplit(parts[1], ","));
+    if (first) {
+      // get the grid
+      assert(feature == "grid");
+      selgrid = dist;
+      print(selgrid);
+      first = F;
+      next;
+    } else {
+      assert(feature != "grid", "'grid' is reserved!");
+    }
+    assert(length(dist) == length(selgrid), feature + " has inconsistent length");
+    dfe.setValue(feature, dist);
+  }
+  dfe.setValue("grid", selgrid);
+  return dfe;
+}
+
+// Build up fixed-PMF DFE for the fatures in a BED file
+// _annot_file: annotation BED file
+// _dfe: dictionary of DFE entries
+// _h: dominance coefficient
+// _chrom: the chromosome being simulated (all other chroms 
+//         in _annot_file are ignored)
+function (void)initialize_genome_dfe(string _annot_file, object _dfe, float _h, string _chrom) {
+  // ---- first build the mutation types for the DFE
+  all_muts = c();
+  selgrid = _dfe.getValue("grid");
+  for (i in seqAlong(selgrid)) {
+    initializeMutationType(i, h, "f", -selgrid[i]);
+    all_muts = c(all_muts, i);
+  }
+
+  // ---- then build up the genomic element types 
+  gene_els = Dictionary();
+  for (i in seqAlong(_dfe.allKeys)) {
+    key = _dfe.allKeys[i];
+    // make a genomic element for this feature type
+    gx = paste0("g", i);
+    // keep track of the features in a map
+    gene_els.setValue(key, gx);
+    // build the genomic element type, with proper discrete PMF
+    // DFE
+    initializeGenomicElementType(gx, all_muts,
+                                 _dfe.getValue(key));
+  }
+
+  // ---- finally, build up the genomic elements
+  ngenes = 0;
+  for (line in readFile(_annot_file)) {
+    parts = strsplit(line, "\t");
+    if (parts[0] != _chrom) {
+      next;
+    }
+    start = asInteger(parts[1]);
+    end = asInteger(parts[2]);
+    key = parts[3];
+    initializeGenomicElement(executeLambda(gene_els.getValue(key) + ';'), start, end-1);
+    ngenes = ngenes + 1;
+  }
+  catn("number of genomic elements: " + ngenes);
+
+}
+
+function (string)get_chrom_length(string seqlen_file, 
+                                  string chrom) {
+  // get chromsome length from a TSV 'genome'
+  // file of chromosome names and lengths
+  chrom_length = -1;
+  for (line in readFile(seqlen_file)) {
+    parts = strsplit(line, "\t");
+    if (parts[0] == chrom) {
+      chrom_length = asInteger(parts[1]);
+    }
+  }
+  assert(chrom_length > 1);
+  return chrom_length;
+}
+
 function (string)filename_str(string params) {
   out = "";
   for (i in seqAlong(params)) {
