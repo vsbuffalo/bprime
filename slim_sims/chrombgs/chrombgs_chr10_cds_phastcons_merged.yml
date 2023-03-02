@@ -1,0 +1,35 @@
+---
+name: conserved_cds_phastcons_merged
+# annotation data for sims (*WARNING* just for Snakemake dependencies 
+# now) WARNING: current API does not support changing these
+seqlens_file: ../../data/annotation/hg38_seqlens.tsv
+recmap_file: "../../data/annotation/aamap_hg38.tsv"
+# slim sims
+runtype: grid
+slim: chrombgs.slim
+cons_track: conserved_cds_phastcons_merged
+params:
+  N:
+    type: int
+    grid:
+    - 1000
+  mu:
+    type: float
+    grid:
+    - 3.16e-08
+  sh:
+    type: float
+    grid:
+    - 1.0e-05
+    - 0.0001
+    - 0.001
+  chr:
+    type: str
+    grid:
+    - '10'
+nreps: 1000
+
+# mle fit 
+b_file: ../../data/bmaps/bgspy/bmap_hg38_6x7grid_10000step_1000N_cds_phastcons_merged.pkl
+windows: 
+  - 1000000
