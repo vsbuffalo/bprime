@@ -58,8 +58,11 @@ function (void)initialize_genome_dfe(string _annot_file, object _dfe, float _h, 
 
   // ---- then build up the genomic element types 
   gene_els = Dictionary();
+  ngeneltypes = 0;
   for (i in seqAlong(_dfe.allKeys)) {
     key = _dfe.allKeys[i];
+    if (key == "grid")
+      next;
     // make a genomic element for this feature type
     gx = paste0("g", i);
     // keep track of the features in a map
@@ -68,6 +71,7 @@ function (void)initialize_genome_dfe(string _annot_file, object _dfe, float _h, 
     // DFE
     initializeGenomicElementType(gx, all_muts,
                                  _dfe.getValue(key));
+    ngeneltypes = ngeneltypes + 1;
   }
 
   // ---- finally, build up the genomic elements
@@ -83,18 +87,39 @@ function (void)initialize_genome_dfe(string _annot_file, object _dfe, float _h, 
     initializeGenomicElement(executeLambda(gene_els.getValue(key) + ';'), start, end-1);
     ngenes = ngenes + 1;
   }
-  catn("number of genomic elements: " + ngenes);
-
+  catn("initialized genomic element types: " + ngeneltypes);
+  catn("initialized genomic elements: " + ngenes);
+  catn("initialized mutation types: " + length(selgrid));
 }
 
-function (string)get_chrom_length(string seqlen_file, 
-                                  string chrom) {
+// Load a HapMap-formatted recombination map
+function (void)load_recmap(string _recmap_file, string _chrom, integer _chrom_length) {
+  // assumes cM/Mb rates 0.01 / 1e6
+  bins = c();
+  rates = c();
+  for (line in readFile(_recmap_file)) {
+    parts = strsplit(line, "\t");
+    if (parts[0] == "Chromosome" | parts[0] != _chrom) {
+      next; // skip HapMap header or chroms we aren't sim'ing
+    }
+    // rates are cM/Mbp per 100kb window
+    rates = c(rates, 1e-8 * asFloat(parts[2]));
+    bins = c(bins, asInteger(parts[1]));
+  }
+  bins = c(bins, _chrom_length-1);
+  rates = c(rates, 0);
+  initializeRecombinationRate(rates, bins);
+  catn("initialized recrate bins: " + length(bins));
+}
+
+function (integer)get_chrom_length(string _seqlens_file, 
+                                  string _chrom) {
   // get chromsome length from a TSV 'genome'
   // file of chromosome names and lengths
   chrom_length = -1;
-  for (line in readFile(seqlen_file)) {
+  for (line in readFile(_seqlens_file)) {
     parts = strsplit(line, "\t");
-    if (parts[0] == chrom) {
+    if (parts[0] == _chrom) {
       chrom_length = asInteger(parts[1]);
     }
   }

@@ -5,9 +5,6 @@ initialize() {
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
 
-  N = 100;  // XXX
-  mu = 1e-8;
-
   // We fix h = 0.5 and calculate the proper homozygous selection
   // coefficient.
   defineConstant("h", 0.5);
@@ -18,14 +15,15 @@ initialize() {
   // ----- mutation rate -----
   initializeMutationRate(mu);
 
-  //initializeMutationType("m1", h, "f", -1e-1);
-  //initializeGenomicElementType("g1", mut(1), 1);
+  // main genome/mutation/recombination/DFE setup
+  chrom_length = get_chrom_length(seqlens_file, chrom);
   dfe = load_tsv_dfe(dfe_file);
   initialize_genome_dfe(annot_file, dfe, h, chrom);
+  load_recmap(recmap_file, chrom, chrom_length);
 }
 
 // create a population of 500 individuals
-1 early() {
+1 {
   sim.addSubpop("p1", N);
   sim.rescheduleScriptBlock(s1, start=2, end=duration);
   sim.rescheduleScriptBlock(s2, start=duration, end=duration);
