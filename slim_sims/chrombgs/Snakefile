@@ -1,4 +1,5 @@
 import itertools 
+from os.path import join
 import numpy as np
 np.random.seed(1)
 from collections import defaultdict, namedtuple
@@ -15,18 +16,21 @@ if not len(config):
 # ------- Shared Parameters -------
 DATADIR = "../../data/slim_sims/chrombgs_chr10/"
 SLIM = '~/src/SLiM_build/slim'
+NCORES = 40
 
 # the output of one BGS slim sim (chrombgs.slim)
 #SIM_OUTPUTS = ["seldac.tsv.gz", "sub.tsv.gz", "treeseq.tree"]
+ANNOT_FILES = [config['seqlens_file'], config['recmap_file']]
+CONS_TRACK_FILE = config['cons_track']
 SIM_OUTPUTS = ["treeseq.tree"]
-SEQLENS = "../../data/annotation/hg38_seqlens.tsv" 
 
-RECMAP = "../../data/annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt"
-ANNOT_FILES = [SEQLENS, RECMAP]
 
+# the empirical B map 
+SIM_NP = join(DATADIR, bgs_run.name, f"{bgs_run.name}.npz")
 
 # ------- Simple BGS for B Maps -------
-bgs_run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid, sims_subdir=True, split_dirs=3)
+bgs_run = SlimRuns(config, dir=DATADIR, sampler=ParamGrid,
+                   sims_subdir=True, split_dirs=3)
 bgs_run.generate(SIM_OUTPUTS)
 
 # to get param order for SLiM file
@@ -34,25 +38,54 @@ bgs_run.generate(SIM_OUTPUTS)
 
 bgs_results = bgs_run.targets
 
-#print(bgs_results)
-bgs_dac = [f.replace('treeseq.tree', 'dac.tsv.gz') for f in itertools.chain(*bgs_run.targets)]
+# this is a bit of a hack, but we take the BGS tree
+# files and convert the file names to where we want
+# the MLE fit 
+mle_results = []
+for treefile in bgs_results:
+    if not treefile.endwith('.tree'):
+        continue
+    else: 
+        for window in windows:
+            mlefile = treefile.replace('/sims/', '/mles/').replace('_treeseq.tree', '')
+            mlefile = mlefile += f"{window}_mle.pkl"
+            mle_results(mlefile)
 
 # look at first slim runs
 #print(list(itertools.islice(bgs_run.slim_commands(), 5)))
 
-rule bgs_map:
+rule slim:
   # note: ANNOT_FILES are just requirements, not passed to script  -- those are hardcoded
+  # in the SLiM script
   input: bgs_run.script, *ANNOT_FILES
   output: 
     bgs_run.wildcard_output(suffix=SIM_OUTPUTS)
   shell:
-    bgs_run.slim_call(slim_cmd=SLIM, manual={'cons_track': config['cons_track']})
+    bgs_run.slim_call(slim_cmd=SLIM, 
+                      manual={'cons_track': CONS_TRACK_FILE})
 
-SIM_NP = os.path.join(DATADIR, bgs_run.name, f"{bgs_run.name}.npz")
+rule mle_data:
+  input: treefile=join(DATADIR, "sims/{subdir}/{run_name}_treeseq.tree"),
+         bs_file=Bs_file
+  output: join(DATADIR, 'mle/{subdir}/{run_name}_{window}_mle.pkl')
+  shell:
+    """
+    bgspy simdata --bs-file {input.bs_file}  --sim-tree {input.treefile} --window {wildcards.window} --sim-mu 1e-7 --output {output[0]}
+    """
+
+
+rule mle_fit:
+  input: join(DATADIR, 'mle/{subdir}/{run_name}_{window}_data.pkl')
+  output: join(DATADIR, 'mle/{subdir}/{run_name}_{window}_mle.pkl')
+  params: ncores=NCORES
+  shell:
+    """
+    bgspy fit --data {input.data} --output {output[0]} --ncores {params.ncores}
+    """
 
 # extract the B maps from the simulations
 rule process:
-  input: sims=bgs_run.targets, dir=os.path.join(DATADIR, bgs_run.name, 'sims')
+  input: sims=bgs_run.targets, dir=join(DATADIR, bgs_run.name, 'sims')
   output: np=SIM_NP
   shell:
     """

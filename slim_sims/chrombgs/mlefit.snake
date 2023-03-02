@@ -1,3 +1,12 @@
+"""
+This is the simulation MLE fititng pipeline.
+
+It is currently separate from the Simulation
+pipeline so it doesn't have to know all the 
+simulation results names in a directory a priori
+to process -- 
+"""
+
 from os.path import join
 from bgspy.utils import get_files
 
@@ -9,48 +18,17 @@ SIM_MU = 1e-7
 NCORES = 40
 NSTARTS = 500
 
-CHROMS = ['chr10']
 
-# ------- MLE parameters and fitting  -------
-# from config
-name = config["name"]
-model = config["model"]
-mu = config.get("mu", None)
-seqlens_file = config["seqlens_file"]
-recmap_file = config["recmap_file"]
-access_file = config["access_file"]
-neut_file = config["neut_file"]
-fasta_file = config["fasta_file"]
 Bs_file = config["Bs_file"]
 sim_dir = config["tree_dir"]
-
+chrom = config["chrom"]
 
 MLEDIR = join('../../data/slim_sims/chrombgs_chr10', name, 'mle')
 
 
-# fit likelihoods to all of these
-rule fit:
-  input: treefile=join(sim_dir, "{subdir}/{run_name}_treeseq.tree"),
-         seqlens=seqlens_file, recmap_file=recmap_file,
-         access_file=access_file, fasta_file=fasta_file,
-         neut_file=neut_file, bs_file=Bs_file
-  output: join(MLEDIR, '{subdir}/{run_name}_{window}_mle.pkl')
-  params: ncores=NCORES, nstarts=NSTARTS, model=model, mu=mu, sim_mu=SIM_MU
-  shell:
-    """
-    bgspy loglik --seqlens {input.seqlens} --recmap {input.recmap_file} \
-      --chrom "chr10" \
-      --model {params.model} --mu {params.mu} \
-      --sim-tree-file {input.treefile} --neutral {input.neut_file} \
-      --sim-mu {params.sim_mu} \
-      --access {input.access_file} --bs-file {input.bs_file} \
-      --fasta {input.fasta_file} \
-      --ncores {params.ncores} --nstarts {params.nstarts} \
-      --window {wildcards.window} \
-      --outfile {output[0]}
-    """
 
-
+# ------- Get the Simulation Tree files to Process -------
+# 
 avail_tree_files = get_files(sim_dir, suffix=".tree", as_dict=True)
 expected_mle_files = []
 for file in avail_tree_files.keys():
@@ -65,7 +43,25 @@ for file in avail_tree_files.keys():
     outfile = join(MLEDIR, subdir, file.replace('_treeseq.tree', '_1000000_mle.pkl'))
     expected_mle_files.append(outfile)
 
+# ------- MLE parameters and fitting  -------
+#
+rule mle_data:
+  input: treefile=join(DATADIR, "sims/{subdir}/{run_name}_treeseq.tree"),
+         bs_file=Bs_file
+  output: join(DATADIR, 'mle/{subdir}/{run_name}_{window}_mle.pkl')
+  shell:
+    """
+    bgspy simdata --bs-file {input.bs_file}  --sim-tree {input.treefile} --window {wildcards.window} --sim-mu 1e-7 --output {output[0]}
+    """
 
+rule mle_fit:
+  input: join(DATADIR, 'mle/{subdir}/{run_name}_{window}_data.pkl')
+  output: join(DATADIR, 'mle/{subdir}/{run_name}_{window}_mle.pkl')
+  params: ncores=NCORES
+  shell:
+    """
+    bgspy fit --data {input.data} --output {output[0]} --ncores {params.ncores}
+    """
 #print(avail_tree_files)
 #print(avail_tree_files, expected_mle_files)
 rule all:
