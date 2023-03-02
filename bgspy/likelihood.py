@@ -800,8 +800,12 @@ class SimplexModel(BGSLikelihood):
                          log10_pi0_bounds=log10_pi0_bounds,
                          log10_mu_bounds=log10_mu_bounds)
         # fit the exponential over the grid of mutation points
-        self.logB_fit = fit_B_curve_params(self.logB, w)
+        self._fit_B_curve()
+        # set all model estimates, etc. to None
         self._reset()
+
+    def _fit_B_curve(self):
+        self.logB_fit = fit_B_curve_params(self.logB, self.w)
 
     def _reset(self):
         # this is filled in with later model fits
@@ -1022,22 +1026,22 @@ class SimplexModel(BGSLikelihood):
         # jackknife info
         if hasattr(self, 'jack_thetas_') and self.jack_thetas_ is not None:
             base_rows += f"number jackknife samples: {self.jack_thetas_.shape[0]}\n"
-        
+
         base_rows += f"standard error method: {self.std_error_type}\n"
         base_rows += f"negative log-likelihood: {self.nll_}\n"
         nstarts = self.optim.thetas.shape[0]
         frac = np.round(self.optim.frac_success, 2)*100
         base_rows += f"number of successful starts: {nstarts} ({frac}% total)\n"
         base_rows += f"π0 = {pi0:0.6g}"
-
         if cis is not None:
             l, u = cis[0][0], cis[1][0]
             base_rows += f" ({l:.5f}, {u:.5f})\n"
         else:
             base_rows += "\n"
-
+        pi = pi_from_pairwise_summaries(self.Y.sum(axis=0))
+        base_rows += f"π  = {pi:0.6g}\n"
         fixed_str = "(FIXED)" if self._fixed_mu is not None else ""
-        base_rows += f"μ = {mu:0.4g} {fixed_str}"
+        base_rows += f"μ  = {mu:0.4g} {fixed_str}"
         if cis:
             l, u = cis[0][1], cis[1][1]
             base_rows += f" ({l:.3g}, {u:.3g})\n"

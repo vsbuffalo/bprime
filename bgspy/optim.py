@@ -146,7 +146,7 @@ def nlopt_softmax_fixedmu_worker(start, func, nt, nf, bounds,
 
 
 def nlopt_softmax_worker(start, func, nt, nf, bounds,
-                         method, xtol_rel=1e-3,
+                         method, xtol_rel=1e-5,
                          constraint_tol=1e-11,
                          maxeval=1000000):
     """
