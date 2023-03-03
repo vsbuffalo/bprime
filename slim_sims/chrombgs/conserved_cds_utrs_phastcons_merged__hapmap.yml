@@ -7,7 +7,6 @@ seed: 0
 dir: runs
 suffices: 
   treeseq_file: treeseq.tree
-  sub_file: sub.tsv.gz
 input: 
   seqlens_file: ../../data/annotation/hg38_seqlens.tsv
   recmap_file: ../../data/annotation/hapmap_genetic_map.txt
@@ -16,20 +15,20 @@ fixed:
   duration: 10
 variable:
   N:
-    - 100
+    - 1000
   chrom:
     - chr10
   mu:
     - 1.5e-08
   dfe_file: 
     - merged_0.0001
-    - merged_0.001
-    - merged_0.01
-    - merged_0.1
-    - merged_1e-05
-    - merged_1e-06
-    - merged_1e-07
-    - merged_1e-08
+      #- merged_0.001
+      #- merged_0.01
+      #- merged_0.1
+      #- merged_1e-05
+      #- merged_1e-06
+      #- merged_1e-07
+      #- merged_1e-08
 
 # mle fit 
 windows: 

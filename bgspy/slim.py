@@ -80,7 +80,7 @@ def params_to_dirs(params, basedir=None, create=False):
     params: full expanded version
     This makes the directories too.
     """
-    dir = join(*[f"{k}_{v}" for k, v in params.items()])
+    dir = join(*[f"{k}__{v}" for k, v in params.items()])
     if basedir is not None:
         dir = join(basedir, dir)
     if create:

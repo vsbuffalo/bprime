@@ -186,11 +186,26 @@ function (void)output_mutations(string chrom, string filename, object subpop) {
   }
 }
 
-function (void)output_substitutions(string _chrom, string filename, object subpop) {
+function (object)substitution_dict(void) {
+  subs = Dictionary();
+  for (i in seqAlong(sim.substitutions)) {
+    sub = sim.substitutions[i];
+    subd = Dictionary("i", i, "pos", sub.position, "s", sub.selectionCoeff, 
+                      "h", sub.dominanceCoeff, "mt", sub.mutationType);
+    subs.setValue(i, subd);
+  }
+  return subs;
+}
+
+function (void)output_substitutions(string _chrom, string _filename, object _subpop) {
+  if (!length(sim.substitutions)) {
+    // no substitutions, but we still need to write an empty file (e.g. for Snakemake)
+    writeFile(_filename, "", append=T, compress=T);
+  }
   for (i in seqAlong(sim.substitutions)) {
     sub = sim.substitutions[i];
     row = paste(_chrom, sub.position, sub.selectionCoeff, sub.mutationType, sub.mutationType.dominanceCoeff, sep="\t");
-    writeFile(filename, row, append=T, compress=T);
+    writeFile(_filename, row, append=T, compress=T);
   }
 }
 
