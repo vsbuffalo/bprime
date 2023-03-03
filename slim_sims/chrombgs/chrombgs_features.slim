@@ -1,7 +1,8 @@
 // expected command line arguments:
 // - name: a name that identifies the dfe/annot/recmap since
-// - dir: output directory
+// - output: the fullpath of the output, up to the basename (supports multiple outputs)
 // - N: diploid popsize
+// - duration: duration of sims in N generations
 // - mu: per-basepair-per generation mutation rate 
 // - dfe_file: a tab-delimited DFE specification
 // - annot_file: BED file of regions, 4th col matches DFE names
@@ -21,7 +22,7 @@ initialize() {
   defineConstant("h", 0.5);
 
   // ----- run settings -----
-  defineConstant("duration", 100*N);
+  defineConstant("endgen", duration*N);
 
   // ----- mutation rate -----
   initializeMutationRate(mu);
@@ -35,11 +36,9 @@ initialize() {
 
   // ----- file setup -----
   // filestr is the output "key" based on input parameters
-  filestr = filename_str(c('N', 'mu', 'chrom', 'seed', 'rep'));
-  defineConstant("basename", name + "_" + filestr);
-  defineConstant("treeseq_file", dir + basename + "treeseq.tree");
+  defineConstant("treeseq_file", output + "treeseq.tree");
   //defineConstant("dac_file", dir + basename + "seldac.tsv.gz");
-  defineConstant("sub_file", dir + basename + "sub.tsv.gz");
+  defineConstant("sub_file", output + "sub.tsv.gz");
 
   // ----- metadata -----
   metadata.setValue("name", name);

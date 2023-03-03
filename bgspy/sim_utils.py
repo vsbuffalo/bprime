@@ -17,8 +17,10 @@ from bgspy.utils import get_files, random_seed, bin_chrom, readfile
 
 SIM_REGEX = re.compile(r'(?P<name>\w+)_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
 
+
 def delete_mutations(ts):
     return ts.delete_sites([s.id for s in ts.sites()])
+
 
 def mutate_simulated_tree(ts, rate, seed=None,
                           remove_existing_mutations=True):
@@ -34,10 +36,10 @@ def mutate_simulated_tree(ts, rate, seed=None,
                                  model=msprime.BinaryMutationModel())
 
 
-def param_grid(params, add_seed=False, rng=None):
+def param_grid(params):
     """
     Generate a Cartesian product parameter grid from a
-    dict of grids per parameter, optionally adding the seed.
+    dict of grids per parameter.
     """
     grid = []
     for param, values in params.items():
@@ -48,8 +50,6 @@ def param_grid(params, add_seed=False, rng=None):
     def convert_to_dict(x):
         # and package seed if needed
         x = dict(x)
-        if add_seed:
-            x['seed'] = random_seed(rng)
         return x
     return map(convert_to_dict, itertools.product(*grid))
 
