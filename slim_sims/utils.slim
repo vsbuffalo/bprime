@@ -186,10 +186,10 @@ function (void)output_mutations(string chrom, string filename, object subpop) {
   }
 }
 
-function (void)output_substitutions(string chrom, string filename, object subpop) {
+function (void)output_substitutions(string _chrom, string filename, object subpop) {
   for (i in seqAlong(sim.substitutions)) {
     sub = sim.substitutions[i];
-    row = paste(chrom, sub.position, sub.selectionCoeff, sub.mutationType, sub.mutationType.dominanceCoeff, sep="\t");
+    row = paste(_chrom, sub.position, sub.selectionCoeff, sub.mutationType, sub.mutationType.dominanceCoeff, sep="\t");
     writeFile(filename, row, append=T, compress=T);
   }
 }

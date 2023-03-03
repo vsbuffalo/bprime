@@ -33,27 +33,6 @@ def mutate_simulated_tree(ts, rate, seed=None,
     return msprime.sim_mutations(ts, rate=rate, random_seed=seed, 
                                  model=msprime.BinaryMutationModel())
 
-def fixed_params(params):
-    """
-    Iterate through the parameters and return the fixed parameters,
-    either because a grid only has one element or lower/upper are
-    the same.
-    """
-    fixed = dict()
-    for key, param in params.items():
-        if 'grid' in param:
-            # handle grid params
-            if len(param['grid']) == 1:
-                fixed[key] = param['grid'][0]
-        else:
-           # it's a distribution parameter set
-            if param['dist']['name'] == 'fixed':
-                fixed[key] = param['dist']['val']
-            else:
-                if param['dist']['low'] == param['dist']['high']:
-                    warnings.warn(f"parameter '{key}' is fixed implicitly!")
-                    fixed[key] = param['dist']['low']
-    return fixed
 
 def param_grid(params, add_seed=False, rng=None):
     """
@@ -73,57 +52,6 @@ def param_grid(params, add_seed=False, rng=None):
             x['seed'] = random_seed(rng)
         return x
     return map(convert_to_dict, itertools.product(*grid))
-
-def read_params(config):
-    """
-    Grab the parameter ranges from a configuration dictionary.
-
-    There is some polymorphic behavior here, depending on whether a
-    parameter grid is used, or whether sampling is done. For parameter
-    grids, entries have an array with name "grid". For sampling, "lower",
-    "upper", and "log10" are defined.
-
-    Returns a dict of either param->(lower, uppper, log10, type) tuples
-    (for sampling case) or param->[grid] for the grid case.
-    """
-    params = {}
-    types = {}
-    for param, vals in config['params'].items():
-        assert param != "rep", "invalid param name 'rep'!"
-        val_type = {'float': float, 'int': int, 'str':str}.get(vals['type'], None)
-        is_grid = "grid" in vals
-        if is_grid:
-            params[param] = [val_type(v) for v in vals['grid']]
-        else:
-            # distribution functions specified
-            assert 'dist' in vals
-            if vals['dist']['name'] != 'fixed':
-                assert 'low' in vals['dist'], f"'low' bound of dist must be set in key '{param}'"
-                assert 'high' in vals['dist'], f"'high' bound of dist must be set in key '{param}'"
-            params[param] = vals
-        types[param] = val_type
-    return params, types
-
-def get_bounds(params):
-    """
-    Get the domain and scale (log10 or linear) for each parameter,
-    from the type of density it is.
-    """
-    domain = dict()
-    for key, param in params.items():
-        if 'grid' in param:
-            is_fixed = len(param['grid']) == 1
-            is_log10 = False
-            low, high = np.min(param['grid']), np.max(param['grid'])
-        else:
-            is_fixed = param['dist']['name'] == 'fixed'
-            is_log10 = param['dist']['name'].startswith('log10_')
-            if is_fixed:
-                low, high = param['dist']['val'], param['dist']['val']
-            else:
-                low, high = param['dist']['low'], param['dist']['high']
-        domain[key] = (low, high, is_log10)
-    return domain
 
 
 def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
@@ -159,6 +87,7 @@ def parse_sim_filename(file):
     res['sh'] = float(res['sh'])
     res['rep'] = int(res['rep'])
     return res
+
 
 def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     """
@@ -214,7 +143,6 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     mu = np.fromiter(mu_lookup.keys(), dtype=float)
     sh = np.fromiter(sh_lookup.keys(), dtype=float)
     return mu, sh, pos, X, tree_files
-
 
 
 def process_substitution_files(dir, outfile, suffix='sub.tsv.gz'):

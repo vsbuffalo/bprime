@@ -1,6 +1,8 @@
+from bgspy.slim import SlimRuns
 
+DATADIR = 'runs'
 
-is_grid = 
+if not len(config):
+    raise ValueError("config file not specified on command line, use --configfile config.json")
 
-run sim:
-  
+run = SlimRuns(config)

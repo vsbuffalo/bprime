@@ -1,3 +1,14 @@
+// expected command line arguments:
+// - name: a name that identifies the dfe/annot/recmap since
+// - dir: output directory
+// - N: diploid popsize
+// - mu: per-basepair-per generation mutation rate 
+// - dfe_file: a tab-delimited DFE specification
+// - annot_file: BED file of regions, 4th col matches DFE names
+// - recmap_file: HapMap-formatted recombination map
+// - seqlens_file: TSV file of chromosome names and lengths
+// - chrom: the chromosome to simulate
+// - rep: replicate number
 initialize() {
   source("../utils.slim");
   initializeTreeSeq();
@@ -9,34 +20,54 @@ initialize() {
   // coefficient.
   defineConstant("h", 0.5);
 
-  // == Runtime settings
+  // ----- run settings -----
   defineConstant("duration", 100*N);
 
   // ----- mutation rate -----
   initializeMutationRate(mu);
 
+  // ----- main sim setup -----
   // main genome/mutation/recombination/DFE setup
   chrom_length = get_chrom_length(seqlens_file, chrom);
   dfe = load_tsv_dfe(dfe_file);
   initialize_genome_dfe(annot_file, dfe, h, chrom);
   load_recmap(recmap_file, chrom, chrom_length);
+
+  // ----- file setup -----
+  // filestr is the output "key" based on input parameters
+  filestr = filename_str(c('N', 'mu', 'chrom', 'seed', 'rep'));
+  defineConstant("basename", name + "_" + filestr);
+  defineConstant("treeseq_file", dir + basename + "treeseq.tree");
+  //defineConstant("dac_file", dir + basename + "seldac.tsv.gz");
+  defineConstant("sub_file", dir + basename + "sub.tsv.gz");
+
+  // ----- metadata -----
+  metadata.setValue("name", name);
+  metadata.setValue("N", N);
+  metadata.setValue("h", h);
+  metadata.setValue("mu", mu);
+  metadata.setValue("dfe", dfe);
+  metadata.setValue("chrom", chrom);
+  metadata.setValue("chrom_length", chrom_length);
+  metadata.setValue("seqlens_file", seqlens_file);
+  metadata.setValue("recmap_file", recmap_file);
+  metadata.setValue("annot_file", annot_file);
+  metadata.setValue("dfe_file", dfe_file);
 }
 
-// create a population of 500 individuals
-1 {
+1 early() {
   sim.addSubpop("p1", N);
-  sim.rescheduleScriptBlock(s1, start=2, end=duration);
-  sim.rescheduleScriptBlock(s2, start=duration, end=duration);
+  community.rescheduleScriptBlock(s1, start=2, end=duration);
+  community.rescheduleScriptBlock(s2, start=duration, end=duration);
 }
 
 s1 early() {
-  if (sim.generation % 1000 == 0) 
-    print(sim.generation);
+  if (sim.cycle % 1000 == 0) 
+    print(sim.cycle);
 }
 
 s2 late() {
   //output_mutations(chr, dac_file, p1);
-  //sim.treeSeqOutput(treeseq_file, metadata=metadata);
-  //output_substitutions(chr, sub_file, p1);
+  sim.treeSeqOutput(treeseq_file, metadata=metadata);
+  output_substitutions(chrom, sub_file, p1);
 }
-
