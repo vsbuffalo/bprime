@@ -35,11 +35,7 @@ initialize() {
   load_recmap(recmap_file, chrom, chrom_length);
 
   // ----- file setup -----
-  // filestr is the output "key" based on input parameters
-  defineConstant("treeseq_file", output + "treeseq.tree");
-  //defineConstant("dac_file", dir + basename + "seldac.tsv.gz");
-  defineConstant("sub_file", output + "sub.tsv.gz");
-  print(treeseq_file);
+  // all output filenames are passed into the dispatcher
 
   // ----- metadata -----
   metadata.setValue("name", name);
@@ -68,6 +64,8 @@ s1 early() {
 
 s2 late() {
   //output_mutations(chr, dac_file, p1);
+  print("SAVING");
+  print(treeseq_file);
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
   output_substitutions(chrom, sub_file, p1);
 }

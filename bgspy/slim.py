@@ -29,16 +29,16 @@ def filename_pattern(suffix, rep, seed, params=None):
 
 
 def slim_call(params, script, slim_cmd="slim",
-              add_seed=True, add_rep=True,
-              add_output=True,
+              output=None, add_seed=True, add_rep=True,
               manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
     wildcards based on the provided parameter names and types (as a dict).
 
-    param_types: dict of param_name->type entries
+    param: dict of sample parameters, so types can be inferred
     slim_cmd: path to SLiM
-    seed: bool whether to pass in the seed with '-s <seed>' 
+    output: a dict of output names, values
+    add_seed: bool whether to pass in the seed with '-s <seed>' 
     manual: a dict of manual items to pass in
     """
     param_types = {k: type(v) for k, v in params.items()}
@@ -65,8 +65,9 @@ def slim_call(params, script, slim_cmd="slim",
         call_args.append("-s {wildcards.seed}")
     if add_rep:
         call_args.append("-d rep={wildcards.rep}")
-    if add_output:
-        call_args.append("-d \"output='{output}'\"")
+    if output is not None:
+        for name, file in output.items():
+            call_args.append(f"-d \"{name}='{{output.{name}}}'\"")
     full_call = f"{slim_cmd} " + " ".join(call_args) + add_on + " " + script
     return full_call
 
@@ -120,6 +121,8 @@ class SlimRuns():
         self.name = config['name']
         self.script = config['script']
         self.nreps = config['nreps']
+        self.seed = config['seed']
+        self.rng = ng = np.random.default_rng(self.seed)
         self.dir = config['dir']
         self.suffices = config['suffices']
         self.fixed = config['fixed']
@@ -130,7 +133,7 @@ class SlimRuns():
         self.nreps = config['nreps']
         self.basedir = join(self.dir, self.name)
 
-    def generate_targets(self, include_params=False, create=False):
+    def generate_targets(self, include_params=False, create=True):
         """
         Generate all the target filenames.
         """
@@ -140,11 +143,12 @@ class SlimRuns():
         for params in all_run_params:
             # generate the directory structure on the 
             # variable params
-            dir = params_to_dirs(params, basedir=self.basedir, create=create)
+            dir = params_to_dirs(params, basedir=self.basedir,
+                                 create=create)
             for rep in range(self.nreps):
                 # get a random seed
-                seed = random_seed()
-                for suffix in self.suffices:
+                seed = random_seed(self.rng)
+                for name, suffix in self.suffices.items():
                     fn_params = None if not include_params else params
                     filename = filename_pattern(suffix, rep, seed, fn_params)
                     ps = dict(rep=rep, seed=seed, suffix=suffix)
@@ -161,21 +165,25 @@ class SlimRuns():
         wildcards.
         """
         # all the same fixed parameters are passed manually
-        manual = dict(**self.fixed, **self.input, name=self.name)
+        manual = dict(**self.fixed, **self.input,
+                      name=self.name)
         # we get one sample run, to extract the types
         all_run_params = list(param_grid(self.variable))[0]
+        output = self.suffices
         return slim_call(all_run_params, self.script,
                          add_seed=True, add_rep=True,
-                         add_output=True, manual=manual)
+                         output=output, manual=manual)
 
     def output_template(self, include_params=False):
         """
+        Create a dictionary of expected output for all the 
+        suffices, with wildcards.
         """
         param_wildcards = {p: f"{{{p}}}" for p in self.variable}
         outputs = {}
         fn_params = None if not include_params else params
-        for suffix in self.suffices:
+        for name, suffix in self.suffices.items():
             filename = filename_pattern(suffix, '{rep}', '{seed}', fn_params)
             dir = params_to_dirs(param_wildcards, basedir=self.basedir)
-            outputs[suffix] = join(dir, filename)
+            outputs[name] = join(dir, filename)
         return outputs

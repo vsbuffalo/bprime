@@ -3,6 +3,7 @@ name: conserved_cds_utrs_phastcons_merged__hapmap
 # slim parameters
 script: chrombgs_features.slim
 nreps: 1
+seed: 0
 dir: runs
 suffices: 
   treeseq_file: treeseq.tree

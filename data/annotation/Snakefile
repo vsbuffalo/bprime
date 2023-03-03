@@ -781,6 +781,6 @@ rule gwsascat:
 
 ## === Main target
 rule all:
-  input: annot + rec + cons + sim_cons + neutral + accessible + genome + sim_neut + calc_bkgd + other
+  input: annot + rec + cons + neutral + accessible + genome + sim_neut + calc_bkgd + other
 
 
