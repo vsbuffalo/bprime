@@ -459,6 +459,7 @@ cons = ["conserved_phastcons.bed.gz",
         # for sims and model comparison)
         "conserved_cds_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons_merged.bed.gz",
+        "conserved_cds_utrs_phastcons_merged.bed",
 ] 
 
 # this is used for sims with combined conserved regions (phastcons)
@@ -614,14 +615,14 @@ rule conserved_cds_utrs_phastcons_full:
 
 rule conserved_cds_utrs_phastcons_merged:
   input: utrs="hg38.ensembl_utrs.bed.gz", cds="hg38.ensembl_cds.bed.gz", phastcons="conserved_phastcons.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_cds_utrs_phastcons_merged.bed.gz"
+  output: raw="conserved_cds_utrs_phastcons_merged.bed", gz="conserved_cds_utrs_phastcons_merged.bed.gz"
   shell:
     """
     python ../../tools/combine_features.py --seqlens {input.seqlens} \
       --bed utr {input.utrs} --bed cds {input.cds} \
       --bed phastcons {input.phastcons} | \
-      cut -f1-3 | \
-      gzip > {output}
+      bioawk -t '{{ print $1,$2,$3,"merged"}}' > {output.raw}
+      cat {output.raw} | gzip > {output.gz}
     """
 
 rule conserved_no_cds_track:
@@ -647,74 +648,74 @@ rule conserved_no_genes_genes_track:
       gzip > {output}
     """
 
-## === Simplified Annotation Tracks for Sims
-# we want simple, example conservation tracks, but semi-realistic, e.g. CDS
-sim_cons = ["conserved_phastcons_chr10.bed",  # this is currently the primary conserved track for simulations
-            "conserved_cds_utrs_phastcons_merged_chr10.bed",
-            "conserved_cds_phastcons_merged_chr10.bed",
-            ]
-sim_neut = ["neutral_phastcons_chr10.bed.gz"]
-
-# sepearate out conserved tracks into separate chromosome files
-rule split_phastcons:
-  input: "conserved_phastcons.bed.gz"
-  output: "conserved_phastcons_chr10.bed"
-  shell:
-      """
-      zgrep "chr10" {input} > {output}
-      """
-
-rule split_merged_noutr:
-  input: "conserved_cds_phastcons_merged.bed.gz"
-  output: "conserved_cds_phastcons_merged_chr10.bed"
-  shell:
-      """
-      zgrep "chr10" {input} | cut -f1-3 > {output}
-      mkdir -p calc_bkgd_conserved/ && cp conserved_cds_phastcons_merged_chr10.bed calc_bkgd_conserved/chr10.bed
-      """
-
-rule split_merged:
-  input: "conserved_cds_utrs_phastcons_merged.bed.gz"
-  output: "conserved_cds_utrs_phastcons_merged_chr10.bed"
-  shell:
-      """
-      zgrep "chr10" {input} | cut -f1-3 > {output}
-      mkdir -p calc_bkgd_conserved/ && cp conserved_cds_utrs_phastcons_merged_chr10.bed calc_bkgd_conserved/chr10.bed
-      """
-
-rule sim_neutral:
-   # for the only phastcons-only sims
-   input: conserved="conserved_phastcons_chr10.bed", seqlens="hg38_seqlens.tsv"
-   output: "neutral_phastcons_chr10.bed.gz"
-   shell:
-      """
-       cut -f1-3 {input.conserved} | \
-       sort --version-sort -k1,1 -k2,2n | \
-       bedtools merge | \
-       grep chr10 | \
-       bedtools complement -L -i - -g {input.seqlens} | \
-       gzip > {output}
-      """
-
-## === Calcbkgd files
-calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons/chr10.bed"]
-# only chr10
-rule seqlens_chr10:
-  input: "hg38_seqlens.tsv"
-  output: "hg38_chr10_seqlens.tsv"
-  shell:
-    """
-      grep "chr10" {input} > {output}
-    """
-
-rule chr10_conserved:
-  input: "conserved_phastcons_chr10.bed"
-  output: "conserved_phastcons/chr10.bed"
-  shell:
-    """
-    mkdir -p conserved_phastcons
-    cp {input} conserved_phastcons/chr10.bed
-    """
+### === Simplified Annotation Tracks for Sims
+## we want simple, example conservation tracks, but semi-realistic, e.g. CDS
+#sim_cons = ["conserved_phastcons_chr10.bed",  # this is currently the primary conserved track for simulations
+#            "conserved_cds_utrs_phastcons_merged_chr10.bed",
+#            "conserved_cds_phastcons_merged_chr10.bed",
+#            ]
+#sim_neut = ["neutral_phastcons_chr10.bed.gz"]
+#
+## sepearate out conserved tracks into separate chromosome files
+#rule split_phastcons:
+#  input: "conserved_phastcons.bed.gz"
+#  output: "conserved_phastcons_chr10.bed"
+#  shell:
+#      """
+#      zgrep "chr10" {input} > {output}
+#      """
+#
+#rule split_merged_noutr:
+#  input: "conserved_cds_phastcons_merged.bed.gz"
+#  output: "conserved_cds_phastcons_merged_chr10.bed"
+#  shell:
+#      """
+#      zgrep "chr10" {input} | cut -f1-3 > {output}
+#      mkdir -p calc_bkgd_conserved/ && cp conserved_cds_phastcons_merged_chr10.bed calc_bkgd_conserved/chr10.bed
+#      """
+#
+#rule split_merged:
+#  input: "conserved_cds_utrs_phastcons_merged.bed.gz"
+#  output: "conserved_cds_utrs_phastcons_merged_chr10.bed"
+#  shell:
+#      """
+#      zgrep "chr10" {input} | cut -f1-3 > {output}
+#      mkdir -p calc_bkgd_conserved/ && cp conserved_cds_utrs_phastcons_merged_chr10.bed calc_bkgd_conserved/chr10.bed
+#      """
+#
+#rule sim_neutral:
+#   # for the only phastcons-only sims
+#   input: conserved="conserved_phastcons_chr10.bed", seqlens="hg38_seqlens.tsv"
+#   output: "neutral_phastcons_chr10.bed.gz"
+#   shell:
+#      """
+#       cut -f1-3 {input.conserved} | \
+#       sort --version-sort -k1,1 -k2,2n | \
+#       bedtools merge | \
+#       grep chr10 | \
+#       bedtools complement -L -i - -g {input.seqlens} | \
+#       gzip > {output}
+#      """
+#
+### === Calcbkgd files
+#calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons/chr10.bed"]
+## only chr10
+#rule seqlens_chr10:
+#  input: "hg38_seqlens.tsv"
+#  output: "hg38_chr10_seqlens.tsv"
+#  shell:
+#    """
+#      grep "chr10" {input} > {output}
+#    """
+#
+#rule chr10_conserved:
+#  input: "conserved_phastcons_chr10.bed"
+#  output: "conserved_phastcons/chr10.bed"
+#  shell:
+#    """
+#    mkdir -p conserved_phastcons
+#    cp {input} conserved_phastcons/chr10.bed
+#    """
 
 
 ## === Accessible Regions

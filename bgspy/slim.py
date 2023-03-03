@@ -28,9 +28,9 @@ def filename_pattern(suffix, rep, seed, params=None):
     return pattern
 
 
-def slim_call(params, script, slim_cmd="slim", 
-              add_seed=False, add_rep=False, 
-              add_output=False,
+def slim_call(params, script, slim_cmd="slim",
+              add_seed=True, add_rep=True,
+              add_output=True,
               manual=None):
     """
     Create a SLiM call prototype for Snakemake, which fills in the
@@ -38,8 +38,7 @@ def slim_call(params, script, slim_cmd="slim",
 
     param_types: dict of param_name->type entries
     slim_cmd: path to SLiM
-    seed: bool whether to pass in the seed with '-s <seed>' and add a
-            seed between 0 and 2^63
+    seed: bool whether to pass in the seed with '-s <seed>' 
     manual: a dict of manual items to pass in
     """
     param_types = {k: type(v) for k, v in params.items()}
@@ -67,7 +66,7 @@ def slim_call(params, script, slim_cmd="slim",
     if add_rep:
         call_args.append("-d rep={wildcards.rep}")
     if add_output:
-        call_args.append("-d output={output}")
+        call_args.append("-d \"output='{output}'\"")
     full_call = f"{slim_cmd} " + " ".join(call_args) + add_on + " " + script
     return full_call
 
@@ -75,12 +74,14 @@ def create_directories(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def params_to_dirs(params, create=True):
+def params_to_dirs(params, basedir=None, create=False):
     """
     params: full expanded version
     This makes the directories too.
     """
     dir = join(*[f"{k}_{v}" for k, v in params.items()])
+    if basedir is not None:
+        dir = join(basedir, dir)
     if create:
         create_directories(dir)
     return dir
@@ -139,7 +140,7 @@ class SlimRuns():
         for params in all_run_params:
             # generate the directory structure on the 
             # variable params
-            dir = params_to_dirs(params, create=create)
+            dir = params_to_dirs(params, basedir=self.basedir, create=create)
             for rep in range(self.nreps):
                 # get a random seed
                 seed = random_seed()
@@ -154,9 +155,16 @@ class SlimRuns():
         return targets
 
     def slim_cmd(self):
+        """
+        Fixed parameters, input files, and the name are passed
+        directly to the SLiM call here, and are not part of the
+        wildcards.
+        """
         # all the same fixed parameters are passed manually
-        manual = dict(**self.fixed, **self.input)
-        return slim_call(self.variable, self.script, 
+        manual = dict(**self.fixed, **self.input, name=self.name)
+        # we get one sample run, to extract the types
+        all_run_params = list(param_grid(self.variable))[0]
+        return slim_call(all_run_params, self.script,
                          add_seed=True, add_rep=True,
                          add_output=True, manual=manual)
 
@@ -164,9 +172,10 @@ class SlimRuns():
         """
         """
         param_wildcards = {p: f"{{{p}}}" for p in self.variable}
-        outputs = []
+        outputs = {}
         fn_params = None if not include_params else params
         for suffix in self.suffices:
             filename = filename_pattern(suffix, '{rep}', '{seed}', fn_params)
-            outputs.append(join(params_to_dirs(param_wildcards), filename))
+            dir = params_to_dirs(param_wildcards, basedir=self.basedir)
+            outputs[suffix] = join(dir, filename)
         return outputs

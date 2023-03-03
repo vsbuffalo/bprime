@@ -6,3 +6,21 @@ if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
 run = SlimRuns(config)
+
+# generate all the targets for this YAML file.
+all_sims = run.generate_targets()
+
+print(all_sims) 
+print(run.output_template()) 
+print("template:")
+print(run.output_template()) 
+print("slim call:")
+print(run.slim_cmd())
+
+rule slim:
+    input: run.script, **run.input
+    output: **run.output_template()
+    shell: run.slim_cmd()
+
+rule all:
+    input: all_sims
