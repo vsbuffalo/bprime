@@ -65,9 +65,8 @@ def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
     positions and do width-sized window around the focal points, but the
     difference is likely insignicant.
     """
-    ts = pyslim.load(file)
+    ts = tsk.load(file)
     md = ts.metadata['SLiM']['user_metadata']
-    region_length = md['region_length'][0]
     N = md['N'][0]
     #recmap = load_recrates('../data/annotation/rec_100kb_chr10.bed', ts.sequence_length)
     rts = pyslim.recapitate(ts, recombination_rate=recrate,
@@ -111,7 +110,6 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     positions and array of Bs (across simulation replicates!) in a dictionary
     with (sh, mu) parameters.
 
-
     WARNING: these should be the only varying parameters across these
     simulations!
 
@@ -122,9 +120,9 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     """
     tree_files = get_files(dir, suffix='.tree')
     params = [parse_sim_filename(x) for x in tree_files]
-    mus = set(x['mu'] for x in params)
-    shs = set(x['sh'] for x in params)
-    reps = set(x['rep'] for x in params)
+    mus = set(float(x['mu']) for x in params)
+    shs = set(float(x['sh']) for x in params)
+    reps = set(int(x['rep']) for x in params)
 
     # read one file in to get the number of positions
     _, pos, b = calc_b_from_treeseqs(tree_files[0], **kwargs)
@@ -136,17 +134,16 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     X = np.full((npos-1, len(mus), len(shs), len(reps)), np.nan, dtype=np.single)
 
     # for indices
-    mu_lookup = {mu: i for i, mu in enumerate(sorted(mus))}
-    sh_lookup = {sh: i for i, sh in enumerate(sorted(shs))}
-
+    mu_lookup = {float(mu): i for i, mu in enumerate(sorted(mus))}
+    sh_lookup = {float(sh): i for i, sh in enumerate(sorted(shs))}
     if ncores is None or ncores == 1:
         if progress:
-            tree_files = tqdm.tqdm(tree_files)
-        for file in tree_files:
+            tree_files_iter = tqdm.tqdm(tree_files)
+        for file in tree_files_iter:
             sim_params, pos, b = calc_b_from_treeseqs(file, **kwargs)
             rep = parse_sim_filename(file)['rep']
-            # we need to get the TODO HERE
             mu = sim_params['mu']
+            sh = sim_params['sh']
             X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
     else:
         with multiprocessing.Pool(ncores) as p:

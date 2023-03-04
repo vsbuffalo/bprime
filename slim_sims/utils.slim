@@ -57,6 +57,8 @@ function (void)initialize_genome_dfe(string _annot_file, object _dfe, float _h, 
   }
 
   // ---- then build up the genomic element types 
+  // this is a mapping between the DFE keys, which must 
+  // map to feature types in BED annotation track read in below
   gene_els = Dictionary();
   ngeneltypes = 0;
   for (i in seqAlong(_dfe.allKeys)) {
@@ -83,8 +85,15 @@ function (void)initialize_genome_dfe(string _annot_file, object _dfe, float _h, 
     }
     start = asInteger(parts[1]);
     end = asInteger(parts[2]);
-    key = parts[3];
-    initializeGenomicElement(executeLambda(gene_els.getValue(key) + ';'), start, end-1);
+    // get the feature type and map to the right genomic element type
+    if (length(parts) == 3) {
+      key = parts[3];
+      initializeGenomicElement(executeLambda(gene_els.getValue(key) + ';'), start, end-1);
+    } else {
+      // there's no feature name column -- run fixed sel
+      assert(length(gene_els) == 1);
+      initializeGenomicElement(executeLambda(gene_els.getValue("fixed") + ';'), start, end-1);
+    }
     ngenes = ngenes + 1;
   }
   catn("initialized genomic element types: " + ngeneltypes);

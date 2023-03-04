@@ -30,7 +30,17 @@ initialize() {
   // ----- main sim setup -----
   // main genome/mutation/recombination/DFE setup
   chrom_length = get_chrom_length(seqlens_file, chrom);
-  dfe = load_tsv_dfe(dfe_file);
+  is_fixed = F;
+  if (exists('dfe_file')) {
+    assert(!exists('sh'), "sh cannot also be set if dfe_file is used");
+    dfe = load_tsv_dfe(dfe_file);
+  } else {
+    // fixed DFE everywhere
+    is_fixed = T;
+    assert(!exists('dfe_file'), "dfe_file cannot also be set if sh is used");
+    dfe = Dictionary("grid", sh, "fixed", 1);
+    dfe_file = NULL;
+  }
   initialize_genome_dfe(annot_file, dfe, h, chrom);
   load_recmap(recmap_file, chrom, chrom_length);
 
@@ -42,6 +52,9 @@ initialize() {
   metadata.setValue("N", N);
   metadata.setValue("h", h);
   metadata.setValue("mu", mu);
+  if (is_fixed) {
+    metadata.setValue("sh", sh);
+  }
   metadata.setValue("dfe", dfe);
   metadata.setValue("chrom", chrom);
   metadata.setValue("chrom_length", chrom_length);

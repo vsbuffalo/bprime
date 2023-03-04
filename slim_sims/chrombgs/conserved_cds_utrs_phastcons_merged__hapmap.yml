@@ -1,8 +1,8 @@
 ---
-name: conserved_cds_utrs_phastcons_merged__hapmap
+name: conserved_cds_utrs_phastcons_merged__hapmap__fixed
 # slim parameters
 script: chrombgs_features.slim
-nreps: 200
+nreps: 100
 seed: 0
 dir: runs
 suffices: 
@@ -20,13 +20,8 @@ variable:
     - chr10
   mu:
     - 1.5e-08
-  dfe_file: 
-    - merged_0.0001
-    - merged_0.001
-    - merged_0.01
-    - merged_0.1
-    - merged_1e-05
-    - merged_1e-06
+  sh: 
+    - 0.01
 
 # mle fit 
 windows: 

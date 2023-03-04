@@ -1,23 +1,30 @@
-"""
-"""
 import os
 import sys
 import tqdm
+import defopt
 import numpy as np
-
-
 from bgspy.sim_utils import load_b_chrom_sims
+
+def main(simdir: str, output: str, *, ncores: int=1):
+   """
+   Process Simulation TreeSeqs, calculating empirical B.
+
+   :param simdir: directory to simulation results
+   :param output: output .npz file
+   :param ncores: number of cores to use
+   """
+   mu, sh, pos, X, files = load_b_chrom_sims(simdir, ncores=ncores)
+
+   nreps = X.shape[3]
+   mean = X.mean(axis=3)
+   sd = X.std(axis=3)
+   np.savez(output, mu=mu, sh=sh, pos=pos, X=X, nreps=nreps,
+            mean=mean, sd=sd, files=files)
+
+
 
 
 if __name__ == "__main__":
-    ncores = 30
-    mu, sh, pos, X, files = load_b_chrom_sims(sys.argv[1], ncores=ncores)
-
-    nreps = X.shape[3]
-    mean = X.mean(axis=3)
-    sd = X.std(axis=3)
-    np.savez(sys.argv[2], mu=mu, sh=sh, pos=pos, X=X, nreps=nreps, mean=mean, sd=sd, files=files)
-
-
+    defopt.run(main)
 
 
