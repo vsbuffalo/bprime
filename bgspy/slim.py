@@ -125,8 +125,8 @@ class SlimRuns():
         self.rng = ng = np.random.default_rng(self.seed)
         self.dir = config['dir']
         self.suffices = config['suffices']
-        self.fixed = config['fixed']
-        self.input = config['input']
+        self.fixed = config.get('fixed', {})
+        self.input = config.get('input', {})
         self.variable = config['variable']
         msg = "'rep' cannot be used as a variable parameter"
         assert 'rep' not in self.variable, msg

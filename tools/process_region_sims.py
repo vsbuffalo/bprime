@@ -50,14 +50,14 @@ def load_and_recap(treefile, burnin=2000):
     B_middle = middle_element(B_wins).mean()
     logfile = treefile.replace('_treeseq.tree', '_log.tsv.gz')
     d = pd.read_csv(logfile, sep='\t', comment='#')
-    last_gen = np.max(d.generation)
-    res = list(d.loc[d.generation == last_gen, ].itertuples(index=False))[0]._asdict()
+    last_gen = np.max(d['cycle'])
+    res = list(d.loc[d['cycle'] == last_gen, ].itertuples(index=False))[0]._asdict()
     R = 0
     if np.any(d['s'] == 0):
         # WARNING: this estimate is deprecated. See the region sim notebook for
         # a less biased estimator. This one is biased because the default
         # burnin is too little
-        x, y = d['generation'], d['s']
+        x, y = d['cycle'], d['s']
         x, y = x[x > burnin], y[x > burnin]
         X = sm.add_constant(x)
         fit = sm.OLS(y, X).fit()
@@ -66,7 +66,7 @@ def load_and_recap(treefile, burnin=2000):
     res['B'] = B
     #res['B_wins'] = B_wins
     res['B_middle'] = B_middle
-    res['ratchet'] = d.loc[:, ('generation', 's')].values
+    res['ratchet'] = d.loc[:, ('cycle', 's')].values
     # put in params
     res['sh'] = md['sh']
     res['N'] = N
@@ -80,7 +80,7 @@ def load_and_recap(treefile, burnin=2000):
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        raise ValueError("usage: process_region_sims.py simdir/ ourfile.pkl")
+        raise ValueError("usage: process_region_sims.py simdir/ outfile.pkl")
     resdir = sys.argv[1]
     outfile = sys.argv[2]
     ncores = 20

@@ -10,8 +10,9 @@ run = SlimRuns(config)
 # generate all the targets for this YAML file.
 all_sims = run.generate_targets()
 
+## useful for debugging:
+#print("all targets:")
 #print(all_sims) 
-#print(run.output_template()) 
 #print("template:")
 #print(run.output_template()) 
 #print("slim call:")
