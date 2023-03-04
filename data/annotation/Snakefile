@@ -698,24 +698,31 @@ rule conserved_no_genes_genes_track:
 #      """
 #
 ### === Calcbkgd files
-#calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons/chr10.bed"]
-## only chr10
-#rule seqlens_chr10:
-#  input: "hg38_seqlens.tsv"
-#  output: "hg38_chr10_seqlens.tsv"
-#  shell:
-#    """
-#      grep "chr10" {input} > {output}
-#    """
-#
-#rule chr10_conserved:
-#  input: "conserved_phastcons_chr10.bed"
-#  output: "conserved_phastcons/chr10.bed"
-#  shell:
-#    """
-#    mkdir -p conserved_phastcons
-#    cp {input} conserved_phastcons/chr10.bed
-#    """
+calc_bkgd = ["hg38_chr10_seqlens.tsv", "conserved_phastcons/chr10.bed"]
+rule split_phastcons:
+  input: "conserved_phastcons.bed.gz"
+  output: "conserved_phastcons_chr10.bed"
+  shell:
+      """
+      zgrep "chr10" {input} > {output}
+      """
+
+rule seqlens_chr10:
+  input: "hg38_seqlens.tsv"
+  output: "hg38_chr10_seqlens.tsv"
+  shell:
+    """
+      grep "chr10" {input} > {output}
+    """
+
+rule chr10_conserved:
+  input: "conserved_phastcons_chr10.bed"
+  output: "conserved_phastcons/chr10.bed"
+  shell:
+    """
+    mkdir -p conserved_phastcons
+    cp {input} conserved_phastcons/chr10.bed
+    """
 
 
 ## === Accessible Regions
@@ -781,6 +788,6 @@ rule gwsascat:
 
 ## === Main target
 rule all:
-  input: annot + rec + cons + neutral + accessible + genome + sim_neut + calc_bkgd + other
+  input: annot + rec + cons + neutral + accessible + genome + calc_bkgd + other
 
 

@@ -18,8 +18,10 @@ dependencies:
   - cyvcf2
   - si-prefix
   - tqdm
+  - mysql
   - pandas
   - statsmodels
+  - slim
   - pyslim
   - ipykernel
   - click

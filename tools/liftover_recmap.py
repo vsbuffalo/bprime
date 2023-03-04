@@ -210,16 +210,20 @@ def run_liftover(oldmap, chain, minmatch=0.99):
         unmap = oldmap.replace('.bed', '') + "_unmapped.bed"
         cmd = ["liftOver", f"-minMatch={minmatch}", oldmap,
                chain, newmap, unmap]
-        subprocess.run(cmd)
+        logging.info(f"running liftover command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, check=True)
         liftover = read_cumulative_bed(newmap)
         # now we quantify the unmapped
         unmapped = 0
-        with open(unmap) as f:
-            for line in f:
-                if line.startswith('#'):
-                    continue
-                else:
-                    unmapped += 1
+        if os.path.exists(unmap):
+            with open(unmap) as f:
+                for line in f:
+                    if line.startswith('#'):
+                        continue
+                    else:
+                        unmapped += 1
+        else:
+            logging.info("no liftOver unmapped file")
         total = len([l for l in open(oldmap)])
         up = np.round(unmapped / total, 2)
         msg = f"{unmapped} ({up}% BED entries unmapped during liftover"
