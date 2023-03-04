@@ -10,7 +10,7 @@ from bgspy.sim_utils import load_b_chrom_sims
 
 
 if __name__ == "__main__":
-    ncores = 2
+    ncores = 30
     mu, sh, pos, X, files = load_b_chrom_sims(sys.argv[1], ncores=ncores)
 
     nreps = X.shape[3]

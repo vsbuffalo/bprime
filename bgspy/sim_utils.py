@@ -81,11 +81,27 @@ def calc_b_from_treeseqs(file, width=1000, recrate=1e-8, seed=None):
     return params, neut_positions, B
 
 
-def parse_sim_filename(file):
-    res = SIM_REGEX.match(os.path.basename(file)).groupdict()
-    res['mu'] = float(res['mu'])
-    res['sh'] = float(res['sh'])
-    res['rep'] = int(res['rep'])
+def parse_sim_filename(file, types=None, basedir='runs'):
+    """
+    Assumes: 
+     basedir / name / [variable params] / rep(rep)_seed(seed)_treeseq.tree
+    types is a dictionary of types
+
+    """
+    parts = file.split('/')
+    assert parts[0] == basedir
+    res = dict()
+    res['name'] = parts[1]
+    file = parts[-1]
+    params = parts[2:-1]
+    for param in params:
+        key, val  = param.split('__')
+        if types is not None:
+            val = types[val](val)
+        res[key] = val
+    rep, seed = re.match('rep(\d+)_seed(\d+)_treeseq.tree', file).groups()
+    res['rep'] = int(rep)
+    res['seed'] = int(seed)
     return res
 
 
@@ -129,7 +145,8 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
         for file in tree_files:
             sim_params, pos, b = calc_b_from_treeseqs(file, **kwargs)
             rep = parse_sim_filename(file)['rep']
-            mu, sh = sim_params['mu'], sim_params['sh']
+            # we need to get the TODO HERE
+            mu = sim_params['mu']
             X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
     else:
         with multiprocessing.Pool(ncores) as p:
