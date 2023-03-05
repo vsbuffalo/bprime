@@ -1,13 +1,18 @@
 import numpy as np
 import pandas as pd
 import multiprocessing
+import msprime
 import tskit
+import warnings
 import pyslim
 import sys
 import os
 import tqdm
 import statsmodels.api as sm
 from bgspy.utils import get_files, bin_chrom
+
+# silence warnings...
+warnings.simplefilter('ignore', msprime.TimeUnitsMismatchWarning)
 
 def force_infinite_sites(tr):
     bad_sites = np.array([int(x.id) for x in tr.sites() if len(x.mutations) > 1])

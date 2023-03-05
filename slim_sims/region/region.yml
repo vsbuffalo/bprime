@@ -2,7 +2,7 @@
 name: region
 script: region.slim
 dir: runs
-nreps: 5000
+nreps: 1000
 seed: 0
 suffices: 
   treeseq_file: treeseq.tree
