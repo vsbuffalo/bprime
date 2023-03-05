@@ -77,7 +77,7 @@ for window in windows:
                                     nreps=fit_nreps, reseed=True)
     mle_results.extend(mle_data)
     mle_fits = run.generate_targets(suffices={'fit': 'mle.pkl'},
-                                   outdir=join('mle', str(window)),
+                                    outdir=join('mle', str(window)),
                                     nreps=fit_nreps, reseed=True)
     mle_results.extend(mle_fits)
 
@@ -93,9 +93,10 @@ rule mle_data:
       --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl}
     """
 
+
 rule mle_fit:
   input: **run.output_template(outdir=join('mle', '{window}'), suffices={'pkl': 'data.pkl'})
-  input: **run.output_template(outdir=join('mle', '{window}'), suffices={'pkl': 'mle.pkl'})
+  output: **run.output_template(outdir=join('mle', '{window}'), suffices={'pkl': 'mle.pkl'})
   threads: 40
   shell:
     """
