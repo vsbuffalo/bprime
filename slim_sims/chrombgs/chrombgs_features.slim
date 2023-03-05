@@ -34,14 +34,15 @@ initialize() {
   if (exists('dfe_file')) {
     assert(!exists('sh'), "sh cannot also be set if dfe_file is used");
     dfe = load_tsv_dfe(dfe_file);
+    initialize_genome_dfe(annot_file, dfe, h, chrom);
   } else {
     // fixed DFE everywhere
+    initialize_genome_sh(annot_file, sh, h, chrom);
     is_fixed = T;
     assert(!exists('dfe_file'), "dfe_file cannot also be set if sh is used");
     dfe = Dictionary("grid", sh, "fixed", 1);
     dfe_file = NULL;
   }
-  initialize_genome_dfe(annot_file, dfe, h, chrom);
   load_recmap(recmap_file, chrom, chrom_length);
 
   // ----- file setup -----
@@ -65,13 +66,13 @@ initialize() {
 }
 
 1 early() {
-  sim.addSubpop("p1", N);
-  community.rescheduleScriptBlock(s1, start=2, end=duration);
-  community.rescheduleScriptBlock(s2, start=duration, end=duration);
+  sim.addSubpop("p1", N); 
+  community.rescheduleScriptBlock(s1, start=2, end=duration*N);
+  community.rescheduleScriptBlock(s2, start=duration*N, end=duration*N);
 }
 
 s1 early() {
-  if (sim.cycle % 1000 == 0) 
+  if (sim.cycle % 100 == 0) 
     print(sim.cycle);
 }
 
