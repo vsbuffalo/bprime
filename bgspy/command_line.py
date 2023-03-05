@@ -290,12 +290,12 @@ def data(seqlens, recmap, neutral, access, fasta,
               help="pickle file for results")
 @click.option('--window', help='size (in basepairs) of the window',
               type=int, required=True)
-def simdata(sim_tree, bs_file, output, window, sim_mu, bp_only):
+def simdata(sim_tree, bs_file, chrom, output, window, sim_mu, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
     """
     summarize_sim_data(sim_tree, bs_file, output,
-                       window, sim_chrom, sim_mu, bp_only)
+                       window, chrom, sim_mu, bp_only)
 
 
 @cli.command()

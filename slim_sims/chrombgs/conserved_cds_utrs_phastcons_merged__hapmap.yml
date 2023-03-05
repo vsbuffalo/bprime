@@ -5,6 +5,7 @@ script: chrombgs_features.slim
 nreps: 200
 seed: 0
 dir: runs
+simdir: sims
 suffices: 
   treeseq_file: treeseq.tree
 input: 
@@ -29,5 +30,6 @@ variable:
     - 1e-7
 
 # mle fit 
-windows: 
-  - 1000000
+mle: 
+  windows: 
+    - 1000000

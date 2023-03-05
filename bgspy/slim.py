@@ -132,23 +132,44 @@ class SlimRuns():
         assert 'rep' not in self.variable, msg
         self.nreps = config['nreps']
         self.basedir = join(self.dir, self.name)
+        
+        simdir = config.get('simdir', None)
+        if simdir is not None:
+            self.simdir = join(self.basedir, simdir)
+        else:
+            self.simdir = self.basedir
 
-    def generate_targets(self, include_params=False, create=True):
+    def generate_targets(self, suffices=None, outdir=None, nreps=None,
+                         include_params=False, create=True, reseed=False):
         """
         Generate all the target filenames.
         """
+        # if we want to restart from the seed, we do that here
+        rng = self.rng if not reseed else np.random.default_rng(self.seed)
         # make all grid combinations of variable parameters
         all_run_params = param_grid(self.variable)
         targets = []
+        if suffices is not None:
+            assert isinstance(suffices, dict), "suffices must be a dict"
+        else:
+            suffices = self.suffices
+        if outdir is None:
+            # use the simulation directory
+            outdir = self.simdir
+        else:
+            # use this directory
+            outdir = join(self.basedir, outdir)
+
+        # allow custom nreps
+        nreps = self.nreps if nreps is None else nreps 
         for params in all_run_params:
             # generate the directory structure on the 
             # variable params
-            dir = params_to_dirs(params, basedir=self.basedir,
-                                 create=create)
-            for rep in range(self.nreps):
+            dir = params_to_dirs(params, basedir=outdir, create=create)
+            for rep in range(nreps):
                 # get a random seed
-                seed = random_seed(self.rng)
-                for name, suffix in self.suffices.items():
+                seed = random_seed(rng)
+                for name, suffix in suffices.items():
                     fn_params = None if not include_params else params
                     filename = filename_pattern(suffix, rep, seed, fn_params)
                     ps = dict(rep=rep, seed=seed, suffix=suffix)
@@ -174,16 +195,36 @@ class SlimRuns():
                          add_seed=True, add_rep=True,
                          output=output, manual=manual)
 
-    def output_template(self, include_params=False):
+    def output_template(self, outdir=None, suffices=None, 
+                        include_params=False):
         """
         Create a dictionary of expected output for all the 
         suffices, with wildcards.
+
+        By default, this will produce outputs for the
+        suffixes in the config in the base directory set
+        by the config. However, sometimes sims results
+        are needed for further downstream results; in this
+        case set basedir and suffices to something other
+        than None.
         """
         param_wildcards = {p: f"{{{p}}}" for p in self.variable}
         outputs = {}
+        if suffices is not None:
+            assert isinstance(suffices, dict), "suffices must be a dict"
+        else:
+            suffices = self.suffices
+        if outdir is None:
+            # use the simulation directory
+            outdir = self.simdir
+        else:
+            # use this directory
+            outdir = join(self.basedir, outdir)
+           
         fn_params = None if not include_params else params
-        for name, suffix in self.suffices.items():
+        for name, suffix in suffices.items():
             filename = filename_pattern(suffix, '{rep}', '{seed}', fn_params)
-            dir = params_to_dirs(param_wildcards, basedir=self.basedir)
+            dir = params_to_dirs(param_wildcards,
+                                 basedir=outdir)
             outputs[name] = join(dir, filename)
         return outputs
