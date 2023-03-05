@@ -1,0 +1,30 @@
+---
+name: region
+script: region.slim
+dir: runs
+nreps: 5000
+seed: 0
+suffices: 
+  treeseq_file: treeseq.tree
+  log_file: log.tsv.gz
+variable:
+  N:
+  - 1000
+  mu:
+  - 1.0e-10
+  - 3.16e-10
+  - 1.0e-09
+  - 3.16e-09
+  - 1.0e-08
+  sh:
+  - 1.0e-05
+  - 3.16e-05
+  - 0.0001
+  - 0.000316
+  - 0.001
+  - 0.00316
+  - 0.01
+  - 0.0316
+  - 0.1
+  rbp:
+  - 1.0e-08
