@@ -460,6 +460,7 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_cds_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons_merged.bed.gz",
         "conserved_cds_utrs_phastcons_merged.bed",
+        "conserved_cds_utrs_phastcons_merged_full.bed",
 ] 
 
 # this is used for sims with combined conserved regions (phastcons)
@@ -624,6 +625,18 @@ rule conserved_cds_utrs_phastcons_merged:
       bioawk -t '{{ print $1,$2,$3,"merged"}}' > {output.raw}
       cat {output.raw} | gzip > {output.gz}
     """
+
+rule conserved_cds_utrs_phastcons_merged_full:
+  # not based on the simplified phastcons track!
+  input: cons="conserved_cds_utrs_phastcons_merged.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: gz="conserved_cds_utrs_phastcons_merged_full.bed.gz", raw="conserved_cds_utrs_phastcons_merged_full.bed"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > conserved_cds_utrs_phastcons_merged_complement.bed
+    (cat conserved_cds_utrs_phastcons_merged_complement.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n > {output.raw}
+    cat {output.raw} | gzip > {output.gz}
+    """
+
 
 rule conserved_no_cds_track:
   input: not_genes="conserved_phastcons_not_genes.bed.gz", cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv"

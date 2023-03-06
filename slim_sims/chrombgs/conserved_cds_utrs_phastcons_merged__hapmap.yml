@@ -30,6 +30,19 @@ variable:
     - 1e-7
 
 # mle fit 
-mle: 
+mle:
+  bmaps: 
+    default:
+      step: 10000
+      grid: 6x7
+      seqlens_file: ../../data/annotation/hg38_seqlens.tsv
+      recmap_file: ../../data/annotation/hapmap_genetic_map.txt
+      annot_file: ../../data/annotation/conserved_cds_utrs_phastcons_merged.bed
+    full:
+      step: 10000
+      grid: 6x7
+      seqlens_file: ../../data/annotation/hg38_seqlens.tsv
+      recmap_file: ../../data/annotation/hapmap_genetic_map.txt
+      annot_file: ../../data/annotation/conserved_cds_utrs_phastcons_merged_full.bed
   windows: 
     - 1000000
