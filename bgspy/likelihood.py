@@ -560,8 +560,8 @@ class BGSLikelihood:
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
-    @classmethod
-    def load(self, filename):
+    @staticmethod
+    def load(filename):
         with open(filename, 'rb') as f:
             return pickle.load(f)
 
@@ -749,8 +749,8 @@ class BGSLikelihood:
         np.savez(filename, logB=self.logB, w=self.w, t=self.t, Y=self.Y_,
                  bounds=self.bounds())
 
-    @classmethod
-    def from_npz(self, filename):
+    @staticmethod
+    def from_npz(filename):
         d = np.load(filename)
         bounds = d['bounds']
         obj = BGSLikelihood(d['w'], d['t'], d['logB'],

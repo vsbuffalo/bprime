@@ -35,6 +35,29 @@ def mutate_simulated_tree(ts, rate, seed=None,
     return msprime.sim_mutations(ts, rate=rate, random_seed=seed, 
                                  model=msprime.BinaryMutationModel())
 
+def get_counts_from_ts(ts_dict):
+    """
+    Return an ref/alt allele counts matrix from a tree
+    sequence with mutations.
+    """
+    seqlens = dict()
+    all_counts = dict()
+    for chrom, ts in ts_dict.items():
+        sl = int(ts.sequence_length)
+        seqlens[chrom] = sl
+        num_deriv = np.full(sl, np.nan)
+        for var in ts.variants():
+            nd = (var.genotypes > 0).sum()
+            num_deriv[int(var.site.position)] = nd
+
+        msg = "remaining nans -- num mut/num allele mismatch"
+        assert np.sum(np.isnan(num_deriv)) == 0, msg
+        ntotal = np.repeat(ts.num_samples, sl)
+        nanc = ntotal - num_deriv
+        counts = {chrom: np.stack((nanc, num_deriv)).T}
+        all_counts[chrom] = counts
+    return all_counts, seqlens
+
 
 def param_grid(params):
     """

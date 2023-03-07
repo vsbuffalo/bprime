@@ -278,7 +278,7 @@ def data(seqlens, recmap, neutral, access, fasta,
 
 @cli.command()
 @click.option('--sim-tree', required=True,
-              help="a tree sequence file from a simulation")
+              help="a tree sequence file from a SLiM simulation")
 @click.option('--sim-mu', required=True, type=float,
               help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
@@ -294,6 +294,8 @@ def simdata(sim_tree, bs_file, chrom, output, window, sim_mu, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
     """
+    if ',' in chrom:
+        # multi-chrom "synthetic" genome sims
     summarize_sim_data(sim_tree, bs_file, output,
                        window, chrom, sim_mu, bp_only)
 

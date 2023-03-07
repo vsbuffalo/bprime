@@ -146,14 +146,14 @@ class BScores:
         with open(filepath, 'wb') as f:
             pickle.dump(self, f)
 
-    @classmethod
-    def load(self, filepath):
+    @staticmethod
+    def load(filepath):
         with open(filepath, 'rb') as f:
             obj = pickle.load(f)
         return obj
 
-    @classmethod
-    def load_npz(self, filepath, chrom, bin_pos=True, is_log=False):
+    @staticmethod
+    def load_npz(filepath, chrom, bin_pos=True, is_log=False):
         """
         Load a single chromosome's values from a npz file, e.g. for simulation
         data.

@@ -13,6 +13,7 @@ from bgspy.utils import read_bed3, ranges_to_masks, GC
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
 from bgspy.utils import readfq, pretty_percent, bin_chrom, mean_ratio
+from bgspy.sim_utils import get_counts_from_ts
 from bgspy.genome import Genome
 from bgspy.bootstrap import resample_blocks
 
@@ -331,39 +332,27 @@ class GenomeData:
         for chrom in masks:
             self.accesssible_masks[chrom] = masks[chrom] * self.accesssible_masks[chrom]
 
-    def load_counts_from_ts(self, ts=None, file=None, chrom=None):
+    def load_counts_from_ts(self, ts_dict):
         """
         Count the number of derived alleles in a TreeSequence -- assumes
         BinaryMutationModel. This is primarily for loading simulation data
         into for testing.
 
-        If chrom is not set a new dummy Genome object is created.
+        The input is a dictionary of chromosome -> TreeSequence.
         """
-        if chrom is not None:
-            msg = f"{chrom} not in GenomeData.genome"
-            assert chrom in self.genome.chroms, msg
-        msg = "set either ts or file, not both"
-        if file is not None:
-            assert ts is None, msg
-            ts = tskit.load(file)
-        else:
-            assert file is None, msg
-        sl = int(ts.sequence_length)
-        num_deriv = np.zeros(sl)
-        for var in ts.variants():
-            nd = (var.genotypes > 0).sum()
-            num_deriv[int(var.site.position)] = nd
+        self.counts = get_counts_from_ts(ts_dict)
 
-        msg = "remaining nans -- num mut/num allele mismatch"
-        assert np.sum(np.isnan(num_deriv)) == 0, msg
-        ntotal = np.repeat(ts.num_samples, sl)
-        if self.genome is None:
-            chrom = 'chrom'
-            g = Genome('dummy genome', seqlens={chrom: sl})
-        g = self.genome
-        self.genome = g
-        nanc = ntotal - num_deriv
-        self.counts = {chrom: np.stack((nanc, num_deriv)).T}
+    @staticmethod
+    def from_ts(ts_dict, name="simulated_genome"):
+        """
+        Create a GenomeData object from a dictionary of TreeSequences.
+        """
+        counts = get_counts_from_ts(ts_dict)
+        sl = {c: m.shape[0] for c, m in counts.items()}
+        g = Genome(name, seqlens=sl)
+        gd = GenomeData(g)
+        gd.load_counts_from_ts(ts_dict)
+        return gd
 
     def counts_to_tsv(self, outfile):
         """

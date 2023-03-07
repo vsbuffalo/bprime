@@ -100,11 +100,11 @@ def summarize_data(# annotation
         pickle.dump(dat, f)
 
 
-def summarize_sim_data(sim_tree_file,
+def summarize_sim_data(sim_tree_files,
                        bs_file, output_file,
                        # window size
                        window,
-                       sim_chrom, sim_mu=None,
+                       sim_mu=None,
                        # other
                        bp_only=False, verbose=True):
 
@@ -112,21 +112,26 @@ def summarize_sim_data(sim_tree_file,
     """
     # because we're likely processing a lot of sim
     # trees, we store metadata for downstream stuff
-    md = dict(sim_tree_file = sim_tree_file, sim_mu=sim_mu)
-    logging.info("loading tree")
-    tree = tsk.load(sim_tree_file)
-    # the metadata from the sims
-    tmd = tree.metadata['SLiM']['user_metadata']
-    # add in metadata from SLiM user md
-    md = md | tmd
-    
-    # we fake out the genome/seqlens -- todo this should
-    # be metadata in future sims
-    seqlens = {sim_chrom: tree.sequence_length}
-    g = Genome('sim', seqlens=seqlens)
-    gd = GenomeData(g)
-    ts = mutate_simulated_tree(sim_tree_file, rate=sim_mu)
-    gd.load_counts_from_ts(ts, chrom=sim_chrom)
+    #md = dict(sim_tree_file = sim_tree_file, sim_mu=sim_mu)
+    logging.info("loading tree(s)")
+    trees = []
+    metadata = dict()
+    assert isinstance(sim_tree_files, dict), "sim_tree_files must be a dict"
+    for chrom, sim_tree_file in sim_tree_files.items():
+        md = dict(sim_tree_file = sim_tree_file,
+                  sim_mu=sim_mu)
+        tree = tsk.load(sim_tree_file)
+        # the metadata from the sims
+        tmd = tree.metadata['SLiM']['user_metadata']
+        # add in metadata from SLiM user md
+        md = md | tmd
+        metadata[chrom] = md
+
+        # add mutations to the tree
+        ts = mutate_simulated_tree(tree, rate=sim_mu)
+        trees[chrom] = tmd
+
+    gd = GenomeData.load_counts_from_ts(ts)
 
     # bin the diversity data
     logging.info("binning pairwise diversity") 

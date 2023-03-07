@@ -88,8 +88,8 @@ class BGSModel(object):
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
-    @classmethod
-    def load(self, filename):
+    @staticmethod
+    def load(filename):
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
         return obj
