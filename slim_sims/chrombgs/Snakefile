@@ -1,3 +1,4 @@
+import sys
 from os.path import join
 from bgspy.slim import SlimRuns
 
@@ -11,11 +12,21 @@ name = run.name
 basedir = run.basedir
 bmaps = config['mle']['bmaps']
 
-windows = config['mle']['windows']
+# we also need another "run"
+synthetic_chroms = config['mle']['synthetic']
+synthetic_config = copy.copy(config)
+new_variable = dict()
+for param, param_list in synthetic_config['variable'].items():
+    if param != 'chrom':
+        new_variable[param] = synthetic_config['variable'][param]
+    else:
+        new_variable['synthetic'] = ['_'.join(synthetic_chroms)]
+synthetic_config['variable'] = new_variable
+synthetic_config['simdir'] = None
+synthetic_run = SlimRuns(synthetic_config)
 
-# get all the B maps we need for these params,
-# since these vary over N and chrom
-b_file = "bmap_6x8grid_100000step_{N}N_{chrom}_{name}.pkl"
+
+windows = config['mle']['windows']
 
 # generate all the targets for this YAML file.
 sim_results = run.generate_targets()
@@ -31,6 +42,8 @@ sim_results = run.generate_targets()
 rule slim:
     input: run.script, **run.input
     output: **run.output_template()
+    resources:
+      mem_mb=10000
     shell: run.slim_cmd()
 
 
@@ -39,6 +52,8 @@ rule empirical_B:
     input: files=sim_results, dir=run.simdir
     output: pkl=join(run.basedir, 'empirical_B', 'empirical_Bs.pkl')
     threads: 40
+    resources:
+      mem_mb=40000
     shell:
         """
         python ../../tools/process_sims.py {input.dir} {output.pkl} --ncores {threads}
@@ -71,6 +86,20 @@ rule bmap:
       --step {params.step}
     """
 
+rule bmap_genome:
+  input: unpack(get_bmap_input)
+  output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/genome', bmap_pattern)
+  params: step=lambda w: bmaps[w.name]['step'], grid=lambda w: bmaps[w.name]['grid']
+  threads: 30
+  shell:
+    """
+    bgspy calcb \
+      --recmap {input.recmap} --annot {input.annot} \
+      --seqlens {input.seqlens} --g '{params.grid}' \
+      --output {output} --popsize {wildcards.N} \
+      --ncores {threads} --ncores-Bp {threads} \
+      --step {params.step}
+    """
 
 # --- mle --- 
 fit_nreps = 50
@@ -78,35 +107,64 @@ mle_results = []
 for bmap_name in bmaps:
     for window in windows:
         mle_dir = join('mle', bmap_name, str(window))
-        mle_data = run.generate_targets(suffices={'data': 'data.pkl'},
-                                        outdir=mle_dir,
-                                        nreps=fit_nreps, reseed=True)
-        mle_results.extend(mle_data)
-        mle_fits = run.generate_targets(suffices={'fit': 'mle.pkl'},
-                                        outdir=mle_dir,
-                                        nreps=fit_nreps, reseed=True)
-        mle_results.extend(mle_fits)
+        #mle_data = run.generate_targets(suffices={'data': 'data.pkl'},
+        #                                outdir=mle_dir,
+        #                                nreps=fit_nreps, reseed=True)
+        #mle_results.extend(mle_data)
+        #mle_fits = run.generate_targets(suffices={'fit': 'mle.pkl'},
+        #                                outdir=mle_dir,
+        #                                nreps=fit_nreps, reseed=True)
+        #mle_results.extend(mle_fits)
+        syn_data = synthetic_run.generate_targets(suffices={'data': 'data.pkl'},
+                                                  outdir=mle_dir,
+                                                  nreps=fit_nreps, reseed=True)
+        mle_results.extend(syn_data)
 
+#print("syn data")
+#print(syn_data)
 
 rule mle_data:
   input: **run.output_template(suffices={'tree_file': 'treeseq.tree'}),
          bs_file=join(run.basedir, 'bmaps/N__{N}/chrom__{chrom}/bmap__{bmap}.pkl')
   output: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
+  resources:
+    mem_mb=10000
   shell:
     """
     bgspy simdata --bs-file {input.bs_file} --chrom {wildcards.chrom} \
-      --sim-tree {input.tree_file} \
-      --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl}
+      --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl} \
+      {wildcards.chrom}={input.tree_file} \
+    """
+
+pattern = run.output_template(suffices={'tree_file': 'treeseq.tree'})
+#print(expand(pattern['tree_file'], chrom=synthetic_chroms, allow_missing=True))
+
+#print(synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'}, pin_params={'synthetic': '-'.join(synthetic_chroms)}))
+
+rule mle_data_multichrom:
+  input: trees=expand(pattern['tree_file'], chrom=synthetic_chroms, allow_missing=True),
+         bs_file=join(run.basedir, 'bmaps/N__{N}/genome/bmap__{bmap}.pkl')
+  output: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'}, pin_params={'chrom': 'synthetic'})
+  resources:
+    mem_mb=10000
+  shell:
+    """
+    bgspy simdata --bs-file {input.bs_file} \
+      --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl} \
+      --sim-tree {input.trees} \
     """
 
 
 rule mle_fit:
   input: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
   output: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'mle.pkl'})
+  resources:
+    mem_mb=10000
   threads: 40
+  params: nstarts=200
   shell:
     """
-    bgspy fit --data {input.pkl} --output {output.pkl} --ncores {threads}
+    bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {threads}
     """
 
 

@@ -277,27 +277,26 @@ def data(seqlens, recmap, neutral, access, fasta,
 
 
 @cli.command()
-@click.option('--sim-tree', required=True,
-              help="a tree sequence file from a SLiM simulation")
+@click.option('sim-tree', required=True, nargs=-1,
+              help="one or more tree sequence file from a simulation")
 @click.option('--sim-mu', required=True, type=float,
               help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
 @click.option('--bs-file', required=True, type=click.Path(exists=True),
               help="BGSModel genome model pickle file (contains B' and B)")
-@click.option('--chrom', required=True, help="sim chromosome")
 @click.option('--output', default=None, required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--window', help='size (in basepairs) of the window',
               type=int, required=True)
-def simdata(sim_tree, bs_file, chrom, output, window, sim_mu, bp_only):
+def simdata(sim_tree, bs_file, output, window, sim_mu, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
     """
     if ',' in chrom:
         # multi-chrom "synthetic" genome sims
     summarize_sim_data(sim_tree, bs_file, output,
-                       window, chrom, sim_mu, bp_only)
+                       window, sim_mu, bp_only)
 
 
 @cli.command()

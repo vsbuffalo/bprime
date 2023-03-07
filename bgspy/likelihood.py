@@ -42,14 +42,18 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 # mutation rate hard bounds
 # these are set for human. I'm targetting the uncertainty 
 # with the mutational slowdown, e.g. see Moorjani et al 2016
-MU_BOUNDS = tuple(np.log10((1e-9,  1e-7)))
+MU_BOUNDS = tuple(np.log10((1e-9,  1e-6)))
 
 
 # π0 bounds: lower is set by lowest observed π in humans
 # highest is based on B lowest is 0.02, e.g. π = π0 Β,
 # 1e-4 = 0.005 B
-PI0_BOUNDS = tuple(np.log10((0.0005, 0.005)))  # this is fairly permissive
+#PI0_BOUNDS = tuple(np.log10((0.0005, 0.005)))  # this is fairly permissive
 # see https://twitter.com/jkpritch/status/1600296856999047168/photo/1
+# NOTE: these were old bounds based on human data. For simulations
+# we need very permissive bounds -- e.g. all range seen
+# https://iiif.elifesciences.org/lax/67509%2Felife-67509-fig2-v3.tif/full/1500,/0/default.jpg
+PI0_BOUNDS = tuple(np.log10((1e-4, 1e-1))) 
 
 # -------- random utility/convenience functions -----------
 
@@ -843,7 +847,9 @@ class SimplexModel(BGSLikelihood):
         w, t = dat['w'], dat['t']
         obj = SimplexModel(w=w, t=t, logB=b, Y=Y,
                            bins=bins, features=features)
-
+        if 'md' in dat:
+            # package metadata, e.g. from sims
+            obj.metadata = dat['md']
         return obj
 
     def random_start(self, mu=None):

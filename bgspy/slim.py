@@ -196,7 +196,7 @@ class SlimRuns():
                          output=output, manual=manual)
 
     def output_template(self, outdir=None, suffices=None, 
-                        include_params=False):
+                        include_params=False, pin_params=None):
         """
         Create a dictionary of expected output for all the 
         suffices, with wildcards.
@@ -208,7 +208,13 @@ class SlimRuns():
         case set basedir and suffices to something other
         than None.
         """
-        param_wildcards = {p: f"{{{p}}}" for p in self.variable}
+        param_wildcards = {}
+        for param_name in self.variable:
+            if pin_params is not None and param_name in pin_params:
+                param_wildcards[param_name] = pin_params[param_name]
+            else:
+                param_wildcards[param_name] = "{" + param_name + "}"
+
         outputs = {}
         if suffices is not None:
             assert isinstance(suffices, dict), "suffices must be a dict"
