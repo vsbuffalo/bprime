@@ -367,6 +367,8 @@ class Genome(object):
         self.name = name
         self.seqlens = None
         msg = "set seqlens_file or seqlens, not both!"
+        if chroms is not None and not len(chroms):
+            chroms = None
         if seqlens is not None:
             assert seqlens_file is None, msg
             if chroms is not None:
@@ -394,13 +396,17 @@ class Genome(object):
     def chroms(self):
         return list(self.seqlens.keys())
 
-    def load_seqlens(self, file, chroms):
+    def load_seqlens(self, file, chroms=None):
+        if chroms is not None and not len(chroms):
+            chroms = None
         if isinstance(chroms, str):
             chroms = set([chroms])
         self._seqlens_file = file
         self._loaded_chroms = chroms
         seqlens = load_seqlens(file)
         if chroms is not None:
+            if isinstance(chroms, str):
+                chroms = [chroms]
             seqlens = {c: l for c, l in seqlens.items() if c in chroms}
         self.seqlens = seqlens
 

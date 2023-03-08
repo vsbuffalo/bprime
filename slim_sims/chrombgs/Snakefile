@@ -106,6 +106,7 @@ rule bmap_synthetic:
     """
 
 # --- mle --- 
+# main fit results
 fit_nreps = 50
 mle_results = []
 for bmap_name in bmaps:
