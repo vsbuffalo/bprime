@@ -110,7 +110,7 @@ def cli():
                    "list for log10 mutation rates", default='-10:-7:50' )
 @click.option('--g', help="a grid string for human defaults, e.g. 6x8 "
               "(--t/--w ignored if this is set)", default=None)
-@click.option('--chrom', help="process a single chromosome", default=None)
+@click.option('--chrom', help="process specified chromosome(s)", default=None, multiple=True)
 @click.option('--popsize', help="population size for B'", type=int, default=None)
 @click.option('--split-length', default=SPLIT_LENGTH_DEFAULT,
               help='conserved segments larger than split-length will be broken into chunks')
@@ -164,7 +164,8 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     if rescale_fit is None:
         ## Make sure chromosomes match
         # use specified chromosome or set to None to use all in seqlens file
-        chrom = [chrom] if chrom is not None else None
+        if isinstance(chrom, str):
+            chrom = [chrom]
     else:
         # match what's in the fit object.
         chrom = list(bpfit.bins.keys())
@@ -277,8 +278,7 @@ def data(seqlens, recmap, neutral, access, fasta,
 
 
 @cli.command()
-@click.option('sim-tree', required=True, nargs=-1,
-              help="one or more tree sequence file from a simulation")
+@click.argument('sim-tree', required=True, nargs=-1)
 @click.option('--sim-mu', required=True, type=float,
               help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
@@ -293,8 +293,6 @@ def simdata(sim_tree, bs_file, output, window, sim_mu, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
     """
-    if ',' in chrom:
-        # multi-chrom "synthetic" genome sims
     summarize_sim_data(sim_tree, bs_file, output,
                        window, sim_mu, bp_only)
 

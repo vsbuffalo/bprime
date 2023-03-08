@@ -117,7 +117,7 @@ def summarize_sim_data(sim_tree_files,
     trees = []
     metadata = dict()
     assert isinstance(sim_tree_files, dict), "sim_tree_files must be a dict"
-    for chrom, sim_tree_file in sim_tree_files.items():
+    for sim_tree_file in sim_tree_files:
         md = dict(sim_tree_file = sim_tree_file,
                   sim_mu=sim_mu)
         tree = tsk.load(sim_tree_file)
@@ -127,6 +127,9 @@ def summarize_sim_data(sim_tree_files,
         md = md | tmd
         metadata[chrom] = md
 
+        # get the chromosome from the SLiM user metadata
+        chrom = tmd['chrom']
+ 
         # add mutations to the tree
         ts = mutate_simulated_tree(tree, rate=sim_mu)
         trees[chrom] = tmd
