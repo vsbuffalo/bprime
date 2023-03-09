@@ -343,11 +343,11 @@ class GenomeData:
         self.counts = get_counts_from_ts(ts_dict)
 
     @staticmethod
-    def from_ts(ts_dict, name="simulated_genome"):
+    def from_ts_dict(ts_dict, name="simulated_genome"):
         """
         Create a GenomeData object from a dictionary of TreeSequences.
         """
-        counts = get_counts_from_ts(ts_dict)
+        counts, _ = get_counts_from_ts(ts_dict)
         sl = {c: m.shape[0] for c, m in counts.items()}
         g = Genome(name, seqlens=sl)
         gd = GenomeData(g)

@@ -45,13 +45,10 @@ def get_counts_from_ts(ts_dict):
     for chrom, ts in ts_dict.items():
         sl = int(ts.sequence_length)
         seqlens[chrom] = sl
-        num_deriv = np.full(sl, np.nan)
+        num_deriv = np.zeros(sl)
         for var in ts.variants():
             nd = (var.genotypes > 0).sum()
             num_deriv[int(var.site.position)] = nd
-
-        msg = "remaining nans -- num mut/num allele mismatch"
-        assert np.sum(np.isnan(num_deriv)) == 0, msg
         ntotal = np.repeat(ts.num_samples, sl)
         nanc = ntotal - num_deriv
         counts = {chrom: np.stack((nanc, num_deriv)).T}

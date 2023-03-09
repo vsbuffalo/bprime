@@ -114,9 +114,8 @@ def summarize_sim_data(sim_tree_files,
     # trees, we store metadata for downstream stuff
     #md = dict(sim_tree_file = sim_tree_file, sim_mu=sim_mu)
     logging.info("loading tree(s)")
-    trees = []
+    trees = dict()
     metadata = dict()
-    assert isinstance(sim_tree_files, dict), "sim_tree_files must be a dict"
     for sim_tree_file in sim_tree_files:
         md = dict(sim_tree_file = sim_tree_file,
                   sim_mu=sim_mu)
@@ -125,16 +124,20 @@ def summarize_sim_data(sim_tree_files,
         tmd = tree.metadata['SLiM']['user_metadata']
         # add in metadata from SLiM user md
         md = md | tmd
-        metadata[chrom] = md
 
         # get the chromosome from the SLiM user metadata
         chrom = tmd['chrom']
- 
+        # everything's a list in slim metadata, but double check
+        assert isinstance(chrom, list)
+        assert len(chrom) == 1
+        chrom = chrom[0]  # unpack it
+        metadata[chrom] = md
+
         # add mutations to the tree
         ts = mutate_simulated_tree(tree, rate=sim_mu)
-        trees[chrom] = tmd
+        trees[chrom] = ts
 
-    gd = GenomeData.load_counts_from_ts(ts)
+    gd = GenomeData.from_ts_dict(trees)
 
     # bin the diversity data
     logging.info("binning pairwise diversity") 
@@ -170,7 +173,7 @@ def summarize_sim_data(sim_tree_files,
     with open(output_file, 'wb') as f:
         dat = {'bins': bgs_bins, 'Y': Y,
                'bp': bp, 'features': features,
-               't': gm.t, 'w': gm.w, 'md': md}
+               't': gm.t, 'w': gm.w, 'md': metadata}
         if not bp_only:
             dat['b'] = b
         pickle.dump(dat, f)

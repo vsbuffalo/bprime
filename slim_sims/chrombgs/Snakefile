@@ -51,12 +51,12 @@ rule slim:
 rule empirical_B:
     input: files=sim_results, dir=run.simdir
     output: pkl=join(run.basedir, 'empirical_B', 'empirical_Bs.pkl')
-    threads: 40
     resources:
-      mem_mb=40000
+      mem_mb=40000,
+      threads=40
     shell:
         """
-        python ../../tools/process_sims.py {input.dir} {output.pkl} --ncores {threads}
+        python ../../tools/process_sims.py {input.dir} {output.pkl} --ncores {resources.threads}
         """
 
 
@@ -151,12 +151,12 @@ rule mle_data_multichrom:
          bs_file=join(run.basedir, 'bmaps/N__{N}/genome/bmap__{bmap}.pkl')
   output: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'}, pin_params={'chrom': 'synthetic'})
   resources:
-    mem_mb=10000
+    mem_mb=50000
   shell:
     """
     bgspy simdata --bs-file {input.bs_file} \
       --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl} \
-      --sim-tree {input.trees} \
+      {input.trees} \
     """
 
 
