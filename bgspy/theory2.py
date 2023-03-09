@@ -1,4 +1,3 @@
-import time
 import os
 import warnings
 import tqdm
@@ -8,8 +7,7 @@ import numpy as np
 from scipy.optimize import fsolve
 from scipy.special import expi, gammaincc, gamma
 from scipy.integrate import quad
-from scipy.interpolate import RegularGridInterpolator
-from ctypes import c_double, c_int, POINTER, c_ssize_t, c_void_p
+from ctypes import c_double, c_int, c_ssize_t
 
 from bgspy.utils import dist_to_segment
 
@@ -440,49 +438,6 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N):
     cbs = np.array(cbs).reshape(shape).T
 
     return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
-
-def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
-    """
-    Compute the fixation time, B, etc for each segment, using the
-    equation that integrates over the entire segment *in parallel*.
-
-    Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
-    the factor of two.
-    """
-    # stuff that's run on each core
-    mu = mu.squeeze()[:, None]
-    sh = sh.squeeze()[None, :]
-
-    # stuff that's shipped off to cores
-    rbp = rbp.squeeze().tolist()
-    L = L.squeeze().tolist()
-
-    # iterate over the segments, but each segments gets the full μ x sh.
-    func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
-
-    if rescaling is None:
-        # create a dummy list to iterate over; internal code handles changing this to 1.
-        rescaling = [None] * len(L)
-
-    if ncores is None or ncores == 1:
-        res = list(tqdm.tqdm(map(func, zip(L, rbp, rescaling)), total=len(L)))
-    else:
-        with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(func, zip(L, rbp, rescaling)), total=len(L)))
-
-    # the current function spits out everything (for debugging and validating
-    # against the region sims
-    #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
-    _, _, Ts, Vs, Vms, _, _ = zip(*res)
-    # we only need to store V and Vm for each mu/sh (this is
-    # the mapping of parameters; this determines Z with rf)
-
-    # let's turn each of these into an array, nw x nt x nloci
-    V = np.moveaxis(np.stack(Vs), 0, 2)
-    Vm = np.moveaxis(np.stack(Vms), 0, 2)
-    Ts = np.moveaxis(np.stack(Ts), 0, 2)
-    return V, Vm, Ts
-
 
 def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation

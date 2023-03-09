@@ -4,10 +4,6 @@ import warnings
 import gzip
 import os
 import tqdm
-try:
-    import pyBigWig
-except ImportError:
-    pass
 from collections import namedtuple, defaultdict, Counter
 import math
 import itertools
@@ -501,6 +497,7 @@ def read_bigwig(filename, seqlens, dtype='float32'):
     """
     Load a bigwig into numpy arrays.
     """
+    import pyBigWig
     bw = pyBigWig.open(filename)
     bigwig = dict()
     for chrom in seqlens:

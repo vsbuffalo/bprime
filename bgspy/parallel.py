@@ -2,10 +2,12 @@
 from collections import defaultdict
 import itertools
 import numpy as np
-import tqdm
+from tqdm import tqdm
 import multiprocessing
-from bgspy.utils import bin_chrom, chain_dictlist, dist_to_segment
-from bgspy.theory2 import Ne_t, Ne_asymp2, calc_B_chunk_worker, calc_BSC16_chunk_worker
+import functools
+from bgspy.utils import bin_chrom, chain_dictlist
+from bgspy.theory2 import calc_B_chunk_worker, calc_BSC16_chunk_worker
+from bgspy.theory2 import bgs_segment_sc16_components
 
 # Some parallelized code lives in classic.py; this is stuff that's common to
 # both the classic and DNN code
@@ -254,16 +256,15 @@ class BChunkIterator(MapPosChunkIterator):
 
 def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     chunks = BChunkIterator(genome,  mut_grid, step, nchunks)
-    print(f"Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    print(f"Calculating classic B, Genome divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     not_parallel = ncores is None or ncores <= 1
     if not_parallel:
         res = []
-        for chunk in tqdm.tqdm(chunks, total=chunks.total):
+        for chunk in tqdm(chunks, total=chunks.total):
             res.append(calc_B_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
-                                 total=chunks.total))
+            res = list(p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total)))
     return chunks.collate(res)
 
 def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
@@ -271,16 +272,58 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     # for the S&C calculation
     chunks = BChunkIterator(genome, None, step, nchunks, N, use_SC16=True)
     s = len(genome.segments)
-    print(f"Genome ({s:,} segments) divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
+    print(f"Calculating B', genome ({s:,} segments) divided into {chunks.total} chunks to be processed on {ncores} CPUs...")
     not_parallel = ncores is None or ncores <= 1
     if not_parallel:
         res = []
-        for chunk in tqdm.tqdm(chunks):
+        for chunk in tqdm(chunks):
             res.append(calc_BSC16_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
+            res = list(tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
                                  total=chunks.total))
     return chunks.collate(res)
+
+def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
+    """
+    Compute the fixation time, B, etc for each segment, using the
+    equation that integrates over the entire segment *in parallel*.
+
+    Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
+    the factor of two.
+    """
+    # stuff that's run on each core
+    mu = mu.squeeze()[:, None]
+    sh = sh.squeeze()[None, :]
+
+    # stuff that's shipped off to cores
+    rbp = rbp.squeeze().tolist()
+    L = L.squeeze().tolist()
+
+    # iterate over the segments, but each segments gets the full μ x sh.
+    func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
+
+    if rescaling is None:
+        # create a dummy list to iterate over; internal code handles changing this to 1.
+        rescaling = [None] * len(L)
+
+    if ncores is None or ncores == 1:
+        res = list(map(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
+    else:
+        with multiprocessing.Pool(ncores) as p:
+            res = list(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
+
+    # the current function spits out everything (for debugging and validating
+    # against the region sims
+    #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
+    _, _, Ts, Vs, Vms, _, _ = zip(*res)
+    # we only need to store V and Vm for each mu/sh (this is
+    # the mapping of parameters; this determines Z with rf)
+
+    # let's turn each of these into an array, nw x nt x nloci
+    V = np.moveaxis(np.stack(Vs), 0, 2)
+    Vm = np.moveaxis(np.stack(Vms), 0, 2)
+    Ts = np.moveaxis(np.stack(Ts), 0, 2)
+    return V, Vm, Ts
 
 

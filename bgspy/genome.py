@@ -7,7 +7,8 @@ from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
 from bgspy.utils import load_seqlens, load_bed_annotation, BScores
 from bgspy.recmap import RecMap
-from bgspy.theory2 import B_segment_lazy, BSC16_segment_lazy_parallel
+from bgspy.theory2 import B_segment_lazy
+from bgspy.parallel import BSC16_segment_lazy_parallel
 
 @dataclass
 class Segments:
