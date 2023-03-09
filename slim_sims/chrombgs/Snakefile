@@ -91,9 +91,9 @@ rule bmap_synthetic:
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/genome', bmap_pattern)
   params: grid=lambda w: bmaps[w.name]['grid'], step=lambda w: bmaps[w.name]['step'], chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
   resources:
-    mem_mb=70000,
+    mem_mb=80000,
     time_min=4320,
-    threads=50
+    threads=30
   shell:
     """
     bgspy calcb \
