@@ -1,21 +1,16 @@
 ## sim_utils.py -- common utility functions for msprime and slim
-import os
 import re
 import pickle
-import warnings
 from functools import partial
 import itertools
-import operator
-from collections import defaultdict, Counter, namedtuple
+from collections import Counter
 import numpy as np
 import tskit as tsk
 import msprime
 import pyslim
 import tqdm
 import multiprocessing
-from bgspy.utils import get_files, random_seed, bin_chrom, readfile
-
-SIM_REGEX = re.compile(r'(?P<name>\w+)_N1000_mu(?P<mu>[^_]+)_sh(?P<sh>[^_]+)_chr10_seed\d+_rep(?P<rep>[^_]+)_treeseq.tree')
+from bgspy.utils import get_files, bin_chrom, readfile
 
 
 def delete_mutations(ts):
@@ -32,28 +27,29 @@ def mutate_simulated_tree(ts, rate, seed=None,
         ts = tsk.load(ts)
     if remove_existing_mutations:
         ts = delete_mutations(ts)
-    return msprime.sim_mutations(ts, rate=rate, random_seed=seed, 
+    return msprime.sim_mutations(ts, rate=rate, random_seed=seed,
                                  model=msprime.BinaryMutationModel())
+
 
 def get_counts_from_ts(ts_dict):
     """
     Return an ref/alt allele counts matrix from a tree
     sequence with mutations.
     """
-    seqlens = dict()
+    #seqlens = dict()
     all_counts = dict()
     for chrom, ts in ts_dict.items():
         sl = int(ts.sequence_length)
-        seqlens[chrom] = sl
+        #seqlens[chrom] = sl
         num_deriv = np.zeros(sl)
         for var in ts.variants():
             nd = (var.genotypes > 0).sum()
             num_deriv[int(var.site.position)] = nd
         ntotal = np.repeat(ts.num_samples, sl)
         nanc = ntotal - num_deriv
-        counts = {chrom: np.stack((nanc, num_deriv)).T}
+        counts = np.stack((nanc, num_deriv)).T
         all_counts[chrom] = counts
-    return all_counts, seqlens
+    return all_counts
 
 
 def param_grid(params):
@@ -216,4 +212,3 @@ def process_substitution_files(dir, outfile, suffix='sub.tsv.gz'):
         pickle.dump(results, f)
 
 
- 

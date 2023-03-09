@@ -1,24 +1,22 @@
 import os
 import logging
-import warnings
 from collections import defaultdict
-import itertools
 import gzip
 import numpy as np
 #mport tqdm.notebook as tqdm
 import tqdm.autonotebook as tqdm
-import tskit
 from tabulate import tabulate
 from bgspy.utils import read_bed3, ranges_to_masks, GC
 from bgspy.utils import aggregate_site_array, BinnedStat
 from bgspy.utils import readfile, parse_param_str
-from bgspy.utils import readfq, pretty_percent, bin_chrom, mean_ratio
+from bgspy.utils import readfq, bin_chrom, mean_ratio
 from bgspy.sim_utils import get_counts_from_ts
 from bgspy.genome import Genome
 from bgspy.bootstrap import resample_blocks
 
 # error out on overflows
 np.seterr(all='raise')
+
 
 def load_dacfile(dacfile, neut_masks=None):
     """
@@ -347,7 +345,7 @@ class GenomeData:
         """
         Create a GenomeData object from a dictionary of TreeSequences.
         """
-        counts, _ = get_counts_from_ts(ts_dict)
+        counts = get_counts_from_ts(ts_dict)
         sl = {c: m.shape[0] for c, m in counts.items()}
         g = Genome(name, seqlens=sl)
         gd = GenomeData(g)
