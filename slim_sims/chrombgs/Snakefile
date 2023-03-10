@@ -99,7 +99,7 @@ rule bmap_genome:
   resources:
     mem_mb=90000,
     time_min=4320,
-    threads=40
+    threads=70
   shell:
     """
     bgspy calcb \
@@ -129,6 +129,13 @@ for bmap_name in bmaps:
                                                   outdir=mle_dir,
                                                   nreps=fit_nreps, reseed=True)
         mle_results.extend(syn_data)
+
+
+bmap_output = []
+all_Ns = set(config['variable']['N'])
+for bmap in bmaps:
+    for N in all_Ns:
+        bmap_output.append(join(run.basedir, f"bmaps/N__{N}/genome/bmap__{bmap}.pkl"))
 
 #print("syn data")
 #print(syn_data)
@@ -180,3 +187,6 @@ rule mle_fit:
 
 rule all:
     input: sim_results, mle_results
+
+rule bmaps: 
+    input: bmap_output
