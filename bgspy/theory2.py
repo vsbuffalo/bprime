@@ -398,13 +398,17 @@ def bgs_segment_sc16_parts(*args, **kwargs):
     return np.vectorize(bgs_segment_sc16, otypes=(tuple,))(*args, **kwargs, return_parts=True)
 
 
-def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N):
+def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N, 
+                                return_all=False):
     """
     A manually-vectorized version of bgs_segment_sc16_parts().
     This mimics np.vectorize() but the vectorization is done manually.
     This is because np.vectorize() creates a closure that cannot be
     pickled for multiprocessing work, meaning the np.vectorize()
     version is not parallelizable.
+
+    return_all: whether to return all the various parts calculated from
+    bgs_segment_sc16, which is mostly for debugging purposes.
     """
     L, rbp, rescaling = L_rbp_rescaling
     assert isinstance(L, (int, float))
@@ -415,29 +419,29 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N):
         rescaling = 1.
     assert isinstance(mu, np.ndarray)
     assert isinstance(sh, np.ndarray)
-    mug, shg = np.meshgrid(mu, sh)
-    Bs, Bas, Ts, Vs, Vms, Q2s, cbs = [], [], [], [], [], [], []
-    for m, s in zip(mug.flat, shg.flat):
-        res = bgs_segment_sc16(m, s, L, rbp, rescaling*N, return_parts=True)
-        B, B_asymp, T, V, Vm, Q2, classic_bgs = res
-        Bs.append(B)
-        Bas.append(B_asymp)
-        Ts.append(T)
-        Q2s.append(Q2)
-        Vs.append(V)
-        Vms.append(Vm)
-        cbs.append(classic_bgs)
+    shape = mu.size, sh.size
 
-    shape = sh.size, mu.size
-    Bs = np.array(Bs).reshape(shape).T
-    Bas = np.array(Bas).reshape(shape).T
-    Ts = np.array(Ts).reshape(shape).T
-    Vs = np.array(Vs).reshape(shape).T
-    Vms = np.array(Vms).reshape(shape).T
-    Q2s = np.array(Q2s).reshape(shape).T
-    cbs = np.array(cbs).reshape(shape).T
+    Ts, Vs, Vms = np.empty(shape), np.empty(shape), np.empty(shape)
+    if return_all:
+        Bs, Bas, Q2s, cbs = np.empty(shape), np.empty(shape), np.empty(shape), np.empty(shape)
+    for i, m in enumerate(mu.flat):
+        for j, s in enumerate(sh.flat):
+            res = bgs_segment_sc16(m, s, L, rbp, rescaling*N, return_parts=True)
+            B, B_asymp, T, V, Vm, Q2, classic_bgs = res
+            Ts[i, j] = T
+            Vs[i, j] = V
+            Vms[i, j] = Vm
+            
+            if return_all:
+                Bs[i, j] = B
+                Bas[i, j] = B_asymp
+                Q2s[i, j] = Q2
+                cbs[i, j] = classic_bgs
 
-    return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
+    if return_all:
+        return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
+    return Ts, Vs, Vms
+
 
 def calc_BSC16_chunk_worker(args):
     # ignore rbp, no need here yet under this approximation

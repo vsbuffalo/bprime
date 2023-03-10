@@ -280,8 +280,8 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
             res.append(calc_BSC16_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm(p.imap(calc_BSC16_chunk_worker, chunks),
-                                 total=chunks.total))
+            res = list(p.imap(calc_BSC16_chunk_worker, tqdm(chunks,
+                                 total=chunks.total)))
     return chunks.collate(res)
 
 def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
@@ -316,7 +316,7 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     # the current function spits out everything (for debugging and validating
     # against the region sims
     #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
-    _, _, Ts, Vs, Vms, _, _ = zip(*res)
+    Ts, Vs, Vms = zip(*res)
     # we only need to store V and Vm for each mu/sh (this is
     # the mapping of parameters; this determines Z with rf)
 
