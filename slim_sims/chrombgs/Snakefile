@@ -92,21 +92,20 @@ rule bmap:
       --step {params.step}
     """
 
-rule bmap_synthetic:
+rule bmap_genome:
   input: unpack(get_bmap_input)
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/genome', bmap_pattern)
-  params: grid=lambda w: bmaps[w.name]['grid'], step=lambda w: bmaps[w.name]['step'], chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
+  params: grid=lambda w: bmaps[w.name]['grid'], step=lambda w: bmaps[w.name]['step']
   resources:
     mem_mb=90000,
     time_min=4320,
-    threads=20
+    threads=40
   shell:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.annot} \
       --seqlens {input.seqlens} --g '{params.grid}' \
       --output {output} --popsize {wildcards.N} \
-      {params.chrom_args} \
       --ncores {resources.threads} --ncores-Bp {resources.threads} \
       --step {params.step}
     """
