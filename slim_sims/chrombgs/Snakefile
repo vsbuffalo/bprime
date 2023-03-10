@@ -12,7 +12,13 @@ name = run.name
 basedir = run.basedir
 bmaps = config['mle']['bmaps']
 
-# we also need another "run"
+# we also need another set of paths that correspond
+# to the 'synthetic' fits that combine all chromosomes
+# (on same replicate number). This is tricky, since
+# the variable chrom entry is now fixed, and merging
+# chromosomes but only for same sh/mu. The easiest way 
+# is to copy the config and make the synthetic param 
+# manually
 synthetic_chroms = config['mle']['synthetic']
 synthetic_config = copy.copy(config)
 new_variable = dict()
@@ -91,9 +97,9 @@ rule bmap_synthetic:
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/genome', bmap_pattern)
   params: grid=lambda w: bmaps[w.name]['grid'], step=lambda w: bmaps[w.name]['step'], chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
   resources:
-    mem_mb=80000,
+    mem_mb=90000,
     time_min=4320,
-    threads=30
+    threads=20
   shell:
     """
     bgspy calcb \

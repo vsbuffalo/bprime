@@ -8,8 +8,9 @@ from collections import defaultdict
 import itertools
 import warnings
 import numpy as np
-from bgspy.utils import signif
-from bgspy.sim_utils import param_grid, random_seed
+from bgspy.utils import signif, random_seed
+from bgspy.sim_utils import param_grid
+
 
 
 

@@ -297,8 +297,8 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     sh = sh.squeeze()[None, :]
 
     # stuff that's shipped off to cores
-    rbp = rbp.squeeze().tolist()
-    L = L.squeeze().tolist()
+    rbp = rbp.flat().tolist()
+    L = L.flat().tolist()
 
     # iterate over the segments, but each segments gets the full μ x sh.
     func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
