@@ -266,7 +266,7 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
             res.append(calc_B_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total)))
+            res = p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total))
             p.close()
             p.join()
  
@@ -286,8 +286,7 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
             res.append(calc_BSC16_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(p.imap(calc_BSC16_chunk_worker,
-                              tqdm(chunks, total=chunks.total)))
+            res = p.imap(calc_BSC16_chunk_worker, tqdm(chunks, total=chunks.total))
             p.close()
             p.join()
     print("Collating all B' results...  ", end='')

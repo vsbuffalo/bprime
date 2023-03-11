@@ -96,7 +96,7 @@ rule bmap:
 rule bmap_synthetic:
   input: unpack(get_bmap_input)
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/synthetic', bmap_pattern)
-  params: grid=lambda w: bmaps[w.name]['grid'], step=lambda w: bmaps[w.name]['step'], chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
+  params: grid=lambda w: bmaps[w.name]['grid'], step=100000, chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
   resources:
     mem_mb=100000,
     time_min=4320,
