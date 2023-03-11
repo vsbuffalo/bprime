@@ -12,6 +12,7 @@ from bgspy.theory2 import bgs_segment_sc16_components
 # Some parallelized code lives in classic.py; this is stuff that's common to
 # both the classic and DNN code
 
+
 def share_array(x):
     """
     Convert a numpy array to a multiprocessing.Array
@@ -22,6 +23,7 @@ def share_array(x):
     shared_array = np.ctypeslib.as_array(shared_array_base.get_obj()).reshape(x.shape)
     np.copyto(shared_array, x)
     return shared_array
+
 
 class MapPosChunkIterator(object):
     """
@@ -214,7 +216,7 @@ class BChunkIterator(MapPosChunkIterator):
             idx = self.chrom_idx[chrom]
             # share the following arrays across processes, to save memory
             # (these should not be changed!)
-            F = self.genome.segments.F[idx, :]
+            #F = self.genome.segments.F[idx, :]
             if use_SC16:
                 assert N is not None
                 # these are all segment-specific
@@ -265,7 +267,11 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     else:
         with multiprocessing.Pool(ncores) as p:
             res = list(p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total)))
+            p.close()
+            p.join()
+ 
     return chunks.collate(res)
+
 
 def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     # the None argument is because we do not need to pass in the mutations
@@ -280,9 +286,14 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
             res.append(calc_BSC16_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(p.imap(calc_BSC16_chunk_worker, tqdm(chunks,
-                                 total=chunks.total)))
+            res = list(p.imap(calc_BSC16_chunk_worker,
+                              tqdm(chunks, total=chunks.total)))
+            p.close()
+            p.join()
+    print("Collating all B' results...  ", end='')
     return chunks.collate(res)
+    print("done.")
+
 
 def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     """
@@ -312,6 +323,9 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     else:
         with multiprocessing.Pool(ncores) as p:
             res = list(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
+            p.close()
+            p.join()
+ 
 
     # the current function spits out everything (for debugging and validating
     # against the region sims

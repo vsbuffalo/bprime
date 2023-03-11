@@ -406,6 +406,7 @@ class Genome(object):
         self._loaded_chroms = chroms
         seqlens = load_seqlens(file)
         if chroms is not None:
+            assert all([(c in seqlens) for c in chroms]), "some specified chromosomes not in seqlens"
             if isinstance(chroms, str):
                 chroms = [chroms]
             seqlens = {c: l for c, l in seqlens.items() if c in chroms}
