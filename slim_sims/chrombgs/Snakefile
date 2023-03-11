@@ -98,9 +98,9 @@ rule bmap_synthetic:
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/synthetic', bmap_pattern)
   params: grid=lambda w: bmaps[w.name]['grid'], step=lambda w: bmaps[w.name]['step'], chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
   resources:
-    mem_mb=90000,
+    mem_mb=100000,
     time_min=4320,
-    threads=40
+    threads=30
   shell:
     """
     bgspy calcb \
@@ -150,6 +150,11 @@ for bmap_name in bmaps:
                                                   outdir=mle_dir,
                                                   nreps=fit_nreps, reseed=True)
         mle_results.extend(syn_data)
+        syn_mle_fits = synthetic_run.generate_targets(suffices={'fit': 'mle.pkl'},
+                                                       outdir=mle_dir,
+                                                       nreps=fit_nreps, reseed=True)
+        mle_results.extend(syn_mle_fits)
+       
 
 
 bmap_output = []
@@ -196,6 +201,18 @@ rule mle_data_multichrom:
 rule mle_fit:
   input: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
   output: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'mle.pkl'})
+  resources:
+    mem_mb=10000
+  threads: 40
+  params: nstarts=200
+  shell:
+    """
+    bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {threads}
+    """
+
+rule mle_synthetic_fit:
+  input: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
+  output: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'mle.pkl'})
   resources:
     mem_mb=10000
   threads: 40
