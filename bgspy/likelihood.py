@@ -57,13 +57,16 @@ PI0_BOUNDS = tuple(np.log10((1e-4, 1e-1)))
 
 # -------- random utility/convenience functions -----------
 
-def param_names(t, features):
+def param_names(t, features, fixed_mu=False):
     """
     Label the simplex model parameters.
     """
     sels, feats = np.meshgrid(np.log10(t), features)
     sels, feats = itertools.chain(*sels.tolist()), itertools.chain(*feats.tolist())
-    return ["pi0", "mu"] + [f"W[{int(s)},{f}]" for s, f in zip(*(sels, feats))]
+    ps = ["pi0"]
+    if not fixed_mu:
+        ps.append("mu")
+    return ps + [f"W[{int(s)},{f}]" for s, f in zip(*(sels, feats))]
 
 def R2(x, y):
     """
@@ -852,6 +855,13 @@ class SimplexModel(BGSLikelihood):
             obj.metadata = dat['md']
         return obj
 
+    def param_dict(self):
+        """
+        Return parameters in a dictionary with their named keys.
+        """
+        pn = param_names(self.t, self.features, self._fixed_mu)
+        return dict(zip(pn, self.theta_.tolist()))
+
     def random_start(self, mu=None):
         """
         Random starts, on a linear scale for μ and π0.
@@ -979,6 +989,7 @@ class SimplexModel(BGSLikelihood):
         Extract out the mutation rate, μ.
         """
         if self._fixed_mu is not None:
+            warnings.warn("mu is fixed! returning fixed value")
             return self._fixed_mu
         return self.theta_[1]
 

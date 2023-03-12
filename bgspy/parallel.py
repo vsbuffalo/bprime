@@ -1,5 +1,5 @@
 ## parallel.py -- functions to doing stuff in parallel
-from collections import defaultdict
+from collections import defaultdict, deque
 import itertools
 import numpy as np
 from tqdm import tqdm
@@ -142,13 +142,19 @@ class MapPosChunkIterator(object):
         them back together. This assumes the results are in the same order
         as initially set, e.g. this is not appropriate for distributed computing
         on a cluster (but is for multiprocessing module's map).
+
+        Notes: this uses a deque, for O(1) pops of the first element. 
+        The popleft is used to avoid doubling the total results size in 
+        memory during collation.
         """
+        assert isinstance(results, deque), "results must be a deque"
         Bs = defaultdict(list)
         B_pos = defaultdict(list)
         pos_iter = chain_dictlist(self.chrom_pos_chunks)
-        for res in results:
+        while True:
             try:
                 chunk = next(pos_iter)
+                res = results.popleft()
             except StopIteration:
                 break
             chrom, pos = chunk
@@ -266,7 +272,7 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
             res.append(calc_B_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total))
+            res = deque(p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total)))
             p.close()
             p.join()
  
@@ -286,10 +292,10 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
             res.append(calc_BSC16_chunk_worker(chunk))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = p.imap(calc_BSC16_chunk_worker, tqdm(chunks, total=chunks.total))
+            res = deque(p.imap(calc_BSC16_chunk_worker, tqdm(chunks, total=chunks.total)))
             p.close()
             p.join()
-    print("Collating all B' results...  ", end='')
+    print("Collating all B' results...  ", end='', flush=True)
     return chunks.collate(res)
     print("done.")
 
@@ -321,7 +327,7 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
         res = list(map(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
+            res = deque(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
             p.close()
             p.join()
  
