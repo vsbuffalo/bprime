@@ -2,7 +2,7 @@
 name: conserved_cds_utrs_phastcons_merged__hapmap__fixed
 # slim parameters
 script: chrombgs_features.slim
-nreps: 20
+nreps: 50
 seed: 0
 dir: runs
 simdir: sims
@@ -17,6 +17,7 @@ fixed:
 variable:
   N:
     - 1000
+    - 10000
   chrom:
     - chr1
     - chr2
@@ -25,10 +26,11 @@ variable:
     - 1.5e-08
   sh: 
     - 0.01
+    - 0.05
     - 0.001
+    - 0.005
     - 1e-4
     - 1e-5
-    - 1e-6
 
 # mle fit 
 mle:

@@ -1,5 +1,6 @@
 import warnings
 import logging
+from os.path import basename
 import pickle
 import tskit as tsk
 from bgspy.models import BGSModel
@@ -146,6 +147,7 @@ def summarize_sim_data(sim_tree_files,
     # genome models
     logging.info("loading Bs")
     gm = BGSModel.load(bs_file)
+    metadata['bs_file'] = basename(bs_file)
 
     # features -- load for labels
     features = list(gm.segments.feature_map.keys())
@@ -223,13 +225,12 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
                  mu=mu, chrom=chrom)
 
     # save the B' results
-    msg = "saving B' model results"
-    logging.info(msg)
-    obj = {'mbp': m_bp}
-    with open(output_file, 'wb') as f:
-        pickle.dump(obj, f)
-
     if bp_only:
+        msg = "saving B' model results"
+        logging.info(msg)
+        obj = {'mbp': m_bp}
+        with open(output_file, 'wb') as f:
+            pickle.dump(obj, f)
         return
 
     # we also need to fit the classic B

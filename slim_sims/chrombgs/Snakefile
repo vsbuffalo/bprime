@@ -49,7 +49,8 @@ rule slim:
     input: run.script, **run.input
     output: **run.output_template()
     resources:
-      mem_mb=10000
+      time_min=7200,
+      mem_mb=20000
     shell: run.slim_cmd()
 
 
@@ -80,7 +81,10 @@ rule bmap:
   input: unpack(get_bmap_input)
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/chrom__{chrom}', bmap_pattern)
   params: step=lambda w: bmaps[w.name]['step'], grid=lambda w: bmaps[w.name]['grid']
-  threads: 30
+  resources:
+    mem_mb=200000,
+    time_min=4320,
+    threads=30
   shell:
     """
     bgspy calcb \
@@ -98,7 +102,7 @@ rule bmap_synthetic:
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/synthetic', bmap_pattern)
   params: grid=lambda w: bmaps[w.name]['grid'], step=100000, chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
   resources:
-    mem_mb=100000,
+    mem_mb=200000,
     time_min=4320,
     threads=30
   shell:
@@ -202,24 +206,26 @@ rule mle_fit:
   input: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
   output: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'mle.pkl'})
   resources:
-    mem_mb=10000
-  threads: 40
+    mem_mb=10000,
+    time_min=300,
+    threads=40
   params: nstarts=200
   shell:
     """
-    bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {threads}
+    bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {resources.threads}
     """
 
 rule mle_synthetic_fit:
   input: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
   output: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'mle.pkl'})
   resources:
-    mem_mb=10000
-  threads: 40
+    mem_mb=10000,
+    time_min=300,
+    threads=40
   params: nstarts=200
   shell:
     """
-    bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {threads}
+    bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {resources.threads}
     """
 
 
