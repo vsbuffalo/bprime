@@ -203,14 +203,17 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 def predict_chrom_plot(model, chrom, ratio=True,
                        label='prediction', lw=2,
                        alpha_predict=1, alpha_pi=1,
-                       add_r2=False, figax=None):
+                       add_r2=False, figax=None, predict_kwargs=None):
     m = model
     fig, ax = get_figax(figax)
     midpoints, pi = model.bins.pi_pairs(chrom)
     bins = m.bins.flat_bins(filter_masked=False)
     chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
-
-    predicts = m.predict()
+    
+    if predict_kwargs is not None:
+        predicts = m.predict(**predict_kwargs)
+    else:
+        predicts = m.predict()
     # fill the predicted values into the full unmask-filtered matrix
     predicts_full = model.bins.merge_filtered_data(predicts)
 
