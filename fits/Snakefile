@@ -1,40 +1,18 @@
 """
 Main Snakemake-based model fitting pipeline.
 """
-import socket
 import numpy as np
-
-## personal stuff for my project (sorry, safe to ignore)
-# we scale down the number of cores if we're doing this on the cluster
-dev = 'sesame'
-is_dev =  socket.gethostname().startswith(dev)
-
-
-## general stuff 
-NSTARTS = 2_000
-NSTARTS_LOO = 2_000
-
-# note: ncores_loo is per-job;
-# you'll want to account number of total jobs,
-# -j
-if not is_dev:
-    NCORES = 40
-    NCORES_LOO = NCORES
-    NCORES_B = 40
-    NCORES_BP = 20
-else:
-    # just blast through a bunch without parallel snakemake jobs
-    NCORES = 70
-    NCORES_LOO = 70
-    NCORES_B = 40
-    NCORES_BP = 20
-
 
 CHROMS = [f'chr{x}' for x in range(1, 23)]
 
-# from config file
+# ---- load config file
 name = config["name"]
+nstarts = config["nstarts"]
 mu = config.get("mu", None)
+if mu == "free":
+  mu = None
+else:
+  assert instance(mu, float), "mu must be 'free' or a float"
 seqlens_file = config["seqlens_file"]
 recmap_file = config["recmap_file"]
 access_file = config["access_file"]
@@ -89,14 +67,18 @@ rule bmap:
          recmap=recmap_file,
          features=features_file
   output: pkl_b_file="bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
-  params: ncores=NCORES_B, ncores_bp=NCORES_BP
+  benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.txt"
+  resources:
+    mem_mb=200000,
+    time_min=4320,
+    threads=40
   shell:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.features} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.N} \
-      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --ncores {resources.threads} --ncores-Bp {resources.threads} \
       --step {wildcards.step}
     """
 
@@ -107,7 +89,11 @@ rule save_data:
          neut_file=neut_file, counts_dir=counts_dir,
          bs_file=Bs_file
   output: 'model_data_{window,\d+}.pkl'
+  benchmark: "benchmarks/data_{window}.txt"
   params: name=name
+  resources:
+    mem_mb=50000,
+    time_min=300,
   shell:
     """
     mkdir -p {params.name}
@@ -122,14 +108,19 @@ rule save_data:
 rule fit:
   input: 'model_data_{window}.pkl'
   output: 'fit_{window,\d+}/mle.pkl'
-  params: ncores=NCORES, nstarts=NSTARTS, mu=mu, name=name
+  params: nstarts=nstarts, mu=mu, name=name
+  resources:
+    mem_mb=10000,
+    time_min=300,
+    threads=40
   benchmark: "benchmarks/fit_{window}.txt"
   shell:
     """
     mkdir -p {params.name}
     bgspy fit \
+      --mu {params.mu} \
       --data {input[0]} \
-      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --ncores {resources.threads} --nstarts {params.nstarts} \
       --mu {params.mu} \
       --output {output[0]}
     """
@@ -139,7 +130,11 @@ rule block_jackknife:
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
   output: 'fit_{window,\d+}/jackknife/{blocksize}/jackknife_{frac}.pkl'
-  params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
+  params: nstarts=nstarts
+  resources:
+    mem_mb=10000,
+    time_min=300,
+    threads=40
   shell:
     """
     bgspy jackblock \
@@ -147,7 +142,7 @@ rule block_jackknife:
       --data {input.data} \
       --output {output[0]} \
       --blockfrac {wildcards.frac} \
-      --ncores {params.ncores} --nstarts {params.nstarts}
+      --ncores {resources.threads} --nstarts {params.nstarts}
     """
 
 
@@ -156,14 +151,18 @@ rule loo_chrom:
   # I prefer that gets calculated first
   input: data='model_data_{window}.pkl', fit='fit_{window}/mle.pkl'
   output: 'fit_{window,\d+}/loo_chrom/loo_{chrom}.pkl'
-  params: ncores=NCORES_LOO, nstarts=NSTARTS_LOO
+  params: nstarts=nstarts
+  resources:
+    mem_mb=10000,
+    time_min=300,
+    threads=40
   shell:
     """
     bgspy loo \
       --data {input.data} \
       --output {output[0]} \
       --chrom {wildcards.chrom} \
-      --ncores {params.ncores} --nstarts {params.nstarts}
+      --ncores {resources.threads} --nstarts {params.nstarts}
     """
 
 # ----- locally-rescaled fits -----
@@ -174,14 +173,17 @@ rule bmap_rescale:
          fit='fit_{window}/mle.pkl',
          b=Bs_file
   output: pkl_b_file="bmap_rescaled_{window,\d+}_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
-  params: ncores=NCORES_B, ncores_bp=NCORES_BP
+  resources:
+    mem_mb=200000,
+    time_min=4320,
+    threads=40
   shell:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.features} \
       --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.N} \
-      --ncores {params.ncores} --ncores-Bp {params.ncores_bp} \
+      --ncores {resources.threads} --ncores-Bp {resources.threads} \
       --step {wildcards.step} \
       --rescale-fit {input.fit} --only-Bp \
       --rescale-Bp-file {input.b}
@@ -194,6 +196,9 @@ rule save_data_rescale:
          bs_file=Bs_file_rescaled
   output: 'model_data_{window,\d+}_rescaled.pkl'
   params: name=name
+  resources:
+    mem_mb=10000,
+    time_min=300
   shell:
     """
     mkdir -p {params.name}
@@ -208,14 +213,19 @@ rule save_data_rescale:
 rule fit_rescaled:
   input: 'model_data_{window,\d+}_rescaled.pkl'
   output: 'fit_{window,\d+}_rescaled/mle.pkl'
-  params: ncores=NCORES, nstarts=NSTARTS, mu=mu, name=name
+  params: nstarts=nstarts, mu=mu, name=name
   benchmark: "benchmarks/fit_{window}_rescaled.txt"
+  resources:
+    mem_mb=10000,
+    time_min=300,
+    threads=40
   shell:
     """
     mkdir -p {params.name}
     bgspy fit \
+      --mu {params.mu}
       --data {input[0]} \
-      --ncores {params.ncores} --nstarts {params.nstarts} \
+      --ncores {resources.threads} --nstarts {params.nstarts} \
       --output {output[0]} --only-Bp
     """
 

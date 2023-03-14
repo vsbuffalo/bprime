@@ -12,6 +12,10 @@ name = run.name
 basedir = run.basedir
 bmaps = config['mle']['bmaps']
 
+# this is the target neutral level of diversity,
+# for mutations overlaid on trees. 
+target_neut_pi = config['target_neut_pi']
+
 # we also need another set of paths that correspond
 # to the 'synthetic' fits that combine all chromosomes
 # (on same replicate number). This is tricky, since
@@ -136,6 +140,10 @@ rule bmap_genome:
     """
 
 # --- mle --- 
+access_file = config['mle']['input']['access_file']
+neut_file = config['mle']['input']['neut_file']
+
+
 # main fit results
 fit_nreps = 50
 mle_results = []
@@ -176,10 +184,12 @@ rule mle_data:
   output: **run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'})
   resources:
     mem_mb=10000
+  params: sim_mu=lambda w: target_neut_pi / (4*float(w.N))
   shell:
     """
     bgspy simdata --bs-file {input.bs_file} --chrom {wildcards.chrom} \
-      --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl} \
+      --window {wildcards.window} --sim-mu {params.sim_mu} \
+      --output {output.pkl} \
       {wildcards.chrom}={input.tree_file} \
     """
 
@@ -190,14 +200,17 @@ pattern = run.output_template(suffices={'tree_file': 'treeseq.tree'})
 
 rule mle_data_multichrom:
   input: trees=expand(pattern['tree_file'], chrom=synthetic_chroms, allow_missing=True),
-         bs_file=join(run.basedir, 'bmaps/N__{N}/synthetic/bmap__{bmap}.pkl')
+         bs_file=join(run.basedir, 'bmaps/N__{N}/synthetic/bmap__{bmap}.pkl'), access=access_file, neut=neut_file
   output: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'}, pin_params={'chrom': 'synthetic'})
   resources:
     mem_mb=50000
+  params: sim_mu=lambda w: target_neut_pi / (4*float(w.N))
   shell:
     """
     bgspy simdata --bs-file {input.bs_file} \
-      --window {wildcards.window} --sim-mu 1e-7 --output {output.pkl} \
+      --window {wildcards.window} --sim-mu {params.sim_mu} \
+      --access {input.access} --neutral {input.neut} \
+      --output {output.pkl} \
       {input.trees} \
     """
 
@@ -209,7 +222,7 @@ rule mle_fit:
     mem_mb=10000,
     time_min=300,
     threads=40
-  params: nstarts=200
+  params: nstarts=1000
   shell:
     """
     bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {resources.threads}
@@ -222,7 +235,7 @@ rule mle_synthetic_fit:
     mem_mb=10000,
     time_min=300,
     threads=40
-  params: nstarts=200
+  params: nstarts=1000
   shell:
     """
     bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {resources.threads}

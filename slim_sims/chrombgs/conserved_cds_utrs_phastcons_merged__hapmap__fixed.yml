@@ -6,6 +6,7 @@ nreps: 50
 seed: 0
 dir: runs
 simdir: sims
+target_neut_pi: 0.001
 suffices: 
   treeseq_file: treeseq.tree
 input: 
@@ -17,13 +18,15 @@ fixed:
 variable:
   N:
     - 1000
-    - 10000
   chrom:
     - chr1
     - chr2
     - chr3
+    - chr4
+    - chr5
   mu:
     - 1.5e-08
+    - 2.5e-08
   sh: 
     - 0.01
     - 0.05
@@ -34,10 +37,15 @@ variable:
 
 # mle fit 
 mle:
+  input:
+    access_file: ../../data/annotation/no_centro.bed
+    neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz
   synthetic:
    - chr1
    - chr2
    - chr3
+   - chr4
+   - chr5
   bmaps: 
     default:
       step: 10000

@@ -279,29 +279,35 @@ def data(seqlens, recmap, neutral, access, fasta,
 
 @cli.command()
 @click.argument('sim-tree', required=True, nargs=-1)
-@click.option('--sim-mu', required=True, type=float,
-              help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
-@click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
 @click.option('--bs-file', required=True, type=click.Path(exists=True),
               help="BGSModel genome model pickle file (contains B' and B)")
+@click.option('--sim-mu', required=True, type=float,
+              help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
+@click.option('--neutral', required=True, type=click.Path(exists=True),
+              help='neutral region BED file')
+@click.option('--access', required=True, type=click.Path(exists=True),
+              help='accessible regions BED file (e.g. no centromeres)')
 @click.option('--output', default=None, required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--window', help='size (in basepairs) of the window',
               type=int, required=True)
-def simdata(sim_tree, bs_file, output, window, sim_mu, bp_only):
+@click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
+def simdata(sim_tree, bs_file, sim_mu, neutral, access, 
+            output, window, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
     """
-    summarize_sim_data(sim_tree, bs_file, output,
-                       window, sim_mu, bp_only)
+    summarize_sim_data(sim_tree, bs_file, 
+                       neut_file=neutral, access_file=access, 
+                       output_file=output,
+                       window=window, sim_mu=sim_mu, bp_only=bp_only)
 
 
 @cli.command()
 @click.option('--data', required=True, default=None,
               type=click.Path(exists=True),
               help="pickle of pre-computed summary statistics")
-#@click.option('--mu', required=False, default=None, help='mutation rate (per basepair) for fixed model')
 @click.option('--output',
               required=True, type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
@@ -423,6 +429,7 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output,
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
+            mu=mu,
             nstarts=nstarts,
             loo_chrom=chrom,
             blocksize=blocksize, blocknum=blocknum,
@@ -435,6 +442,8 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output,
 @click.option('--fit', default=None, type=click.Path(exists=True),
               help=('pickle file of fitted results, for starting at MLE '
                     '(ignore for random starts)'))
+@click.option('--mu', help='fixed mutation rate (by default, free)', 
+              default=None)
 @click.option('--output', required=True, type=click.Path(writable=True),
               help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
@@ -447,7 +456,7 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output,
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def loo(data, fit, output, fit_dir, chrom,
+def loo(data, fit, mu, output, fit_dir, chrom,
               ncores, nstarts, include_bs):
     """
     Leave-one-out chromosome fit. 
@@ -459,6 +468,7 @@ def loo(data, fit, output, fit_dir, chrom,
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
+            mu=mu,
             nstarts=nstarts,
             loo_chrom=chrom,
             bp_only=True)

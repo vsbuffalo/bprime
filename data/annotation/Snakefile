@@ -454,6 +454,7 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_cds_phastcons_full.bed.gz",
         "conserved_phastcons_not_genes_cds_full.bed.gz",
         "conserved_phastcons_not_genes_cds_genes_full.bed.gz",
+        "conserved_phastcons_not_genes_cds_genes_full.bed",
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
@@ -596,11 +597,12 @@ rule conserved_not_gene_cds_full:
 
 rule conserved_not_gene_cds_genes_full:
   input: cons="conserved_phastcons_not_genes_cds_genes.bed.gz", seqlens="hg38_seqlens.tsv"
-  output: "conserved_phastcons_not_genes_cds_genes_full.bed.gz"
+  output: gz="conserved_phastcons_not_genes_cds_genes_full.bed.gz", raw="conserved_phastcons_not_genes_cds_genes_full.bed"
   shell:
     """
     bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > tmp_1.bed
-    (cat tmp_1.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    (cat tmp_1.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n  > {output.raw}
+    cat {output.raw} | gzip > {output.gz}
     rm -f tmp_1.bed
     """
 

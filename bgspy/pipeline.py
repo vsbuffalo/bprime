@@ -102,9 +102,11 @@ def summarize_data(# annotation
 
 
 def summarize_sim_data(sim_tree_files,
-                       bs_file, output_file,
+                       bs_file, 
+                       output_file,
                        # window size
                        window,
+                       neut_file=None, access_file=None,
                        sim_mu=None,
                        # other
                        bp_only=False, verbose=True):
@@ -139,10 +141,14 @@ def summarize_sim_data(sim_tree_files,
         trees[chrom] = ts
 
     gd = GenomeData.from_ts_dict(trees)
-
+    gd.load_neutral_masks(neut_file)
+    gd.load_accessibile_masks(access_file)
+ 
     # bin the diversity data
     logging.info("binning pairwise diversity") 
-    bgs_bins = gd.bin_pairwise_summaries(window)
+    bgs_bins = gd.bin_pairwise_summaries(window, 
+                                         filter_accessible=True,
+                                         filter_neutral=True)
 
     # genome models
     logging.info("loading Bs")
