@@ -187,6 +187,7 @@ class BGSModel(object):
                 # in the B' calc
                 self.genome.segments.load_rescaling_from_Bp(bp, fit)
 
+            del bp  # free up this memory
             use_rescaling = True  # require segments to be re-calc'd
 
         if ncores is not None and nchunks is None:

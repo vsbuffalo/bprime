@@ -2,14 +2,20 @@
 
 rule counts_from_gvcf:
   input: "dragen_1kg_genotypes/ceu-chb-yri_{chrom}_genotyped_sorted.gvcf.gz"
-  output: "hg1k_counts/{chrom}_counts.npy"
+  output: "hg1k_{popul}_counts/{chrom}_counts.npy", stats="stats_{popul}/{chrom}_stats.tsv"
+  resources:
+    mem_mb=60000,
+    time_min=4320
   shell:
     """
-    python ../../tools/gvcf2counts.py --samples yri_samples.tsv --outdir hg1k_counts --stats stats/{wildcards.chrom}_stats.tsv {input}
+    python ../../tools/gvcf2counts.py --samples {popul}_samples.tsv --outdir hg1k_{popul}_counts --stats stats_{popul}/{wildcards.chrom}_stats.tsv {input}
     """
 
 chroms = list(range(1, 23)) + ['X']
-counts = [f"hg1k_counts/chr{c}_counts.npy" for c in chroms]
+counts = []
+pops = ['yri', 'ceu', 'chb']
+for popul in pops:
+    counts.extend([f"hg1k_{popul}_counts/chr{c}_counts.npy" for c in chroms])
 
 rule all:
   input: counts

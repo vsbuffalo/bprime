@@ -1,0 +1,461 @@
+	sample_name	sex	biosample_id	population_code	population_name	superpopulation_code	superpopulation_name	population_elastic_id	data_collections
+880	NA06984	male	SAME124763	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3222	NA06985	female	SAME124762	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4030	NA06986	male	SAME124764	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+882	NA06989	female	SAME124760	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+884	NA06991	female	SAME124936	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4009	NA06993	male	SAME124934	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3143	NA06994	male	SAME124931	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1141	NA06995	male	SAME123994	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3243	NA06997	female	SAME124930	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3146	NA07000	female	SAME124963	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+886	NA07014	female	SAME125162	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+888	NA07019	female	SAME125152	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3246	NA07022	male	SAME125336	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3149	NA07029	male	SAME125338	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3152	NA07031	female	SAME122860	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3249	NA07034	male	SAME122863	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1143	NA07037	female	SAME122862	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+890	NA07045	female	SAME124187	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3155	NA07048	male	SAME124188	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1145	NA07051	male	SAME124378	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3158	NA07055	female	SAME124767	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1147	NA07056	female	SAME124375	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4015	NA07345	female	SAME123570	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3161	NA07346	female	SAME123571	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1149	NA07347	male	SAME123572	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+892	NA07348	female	SAME123567	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3252	NA07349	male	SAME123568	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4018	NA07357	male	SAME123412	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3164	NA07435	male	SAME124342	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3255	NA10830	male	SAME124548	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4021	NA10831	female	SAME124549	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3225	NA10835	male	SAME124547	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4060	NA10836	female	SAME124545	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3167	NA10837	male	SAME124546	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1161	NA10838	male	SAME124550	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+916	NA10839	female	SAME124551	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1163	NA10840	female	SAME124756	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3228	NA10842	male	SAME124755	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4063	NA10843	female	SAME124754	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1165	NA10845	male	SAME124759	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+918	NA10846	male	SAME124758	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3231	NA10847	female	SAME124757	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3170	NA10851	male	SAME125317	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1167	NA10852	female	SAME125320	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3234	NA10854	female	SAME124933	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4069	NA10855	female	SAME125331	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3173	NA10856	male	SAME124935	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1169	NA10857	male	SAME125332	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3237	NA10859	female	SAME124937	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+922	NA10860	male	SAME125131	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3240	NA10861	female	SAME125130	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3176	NA10863	female	SAME125132	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1057	NA10864	female	SAME125129	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+822	NA10865	male	SAME125128	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1059	NA11829	male	SAME124761	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3326	NA11830	female	SAME124553	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1061	NA11831	male	SAME124552	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+824	NA11832	female	SAME124554	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3946	NA11839	male	SAME124555	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3189	NA11840	female	SAME125139	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1063	NA11843	male	SAME125140	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1065	NA11881	male	SAME123209	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+826	NA11882	female	SAME123210	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3949	NA11891	male	SAME123046	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3329	NA11892	female	SAME123045	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1067	NA11893	male	SAME123044	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+828	NA11894	female	SAME123043	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3332	NA11917	male	SAME122838	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1069	NA11918	female	SAME123135	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+830	NA11919	male	SAME122834	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1071	NA11920	female	SAME124901	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3952	NA11930	male	SAME125095	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3335	NA11931	female	SAME125096	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1073	NA11932	male	SAME125097	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+832	NA11933	female	SAME125098	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3955	NA11992	male	SAME123964	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3338	NA11993	female	SAME123965	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1075	NA11994	male	SAME123967	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+834	NA11995	female	SAME123968	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3958	NA12003	male	SAME125142	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3341	NA12004	female	SAME125144	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1077	NA12005	male	SAME125143	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+836	NA12006	female	SAME125145	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1079	NA12043	male	SAME123214	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+838	NA12044	female	SAME123212	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3192	NA12045	male	SAME123211	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3961	NA12046	female	SAME123213	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+840	NA12056	male	SAME123414	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3195	NA12057	female	SAME123415	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3964	NA12058	female	SAME123416	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1081	NA12144	male	SAME124156	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+842	NA12145	female	SAME124157	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3198	NA12146	male	SAME124158	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3967	NA12154	male	SAME124959	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3344	NA12155	male	SAME124955	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1083	NA12156	female	SAME124952	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+844	NA12234	female	SAME124003	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4972	NA12236	female	SAMEA6604124	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38
+846	NA12239	female	SAME123999	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3970	NA12248	male	SAME125372	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3347	NA12249	female	SAME125371	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1085	NA12264	male	SAME123087	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+848	NA12272	male	SAME123231	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3201	NA12273	female	SAME123256	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3973	NA12274	male	SAME125249	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3350	NA12275	female	SAME125263	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3353	NA12282	male	SAME124640	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1087	NA12283	female	SAME124639	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3976	NA12286	male	SAME124642	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3356	NA12287	female	SAME124641	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3204	NA12329	female	SAME123531	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,Human Genome Structural Variation Consortium, Phase 2,1000 Genomes phase 3 release
+850	NA12335	male	SAME124097	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3207	NA12336	female	SAME125068	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3359	NA12340	male	SAME125157	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1089	NA12341	female	SAME125158	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+852	NA12342	male	SAME125155	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3132	NA12343	female	SAME125156	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3856	NA12344	male	SAME123946	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+854	NA12347	male	SAME125316	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3135	NA12348	female	SAME125163	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3389	NA12376	female	SAME123275	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3392	NA12383	female	SAME124384	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3138	NA12386	female	SAME124386	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3862	NA12399	male	SAME124193	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+856	NA12400	female	SAME123881	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3141	NA12413	male	SAME124055	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3865	NA12414	female	SAME124057	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1115	NA12485	male	SAME125360	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3395	NA12489	female	SAME125358	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3868	NA12546	male	SAME124777	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1117	NA12707	male	SAME124080	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3144	NA12716	male	SAME123912	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3871	NA12717	female	SAME123911	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3398	NA12718	female	SAME124454	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+860	NA12739	male	SAME123529	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1119	NA12740	female	SAME124822	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3874	NA12748	male	SAME124827	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3401	NA12749	female	SAME124828	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3877	NA12750	male	SAME124646	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3404	NA12751	female	SAME123515	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1121	NA12752	male	SAME123518	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+862	NA12753	female	SAME124647	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+864	NA12760	male	SAME124465	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3147	NA12761	female	SAME124466	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3880	NA12762	male	SAME125109	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3407	NA12763	female	SAME123872	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3150	NA12766	male	SAME124471	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3883	NA12767	female	SAME124472	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3410	NA12775	male	SAME124257	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1123	NA12776	female	SAME124256	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+866	NA12777	male	SAME125252	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3153	NA12778	female	SAME124249	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3886	NA12801	male	SAME122827	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3413	NA12802	female	SAME122828	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3156	NA12812	male	SAME123023	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3889	NA12813	female	SAME123024	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3416	NA12814	male	SAME123021	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1125	NA12815	female	SAME123022	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3159	NA12817	male	SAME123020	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3892	NA12818	female	SAME123025	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1127	NA12827	male	SAME125077	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+868	NA12828	female	SAME125076	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3162	NA12829	male	SAME125075	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+870	NA12830	female	SAME125289	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3979	NA12832	female	SAME125290	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+936	NA12842	male	SAME123542	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3165	NA12843	female	SAME123541	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3362	NA12864	male	SAME123191	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1091	NA12865	female	SAME123190	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1093	NA12872	male	SAME123387	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+938	NA12873	female	SAME123388	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3168	NA12874	male	SAME123389	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3982	NA12875	female	SAME123390	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1095	NA12877	male	SAME123391	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes 30x on GRCh38,Illumina Platinum pedigree,1000 Genomes phase 3 release
+940	NA12878	female	SAME123392	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Human Genome Structural Variation Consortium, Phase 2,Illumina Platinum pedigree,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1097	NA12889	male	SAME123951	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Illumina Platinum pedigree,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3365	NA12890	female	SAME124116	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Illumina Platinum pedigree,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1099	NA12891	male	SAME124117	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Illumina Platinum pedigree,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+942	NA12892	female	SAME123181	CEU	CEPH	EUR	European Ancestry	CEU	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Illumina Platinum pedigree,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+4003	NA18525	female	SAME124672	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3386	NA18526	female	SAME124673	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+958	NA18528	female	SAME124661	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+960	NA18530	male	SAME124484	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3186	NA18531	female	SAME124483	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+4006	NA18532	female	SAME124482	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3266	NA18533	female	SAME124481	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1013	NA18534	male	SAME124488	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Human Genome Structural Variation Consortium, Phase 2,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+962	NA18535	female	SAME124487	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3066	NA18536	male	SAME124486	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3895	NA18537	female	SAME124485	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3269	NA18538	female	SAME123774	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1015	NA18539	female	SAME124475	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1017	NA18541	female	SAME124270	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+964	NA18542	female	SAME124267	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3069	NA18543	male	SAME124268	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3898	NA18544	male	SAME124265	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3272	NA18545	female	SAME124266	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1019	NA18546	male	SAME124263	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+966	NA18547	female	SAME124264	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3072	NA18548	male	SAME124261	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3901	NA18549	male	SAME124262	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3075	NA18550	female	SAME124087	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3275	NA18552	female	SAME124089	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1021	NA18553	female	SAME124088	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3078	NA18555	female	SAME124090	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3278	NA18557	male	SAME124092	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1023	NA18558	male	SAME124094	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+968	NA18559	male	SAME124093	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1025	NA18560	female	SAME123925	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+970	NA18561	male	SAME123926	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3081	NA18562	male	SAME123927	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3904	NA18563	male	SAME123928	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3281	NA18564	female	SAME123921	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1027	NA18565	female	SAME123922	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+972	NA18566	female	SAME123923	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3084	NA18567	female	SAME123924	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3907	NA18570	female	SAME123741	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3284	NA18571	female	SAME123740	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1029	NA18572	male	SAME123739	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+974	NA18573	female	SAME123738	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3087	NA18574	female	SAME123737	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1031	NA18577	female	SAME123734	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3090	NA18579	female	SAME123742	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3910	NA18582	female	SAME123905	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1033	NA18591	female	SAME123719	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+976	NA18592	female	SAME123721	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3093	NA18593	female	SAME123720	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3290	NA18595	female	SAME123228	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1035	NA18596	female	SAME123718	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+978	NA18597	female	SAME123232	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3913	NA18599	female	SAME123713	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3916	NA18602	female	SAME124876	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3293	NA18603	male	SAME124875	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+980	NA18605	male	SAME124877	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3096	NA18606	male	SAME124879	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3296	NA18608	male	SAME124779	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1037	NA18609	male	SAME124867	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3299	NA18610	female	SAME123222	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1039	NA18611	male	SAME123225	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+982	NA18612	male	SAME125036	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3099	NA18613	male	SAME125037	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3919	NA18614	female	SAME125034	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3302	NA18615	female	SAME123653	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1041	NA18616	female	SAME125032	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+984	NA18617	female	SAME125033	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3102	NA18618	female	SAME125042	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3922	NA18619	female	SAME125043	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3105	NA18620	male	SAME124510	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3925	NA18621	male	SAME124509	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3305	NA18622	male	SAME125260	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+1043	NA18623	male	SAME124507	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+986	NA18624	male	SAME124506	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3108	NA18625	female	SAME125253	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3928	NA18626	female	SAME125250	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3308	NA18627	female	SAME124106	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1045	NA18628	female	SAME124502	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+988	NA18629	male	SAME124501	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1047	NA18630	female	SAME124895	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+990	NA18631	female	SAME124056	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3111	NA18632	male	SAME124703	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3931	NA18633	male	SAME124704	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3311	NA18634	female	SAME124697	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1049	NA18635	male	SAME123661	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+992	NA18636	male	SAME124320	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3114	NA18637	male	SAME124700	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,90 Han Chinese high coverage genomes
+3934	NA18638	male	SAME124693	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3314	NA18639	male	SAME124694	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3937	NA18640	female	SAME122980	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3317	NA18641	female	SAME122979	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1051	NA18642	female	SAME122982	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+994	NA18643	male	SAME122981	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3117	NA18644	female	SAME122976	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3940	NA18645	male	SAME122975	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3320	NA18646	female	SAME122978	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1053	NA18647	male	SAME122977	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+996	NA18648	male	SAME122974	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3120	NA18740	male	SAME123917	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3123	NA18745	male	SAME123914	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3323	NA18747	male	SAME123916	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1055	NA18748	male	SAME123909	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+998	NA18749	male	SAME123910	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3126	NA18757	male	SAME123727	CHB	Han Chinese	EAS	East Asian Ancestry	CHB	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+944	NA18484	female	SAME124101	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3171	NA18485	male	SAME124100	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3985	NA18486	male	SAME124099	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3368	NA18487	male	SAME124098	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1101	NA18488	female	SAME124103	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+946	NA18489	female	SAME124102	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3174	NA18497	male	SAME124277	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3988	NA18498	male	SAME124058	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3371	NA18499	female	SAME124059	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3177	NA18500	male	SAME123386	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3991	NA18501	male	SAME124991	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3374	NA18502	female	SAME125055	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1103	NA18503	male	SAME125056	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+948	NA18504	male	SAME125061	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3180	NA18505	female	SAME125062	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3994	NA18506	male	SAME125059	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3377	NA18507	male	SAME125060	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1105	NA18508	female	SAME124318	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1107	NA18510	male	SAME124886	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+952	NA18511	female	SAME124885	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1109	NA18515	male	SAME124881	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+954	NA18516	male	SAME124884	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3183	NA18517	female	SAME124883	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3997	NA18518	female	SAME124889	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3380	NA18519	male	SAME124888	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4000	NA18520	female	SAME123565	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3383	NA18521	male	SAME123566	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1111	NA18522	male	SAME124669	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+956	NA18523	female	SAME124670	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1108	NA18852	female	SAME124732	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3444	NA18853	male	SAME124733	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+4309	NA18854	male	SAME124734	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3542	NA18855	female	SAME124735	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1129	NA18856	male	SAME124736	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1110	NA18857	male	SAME124737	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3447	NA18858	female	SAME124730	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4312	NA18859	male	SAME124731	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3450	NA18860	male	SAME124906	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4315	NA18861	female	SAME124905	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3545	NA18862	male	SAME125118	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1131	NA18863	male	SAME124907	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1112	NA18864	female	SAME124903	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3453	NA18865	male	SAME124902	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3548	NA18867	female	SAME124904	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1133	NA18868	male	SAME124910	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1114	NA18869	male	SAME124909	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1135	NA18870	female	SAME125101	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1116	NA18871	male	SAME125102	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3456	NA18872	male	SAME125099	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4318	NA18873	female	SAME123536	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3551	NA18874	male	SAME125105	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1137	NA18875	female	SAME123545	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1118	NA18876	female	SAME125103	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3459	NA18877	male	SAME125104	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4321	NA18878	female	SAME125107	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3554	NA18879	male	SAME125108	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3557	NA18881	female	SAME125308	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3560	NA18906	female	SAME123562	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1139	NA18907	female	SAME123563	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1120	NA18908	male	SAME123560	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3462	NA18909	female	SAME123561	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1122	NA18910	male	SAME123402	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3465	NA18911	male	SAME123401	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4072	NA18912	female	SAME123404	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3419	NA18913	male	SAME123403	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1179	NA18914	male	SAME123406	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1002	NA18915	male	SAME123405	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3282	NA18916	female	SAME123408	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4075	NA18917	male	SAME123407	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3285	NA18923	male	SAME123205	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4078	NA18924	female	SAME123202	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3422	NA18925	male	SAME123203	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3288	NA18930	female	SAME123040	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1181	NA18933	female	SAME123037	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1004	NA18934	male	SAME123036	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3291	NA18935	male	SAME123035	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4273	NA19092	male	SAME123173	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3506	NA19093	female	SAME123172	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1231	NA19094	female	SAME123171	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1082	NA19095	female	SAME123170	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3372	NA19096	male	SAME123662	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4276	NA19097	female	SAME123168	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3509	NA19098	male	SAME123633	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1233	NA19099	female	SAME125240	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4279	NA19100	female	SAME125401	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3512	NA19101	male	SAME123955	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1235	NA19102	female	SAME125112	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1084	NA19103	male	SAME124330	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1237	NA19107	male	SAME123393	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1086	NA19108	female	SAME125378	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3378	NA19109	female	SAME124544	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3515	NA19113	male	SAME123838	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1239	NA19114	female	SAME122953	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1088	NA19115	female	SAME123857	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3381	NA19116	female	SAME124911	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4285	NA19117	male	SAME124914	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3518	NA19118	female	SAME122943	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1241	NA19119	male	SAME122944	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3521	NA19120	male	SAME125016	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1243	NA19121	male	SAME125015	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1090	NA19122	female	SAME125014	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3384	NA19123	male	SAME125013	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1028	NA19127	female	SAME125017	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3387	NA19128	male	SAME125022	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4288	NA19129	female	SAME125021	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3390	NA19130	male	SAME125229	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4291	NA19131	female	SAME125230	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3524	NA19132	female	SAME125231	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3527	NA19137	female	SAME125235	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1343	NA19138	male	SAME125236	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1030	NA19139	male	SAME125237	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1345	NA19140	female	SAME124608	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1032	NA19141	male	SAME124607	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3393	NA19142	male	SAME124610	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4294	NA19143	female	SAME124609	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3530	NA19144	male	SAME123373	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1347	NA19145	male	SAME123372	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1034	NA19146	male	SAME125080	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3396	NA19147	female	SAME124613	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4297	NA19148	female	SAME124606	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3533	NA19149	female	SAME124605	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4300	NA19150	male	SAME124838	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3536	NA19151	female	SAME124839	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1349	NA19152	female	SAME123017	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1036	NA19153	male	SAME123019	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3399	NA19154	male	SAME124835	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3402	NA19159	female	SAME124716	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1038	NA19160	male	SAME123758	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3405	NA19161	male	SAME123757	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1351	NA19171	male	SAME124419	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1040	NA19172	female	SAME124420	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3411	NA19173	male	SAME124421	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4303	NA19174	male	SAME124882	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3539	NA19175	male	SAME124887	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1353	NA19176	female	SAME124416	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1042	NA19177	male	SAME124417	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1044	NA19184	male	SAME123859	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3414	NA19185	female	SAME123858	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4306	NA19186	male	SAME123861	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1046	NA19189	male	SAME123869	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1355	NA19190	female	SAME124041	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1048	NA19191	male	SAME124042	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3522	NA19197	female	SAME125309	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4210	NA19198	male	SAME124049	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3563	NA19199	female	SAME124050	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3525	NA19200	male	SAME122989	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4213	NA19201	female	SAME122990	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3566	NA19202	female	SAME122987	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1207	NA19203	male	SAME122988	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1094	NA19204	female	SAME122985	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3528	NA19205	male	SAME122986	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4216	NA19206	female	SAME122983	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3569	NA19207	male	SAME122984	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1209	NA19208	male	SAME122993	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1096	NA19209	female	SAME122994	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1211	NA19210	male	SAME125383	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1098	NA19211	male	SAME125382	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4219	NA19213	male	SAME125384	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3572	NA19214	female	SAME125386	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1213	NA19215	female	SAME125385	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3575	NA19221	female	SAME125221	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1215	NA19222	female	SAME124147	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1100	NA19223	male	SAME125223	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3531	NA19224	male	SAME125217	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4222	NA19225	female	SAME125218	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3578	NA19226	male	SAME125219	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+1102	NA19235	female	SAME125002	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3534	NA19236	male	SAME125001	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4225	NA19237	female	SAME125000	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+3581	NA19238	female	SAME124999	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Human Genome Structural Variation Consortium, Phase 2,The Human Genome Structural Variation Consortium,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1217	NA19239	male	SAME125081	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Human Genome Structural Variation Consortium, Phase 2,The Human Genome Structural Variation Consortium,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+3584	NA19240	female	SAME123688	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,Human Genome Structural Variation Consortium, Phase 2,The Human Genome Structural Variation Consortium,1000 Genomes phase 3 release,1000 Genomes phase 1 release
+1104	NA19247	female	SAME123691	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3537	NA19248	male	SAME123681	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+4228	NA19249	male	SAME123682	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release
+4231	NA19256	male	SAME124707	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+3590	NA19257	female	SAME123495	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes on GRCh38,1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release,1000 Genomes phase 1 release,Geuvadis
+1219	NA19258	male	SAME125045	YRI	Yoruba	AFR	African Ancestry	YRI	1000 Genomes 30x on GRCh38,1000 Genomes phase 3 release

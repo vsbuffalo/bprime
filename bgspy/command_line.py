@@ -151,6 +151,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         fits = pickle.load(open(rescale_fit, 'rb'))
         bfit, bpfit = fits['mb'], fits['mbp']
         rescale = (gm.BpScores, None, None, bpfit)
+        del gm
 
     # manual rescaling from a single fixed set of parameters is set.
     if rescale_fit is None and rescale is not None:
@@ -160,6 +161,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         assert rs_w in gm.w, "μ not in ΒGSModel.w!"
         assert rs_t in gm.t, "s not in ΒGSModel.t!"
         rescale = (gm.BpScores, rs_w, rs_t, None)
+        del gm
 
     if rescale_fit is None:
         ## Make sure chromosomes match
@@ -392,6 +394,8 @@ def subrate(bs_file, fit, force_feature, output, split):
 @click.option('--blockfrac', default=None, type=float,
               help='for not a full jackknife, drop the block at this fraction '
                    "(this approach doesn't require a prior knowledge of number of blocks")
+@click.option('--mu', help='fixed mutation rate (by default, free)', 
+              default=None)
 @click.option('--output', required=True, type=click.Path(writable=True),
               help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
@@ -404,7 +408,7 @@ def subrate(bs_file, fit, force_feature, output, split):
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, output, 
+def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, output, 
               fit_dir, chrom, ncores, nstarts, include_bs):
     """
     Run the block-jackknifing routine. 
