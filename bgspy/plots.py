@@ -202,6 +202,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 
 def predict_chrom_plot(model, chrom, ratio=True,
                        label='prediction', lw=2,
+                       c='cornflowerblue',
                        alpha_predict=1, alpha_pi=1,
                        add_r2=False, figax=None, predict_kwargs=None):
     m = model
@@ -223,7 +224,7 @@ def predict_chrom_plot(model, chrom, ratio=True,
         y = mean_ratio(y)
         ylab = "$\\pi/\\bar{\\pi}$"
     #pi = savitzky_golay(pi, window_size=5, order=1)
-    ax.plot(midpoints, y, label=label, linewidth=lw, c='cornflowerblue',
+    ax.plot(midpoints, y, label=label, linewidth=lw, c=c,
             alpha=alpha_predict, zorder=3)
     if ratio:
         pi = mean_ratio(pi)

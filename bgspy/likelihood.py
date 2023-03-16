@@ -1061,14 +1061,16 @@ class SimplexModel(BGSLikelihood):
         pi = pi_from_pairwise_summaries(self.Y.sum(axis=0))
         base_rows += f"π  = {pi:0.6g}\n"
         fixed_str = "(FIXED)" if self._fixed_mu is not None else ""
-        base_rows += f"μ  = {mu:0.4g} {fixed_str}"
+        base_rows += f"μ_del  = {mu:0.4g} {fixed_str}"
         if cis:
             l, u = cis[0][1], cis[1][1]
             base_rows += f" ({l:.3g}, {u:.3g})\n"
         else:
             base_rows += "\n"
 
-        base_rows += f"Ne = {int(Ne):,} (implied from π0 and μ)\n"
+        #base_rows += f"Ne (del) = {int(Ne):,} (implied from π0 and μ)\n"
+        base_rows += f"Ne = {int(pi0 / (4 * 1e-8)):,} (if μ=1e-8), "
+        base_rows += f"Ne = {int(pi0 / (4 * 2e-8)):,} (if μ=2e-8)\n"
         base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
         if hasattr(self, 'loo_thetas_') and self.loo_thetas_ is not None:
             loo_R2 = self.loo_R2()
