@@ -27,6 +27,9 @@ variable:
   mu:
     - 1.5e-08
     - 2.5e-08
+  h: 
+    - 0.5
+    - 0.3
   sh: 
     - 0.01
     - 0.05
@@ -49,13 +52,15 @@ mle:
   bmaps: 
     default:
       step: 10000
-      grid: 6x8
+      #grid: 6x8
+      grid: "0.01,0.05,0.001,0.005,1e-4,1e-5"
       seqlens_file: ../../data/annotation/hg38_seqlens.tsv
       recmap_file: ../../data/annotation/hapmap_genetic_map.txt
       annot_file: ../../data/annotation/conserved_cds_utrs_phastcons_merged.bed
     full:
       step: 10000
-      grid: 6x8
+      #grid: 6x8
+      grid: "0.01,0.05,0.001,0.005,1e-4,1e-5"
       seqlens_file: ../../data/annotation/hg38_seqlens.tsv
       recmap_file: ../../data/annotation/hapmap_genetic_map.txt
       annot_file: ../../data/annotation/conserved_cds_utrs_phastcons_merged_full.bed

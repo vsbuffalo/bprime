@@ -93,7 +93,7 @@ rule bmap:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.annot} \
-      --seqlens {input.seqlens} --g '{params.grid}' \
+      --seqlens {input.seqlens} --t '{params.grid}' \
       --output {output} --popsize {wildcards.N} \
       --chrom {wildcards.chrom} \
       --ncores {threads} --ncores-Bp {threads} \
@@ -113,7 +113,7 @@ rule bmap_synthetic:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.annot} \
-      --seqlens {input.seqlens} --g '{params.grid}' \
+      --seqlens {input.seqlens} --t '{params.grid}' \
       --output {output} --popsize {wildcards.N} \
      {params.chrom_args} \
       --ncores {resources.threads} --ncores-Bp {resources.threads} \
@@ -133,7 +133,7 @@ rule bmap_genome:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.annot} \
-      --seqlens {input.seqlens} --g '{params.grid}' \
+      --seqlens {input.seqlens} --t '{params.grid}' \
       --output {output} --popsize {wildcards.N} \
       --ncores {resources.threads} --ncores-Bp {resources.threads} \
       --step {params.step}

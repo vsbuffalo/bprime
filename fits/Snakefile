@@ -30,7 +30,11 @@ njack_samples = config["num_jackknife_samples"]
 
 ## ------ created data
 # name auto-generated
-Bs_file = f"bmap_6x8grid_100000step_{N}N_{name}.pkl"
+# Note: the B/B' maps can be reused across runs which 
+# vary in data. The .. is because fits are run in subdirs
+Bs_file = f"../bmaps/bmap_6x8grid_100000step_{N}N_{name}.pkl"
+# Note: the locally-rescaled B/B' maps are **fit specific**
+# so in the fit subdirectory
 Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x8grid_100000step_{N}N_{name}.pkl"
 
 # the data that goes into the likelihood model

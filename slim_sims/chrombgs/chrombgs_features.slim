@@ -17,10 +17,6 @@ initialize() {
   defineConstant("seed", getSeed());
   defineConstant("metadata", Dictionary());
 
-  // We fix h = 0.5 and calculate the proper homozygous selection
-  // coefficient.
-  defineConstant("h", 0.5);
-
   // ----- run settings -----
   defineConstant("endgen", duration*N);
 
@@ -78,7 +74,9 @@ s1 early() {
 
 s2 late() {
   // write the output tree sequence and substitutions TSV
-  metadata.setValue("subs", substitution_dict());
+  // note: uncomment line below to include dubs. This is very disk-intensive though.
+  // and estimates of the subsitution rate are hard to get over such short timescales
+  //metadata.setValue("subs", substitution_dict());
   sim.treeSeqOutput(treeseq_file, metadata=metadata);
   //output_substitutions(chrom, sub_file, p1);
 }

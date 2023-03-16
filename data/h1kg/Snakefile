@@ -8,7 +8,7 @@ rule counts_from_gvcf:
     time_min=4320
   shell:
     """
-    python ../../tools/gvcf2counts.py --samples {popul}_samples.tsv --outdir hg1k_{popul}_counts --stats stats_{popul}/{wildcards.chrom}_stats.tsv {input}
+    python ../../tools/gvcf2counts.py --samples {wildcards.popul}_samples.tsv --outdir hg1k_{wildcards.popul}_counts --stats {output.stats} {input}
     """
 
 chroms = list(range(1, 23)) + ['X']

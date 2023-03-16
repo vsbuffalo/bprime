@@ -60,7 +60,8 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
 
 def parse_gridstr(x):
     """
-    Grid strings are in the format v1,v2,v3, etc or lower:upper:ngrid
+    Grid strings are in the format v1,v2,v3, etc or lower:upper:ngrid (log10, 
+    e.g. -8:-1,8.  The comma-separated values are *not* in log-space.
     """
     if ',' not in x and ':' not in x:
         # fixed value
@@ -103,8 +104,8 @@ def cli():
 @click.option('--conv-factor', default=1e-8,
                 help="Conversation factor of recmap rates to M (for "
                      "cM/Mb rates, use 1e-8)")
-@click.option('--t', help="string of lower:upper:grid_size or comma-separated "
-                   "list for log10 heterozygous selection coefficient",
+@click.option('--t', help="string of log10 lower:upper:grid_size (e.g. -7,-1,7) or comma-separated "
+                   "list (e.g. 0.01,0.001) for heterozygous selection coefficient",
                     default='-6:-1:50')
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
                    "list for log10 mutation rates", default='-10:-7:50' )
