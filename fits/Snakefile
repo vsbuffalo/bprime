@@ -11,10 +11,6 @@ nstarts = config["nstarts"]
 nstarts_loo = config["nstarts_loo"]
 nstarts_jackknife = config["nstarts_jackknife"]
 mu = config.get("mu", None)
-if mu == "free":
-  mu = None
-else:
-  assert instance(mu, float), "mu must be 'free' or a float"
 seqlens_file = config["seqlens_file"]
 recmap_file = config["recmap_file"]
 access_file = config["access_file"]
@@ -111,7 +107,7 @@ rule save_data:
   benchmark: "benchmarks/data_{window}.txt"
   params: name=name
   resources:
-    mem_mb=50000,
+    mem_mb=100000,
     time_min=300,
   shell:
     """
@@ -141,7 +137,6 @@ rule fit:
       --mu {params.mu} \
       --data {input[0]} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
-      --mu {params.mu} \
       --output {output[0]}
     """
 
@@ -153,7 +148,7 @@ rule block_jackknife:
   # I prefer that gets calculated first
   input: data='model_data_{window_rescaled}.pkl', fit='fit_{window_rescaled}/mle.pkl'
   output: 'fit_{window_rescaled}/jackknife/{blocksize}/jackknife_{frac}.pkl'
-  params: nstarts=nstarts_jackknife
+  params: nstarts=nstarts_jackknife, mu=mu, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
   resources:
     mem_mb=10000,
     time_min=300,
@@ -163,6 +158,8 @@ rule block_jackknife:
     bgspy jackblock \
       --blockwidth {wildcards.blocksize} \
       --data {input.data} \
+      --mu {params.mu} \
+      --pi0-bounds {params.pi0_bounds} --mu_bounds {params.mu_bounds} \
       --output {output[0]} \
       --blockfrac {wildcards.frac} \
       --ncores {resources.threads} --nstarts {params.nstarts}
@@ -174,7 +171,7 @@ rule loo_chrom:
   # I prefer that gets calculated first
   input: data='model_data_{window_rescaled}.pkl', fit='fit_{window_rescaled}/mle.pkl'
   output: 'fit_{window_rescaled}/loo_chrom/loo_{chrom}.pkl'
-  params: nstarts=nstarts_loo
+  params: nstarts=nstarts_loo, mu=mu, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
   resources:
     mem_mb=10000,
     time_min=300,
@@ -184,6 +181,8 @@ rule loo_chrom:
     bgspy loo \
       --data {input.data} \
       --output {output[0]} \
+      --mu {params.mu} \
+      --pi0-bounds {params.pi0_bounds} --mu_bounds {params.mu_bounds} \
       --chrom {wildcards.chrom} \
       --ncores {resources.threads} --nstarts {params.nstarts}
     """
@@ -246,8 +245,8 @@ rule fit_rescaled:
     """
     mkdir -p {params.name}
     bgspy fit \
-      --pi0-bounds {params.pi0-bounds} --mu_bounds {params.mu_bounds} \
-      --mu {params.mu}
+      --pi0-bounds {params.pi0_bounds} --mu_bounds {params.mu_bounds} \
+      --mu {params.mu} \
       --data {input[0]} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
       --output {output[0]} --only-Bp

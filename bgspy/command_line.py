@@ -16,6 +16,7 @@ from bgspy.likelihood import PI0_BOUNDS, MU_BOUNDS
 SPLIT_LENGTH_DEFAULT = 10_000
 STEP_DEFAULT = 10_000
 NCHUNKS_DEFAULT = 200
+MU_NOT_SET = (None, 'None', 'free', 'Free')
 
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
@@ -28,6 +29,14 @@ MIN_W = np.sqrt(1e-8 * 1e-7)
 #HUMAN_W = (-10, np.log10(MIN_W))
 HUMAN_W = (-11, -7)
 HUMAN_T = (-8, -1)
+
+
+def sterialize_mu(mu):
+    try:
+        mu = None if mu in MU_NOT_SET else float(mu)
+    except ValueError:
+        raise ValueError("mu must be 'free'/None, or a float")
+    return mu
 
 
 def grid_maker(nw, nt, w_range=HUMAN_W, t_range=HUMAN_T):
@@ -335,7 +344,7 @@ def fit(data, output, mu, mu_bounds, pi0_bounds, ncores, nstarts, chrom, only_bp
     Run the MLE fit on pre-processed data.
     """
     # for fixed mu
-    mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
+    mu = sterialize_mu(mu)
     pi0_bounds = tuple(map(float, pi0_bounds.split(',')))
     mu_bounds = tuple(map(float, mu_bounds.split(',')))
     mle_fit(data=data,
@@ -406,6 +415,8 @@ def subrate(bs_file, fit, force_feature, output, split):
                    "(this approach doesn't require a prior knowledge of number of blocks")
 @click.option('--mu', help='fixed mutation rate (by default, free)', 
               default=None)
+@click.option('--mu-bounds', help='bounds for μ', default=MU_BOUNDS)
+@click.option('--pi0-bounds', help='bounds for π0', default=PI0_BOUNDS)
 @click.option('--output', required=True, type=click.Path(writable=True),
               help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
@@ -418,8 +429,9 @@ def subrate(bs_file, fit, force_feature, output, split):
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, output, 
-              fit_dir, chrom, ncores, nstarts, include_bs):
+def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, 
+              mu_bounds, pi_bounds, output, fit_dir, chrom, ncores, 
+              nstarts, include_bs):
     """
     Run the block-jackknifing routine. 
 
@@ -440,10 +452,15 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, output,
             blocknum = int(blockfrac * nblocks)
     logging.info("blockwidth={blockwidth}bp, blockfrac={blockfrac}, blocknum={blocknum}")
     assert blocksize > 1, "blocksize must be > 1"
+    mu = sterialize_mu(mu)
+    pi0_bounds = tuple(map(float, pi0_bounds.split(',')))
+    mu_bounds = tuple(map(float, mu_bounds.split(',')))
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             mu=mu,
+            pi0_bounds=pi0_bounds,
+            mu_bounds=mu_bounds,
             nstarts=nstarts,
             loo_chrom=chrom,
             blocksize=blocksize, blocknum=blocknum,
@@ -458,6 +475,8 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, output,
                     '(ignore for random starts)'))
 @click.option('--mu', help='fixed mutation rate (by default, free)', 
               default=None)
+@click.option('--mu-bounds', help='bounds for μ', default=MU_BOUNDS)
+@click.option('--pi0-bounds', help='bounds for π0', default=PI0_BOUNDS)
 @click.option('--output', required=True, type=click.Path(writable=True),
               help='an .npz output file')
 @click.option('--fit-dir', default=None, help="fit directory for saving whole fits")
@@ -470,7 +489,7 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, output,
               help='number of starts for multi-start optimization',
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
-def loo(data, fit, mu, output, fit_dir, chrom,
+def loo(data, fit, mu, mu_bounds, pi0_bounds, output, fit_dir, chrom,
               ncores, nstarts, include_bs):
     """
     Leave-one-out chromosome fit. 
@@ -479,10 +498,15 @@ def loo(data, fit, mu, output, fit_dir, chrom,
     fitting to the rest of the genome, and predicting the observed diversity on
     the excluded chromosome.
     """
+    mu = sterialize_mu(mu)
+    pi0_bounds = tuple(map(float, pi0_bounds.split(',')))
+    mu_bounds = tuple(map(float, mu_bounds.split(',')))
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             mu=mu,
+            pi0_bounds=pi0_bounds,
+            mu_bounds=mu_bounds,
             nstarts=nstarts,
             loo_chrom=chrom,
             bp_only=True)
@@ -525,9 +549,16 @@ def collect(fitdir, blocksize, output):
     for window, fit in res.fits.items():
         print('-'*10 + f" window size: {si_format(window)}bp " + '-'*10)
         print(fit)
-        import pdb; pdb.set_trace()
 
 
+@cli.command()
+@click.argument('file', required=True)
+def inspect(file):
+    """
+    Load a pickle model fit file and print to screen.
+    """
+    print(load_pickle(file))
+ 
 if __name__ == "__main__":
     logging.basicConfig(format='%(levelname)s: %(message)s',
                         level=logging.INFO)
