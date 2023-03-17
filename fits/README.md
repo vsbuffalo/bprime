@@ -14,7 +14,7 @@ run in the run directory.
 
 Use
 
-    $ bash init_run.sh model_spec.json 
+    $ bgspy newfit model_spec.yml
 
 to create directories/links for model fitting. Then,
 

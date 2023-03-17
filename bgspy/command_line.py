@@ -2,12 +2,14 @@ import click
 import logging
 import numpy as np
 import pickle
+from si_prefix import si_format
 import os
 from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.utils import Grid, load_pickle
 from bgspy.pipeline import summarize_data, mle_fit, summarize_sim_data
+from bgspy.pipeline import ModelDir
 from bgspy.bootstrap import block_bins
 
 SPLIT_LENGTH_DEFAULT = 10_000
@@ -478,25 +480,45 @@ def loo(data, fit, mu, output, fit_dir, chrom,
             loo_chrom=chrom,
             bp_only=True)
 
+@cli.command()
+@click.argument("config", required=True)
+def newfit(config):
+    """
+    Set up the directory structure for a fit for an MLE fit, leave-one-out 
+    chromosome fits, and jackknifes.
+    """
+    yaml_file = config
+    dir = os.path.realpath(os.path.basename(yaml_file).replace(".yml", ""))
+    curr_dir = os.path.realpath(".")
+    
+    os.mkdir(dir)
+    
+    os.symlink(os.path.join(curr_dir, "Snakefile"), os.path.join(dir, "Snakefile"))
+    os.symlink(os.path.join(curr_dir, yaml_file), os.path.join(dir, yaml_file))
+    
+    os.makedirs(os.path.join(dir, "logs", "out"))
+    os.makedirs(os.path.join(dir, "logs", "error"))
 
-@click.option('--fit-dir', required=True, 
-              help="fit directory for reading whole fits"
-                   " (reads all .pkl files)")
-@click.option('--output', required=True, type=click.Path(writable=True),
-              help='an .npz output file')
-@click.option('--fit', default=None, type=click.Path(exists=True),
-              help='pickle file of main MLE fit')
-def collect(fit_dir, output, fit):
+
+@cli.command()
+@click.argument('fitdir', required=True)
+@click.option('--blocksize', default=25_000_000,
+              help="the jackknife blocksize to use")
+@click.option('--output', required=True,
+              type=click.Path(writable=True),
+              help='a pickle file of the entire fit object')
+def collect(fitdir, blocksize, output):
     """
-    TODO:
-        - for B' only
+    Load all the objects in the fit directory, run from a
+    snakemake pipeline.
     """
-    main_fits = load_pickle(fit)
-    mbp = main_fits['mbp']
-    mbp.load_jackknives(fit_dir)
-    mbp.loo_stderr()
-    mbp.loo_R2()
-    # TODO
+    assert output.endswith('.pkl'), "output filename should end in .pkl"
+    res = ModelDir(fitdir, jackknife_blocksize=blocksize)
+    res.save(output)
+    for window, fit in res.fits.items():
+        print('-'*10 + f" window size: {si_format(window)}bp " + '-'*10)
+        print(fit)
+        import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":

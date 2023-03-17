@@ -33,6 +33,7 @@ njack_samples = config["num_jackknife_samples"]
 # Note: the B/B' maps can be reused across runs which 
 # vary in data. The .. is because fits are run in subdirs
 Bs_file = f"../bmaps/bmap_6x8grid_100000step_{N}N_{name}.pkl"
+print(Bs_file)
 # Note: the locally-rescaled B/B' maps are **fit specific**
 # so in the fit subdirectory
 Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x8grid_100000step_{N}N_{name}.pkl"
@@ -82,7 +83,7 @@ rule bmap:
   input: seqlens_file=seqlens_file,
          recmap=recmap_file,
          features=features_file
-  output: pkl_b_file="bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
+  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.txt"
   resources:
     mem_mb=200000,
@@ -127,7 +128,7 @@ rule fit:
   params: nstarts=nstarts, mu=mu, name=name
   resources:
     mem_mb=50000,
-    time_min=300,
+    time_min=480,
     threads=40
   benchmark: "benchmarks/fit_{window}.txt"
   shell:
@@ -236,7 +237,7 @@ rule fit_rescaled:
   benchmark: "benchmarks/fit_{window}_rescaled.txt"
   resources:
     mem_mb=50000,
-    time_min=300,
+    time_min=480,
     threads=40
   shell:
     """

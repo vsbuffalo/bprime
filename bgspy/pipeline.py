@@ -1,10 +1,11 @@
 import warnings
 import logging
-from os.path import basename
+import os
+from os.path import basename, join
 import pickle
 import tskit as tsk
 from bgspy.models import BGSModel
-from bgspy.utils import load_seqlens
+from bgspy.utils import load_seqlens, load_pickle, save_pickle
 from bgspy.sim_utils import mutate_simulated_tree
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
@@ -13,10 +14,36 @@ from bgspy.likelihood import SimplexModel
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
-def load_model(dir):
-    """Load the model directory from a snakemake-based run.
+class ModelDir:
+    """ 
+    This class is to manage large-scale fits based on the snakemake pipeline.
     """
-    pass
+    def __init__(self, dir, jackknife_blocksize=25_000_000):
+        """
+        """
+        self.dir = dir 
+        self._get_fits()
+        
+    def _get_fits(self, jackknife_blocksize=25_000_000):
+         dirs = {int(f.replace('fit_', '')): join(self.dir, f) for 
+                 f in os.listdir(self.dir) if f.startswith('fit_')}
+         logging.info("loading fits...")
+         fits = {w: (f, load_pickle(join(f, 'mle.pkl'))['mbp']) for w, f 
+                 in dirs.items() if os.path.exists(join(f, 'mle.pkl'))}
+         self._fits = fits
+         out_fits = {}
+         r2s = {}
+         for window, (fit_dir, fit) in self._fits.items(): 
+             fit.std_error_type = None  # hack for back compat; remove
+             fit.load_jackknives(join(fit_dir, f'jackknife/{jackknife_blocksize}/'))
+             fit.load_loo(join(fit_dir, 'loo_chrom/'))
+             out_fits[window] = fit
+         self.fits = out_fits
+         self.r2s = r2s
+
+    def save(self, output):
+        save_pickle(self, output)
+
 
 def summarize_data(# annotation
          seqlens_file, recmap_file, neut_file, access_file, fasta_file,
