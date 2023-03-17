@@ -42,18 +42,19 @@ likclib = np.ctypeslib.load_library("likclib", LIBRARY_PATH)
 # mutation rate hard bounds
 # these are set for human. I'm targetting the uncertainty 
 # with the mutational slowdown, e.g. see Moorjani et al 2016
-MU_BOUNDS = tuple(np.log10((1e-9,  1e-6)))
+# the upper bound is *very* permissive
+MU_BOUNDS = tuple(np.log10((1e-9,  1e-7)))
 
 
 # π0 bounds: lower is set by lowest observed π in humans
 # highest is based on B lowest is 0.02, e.g. π = π0 Β,
 # 1e-4 = 0.005 B
-#PI0_BOUNDS = tuple(np.log10((0.0005, 0.005)))  # this is fairly permissive
+PI0_BOUNDS = tuple(np.log10((0.0005, 0.005)))  # this is fairly permissive
 # see https://twitter.com/jkpritch/status/1600296856999047168/photo/1
 # NOTE: these were old bounds based on human data. For simulations
 # we need very permissive bounds -- e.g. all range seen
 # https://iiif.elifesciences.org/lax/67509%2Felife-67509-fig2-v3.tif/full/1500,/0/default.jpg
-PI0_BOUNDS = tuple(np.log10((1e-4, 1e-1))) 
+#PI0_BOUNDS = tuple(np.log10((1e-4, 1e-1))) 
 
 # -------- random utility/convenience functions -----------
 
@@ -208,8 +209,7 @@ def negll_simplex(theta, Y, B, w):
     return negll_c(theta, Y, B, w, version=3)
 
 
-def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
-                   log10_mu_bounds=MU_BOUNDS,
+def bounds_simplex(nt, nf, log10_pi0_bounds, log10_mu_bounds,
                    mu=None, softmax=True, bounded_softmax=False,
                    global_softmax_bound=1e4,
                    paired=True):
@@ -247,9 +247,8 @@ def bounds_simplex(nt, nf, log10_pi0_bounds=PI0_BOUNDS,
     return lb, ub
 
 
-def random_start_simplex(nt, nf, mu=None,
-                         log10_pi0_bounds=PI0_BOUNDS,
-                         log10_mu_bounds=MU_BOUNDS, 
+def random_start_simplex(nt, nf, log10_pi0_bounds, 
+                         log10_mu_bounds, mu=None,
                          softmax=True):
     """
     Create a random start position, uniform over the bounds for π0
@@ -282,8 +281,8 @@ def random_start_simplex(nt, nf, mu=None,
     if mu_is_fixed:
         theta[1] = mu
     theta[fixed_mu_offset:] = W.flat
-    bounds = bounds_simplex(nt, nf, log10_pi0_bounds,
-                            log10_mu_bounds, mu=mu)
+    bounds = bounds_simplex(nt, nf, log10_pi0_bounds=log10_pi0_bounds,
+                            log10_mu_bounds=log10_mu_bounds, mu=mu)
     check_bounds(theta, *bounds)
     return theta
 
@@ -326,8 +325,7 @@ class BGSLikelihood:
 
     def __init__(self,
                  Y, w, t, logB, bins=None, features=None,
-                 log10_pi0_bounds=PI0_BOUNDS,
-                 log10_mu_bounds=MU_BOUNDS):
+                 log10_pi0_bounds=PI0_BOUNDS, log10_mu_bounds=MU_BOUNDS):
 
         # this was an experiment to test if it made a difference
         # to add a truly neutral class. Because the default lowest
@@ -834,7 +832,7 @@ class SimplexModel(BGSLikelihood):
         self.std_error_type = None
 
     @staticmethod
-    def from_data(file, use_classic_B=False):
+    def from_data(file, use_classic_B=False, **kwargs):
         """
         Load a model data pickle file, e.g. from the command line
         tool bgspy data.
@@ -852,7 +850,8 @@ class SimplexModel(BGSLikelihood):
                 raise KeyError(msg)
         w, t = dat['w'], dat['t']
         obj = SimplexModel(w=w, t=t, logB=b, Y=Y,
-                           bins=bins, features=features)
+                           bins=bins, features=features,
+                           **kwargs)
         if 'md' in dat:
             # package metadata, e.g. from sims
             obj.metadata = dat['md']
@@ -884,8 +883,8 @@ class SimplexModel(BGSLikelihood):
         optimization issues.
         """
         return bounds_simplex(self.nt, self.nf,
-                              self.log10_pi0_bounds,
-                              self.log10_mu_bounds,
+                              log10_pi0_bounds=self.log10_pi0_bounds,
+                              log10_mu_bounds=self.log10_mu_bounds,
                               mu=mu,
                               bounded_softmax=global_softmax_bound,
                               paired=paired)

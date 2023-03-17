@@ -27,6 +27,8 @@ fit_rescaled = config["fit_rescaled"]
 windows = [int(w) for w in config["windows"]]
 blocksizes = config["blocksizes"]
 njack_samples = config["num_jackknife_samples"]
+pi0_bounds = config["pi0_bounds"]
+mu_bounds = config["mu_bounds"]
 
 ## ------ created data
 # name auto-generated
@@ -125,7 +127,7 @@ rule save_data:
 rule fit:
   input: 'model_data_{window}.pkl'
   output: 'fit_{window,\d+}/mle.pkl'
-  params: nstarts=nstarts, mu=mu, name=name
+  params: nstarts=nstarts, mu=mu, name=name, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
   resources:
     mem_mb=50000,
     time_min=480,
@@ -135,6 +137,7 @@ rule fit:
     """
     mkdir -p {params.name}
     bgspy fit \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --mu {params.mu} \
       --data {input[0]} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
@@ -233,7 +236,7 @@ rule save_data_rescale:
 rule fit_rescaled:
   input: 'model_data_{window,\d+}_rescaled.pkl'
   output: 'fit_{window,\d+}_rescaled/mle.pkl'
-  params: nstarts=nstarts, mu=mu, name=name
+  params: nstarts=nstarts, mu=mu, name=name, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
   benchmark: "benchmarks/fit_{window}_rescaled.txt"
   resources:
     mem_mb=50000,
@@ -243,6 +246,7 @@ rule fit_rescaled:
     """
     mkdir -p {params.name}
     bgspy fit \
+      --pi0-bounds {params.pi0-bounds} --mu_bounds {params.mu_bounds} \
       --mu {params.mu}
       --data {input[0]} \
       --ncores {resources.threads} --nstarts {params.nstarts} \

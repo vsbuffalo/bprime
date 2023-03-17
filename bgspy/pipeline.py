@@ -4,6 +4,7 @@ import os
 from os.path import basename, join
 import pickle
 import tskit as tsk
+import numpy as np
 from bgspy.models import BGSModel
 from bgspy.utils import load_seqlens, load_pickle, save_pickle
 from bgspy.sim_utils import mutate_simulated_tree
@@ -215,7 +216,9 @@ def summarize_sim_data(sim_tree_files,
 
 
 def mle_fit(data, output_file, ncores=70, nstarts=200,
-            mu=None, verbose=True, 
+            mu=None, 
+            pi0_bounds=None, mu_bounds=None,
+            verbose=True, 
             loo_chrom=None, chrom=None,  # for LOO on only one chrom
             blocksize=None, blocknum=None,  # for block-jackknifing
             start=None, bp_only=False):
@@ -240,7 +243,9 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
     if chrom is not None:
         msg += f" (leaving out {chrom})"
     logging.info(msg)
-    m_bp = SimplexModel.from_data(data)
+    m_bp = SimplexModel.from_data(data,
+                        log10_pi0_bounds=np.log10(pi0_bounds),
+                        log10_mu_bounds=np.log10(mu_bounds))
 
     ## fitting (main MLE, loo-chrom, block jackknife)
     # NOTE: for loo/block JK we need to manually load the 

@@ -11,6 +11,7 @@ from bgspy.utils import Grid, load_pickle
 from bgspy.pipeline import summarize_data, mle_fit, summarize_sim_data
 from bgspy.pipeline import ModelDir
 from bgspy.bootstrap import block_bins
+from bgspy.likelihood import PI0_BOUNDS, MU_BOUNDS
 
 SPLIT_LENGTH_DEFAULT = 10_000
 STEP_DEFAULT = 10_000
@@ -318,6 +319,8 @@ def simdata(sim_tree, bs_file, sim_mu, neutral, access,
               help="pickle file for results")
 @click.option('--mu', help='fixed mutation rate (by default, free)', 
               default=None)
+@click.option('--mu-bounds', help='bounds for μ', default=MU_BOUNDS)
+@click.option('--pi0-bounds', help='bounds for π0', default=PI0_BOUNDS)
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=None)
@@ -327,16 +330,20 @@ def simdata(sim_tree, bs_file, sim_mu, neutral, access,
 @click.option('--chrom', default=None,
               help="only fit on using this chromosome (default: genome-wide)")
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
-def fit(data, output, mu, ncores, nstarts, chrom, only_bp):
+def fit(data, output, mu, mu_bounds, pi0_bounds, ncores, nstarts, chrom, only_bp):
     """
     Run the MLE fit on pre-processed data.
     """
     # for fixed mu
     mu = None if mu in (None, 'None') else float(mu) # sterialize CL input
+    pi0_bounds = tuple(map(float, pi0_bounds.split(',')))
+    mu_bounds = tuple(map(float, mu_bounds.split(',')))
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
             nstarts=nstarts,
+            pi0_bounds=pi0_bounds,
+            mu_bounds=mu_bounds,
             mu=mu, chrom=chrom, bp_only=only_bp)
 
 

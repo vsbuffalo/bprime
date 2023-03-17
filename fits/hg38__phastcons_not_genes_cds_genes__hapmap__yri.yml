@@ -1,5 +1,7 @@
 ---
 name: hg38__phastcons_not_genes_cds_genes__hapmap
+pi0_bounds: 0.0005,0.005
+mu_bounds: 0.5e-8,8e-8
 nstarts: 2000
 nstarts_loo: 1000
 nstarts_jackknife: 1000
