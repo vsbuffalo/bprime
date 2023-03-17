@@ -629,7 +629,7 @@ class BGSLikelihood:
         #ax.legend()
 
 
-    def dfe_plot(self, figax=None):
+    def dfe_plot(self, add_legend=True, figax=None):
         """
         TODO
         """
@@ -645,7 +645,8 @@ class BGSLikelihood:
             ax.bar(xt - 1/(nf/2) + i/nf, self.mle_W[:, i], align='edge', width=w, label=feat)
         ax.set_xticks(np.log10(self.t), [f"$10^{{{int(x)}}}$" for x in xt])
         ax.set_ylabel('probability')
-        ax.legend()
+        if add_legend:
+            ax.legend()
 
     def pi(self):
         pi = pi_from_pairwise_summaries(self.Y)
