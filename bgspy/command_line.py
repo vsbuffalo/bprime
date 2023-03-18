@@ -430,7 +430,7 @@ def subrate(bs_file, fit, force_feature, output, split):
               type=int, default=1)
 @click.option('--include-Bs', default=False, is_flag=True, help="whether to include classic Bs too")
 def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu, 
-              mu_bounds, pi_bounds, output, fit_dir, chrom, ncores, 
+              mu_bounds, pi0_bounds, output, fit_dir, chrom, ncores, 
               nstarts, include_bs):
     """
     Run the block-jackknifing routine. 

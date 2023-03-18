@@ -159,7 +159,7 @@ rule block_jackknife:
       --blockwidth {wildcards.blocksize} \
       --data {input.data} \
       --mu {params.mu} \
-      --pi0-bounds {params.pi0_bounds} --mu_bounds {params.mu_bounds} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --output {output[0]} \
       --blockfrac {wildcards.frac} \
       --ncores {resources.threads} --nstarts {params.nstarts}
@@ -182,7 +182,7 @@ rule loo_chrom:
       --data {input.data} \
       --output {output[0]} \
       --mu {params.mu} \
-      --pi0-bounds {params.pi0_bounds} --mu_bounds {params.mu_bounds} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --chrom {wildcards.chrom} \
       --ncores {resources.threads} --nstarts {params.nstarts}
     """
@@ -219,7 +219,7 @@ rule save_data_rescale:
   output: 'model_data_{window,\d+}_rescaled.pkl'
   params: name=name
   resources:
-    mem_mb=20000,
+    mem_mb=100000,
     time_min=300
   shell:
     """
@@ -245,7 +245,7 @@ rule fit_rescaled:
     """
     mkdir -p {params.name}
     bgspy fit \
-      --pi0-bounds {params.pi0_bounds} --mu_bounds {params.mu_bounds} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --mu {params.mu} \
       --data {input[0]} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
