@@ -2,12 +2,13 @@ import click
 import logging
 import numpy as np
 import pickle
+from collections import defaultdict
 from si_prefix import si_format
 import os
 from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
-from bgspy.utils import Grid, load_pickle
+from bgspy.utils import Grid, load_pickle, bin_chroms
 from bgspy.pipeline import summarize_data, mle_fit, summarize_sim_data
 from bgspy.pipeline import ModelDir
 from bgspy.bootstrap import block_bins
@@ -49,24 +50,30 @@ def grid_maker_from_str(x):
 
 
 def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
-                   chroms=None, name=None, split_length=SPLIT_LENGTH_DEFAULT):
+                   chroms=None, name=None, genome_only=False,
+                   split_length=SPLIT_LENGTH_DEFAULT):
     """
     Build the BGSModel and the Genome object it uses.
     """
+    if name is None:
+        # infer the name
+        bn = os.path.splitext(os.path.basename(seqlens))[0]
+        name = bn.replace('_seqlens', '')
+    gn = Genome(name, seqlens_file=seqlens, chroms=chroms)
+    gn.load_annot(annot)
+    gn.load_recmap(recmap, conversion_factor=conv_factor)
+    gn.create_segments(split_length=split_length)
+    if genome_only:
+        return gn
+    
+    # get the grid 
     if g is not None:
         # g takes priority
         w, t = grid_maker_from_str(g)
     else:
         w, t = parse_gridstr(w), parse_gridstr(t),
-    if name is None:
-        # infer the name
-        bn = os.path.splitext(os.path.basename(seqlens))[0]
-        name = bn.replace('_seqlens', '')
-    g = Genome(name, seqlens_file=seqlens, chroms=chroms)
-    g.load_annot(annot)
-    g.load_recmap(recmap, conversion_factor=conv_factor)
-    g.create_segments(split_length=split_length)
-    m = BGSModel(g, w_grid=w, t_grid=t, split_length=split_length)
+
+    m = BGSModel(gn, w_grid=w, t_grid=t, split_length=split_length)
     return m
 
 
@@ -90,13 +97,17 @@ def parse_gridstr(x):
     return 10**np.linspace(lower, upper, int(ngrid))
 
 
-def calc_stats(x, stats={'mean': np.mean, 'median': np.median, 'var': np.var,
+DEFAULT_STATS = {'mean': np.mean, 'median': np.median, 'var': np.var,
                         'min': np.min, 'max': np.max,
                          'non-zero-min': lambda x: np.min(x[x > 0]),
                          'lower-decile': lambda x: np.quantile(x, 0.10),
                          'lower-quartile': lambda x: np.quantile(x, 0.25),
                          'upper-decile': lambda x: np.quantile(x, 0.9),
-                        'total': lambda y: y.shape[0]}):
+                        'total': lambda y: y.shape[0]}
+def calc_stats(x, stats=DEFAULT_STATS):
+    """
+    calc a bunch of statistics, unweighted
+    """
     return {s: func(x) for s, func in stats.items()}
 
 
@@ -220,9 +231,9 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
     """
     Calculate segment stats.
     """
-    #TODO check this, as it's not been used in age.
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        w=None, t=None, chroms=None, name=None,
+                       genome_only=True,
                        split_length=split_length)
     segments = m.segments
     if output:
@@ -237,9 +248,58 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
     print(f"range stats: {ranges_stats}")
     print(f"rec stats: {rec_stats}")
 
-# @click.option('--sim-tree-file', required=False, type=click.Path(exists=True),
-#               help="a tree sequence file from a simulation")
-# @click.option('--sim-mu', required=False, type=float, help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
+
+@cli.command()
+@click.option('--recmap', required=True, type=click.Path(exists=True),
+              help='BED file with rec rates per window in the 4th column')
+@click.option('--annot', required=True, type=click.Path(exists=True),
+              help='BED file with conserved regions, fourth column is optional feature class')
+@click.option('--seqlens', required=True, type=click.Path(exists=True),
+              help="tab-delimited file of chromosome names and their length (name should be '<genome>_seqlens.tsv')")
+@click.option('--conv-factor', default=1e-8,
+                help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
+@click.option('--window', required=True, help="window size")
+@click.option('--output', required=False,
+              help='output file for a pickle of the segments',
+              type=click.Path(exists=False, writable=True))
+def windowstats(recmap, annot, seqlens, conv_factor, window, output=None):
+    """
+    Calculate window statistics.
+    """
+    # get the genome name
+    bn = os.path.splitext(os.path.basename(seqlens))[0]
+    name = bn.replace('_seqlens', '')
+    gn = Genome(name, seqlens_file=seqlens)
+    gn.load_annot(annot)
+    gn.load_recmap(recmap, conversion_factor=conv_factor)
+
+    # get the features per window
+    bins = bin_chroms(gn.seqlens, int(window))
+    feature_window_counts = dict()
+    for chrom, (ranges, features) in gn.annot.items():
+        mask = dict() 
+        for feature, range in zip(features, ranges):
+            if feature not in mask:
+                mask[feature] = np.zeros(gn.seqlens[chrom], dtype='bool')
+            mask[feature][slice(*range)] = 1
+        
+        # now window
+        windows = bins[chrom]
+        window_ranges = [(s, e) for s, e in zip(windows[:-1], windows[1:])]
+        feature_window_counts = defaultdict(lambda: defaultdict(dict))
+        for feature in mask.keys():
+            counts = np.zeros(len(window_ranges))
+            for i, range in enumerate(window_ranges):
+                counts[i] = sum(mask[feature][slice(*range)])
+            feature_window_counts[feature][chrom] = counts
+
+    __import__('pdb').set_trace() 
+    if output:
+        with(output, 'wb') as f:
+            pickle.dump(segments, f)
+        return
+
+
 
 
 @cli.command()

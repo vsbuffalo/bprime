@@ -30,5 +30,4 @@ blocksizes:
 
 # whether to run second-round locally-rescaled 
 # estimates
-fit_rescaled: false
-
+fit_rescaled: true

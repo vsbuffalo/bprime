@@ -219,7 +219,7 @@ rule save_data_rescale:
   output: 'model_data_{window,\d+}_rescaled.pkl'
   params: name=name
   resources:
-    mem_mb=100000,
+    mem_mb=200000,
     time_min=300
   shell:
     """

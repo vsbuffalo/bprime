@@ -3,6 +3,7 @@ import os
 import warnings
 import re
 from copy import copy
+from collections import defaultdict
 import pickle
 import itertools
 import tqdm
@@ -628,10 +629,26 @@ class BGSLikelihood:
         #ax.set_ylabel('probability')
         #ax.legend()
 
-
-    def dfe_plot(self, add_legend=True, figax=None):
+    def W_stderrs(self):
         """
-        TODO
+        A dictionary of standard errors.
+        """
+        if self.sigma_ is None:
+            return None
+        fixed_mu_offset = 1 + int(not self._fixed_mu is not None)
+        ses = self.sigma_[fixed_mu_offset:].reshape(self.mle_W.shape)
+        se = defaultdict(list)
+        mean = defaultdict(list)
+        for i, feature in enumerate(self.features):
+            for j, t in enumerate(self.t):
+                se[feature].append(ses[j,i])
+                mean[feature].append(self.mle_W[j,i])
+        return mean, se
+
+
+    def dfe_plot(self, add_legend=True, legend_kwargs={}, figax=None):
+        """
+        Plot a boxplot of all features.
         """
         fig, ax = get_figax(figax)
         xt = np.log10(self.t)
@@ -646,7 +663,7 @@ class BGSLikelihood:
         ax.set_xticks(np.log10(self.t), [f"$10^{{{int(x)}}}$" for x in xt])
         ax.set_ylabel('probability')
         if add_legend:
-            ax.legend()
+            ax.legend(**legend_kwargs)
 
     def pi(self):
         pi = pi_from_pairwise_summaries(self.Y)
