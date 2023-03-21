@@ -66,6 +66,7 @@ extinction or fixation in the population--- and thus cannot connect to observed
 rates of molecular evolution.
 
 whole-genome variance models.
+These are flux models.
 
 
 This is because, in the very long run, all mutations must be accounted for.
@@ -928,6 +929,7 @@ approximation strongly deviates from the full equation; thus, throughout, we
 use the unapproximated version,
 
 \begin{align}
+  \label{eq:Ne_inf}
   N_{e,\infty} \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-M) Z)} \right).
 \end{align}
 
@@ -1025,18 +1027,15 @@ drift. The reduction factor under the strong BGS model is,
 by working out the deterministic reduction in variance from the single-locus
 dynamics. 
 
-Using $Z_\text{BGS}$, $V_m$, and $V$ under the background selection model, and
-approximation $N_{e,\infty}^\text{SC98}$ (equation XXX), find an equation
-reminiscent of the classic background selection with recombination results. We
-find that by using the full equation XXX $N_{e,\infty}$ rather than the
-approximation of Santiago and Caballero, the reduction due to background
-selection is
+Now, we can use these values for $Z_\text{BGS}$, $V_m$, and $V$ in equation
+\eqref{eq:Ne_inf}. Through this alternate quantitative genetics derivation, we
+arrive at the same equation as classic BGS theory,
 
 \begin{align}
-  N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + M - Ms} \right)
+  N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + M - Ms} \right).
 \end{align}
 
-which matches equation 8 of \textcite{Hudson1995-xc} except for the $Ls$ term
+This matches equation 8 of \textcite{Hudson1995-xc} except for the $Ms$ term
 and equation 10 of \textcite{Nordborg1996-nq} except for the $2s$ term.
 
 \subsection*{Effective Population Size Under Weak and Strong BGS}
@@ -1152,14 +1151,46 @@ deleterious to neutral variation, $2R \le U$, or the diploid mutation rate must
 be greater than twice the per-basepair per-generation substitution rate for
 equilibrium variance $\widetilde{V} > 0$ for $s>0$. 
 
+\subsection*{Misspecification of the Polygenic Selection Model}
+
+Thus far, we have developed the general model of equation \eqref{XXX} by
+assuming that the only source of $V_h$ is from the deleterious
+mutation-selection-draft-drift process. However, other polygenic evolutionary
+processes can also create, alter, and eliminate fitness variation. By assuming
+that the only fitness variation originates from deleterious
+mutation-selection-drift-draft processes, we introduce some model
+misspecification. There are two main types of misspecification under the
+selection model. First, non-polygenic positive selection processes, such as
+recurrent sweeps, may create small-scale distortions in local genealogies.
+These have been found to only impact diversity on small spatial scales
+\parencite{Murphy2022-sj} in humans, and explain little of the total variation
+in megabase-scale patterns of diversity. Second, there is model
+misspecification due to our model assuming that the only polygenic selection
+process happening is the flux of new deleterious mutations in, and their
+eventual loss or fixation. Other polygenic selection processes could be
+occurring, e.g. traits could be responding to directional selection. The
+Santiago and Caballero model our work extends is very general, and can account
+for multiple types of polygenic selection. The key input parameters are the
+equilibrium heritable fitness variation $V_h$, and the variation introduced by
+mutation each generation $V_m$. 
+
+Let us assume for now that,
+
+\begin{align}
+  \label{eq:Ne_inf}
+  N_{e,\infty} \approx N \exp\left(-\frac{V_h + \varepsilon}{(1-Z) (2-(2-M) Z)} \right).
+\end{align}
+
 \subsection*{Heterozygosity and $B$ values Under Weak and Strong Selection}
 
 While the selection dynamics are set by the asymptotic $Q_\infty^2$ that
 determines the equilibrium $\widetilde{N}_e$ and $\widetilde{R}$,
 heterozygosity is determined by the sequence $\widetilde{N}_{e,t}$, where each
-term is 
+term is given by \eqref{eq:net_integral}. We experimented with calculating this
+full sum in our methods, but it seemed to make little difference in our
+application. Additionally, it was too costly to calculate computationally
+for genome-wide calculations of the B' map.
 
-XXX
 
 \subsection*{Numeric methods for calculating $B$}
 
