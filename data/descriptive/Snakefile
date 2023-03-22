@@ -1,0 +1,29 @@
+
+pops = ['ceu', 'chb', 'yri']
+windows = [100000, 1000000]
+
+rule windstat:
+  input:
+    recmap="../annotation/hapmap_genetic_map.txt",
+    annot="../annotation/conserved_phastcons_not_genes_cds_genes_full.bed.gz",
+    neutral="../annotation/neutral_phastcons_genes_with_introns.bed.gz",
+    access="../annotation/no_centro.bed",
+    fasta="../annotation/hg38.fa.gz",
+    seqlens="../annotation/hg38_seqlens.tsv",
+  output: "winstats_{p}_{window}.tsv"
+  shell:
+     """
+     bgspy windowstats --recmap {input.recmap} --annot {input.annot} \
+       --neutral {input.neutral} --access {input.access} --fasta {input.fasta} \
+       --counts-dir ../h1kg/hg1k_{wildcards.p}_counts --seqlens {input.seqlens} \
+       --window {wildcards.window} --output {output}
+     """
+
+
+window_stats = []
+for p in pops:
+    for window in windows:
+        window_stats.append(f"winstats_{p}_{window}.tsv")
+
+rule all:
+  input: window_stats
