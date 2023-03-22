@@ -8,6 +8,7 @@ import os
 from collections import namedtuple
 from bgspy.models import BGSModel
 from bgspy.genome import Genome
+from bgspy.data import GenomeData
 from bgspy.utils import Grid, load_pickle, bin_chroms
 from bgspy.pipeline import summarize_data, mle_fit, summarize_sim_data
 from bgspy.pipeline import ModelDir
@@ -237,7 +238,7 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
                        split_length=split_length)
     segments = m.segments
     if output:
-        with(output, 'wb') as f:
+        with open(output, 'wb') as f:
             pickle.dump(segments, f)
         return
     ranges = segments.ranges
@@ -256,13 +257,24 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
               help='BED file with conserved regions, fourth column is optional feature class')
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help="tab-delimited file of chromosome names and their length (name should be '<genome>_seqlens.tsv')")
+@click.option('--counts-dir', required=False, type=click.Path(exists=True),
+              help='directory to Numpy .npy per-basepair counts')
+@click.option('--neutral', required=True, type=click.Path(exists=True),
+              help='neutral region BED file')
+@click.option('--access', required=True, type=click.Path(exists=True),
+              help='accessible regions BED file (e.g. no centromeres)')
+@click.option('--fasta', required=True, type=click.Path(exists=True),
+              help='FASTA reference file (e.g. to mask Ns and lowercase'+
+                   '/soft-masked bases')
 @click.option('--conv-factor', default=1e-8,
                 help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
 @click.option('--window', required=True, help="window size")
-@click.option('--output', required=False,
-              help='output file for a pickle of the segments',
+@click.option('--output', required=True,
+              help='output filename for a TSV of the window data',
               type=click.Path(exists=False, writable=True))
-def windowstats(recmap, annot, seqlens, conv_factor, window, output=None):
+def windowstats(recmap, annot, seqlens, counts_dir, 
+                neutral, access, fasta,
+                conv_factor, window, output=None):
     """
     Calculate window statistics.
     """
@@ -273,9 +285,24 @@ def windowstats(recmap, annot, seqlens, conv_factor, window, output=None):
     gn.load_annot(annot)
     gn.load_recmap(recmap, conversion_factor=conv_factor)
 
+    if counts_dir is not None:
+        gd = GenomeData(gn)
+        gd.load_counts_dir(counts_dir)
+        gd.load_neutral_masks(neutral)
+        gd.load_accessibile_masks(access)
+        gd.load_fasta(fasta, soft_mask=True)
+
+    # bin the diversity data
+    logging.info("binning pairwise diversity") 
+    bgs_bins = gd.bin_pairwise_summaries(window,
+                                         filter_accessible=True,
+                                         filter_neutral=True)
+
+
     # get the features per window
     bins = bin_chroms(gn.seqlens, int(window))
-    feature_window_counts = dict()
+    feature_window_counts = defaultdict(lambda: defaultdict(dict))
+    recrates_window = defaultdict(list)
     for chrom, (ranges, features) in gn.annot.items():
         mask = dict() 
         for feature, range in zip(features, ranges):
@@ -286,18 +313,31 @@ def windowstats(recmap, annot, seqlens, conv_factor, window, output=None):
         # now window
         windows = bins[chrom]
         window_ranges = [(s, e) for s, e in zip(windows[:-1], windows[1:])]
-        feature_window_counts = defaultdict(lambda: defaultdict(dict))
         for feature in mask.keys():
             counts = np.zeros(len(window_ranges))
             for i, range in enumerate(window_ranges):
                 counts[i] = sum(mask[feature][slice(*range)])
-            feature_window_counts[feature][chrom] = counts
+            feature_window_counts[feature][chrom] = (window_ranges, counts)
 
-    __import__('pdb').set_trace() 
-    if output:
-        with(output, 'wb') as f:
-            pickle.dump(segments, f)
-        return
+        for i, range in enumerate(window_ranges):
+            rates = gn.recmap.lookup(chrom, np.array(range), cumulative=True)
+            rate = (rates[1] - rates[0]) / (range[1] - range[0])
+            recrates_window[chrom].append(rate)
+
+    with open(output, 'w') as f:
+        for feature in feature_window_counts.keys():
+            for chrom in feature_window_counts[feature]:
+                ranges, counts = feature_window_counts[feature][chrom]
+                recrates = recrates_window[chrom]
+                pis = bgs_bins.pi_pairs(chrom)[1]
+                assert len(pis) == len(recrates)
+                for range, counts, recrates, pi in zip(ranges, counts, recrates, pis):
+                    row = [chrom, range[0], range[1], feature, counts, recrates, pi]
+                    f.write('\t'.join(map(str, row)) + '\n')
+
+
+
+        
 
 
 

@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 from bgspy.utils import mean_ratio, argsort_chroms
 import matplotlib as mpl
 lowess = sm.nonparametric.lowess
@@ -39,6 +40,9 @@ def smooth(x, y, frac=None):
     """
     Smooth a line for visual clarity.
     """
+    assert isinstance(x, np.ndarray) and np.array(y, np.ndarray)
+    idx = np.argsort(x)
+    x, y = x[idx], y[idx]
     if frac is None:
         return x, y
     sx, sy = lowess(y, x, frac=frac).T
@@ -308,4 +312,68 @@ def chrom_resid_plot(obj, figax=None):
     _ = ax.boxplot(resids, labels=[x.replace('chr', '') for x in chroms])
     ax.axhline(0, c='0.66')
     return fig, ax
+
+
+def rec_resid(fit, annot_df, alpha=None, figax=None, scatter_kwargs={}):
+    """
+    Look at the residuals by recombination rate in a window.
+
+    fit: the SimplexModel fit
+    annot_df: a dataframe of windows with recombination rate column
+              (can be produced by bgspy windowstats).
+    """
+    fig, ax = get_figax(figax)
+    resid = fit.resid()
+    bins = fit.bins.flat_bins()
+    assert(len(resid) == len(bins))
+
+    d = pd.DataFrame(bins)
+    d['resid'] = resid
+    d.columns = ('chrom', 'start', 'end', 'resid')
+    d = d.merge(annot_df)
+
+    ax.scatter(d['rec'], d['resid'], **scatter_kwargs)
+    ax.axhline(0, c='0.5', linestyle='dashed')
+    mod = smf.ols(formula='resid ~ rec', data=d).fit()
+    ax.axline((0, mod.params[0]), slope=mod.params[1])
+    ax.set_ylabel('residual')
+    ax.set_xlabel('recombination rate')
+    return mod
+
+def annot_resid(fit, annot_df, figax=None, scatter_kwargs={}):
+    """
+    Look at the residuals by number of annotated basepairs 
+    in a window. These basepairs should be putatively selected,
+    e.g. coding.
+
+    fit: the SimplexModel fit
+    annot_df: a dataframe of windows with a counts column
+              containing the counts of the annotated basepairs
+              that are likely under selection
+              (can be produced by bgspy windowstats).
+    """
+    fig, ax = get_figax(figax)
+    resid = fit.resid()
+    bins = fit.bins.flat_bins()
+    assert(len(resid) == len(bins))
+
+    d = pd.DataFrame(bins)
+    d['resid'] = resid
+    d.columns = ('chrom', 'start', 'end', 'resid')
+    d = d.merge(annot_df)
+
+    d['prop'] = 100 * (d['count']+1) / (d['end'] - d['start']) 
+
+    ax.scatter(d['prop'], d['resid'],  **scatter_kwargs)
+    ax.axhline(0, c='0.5', linestyle='dashed')
+    o = np.min(d['prop'][d['prop']>0])
+    d['log10_prop'] = np.log10(d['prop'])
+    mod = smf.ols(formula='resid ~ log10_prop', data=d).fit()
+    x = np.linspace(d['prop'].min(), d['prop'].max(), 100)
+    ax.axline((0, mod.params[0]), slope=mod.params[1])
+    ax.set_xlabel('percentage window overlapping feature')
+    ax.set_ylabel('residual')
+    ax.plot(mod.params[0] * np.log10(x)*mod.params[1])
+    ax.semilogx()
+    return mod
 
