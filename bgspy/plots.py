@@ -328,17 +328,21 @@ def rec_resid(fit, annot_df, alpha=None, figax=None, scatter_kwargs={}):
     assert(len(resid) == len(bins))
 
     d = pd.DataFrame(bins)
-    d['resid'] = resid
-    d.columns = ('chrom', 'start', 'end', 'resid')
-    d = d.merge(annot_df)
+    #d['resid'] = resid
+    #d.columns = ('chrom', 'start', 'end', 'resid')
+    d.columns = ('chrom', 'start', 'end')
+    d = d.merge(annot_df, on=['chrom', 'start', 'end'])
+    assert d.shape[0] > 0, "merge failed -- are windows same?"
 
     ax.scatter(d['rec'], d['resid'], **scatter_kwargs)
     ax.axhline(0, c='0.5', linestyle='dashed')
-    mod = smf.ols(formula='resid ~ rec', data=d).fit()
-    ax.axline((0, mod.params[0]), slope=mod.params[1])
+    #mod = smf.ols(formula='resid ~ rec', data=d).fit()
+    #ax.axline((0, mod.params[0]), slope=mod.params[1])
     ax.set_ylabel('residual')
     ax.set_xlabel('recombination rate')
-    return mod
+    return fig, ax
+    #return mod
+
 
 def annot_resid(fit, annot_df, figax=None, scatter_kwargs={}):
     """
@@ -362,14 +366,11 @@ def annot_resid(fit, annot_df, figax=None, scatter_kwargs={}):
     d.columns = ('chrom', 'start', 'end', 'resid')
     d = d.merge(annot_df)
 
-    d['prop'] = 100 * (d['count']+1) / (d['end'] - d['start']) 
-
     ax.scatter(d['prop'], d['resid'],  **scatter_kwargs)
     ax.axhline(0, c='0.5', linestyle='dashed')
-    o = np.min(d['prop'][d['prop']>0])
-    d['log10_prop'] = np.log10(d['prop'])
     mod = smf.ols(formula='resid ~ log10_prop', data=d).fit()
     x = np.linspace(d['prop'].min(), d['prop'].max(), 100)
+    print(x)
     ax.axline((0, mod.params[0]), slope=mod.params[1])
     ax.set_xlabel('percentage window overlapping feature')
     ax.set_ylabel('residual')

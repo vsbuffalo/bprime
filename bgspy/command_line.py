@@ -271,14 +271,17 @@ def stats(recmap, annot, seqlens, conv_factor, split_length, output=None):
 @click.option('--fasta', required=True, type=click.Path(exists=True),
               help='FASTA reference file (e.g. to mask Ns and lowercase'+
                    '/soft-masked bases')
+@click.option('--outliers',
+              help='quantiles for trimming bin π',
+              type=str, default='0.0,0.995')
 @click.option('--conv-factor', default=1e-8,
                 help="Conversation factor of recmap rates to M (for cM/Mb rates, use 1e-8)")
 @click.option('--window', required=True, help="window size")
 @click.option('--output', required=True,
               help='output filename for a TSV of the window data',
               type=click.Path(exists=False, writable=True))
-def windowstats(recmap, annot, seqlens, counts_dir, 
-                neutral, access, fasta,
+def windowstats(recmap, annot, seqlens, counts_dir,
+                neutral, access, fasta, outliers,
                 conv_factor, window, output=None):
     """
     Calculate window statistics.
@@ -290,12 +293,12 @@ def windowstats(recmap, annot, seqlens, counts_dir,
     gn.load_annot(annot)
     gn.load_recmap(recmap, conversion_factor=conv_factor)
 
-    if counts_dir is not None:
-        gd = GenomeData(gn)
-        gd.load_counts_dir(counts_dir)
-        gd.load_neutral_masks(neutral)
-        gd.load_accessibile_masks(access)
-        gd.load_fasta(fasta, soft_mask=True)
+    gd = GenomeData(gn)
+    gd.load_counts_dir(counts_dir)
+    gd.load_neutral_masks(neutral)
+    gd.load_accessibile_masks(access)
+    gd.load_fasta(fasta, soft_mask=True)
+    gd.trim_ends(1)  # removes 1cM off ends
 
     # bin the diversity data
     logging.info("binning pairwise diversity") 
@@ -303,6 +306,8 @@ def windowstats(recmap, annot, seqlens, counts_dir,
                                          filter_accessible=True,
                                          filter_neutral=True)
 
+    outliers = tuple(map(float, outliers.split(',')))
+    bgs_bins.mask_outliers(outliers)
 
     # get the features per window
     bins = bin_chroms(gn.seqlens, int(window))
