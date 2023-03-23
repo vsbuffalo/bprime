@@ -106,7 +106,7 @@ rule bmap_synthetic:
   output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/synthetic', bmap_pattern)
   params: grid=lambda w: bmaps[w.name]['grid'], step=100000, chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
   resources:
-    mem_mb=200000,
+    mem_mb=250000,
     time_min=4320,
     threads=30
   shell:
@@ -241,6 +241,8 @@ rule mle_synthetic_fit:
     bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {resources.threads}
     """
 
+rule allsims:
+    input: sim_results
 
 rule all:
     input: sim_results, mle_results

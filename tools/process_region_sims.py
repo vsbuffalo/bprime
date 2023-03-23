@@ -20,11 +20,9 @@ def force_infinite_sites(tr):
         return tr.delete_sites(bad_sites)
     return tr
 
-def middle_element(x):
-    "get the middle element of an odd-lengthened array, average two if even"
-    if len(x) % 2 == 0:
-       return x[len(x)//2]
-    return x[int(len(x)//2 -1 ):int(len(x)//2 + 1)]
+def middle_elements(x, n):
+    "get the middle elements n-apart of an odd-lengthened array, average two if even"
+    return x[int(len(x)//2 - n):int(len(x)//2 + n)]
 
 
 def load_and_recap(treefile, burnin=2000):
@@ -50,9 +48,9 @@ def load_and_recap(treefile, burnin=2000):
 
     # B and log file stats
     B = ts.diversity(mode='branch') / (4*N)
-    bins = bin_chrom(ts.sequence_length, 1000) # 1kb windows
+    bins = bin_chrom(ts.sequence_length, 10000) # 10kb windows
     B_wins = ts.diversity(windows=bins, mode='branch') / (4*N)
-    B_middle = middle_element(B_wins).mean()
+    B_middle = middle_elements(B_wins, 3).mean()
     logfile = treefile.replace('_treeseq.tree', '_log.tsv.gz')
     d = pd.read_csv(logfile, sep='\t', comment='#')
     last_gen = np.max(d['cycle'])
@@ -88,7 +86,7 @@ if __name__ == '__main__':
         raise ValueError("usage: process_region_sims.py simdir/ outfile.pkl")
     resdir = sys.argv[1]
     outfile = sys.argv[2]
-    ncores = 20
+    ncores = 40
     #ncores = 1
     all_files = get_files(resdir, "_treeseq.tree")
     #import pdb;pdb.set_trace()

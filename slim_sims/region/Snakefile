@@ -21,6 +21,9 @@ all_sims = run.generate_targets()
 rule slim:
     input: run.script, **run.input
     output: **run.output_template()
+    resources:
+      time_min=10,
+      mem_mb=10000
     shell: run.slim_cmd()
 
 rule all:

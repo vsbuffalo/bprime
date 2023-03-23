@@ -110,7 +110,10 @@ def parse_sim_filename(file, types=None, basedir='runs'):
     file = parts[-1]
     params = parts[2:-1]
     for param in params:
-        key, val  = param.split('__')
+        try:
+           key, val  = param.split('__')
+        except:
+           continue  # not a keyval
         if types is not None:
             val = types[val](val)
         res[key] = val
@@ -168,7 +171,10 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
             for (sim_params, pos, b), file in zip(res, tree_files):
                 rep = parse_sim_filename(file)['rep']
                 mu, sh = sim_params['mu'], sim_params['sh']
-                X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
+                try:
+                    X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
+                except:
+                    raise ValueError(f"error with file '{file}'")
 
     mu = np.fromiter(mu_lookup.keys(), dtype=float)
     sh = np.fromiter(sh_lookup.keys(), dtype=float)

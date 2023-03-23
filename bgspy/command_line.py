@@ -20,6 +20,11 @@ STEP_DEFAULT = 10_000
 NCHUNKS_DEFAULT = 200
 MU_NOT_SET = (None, 'None', 'free', 'Free')
 
+# CL bounds are given in linear scale
+# TODO change name  to include log in likelihood.py
+PI0_BOUNDS = f"{10**PI0_BOUNDS[0]},{10**PI0_BOUNDS[1]}"
+MU_BOUNDS = f"{10**MU_BOUNDS[0]},{10**MU_BOUNDS[1]}"
+
 LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 
 
