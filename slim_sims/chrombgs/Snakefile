@@ -5,6 +5,8 @@ from bgspy.slim import SlimRuns
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
+# --- global params --- 
+BMAP_THREADS = 70
 
 # --- slim sims --- 
 run = SlimRuns(config)
@@ -94,7 +96,7 @@ if run_fits:
       resources:
         mem_mb=200000,
         time_min=4320,
-        threads=30
+        threads=BMAP_THREADS
       shell:
         """
         bgspy calcb \
@@ -114,7 +116,7 @@ if run_fits:
       resources:
         mem_mb=250000,
         time_min=4320,
-        threads=30
+        threads=BMAP_THREADS
       shell:
         """
         bgspy calcb \
@@ -176,11 +178,15 @@ if run_fits:
            
     
     
-    bmap_output = []
     all_Ns = set(config['variable']['N'])
+    bmap_output = []
+    #for bmap in bmaps:
+    #    for N in all_Ns:
+    #        bmap_output.append(join(run.basedir, f"bmaps/N__{N}/genome/bmap__{bmap}.pkl"))
     for bmap in bmaps:
         for N in all_Ns:
-            bmap_output.append(join(run.basedir, f"bmaps/N__{N}/genome/bmap__{bmap}.pkl"))
+            bmap_output.append(join(run.basedir, f"bmaps/N__{N}/synthetic/bmap__{bmap}.pkl"))
+    
     
     #print("syn data")
     #print(syn_data)

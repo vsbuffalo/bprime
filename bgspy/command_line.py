@@ -1,5 +1,6 @@
 import click
 import logging
+import gc
 import numpy as np
 import pickle
 from collections import defaultdict
@@ -182,6 +183,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         bfit, bpfit = fits['mb'], fits['mbp']
         rescale = (gm.BpScores, None, None, bpfit)
         del gm
+        gc.collect()
 
     # manual rescaling from a single fixed set of parameters is set.
     if rescale_fit is None and rescale is not None:
@@ -192,6 +194,7 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         assert rs_t in gm.t, "s not in ΒGSModel.t!"
         rescale = (gm.BpScores, rs_w, rs_t, None)
         del gm
+        gc.collect()
 
     if rescale_fit is None:
         ## Make sure chromosomes match

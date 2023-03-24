@@ -7,3 +7,7 @@
     python ../../tools/process_sims.py runs/ results.npz --ncores 20
 
 
+##  Empirical B Map Simulations
+
+    
+    snakemake --profile ~/.config/snakemake/talapas/ all --configfile conserved_cds_utrs_phastcons_merged__hapmap__empi

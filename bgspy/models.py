@@ -24,7 +24,7 @@ All positions in the genome x = {0, 1, ..., L} are assigned to a annotation
 group. The set a_B(i_B) is the collection of sites in with membership in
 annotation set i_B.
 """
-
+import gc
 import pickle
 import logging
 import warnings
@@ -154,6 +154,8 @@ class BGSModel(object):
                                     ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype)
                       for chrom, x in Bs.items()}
+        del Bs  # free up memory
+        gc.collect()
         self.Bs = stacked_Bs
         self.B_pos = B_pos
 
@@ -188,6 +190,7 @@ class BGSModel(object):
                 self.genome.segments.load_rescaling_from_Bp(bp, fit)
 
             del bp  # free up this memory
+            gc.collect()
             use_rescaling = True  # require segments to be re-calc'd
 
         if ncores is not None and nchunks is None:
@@ -201,6 +204,8 @@ class BGSModel(object):
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step, N=N,
                                         nchunks=nchunks, ncores=ncores)
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
+        del Bs  # free up memory
+        gc.collect()
         prop_nan = [np.isnan(s).mean() for s in stacked_Bs.values()]
         if any(x > 0 for x in prop_nan):
             msg = f"some NAN in B'! likely fsolve failed under strong sel"
