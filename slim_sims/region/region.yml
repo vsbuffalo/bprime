@@ -3,7 +3,7 @@ name: region
 script: region.slim
 dir: runs
 nreps: 10000
-seed: 0
+seed: 42
 suffices: 
   treeseq_file: treeseq.tree
   log_file: log.tsv.gz

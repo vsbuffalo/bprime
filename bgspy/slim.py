@@ -121,8 +121,7 @@ class SlimRuns():
         self.config = config
         self.name = config['name']
         self.script = config['script']
-        self.nreps = config['nreps']
-        self.seed = config['seed']
+        self.seed = int(config['seed'])
         self.rng = ng = np.random.default_rng(self.seed)
         self.dir = config['dir']
         self.suffices = config['suffices']

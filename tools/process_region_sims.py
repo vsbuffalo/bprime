@@ -7,6 +7,7 @@ import warnings
 import pyslim
 import sys
 import os
+#from scipy.stats import trim_mean
 import tqdm
 import statsmodels.api as sm
 from bgspy.utils import get_files, bin_chrom
@@ -50,7 +51,7 @@ def load_and_recap(treefile, burnin=2000):
     B = ts.diversity(mode='branch') / (4*N)
     bins = bin_chrom(ts.sequence_length, 10000) # 10kb windows
     B_wins = ts.diversity(windows=bins, mode='branch') / (4*N)
-    B_middle = middle_elements(B_wins, 3).mean()
+    B_middle = middle_elements(B_wins, 4).mean()
     logfile = treefile.replace('_treeseq.tree', '_log.tsv.gz')
     d = pd.read_csv(logfile, sep='\t', comment='#')
     last_gen = np.max(d['cycle'])

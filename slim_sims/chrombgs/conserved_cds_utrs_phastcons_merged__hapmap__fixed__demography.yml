@@ -1,8 +1,8 @@
 ---
-name: conserved_cds_utrs_phastcons_merged__hapmap__fixed
+name: conserved_cds_utrs_phastcons_merged__hapmap__fixed__demography
 # slim parameters
 script: chrombgs_features.slim
-nreps: 50
+nreps: 10
 seed: 0
 dir: runs
 simdir: sims
@@ -27,7 +27,6 @@ variable:
   mu:
     - 0.5e-08
     - 1.5e-08
-    - 2.5e-08
   h: 
     - 0.5
     - 0.3
@@ -39,9 +38,13 @@ variable:
     - 1e-4
     - 1e-5
     - 1e-8
+  expansion:
+    - "false"
+    - "1.004_9.3"
 
 # mle fit 
 mle:
+  fit_nreps: 10
   input:
     access_file: ../../data/annotation/no_centro.bed
     neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz

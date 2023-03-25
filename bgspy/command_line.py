@@ -38,6 +38,9 @@ MIN_W = np.sqrt(1e-8 * 1e-7)
 HUMAN_W = (-11, -7)
 HUMAN_T = (-8, -1)
 
+HUMAN_W_STR = f"{HUMAN_W[0]}:{HUMAN_W[1]}:6"
+HUMAN_T_STR = f"{HUMAN_T[0]}:{HUMAN_T[1]}:8"
+
 
 def sterialize_mu(mu):
     try:
@@ -136,9 +139,9 @@ def cli():
                      "cM/Mb rates, use 1e-8)")
 @click.option('--t', help="string of log10 lower:upper:grid_size (e.g. -7,-1,7) or comma-separated "
                    "list (e.g. 0.01,0.001) for heterozygous selection coefficient",
-                    default='-6:-1:50')
+                    default=HUMAN_T_STR)
 @click.option('--w', help="string of lower:upper:grid_size or comma-separated "
-                   "list for log10 mutation rates", default='-10:-7:50' )
+                   "list for log10 mutation rates", default=HUMAN_W_STR)
 @click.option('--g', help="a grid string for human defaults, e.g. 6x8 "
               "(--t/--w ignored if this is set)", default=None)
 @click.option('--chrom', help="process specified chromosome(s)", default=None, multiple=True)

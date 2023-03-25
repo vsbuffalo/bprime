@@ -328,7 +328,7 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
         res = list(map(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = deque(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
+            res = list(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
             p.close()
             p.join()
  

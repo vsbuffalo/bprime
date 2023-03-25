@@ -59,6 +59,25 @@ initialize() {
   metadata.setValue("recmap_file", recmap_file);
   metadata.setValue("annot_file", annot_file);
   metadata.setValue("dfe_file", dfe_file);
+
+ 
+  // expansion stuff 
+  //print("expansion string: '" + expansion +"'");
+  if (expansion != "false" & expansion != "FALSE" & expansion != "False") {
+    exp_parts = strsplit(expansion, sep="_");
+    defineConstant("exp_rate", asFloat(exp_parts[0]));
+    defineConstant("T_exp", asFloat(exp_parts[1]));
+    defineConstant("is_expanding", T);
+  } else {
+    defineConstant("exp_rate", F);
+    defineConstant("T_exp", F);
+    defineConstant("is_expanding", F);
+  }
+  catn("is expanding? " + is_expanding + ", T_exp=" + T_exp + ", exp_rate=" + exp_rate);
+
+  metadata.setValue("T_exp", T_exp);
+  metadata.setValue("exp_rate", exp_rate);
+  
 }
 
 1 early() {
@@ -69,7 +88,14 @@ initialize() {
 
 s1 early() {
   if (sim.cycle % 100 == 0) 
-    print(sim.cycle);
+    catn("gen=" + sim.cycle + ", N=" + p1.individualCount);
+
+  if (is_expanding) {
+    if (sim.cycle >= T_exp*N) {
+      new_size = asInteger(p1.individualCount * exp_rate);
+      p1.setSubpopulationSize(new_size);
+    }
+  }
 }
 
 s2 late() {

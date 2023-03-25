@@ -10,4 +10,4 @@ The `Snakefile` doesn't process these (it's a pain...) so
 this is done manually on a larger machine (20 cores are 
 requested by default) with:
 
-    $ python ../../../tools/process_region_sims.py sims/ region_results.pkl
+    $ python ../../tools/process_region_sims.py runs/region/ region_results.pkl

@@ -10,6 +10,10 @@ BMAP_THREADS = 30
 
 # --- slim sims --- 
 run = SlimRuns(config)
+
+sim_results = run.generate_targets()
+#print(len(sim_results))
+#sys.exit()
 name = run.name
 basedir = run.basedir
 run_fits = 'mle' in config
@@ -108,13 +112,14 @@ if run_fits:
           --step {params.step}
         """
     
-    
+    # note about memory: the full track takes up a surprisingly large
+    # amount of memory to compute. Still looking into this. 
     rule bmap_synthetic:
       input: unpack(get_bmap_input)
       output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/synthetic', bmap_pattern)
       params: grid=lambda w: bmaps[w.name]['grid'], step=100000, chrom_args=' '.join([f'--chrom {x} ' for x in synthetic_chroms])
       resources:
-        mem_mb=500000,
+        mem_mb=200000,
         time_min=4320,
         threads=BMAP_THREADS
       shell:
@@ -148,13 +153,14 @@ if run_fits:
         """
 
 # --- mle --- 
+
 if run_fits:
     access_file = config['mle']['input']['access_file']
     neut_file = config['mle']['input']['neut_file']
+    fit_nreps = config['mle']['fit_nreps']
 
 
     # main fit results
-    fit_nreps = 50
     mle_results = []
     for bmap_name in bmaps:
         for window in windows:
