@@ -1,3 +1,4 @@
+from os.path import join
 from bgspy.slim import SlimRuns
 
 DATADIR = 'runs'
@@ -26,5 +27,19 @@ rule slim:
       mem_mb=10000
     shell: run.slim_cmd()
 
+rule process_sims:
+    input: sims=all_sims, dir=run.basedir
+    output: "region_results.pkl"
+    resources:
+      time_min=120,
+      mem_mb=70000,
+      threads=40
+    shell:
+      """
+      python ../../tools/process_region_sims.py {input.dir} {output}
+      """
+
 rule all:
-    input: all_sims
+    input: all_sims + ["region_results.pkl"]
+
+

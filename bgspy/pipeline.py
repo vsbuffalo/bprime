@@ -134,6 +134,7 @@ def summarize_sim_data(sim_tree_files,
                        output_file,
                        # window size
                        window,
+                       n=None, # number of samples
                        neut_file=None, access_file=None,
                        sim_mu=None,
                        # other
@@ -163,6 +164,11 @@ def summarize_sim_data(sim_tree_files,
         assert len(chrom) == 1
         chrom = chrom[0]  # unpack it
         metadata[chrom] = md
+
+        # subsample if we need do
+        if n is not None:
+            inds = np.random.choice(tree.samples(), n, replace=False)
+            tree = tree.simplify(samples=inds)
 
         # add mutations to the tree
         ts = mutate_simulated_tree(tree, rate=sim_mu)

@@ -414,6 +414,7 @@ def data(seqlens, recmap, neutral, access, fasta,
               help="BGSModel genome model pickle file (contains B' and B)")
 @click.option('--sim-mu', required=True, type=float,
               help="simulation neutral mutation rate (to bring treeseqs to counts matrices)")
+@click.option('--n', default=None, type=int, help="number of samples to draw")
 @click.option('--neutral', required=True, type=click.Path(exists=True),
               help='neutral region BED file')
 @click.option('--access', required=True, type=click.Path(exists=True),
@@ -424,7 +425,7 @@ def data(seqlens, recmap, neutral, access, fasta,
 @click.option('--window', help='size (in basepairs) of the window',
               type=int, required=True)
 @click.option('--Bp-only', default=False, is_flag=True, help="only calculate B'")
-def simdata(sim_tree, bs_file, sim_mu, neutral, access, 
+def simdata(sim_tree, bs_file, sim_mu, n, neutral, access, 
             output, window, bp_only):
     """
     Pre-process a tskit.TreeSequence simulated tree.
@@ -432,6 +433,7 @@ def simdata(sim_tree, bs_file, sim_mu, neutral, access,
     summarize_sim_data(sim_tree, bs_file, 
                        neut_file=neutral, access_file=access, 
                        output_file=output,
+                       n=n,
                        window=window, sim_mu=sim_mu, bp_only=bp_only)
 
 

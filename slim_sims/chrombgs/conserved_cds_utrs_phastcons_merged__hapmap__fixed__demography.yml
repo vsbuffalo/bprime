@@ -45,6 +45,7 @@ variable:
 # mle fit 
 mle:
   fit_nreps: 10
+  nsamples: 1000
   input:
     access_file: ../../data/annotation/no_centro.bed
     neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz

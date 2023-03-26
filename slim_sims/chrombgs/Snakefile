@@ -222,12 +222,14 @@ if run_fits:
              bs_file=join(run.basedir, 'bmaps/N__{N}/synthetic/bmap__{bmap}.pkl'), access=access_file, neut=neut_file
       output: **synthetic_run.output_template(outdir='mle/{bmap}/{window}', suffices={'pkl': 'data.pkl'}, pin_params={'chrom': 'synthetic'})
       resources:
-        mem_mb=50000
-      params: sim_mu=lambda w: target_neut_pi / (4*float(w.N))
+        time_min=300,
+        mem_mb=100000
+      params: sim_mu=lambda w: target_neut_pi / (4*float(w.N)), nsamples=config['mle']['nsamples']
       shell:
         """
         bgspy simdata --bs-file {input.bs_file} \
           --window {wildcards.window} --sim-mu {params.sim_mu} \
+          --n {params.nsamples} \
           --access {input.access} --neutral {input.neut} \
           --output {output.pkl} \
           {input.trees} \
