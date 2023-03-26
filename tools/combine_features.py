@@ -14,6 +14,7 @@ from bgspy.utils import masks_to_ranges, readfile
 PRIORITY = [#'CTCF_binding_site', 'TF_binding_site',
             #'binding_site',
             # 'promoter', 'enhancer', 
+            'promoter',
             'utr',
             'cds', 'gene', 'intron',
             'phastcons',

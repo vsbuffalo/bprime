@@ -156,4 +156,4 @@ rule test:
   input: "bmap_hg38_sims_10000step_chr10.pkl"
 
 rule all:
-  input: maps #+ rescaled
+  input: maps + rescaled

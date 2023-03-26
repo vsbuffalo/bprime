@@ -187,7 +187,6 @@ rule ensembl_promoters:
       bedtools sort | bedtools merge | gzip > {output}
      """
 
-
 rule ensembl_pseudogenes:
    input: "hg38.ensembl.gff3.gz"
    output: "ensembl_pseudogenes.bed.gz"
@@ -455,6 +454,7 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_phastcons_not_genes_cds_full.bed.gz",
         "conserved_phastcons_not_genes_cds_genes_full.bed.gz",
         "conserved_phastcons_not_genes_cds_genes_full.bed",
+        "conserved_cds_genes_full.bed.gz",
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
@@ -606,6 +606,17 @@ rule conserved_not_gene_cds_genes_full:
     rm -f tmp_1.bed
     """
 
+rule conserved_cds_genes_full:
+  input: cons="conserved_cds_genes.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: gz="conserved_cds_genes_full.bed.gz", raw="conserved_cds_genes_full.bed"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > tmp_1.bed
+    (cat tmp_1.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n  > {output.raw}
+    cat {output.raw} | gzip > {output.gz}
+    rm -f tmp_1.bed
+    """
+
 rule conserved_cds_utrs_phastcons_full:
   # NOTE: based on the simplified phastcons track!
   input: cons="conserved_cds_utrs_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -660,6 +671,27 @@ rule conserved_no_genes_genes_track:
     python ../../tools/combine_features.py --seqlens {input.seqlens} \
       --bed cds {input.cds} --bed gene {input.genes} \
       --bed phastcons {input.not_genes} | \
+      gzip > {output}
+    """
+
+rule conserved_cds_genes_track:
+  input: cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv", genes="hg38.ensembl_genes.bed.gz"
+  output: "conserved_cds_genes.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} --bed gene {input.genes} | \
+      gzip > {output}
+    """
+
+rule conserved_cds_genes_promoters_track:
+  input: cds="hg38.ensembl_cds.bed.gz", seqlens="hg38_seqlens.tsv", genes="hg38.ensembl_genes.bed.gz", promoter="hg38.ensembl_promoters_2kb.bed.gz"
+  output: "conserved_cds_genes_promoters.bed.gz"
+  shell:
+    """
+    python ../../tools/combine_features.py --seqlens {input.seqlens} \
+      --bed cds {input.cds} --bed gene {input.genes} \
+      --bed promoter {input.promoter} \
       gzip > {output}
     """
 
@@ -741,7 +773,14 @@ rule chr10_conserved:
 
 
 ## === Accessible Regions
-accessible = ["no_centro.bed"]
+accessible = ["no_centro.bed", "h1kg_strict.bed",  "no_centro_strict.bed"]
+
+rule strict:
+  output: "h1kg_strict.bed"
+  shell: 
+    """
+    wget -O {output} http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/working/20160622_genome_mask_GRCh38/StrictMask/20160622.allChr.mask.bed
+    """
 
 rule no_centro:
   input: centro="hg38_centro_slop.bed", seqlens="hg38_seqlens.tsv"
@@ -749,6 +788,14 @@ rule no_centro:
   shell:
     """
     bedtools complement -i {input.centro} -g {input.seqlens} > {output}
+    """
+
+rule no_centro_strict:
+  input: no_centro="no_centro.bed", seqlens="hg38_seqlens.tsv", strict="h1kg_strict.bed"
+  output: "no_centro_strict.bed"
+  shell:
+    """
+    bedtools intersect -a {input.no_centro} -b {input.strict} > {output}
     """
 
 ## === Neutral Regions

@@ -273,8 +273,8 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
     else:
         with multiprocessing.Pool(ncores) as p:
             res = deque(p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total)))
-            p.close()
-            p.join()
+            #p.close()
+            #p.join()
     print("Collating all B results...  ", end='', flush=True)
     return chunks.collate(res)
     print("done.")
@@ -294,8 +294,8 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     else:
         with multiprocessing.Pool(ncores) as p:
             res = deque(p.imap(calc_BSC16_chunk_worker, tqdm(chunks, total=chunks.total)))
-            p.close()
-            p.join()
+            #p.close()
+            #p.join()
     print("Collating all B' results...  ", end='', flush=True)
     return chunks.collate(res)
     print("done.")
@@ -331,7 +331,6 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
             res = list(p.imap(func, tqdm(zip(L, rbp, rescaling), total=len(L))))
             p.close()
             p.join()
- 
 
     # the current function spits out everything (for debugging and validating
     # against the region sims
