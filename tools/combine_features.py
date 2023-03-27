@@ -12,13 +12,13 @@ from bgspy.utils import masks_to_ranges, readfile
 # NOTE: a lot commented out; these can be tried again later, but likely 
 # have identifiability issues due to collinearity
 PRIORITY = [#'CTCF_binding_site', 'TF_binding_site',
-            #'binding_site',
-            # 'promoter', 'enhancer', 
+            'open_chromatin_region',
+            'binding_site',
+            'enhancer',
             'promoter',
             'utr',
             'cds', 'gene', 'intron',
             'phastcons',
-            #'open_chromatin_region'
             ]
 
 @click.command()

@@ -33,14 +33,16 @@ class ModelDir:
                  in dirs.items() if os.path.exists(join(f, 'mle.pkl'))}
          self._fits = fits
          out_fits = {}
-         r2s = {}
          for window, (fit_dir, fit) in self._fits.items(): 
              fit.std_error_type = None  # hack for back compat; remove
-             fit.load_jackknives(join(fit_dir, f'jackknife/{jackknife_blocksize}/'))
-             fit.load_loo(join(fit_dir, 'loo_chrom/'))
+             jacknife_dir = join(fit_dir, f'jackknife/{jackknife_blocksize}/')
+             if os.path.exists(jacknife_dir):
+                 fit.load_jackknives(jacknife_dir)
+             loo_dir = join(fit_dir, 'loo_chrom/')
+             if os.path.exists(loo_dir):
+                 fit.load_loo(loo_dir)
              out_fits[window] = fit
          self.fits = out_fits
-         self.r2s = r2s
 
     def save(self, output):
         save_pickle(self, output)
