@@ -671,11 +671,19 @@ def collect(fitdir, blocksize, output):
 
 @cli.command()
 @click.argument('file', required=True)
-def inspect(file):
+@click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
+@click.option('--only-B', default=False, is_flag=True, help="only calculate B")
+def inspect(file, only_bp, only_b):
     """
     Load a pickle model fit file and print to screen.
     """
-    print(load_pickle(file))
+    fit = load_pickle(file)
+    if not only_bp and not only_b:
+        print(fit)
+    if only_bp:
+        print(fit['mbp'])
+    if only_b:
+        print(fit['mb'])
  
 if __name__ == "__main__":
     logging.basicConfig(format='%(levelname)s: %(message)s',
