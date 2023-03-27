@@ -455,6 +455,8 @@ cons = ["conserved_phastcons.bed.gz",
         "conserved_phastcons_not_genes_cds_genes_full.bed.gz",
         "conserved_phastcons_not_genes_cds_genes_full.bed",
         "conserved_cds_genes_full.bed.gz",
+	"conserved_cds_genes_promoters.bed.gz",
+	"conserved_cds_genes_promoters_full.bed.gz",
 
         # merged and unlabelled (e.g. treated as all one feature type, 
         # for sims and model comparison)
@@ -617,6 +619,17 @@ rule conserved_cds_genes_full:
     rm -f tmp_1.bed
     """
 
+rule conserved_cds_genes_promoters_full_track:
+  input: cons="conserved_cds_genes_promoters.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: gz="conserved_cds_genes_promoters_full.bed.gz", raw="conserved_cds_genes_promoters_full.bed"
+  shell:
+    """
+    bedtools complement -i {input.cons} -g {input.seqlens} | bioawk -t '{{print $0,"other"}}' > tmp_1.bed
+    (cat tmp_1.bed; zcat {input.cons}) | sort --version-sort -k1,1 -k2,2n  > {output.raw}
+    cat {output.raw} | gzip > {output.gz}
+    rm -f tmp_1.bed
+    """
+
 rule conserved_cds_utrs_phastcons_full:
   # NOTE: based on the simplified phastcons track!
   input: cons="conserved_cds_utrs_phastcons_simplified.bed.gz", seqlens="hg38_seqlens.tsv"
@@ -691,7 +704,7 @@ rule conserved_cds_genes_promoters_track:
     """
     python ../../tools/combine_features.py --seqlens {input.seqlens} \
       --bed cds {input.cds} --bed gene {input.genes} \
-      --bed promoter {input.promoter} \
+      --bed promoter {input.promoter} | \
       gzip > {output}
     """
 

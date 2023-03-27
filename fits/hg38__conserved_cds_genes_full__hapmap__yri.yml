@@ -1,0 +1,38 @@
+---
+name: hg38__conserved_cds_genes_full__hapmap
+pi0_bounds: 0.0005,0.005
+mu_bounds: 0.5e-8,8e-8
+nstarts: 2000
+nstarts_loo: 1000
+nstarts_jackknife: 1000
+windows:
+#- 500000
+- 1000000
+#- 1500000
+
+# fixed parameters
+N: 10000
+mu: free
+
+# files
+seqlens_file: ../../data/annotation/hg38_seqlens.tsv
+recmap_file: ../../data/annotation/hapmap_genetic_map.txt
+access_file: ../../data/annotation/no_centro_strict.bed
+features_file: ../../data/annotation/conserved_cds_genes_full.bed.gz
+fasta_file: ../../data/annotation/hg38.fa.gz
+neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz
+counts_dir: ../../data/h1kg/hg1k_yri_counts/
+
+
+loo: true
+jackknife: false
+
+# whether to run second-round locally-rescaled 
+# estimates
+fit_rescaled: false
+#
+## for block-jackknifing
+#num_jackknife_samples: 200
+#blocksizes:
+#- 25000000
+

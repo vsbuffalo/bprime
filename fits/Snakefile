@@ -21,10 +21,14 @@ counts_dir = config["counts_dir"]
 N = config["N"]
 fit_rescaled = config["fit_rescaled"]
 windows = [int(w) for w in config["windows"]]
-blocksizes = config["blocksizes"]
-njack_samples = config["num_jackknife_samples"]
+blocksizes = config.get("blocksizes", None)
+njack_samples = config.get("num_jackknife_samples", 0)
 pi0_bounds = config["pi0_bounds"]
 mu_bounds = config["mu_bounds"]
+
+# flags
+do_loo = config.get("loo", False)
+do_jackknife = config.get("jackknife", False)
 
 ## ------ created data
 # name auto-generated
@@ -60,20 +64,22 @@ for window in windows:
               jk_results.append(f'fit_{window}_rescaled/jackknife/{blocksize}/jackknife_{frac}.pkl')
  
   # chromosome-level LOO for R2, etc
-  for chrom in CHROMS:
-      loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
-      loo_results.append(loo)
-  # block-level jackknife
-  for blocksize in blocksizes:
-      # this is a very close approximation to the block-jackknife, 
-      # were samples at evenly spaced fraction positions are taken
-      # and left out; this prevents us from having to know the number
-      # of blocks a priori, which is easier when pushing computation to the
-      # cluster
-      # non-inclusive, otherwise index error
-      for frac in np.linspace(0, 1, njack_samples)[:-1]:
-          frac = np.round(frac, 5)
-          jk_results.append(f'fit_{window}/jackknife/{blocksize}/jackknife_{frac}.pkl')
+  if do_loo:
+      for chrom in CHROMS:
+          loo = f"fit_{window}/loo_chrom/loo_{chrom}.pkl"
+          loo_results.append(loo)
+  if do_jackknife:
+      # block-level jackknife
+      for blocksize in blocksizes:
+          # this is a very close approximation to the block-jackknife, 
+          # were samples at evenly spaced fraction positions are taken
+          # and left out; this prevents us from having to know the number
+          # of blocks a priori, which is easier when pushing computation to the
+          # cluster
+          # non-inclusive, otherwise index error
+          for frac in np.linspace(0, 1, njack_samples)[:-1]:
+              frac = np.round(frac, 5)
+              jk_results.append(f'fit_{window}/jackknife/{blocksize}/jackknife_{frac}.pkl')
     
 
 ## ------- rules
@@ -125,9 +131,9 @@ rule fit:
   output: 'fit_{window,\d+}/mle.pkl'
   params: nstarts=nstarts, mu=mu, name=name, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
   resources:
-    mem_mb=50000,
-    time_min=480,
-    threads=40
+    mem_mb=60000,
+    time_min=980,
+    threads=50
   benchmark: "benchmarks/fit_{window}.txt"
   shell:
     """
