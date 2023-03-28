@@ -830,6 +830,8 @@ def combine_features(feature_ranges, priority, seqlens):
     Given a dictionary of different features e.g. {'introns': {'chr1: (12, 15)},
     ...} merge these into a mask-like array where the value is given by the
     priority.
+
+    priority: defines the order values are filled in. Values will not be overwritten.
     """
     features = {feat: ranges_to_masks(r, seqlens) for feat, r in feature_ranges.items()}
     assert len(set(features.keys()).difference(set(priority))) == 0, "some features keys are not in priority"

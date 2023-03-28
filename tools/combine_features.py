@@ -9,16 +9,17 @@ from bgspy.utils import masks_to_ranges, readfile
 # lower priority labels are filled first
 # stuff like phastcons is sort of a catch-all - we care about
 # finer-grained labels
-# NOTE: a lot commented out; these can be tried again later, but likely 
-# have identifiability issues due to collinearity
-PRIORITY = [#'CTCF_binding_site', 'TF_binding_site',
-            'open_chromatin_region',
-            'binding_site',
+# NOTE: a lot commented out; these can be tried again later, but likely
+# have identifiability issues due to collinearity; UPDATE: BOBQYA 
+# seems to have solved these.
+PRIORITY = ['cds', 'gene',
             'enhancer',
             'promoter',
+            'binding_site',
             'utr',
-            'cds', 'gene', 'intron',
+            'intron',
             'phastcons',
+            'open_chromatin_region',
             ]
 
 @click.command()
