@@ -301,7 +301,8 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     print("done.")
 
 
-def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
+def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores,
+                                rescaling=None, pairwise=False):
     """
     Compute the fixation time, B, etc for each segment, using the
     equation that integrates over the entire segment *in parallel*.
@@ -309,16 +310,19 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     Note: N is diploid N but bgs_segment_sc16() takes haploid_N, hence
     the factor of two.
     """
-    # stuff that's run on each core
-    mu = mu.squeeze()[:, None]
-    sh = sh.squeeze()[None, :]
+    if isinstance(mu, np.ndarray):
+        assert isinstance(sh, np.ndarray)
+        # stuff that's run on each core
+        mu = mu.squeeze()[:, None]
+        sh = sh.squeeze()[None, :]
 
     # stuff that's shipped off to cores
     rbp = rbp.squeeze().tolist()
     L = L.squeeze().tolist()
 
     # iterate over the segments, but each segments gets the full μ x sh.
-    func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N)
+    func = functools.partial(bgs_segment_sc16_components, mu=mu, sh=sh, N=N,
+                             pairwise=pairwise)
 
     if rescaling is None:
         # create a dummy list to iterate over; internal code handles changing this to 1.
@@ -336,6 +340,8 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores, rescaling=None):
     # against the region sims
     #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
     Ts, Vs, Vms = zip(*res)
+    if pairwise: 
+        return Vs, Vms, Ts
     # we only need to store V and Vm for each mu/sh (this is
     # the mapping of parameters; this determines Z with rf)
 

@@ -399,7 +399,7 @@ def bgs_segment_sc16_parts(*args, **kwargs):
 
 
 def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N, 
-                                return_all=False):
+                                return_all=False, pairwise=False):
     """
     A manually-vectorized version of bgs_segment_sc16_parts().
     This mimics np.vectorize() but the vectorization is done manually.
@@ -409,6 +409,9 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
 
     return_all: whether to return all the various parts calculated from
     bgs_segment_sc16, which is mostly for debugging purposes.
+
+    pairwise: if True, this function does not calculate for every 
+               grid combination, but only pairwise mu/sh combinations.
     """
     L, rbp, rescaling = L_rbp_rescaling
     assert isinstance(L, (int, float))
@@ -417,8 +420,8 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
         assert isinstance(rescaling, float)
     else:
         rescaling = 1.
-    assert isinstance(mu, np.ndarray)
-    assert isinstance(sh, np.ndarray)
+    assert isinstance(mu, (float, np.ndarray))
+    assert isinstance(sh, (float, np.ndarray))
     shape = mu.size, sh.size
 
     Ts, Vs, Vms = np.empty(shape), np.empty(shape), np.empty(shape)
@@ -426,6 +429,8 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
         Bs, Bas, Q2s, cbs = np.empty(shape), np.empty(shape), np.empty(shape), np.empty(shape)
     for i, m in enumerate(mu.flat):
         for j, s in enumerate(sh.flat):
+            if pairwise and i != j:
+                continue
             res = bgs_segment_sc16(m, s, L, rbp, rescaling*N, return_parts=True)
             B, B_asymp, T, V, Vm, Q2, classic_bgs = res
             Ts[i, j] = T
@@ -440,6 +445,8 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
 
     if return_all:
         return Bs, Bas, Ts, Vs, Vms, Q2s, cbs
+    if pairwise:
+        return np.diag(Ts), np.diag(Vs), np.diag(Vms)
     return Ts, Vs, Vms
 
 

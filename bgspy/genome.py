@@ -7,7 +7,7 @@ from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
 from bgspy.utils import load_seqlens, load_bed_annotation, BScores
 from bgspy.recmap import RecMap
-from bgspy.theory2 import B_segment_lazy
+from bgspy.theory2 import B_segment_lazy, bgs_segment_sc16_parts
 from bgspy.parallel import BSC16_segment_lazy_parallel
 
 @dataclass
@@ -128,6 +128,32 @@ class Segments:
             self._segment_parts_sc16 = parts
             print("done.")
 
+    def _predict_segparts(self, fit, N, ncores=None):
+        """
+        Given a fit, predict the V, Vm, and T segment components
+        for each segment
+        """
+        rescaling = self.rescaling
+        mu = fit.mle_mu
+        W = fit.mle_W
+        L = self.lengths
+        F = self.features
+        rbp = self.rates
+        res = defaultdict(dict)
+        feature_i = list(range(len(fit.features)))
+        parts = dict()
+        shape = (W.shape[0], L.shape[0])
+        Vs = np.full(shape, np.nan)
+        Vms = np.full(shape, np.nan)
+        Ts = np.full(shape, np.nan)
+        for j in feature_i:
+            mu = mu * W[:, j]
+            t = fit.t
+            idx = F == j
+            tmp = BSC16_segment_lazy_parallel(mu, t, L[idx], rbp[idx], N, ncores=ncores, pairwise=True)
+            Ts[:, idx], Vs[:, idx], Vms[:, idx] = np.stack(tmp[0]).T, np.stack(tmp[1]).T, np.stack(tmp[2]).T
+        return Vs, Vms, Ts
+ 
     def _calc_features(self):
         """
         Create a dummy matrix of features for each segment.
