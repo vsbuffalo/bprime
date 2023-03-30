@@ -50,6 +50,7 @@ rule phastcons:
 rule phastcons_bed:
   # VALIDATION: unclear from UCSC doc whether the .txt.gz is 0 or 1-indexed. 
   # Using table browser BED output produced a version that aligns with ours
+  # NOTE: must be 100-way ELEMENT track
   input: "phastConsElements100way.txt.gz"
   output: "phastcons_100way.bed.gz"
   shell:
@@ -71,7 +72,7 @@ rule ensembl_gff_autos:
   shell:
      """
      zgrep -v '^#' {input} | sed s/^/chr/ | \
-       grep -P '^chr[0-9]+\t' | bioawk -t '{{ print $1,$4-1,$5,$3 }}' | sort --version-sort -k1,1 -k2,2n | \
+       grep -P '^chr[0-9]+\t' | bioawk -t '{{ print $1,$4-1,$5+1,$3 }}' | sort --version-sort -k1,1 -k2,2n | \
        sed 's/five_prime_UTR/5UTR/' | \
        sed 's/three_prime_UTR/3UTR/' | \
        gzip > {output}
@@ -89,20 +90,42 @@ rule ncbi_refseq_clean:
  output: "hg38.refseq_autos.bed.gz"
  shell: 
     """
-    zgrep -P '^chr[0-9]+\t' {input} | bioawk -t '{{ print $1,$4-1,$5,$3 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    zgrep -P '^chr[0-9]+\t' {input} | bioawk -t '{{ print $1,$4-1,$5+1,$3 }}' | \
+     sed 's/transcript/gene/' | \
+     sort --version-sort -k1,1 -k2,2n | gzip > {output}
     """
 
 ## ----- split out features
 annotation_features = ['exon', '5UTR', '3UTR', 'CDS', 'gene'] 
 
-rule split_feature:
-  input: refseq="hg38.refseq_autos.bed.gz", ensembl="hg38.ensembl_autos.bed.gz"
-  output: "hg38.{feature}_autos.bed.gz"
+rule split_feature_ensembl:
+  input: ensembl="hg38.ensembl_autos.bed.gz"
+  output: "hg38.{feature,[^_]+}_ensembl_autos.bed.gz"
   shell: 
      """
-     bioawk -cbed ' $name ~ /^{wildcards.feature}$/ {{ print $chrom,$start,$end,$name }} ' {input} | \
+     zcat {input.ensembl} | bioawk -cbed ' $name ~ /^{wildcards.feature}$/ {{ print $chrom,$start,$end,$name }} ' | \
      sort --version-sort -k1,1 -k2,2n | bedtools merge | \
      gzip > {output}
+     """
+
+rule split_feature_refseq:
+  input: refseq="hg38.refseq_autos.bed.gz"
+  output: "hg38.{feature,[^_]+}_refseq_autos.bed.gz"
+  shell: 
+     """
+     zcat {input.refseq} | bioawk -cbed ' $name ~ /^{wildcards.feature}$/ {{ print $chrom,$start,$end,$name }} ' | \
+     sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+     gzip > {output}
+     """
+
+rule split_feature:
+  input: refseq="hg38.{feature,[^_]+}_refseq_autos.bed.gz", ensembl="hg38.{feature,[^_]+}_ensembl_autos.bed.gz"
+  output: "hg38.{feature,[^_]+}_autos.bed.gz"
+  shell: 
+     """
+     zcat {input.refseq} {input.ensembl} | \
+      sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+      gzip > {output}
      """
 
 rule phastcons_split:
@@ -128,6 +151,8 @@ rule merge_UTRs:
      """
 
 split = [f"hg38.{f}_autos.bed.gz" for f in annotation_features]
+split += [f"hg38.{f}_refseq_autos.bed.gz" for f in annotation_features]
+split += [f"hg38.{f}_ensembl_autos.bed.gz" for f in annotation_features]
 split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz"]
 
 clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz", "hg38_seqlens.tsv"]

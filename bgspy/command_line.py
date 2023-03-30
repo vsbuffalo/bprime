@@ -1,6 +1,7 @@
 import click
 import logging
 import gc
+import yaml
 import numpy as np
 import pickle
 from collections import defaultdict
@@ -11,6 +12,8 @@ from bgspy.models import BGSModel
 from bgspy.genome import Genome
 from bgspy.data import GenomeData
 from bgspy.utils import Grid, load_pickle, bin_chroms
+from bgspy.utils import read_bed3, combine_features, masks_to_ranges
+from bgspy.utils import load_seqlens
 from bgspy.pipeline import summarize_data, mle_fit, summarize_sim_data
 from bgspy.pipeline import ModelDir
 from bgspy.bootstrap import block_bins
@@ -647,6 +650,27 @@ def newfit(config):
     
     os.makedirs(os.path.join(dir, "logs", "out"))
     os.makedirs(os.path.join(dir, "logs", "error"))
+
+
+@cli.command()
+@click.argument("config", required=True)
+@click.option("--full", is_flag=True, help="generate full-coverage tracks too")
+@click.option('--seqlens', required=True, type=click.Path(exists=True),
+              help='tab-delimited file of chromosome names and their length')
+def tracks(config, full, seqlens):
+    """
+    Build the tracks for a YAML fit config file.
+    """
+    with open(config) as f:
+        features = yaml.safe_load(f)['features']
+    features = features['features']
+    priority = list(features.keys())
+    beds = {c: read_bed3(f) for c, f in features.items()}
+    masks = combine_features(beds, priority, load_seqlens(seqlens))
+    res = masks_to_ranges(masks, labels=priority, include_other=full)
+    for chrom, ranges in res.items():
+        for range in ranges:
+            print(f"{chrom}\t{range[0]}\t{range[1]}\t{range[2]}")
 
 
 @cli.command()

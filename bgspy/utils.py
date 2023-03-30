@@ -871,19 +871,35 @@ def rle(inarray):
             p = np.cumsum(np.append(0, z))[:-1] # positions
             return(z, p, ia[i])
 
-def masks_to_ranges(mask_dict, return_val=False, labels=None):
+def masks_to_ranges(mask_dict, return_val=False, labels=None,
+                    include_other=False):
     """
     Given the masks from combine_features(), turn these into a chromosome
     range dictionary.
 
     If label is not None, the value is treated as an digitized index
     (the labels are bins) and the label labels[i-1] are added to the ranges.
+
+    include_other: whether to include the uncovered bases
+
+    NOTE: on indexing 
+
+     | 0 | 1 | 2 | 3 | 
+      -----------
+
+      l = 3, start = 0, s+l = 3
+      This is the non-inclusive right bound, as it should be
     """
     ranges = defaultdict(list)
+    if labels is not None:
+        assert 'other' not in labels, "'other' is reserved"
     for chrom in mask_dict:
         rls, starts, vals = rle(mask_dict[chrom])
         for rl, s, val in zip(rls, starts, vals):
-            if val == 0:
+            if val == 0 and include_other:
+                lab = 'other' if labels is not None else 0
+                x = (s, s + rl, lab)
+                ranges[chrom].append(x)
                 continue
             if labels is not None:
                 x = (s, s + rl, labels[val-1])
@@ -892,6 +908,9 @@ def masks_to_ranges(mask_dict, return_val=False, labels=None):
             else:
                 x = (s, s + rl)
             ranges[chrom].append(x)
+
+    for chrom, rngs in ranges.items():
+        ranges[chrom] = sorted(rngs)
     return ranges
 
 
@@ -916,6 +935,7 @@ def genome_wide_quantiles(chromdict, alphas, subsample_chrom=None,
     if return_samples:
         return cuts, samples
     return cuts
+
 
 def quantize_track(chromdict, cuts, labels=None, bed_file=None, progress=True):
     """

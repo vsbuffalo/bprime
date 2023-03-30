@@ -3,37 +3,35 @@ name: hg38__CDS_genes_phastcons
 
 # fit settings
 settings:
-  - pi0_bounds: 0.0005,0.008
-  - mu_bounds: 0.5e-8,8e-8
-  - nstarts: 2000
-  - nstarts_loo: 1000
-  - nstarts_jackknife: 1000
-  - num_jackknife_samples: 200
+  pi0_bounds: 0.0005,0.008
+  mu_bounds: 0.5e-8,8e-8
+  nstarts: 2000
+  nstarts_loo: 1000
+  nstarts_jackknife: 1000
+  num_jackknife_samples: 200
 
 # files
 files:
-  - seqlens_file: ../../data/annotation/hg38_seqlens.tsv
-  - recmap_file: ../../data/annotation/hapmap_genetic_map.txt
-  - access_file: ../../data/annotation/no_centro_strict.bed
-  - fasta_file: ../../data/annotation/hg38.fa.gz
-  - neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz
-  - counts_dir: ../../data/h1kg/hg1k_chb_counts/
+  seqlens_file: ../../data/annotation/hg38_seqlens.tsv
+  recmap_file: ../../data/annotation/hapmap_genetic_map.txt
+  access_file: ../../data/annotation/no_centro_strict.bed
+  fasta_file: ../../data/annotation/hg38.fa.gz
+  neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz
+  counts_dir: ../../data/h1kg/hg1k_chb_counts/
 
 # features
 features:
-  - priority: CDS,genes,phastcons
-  - features: 
-      - CDS: ../../fit_annotation/hg38.CDS_autos.bed.gz
-      - genes: ../../fit_annotation/hg38.genes_autos.bed.gz
-      - phastcons: ../../fit_annotation/hg38.phastcons_autos.bed.gz
+  features: 
+   CDS: ../../data/fit_annotation/hg38.CDS_autos.bed.gz
+   gene: ../../data/fit_annotation/hg38.gene_autos.bed.gz
+   phastcons: ../../data/fit_annotation/hg38.phastcons_autos.bed.gz
 
 #  the mles, etc to fit
 params:
   - N: 10000
 fits: 
- - windows:
-   - 1000000: {loo: true, 
-               rescaled: false,
-               mu: [free, 1.3e-8],
-               jackknife: [25000000],
-               N: 1000}
+  - 1000000: {loo: true, 
+              rescaled: false,
+              mu: [free, 1.3e-8],
+              jackknife: false, #[25000000],
+              N: 1000}
