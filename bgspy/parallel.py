@@ -340,8 +340,8 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores,
     # against the region sims
     #Bs, Bas, Ts, Vs, Vms, Q2s, cbs = zip(*res)
     Ts, Vs, Vms = zip(*res)
-    if pairwise: 
-        return Vs, Vms, Ts
+    if pairwise:
+        return np.stack(Vs).T, np.stack(Vms).T, np.stack(Ts).T
     # we only need to store V and Vm for each mu/sh (this is
     # the mapping of parameters; this determines Z with rf)
 

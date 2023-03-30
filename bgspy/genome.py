@@ -5,7 +5,8 @@ from collections import defaultdict, Counter
 import numpy as np
 from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
-from bgspy.utils import load_seqlens, load_bed_annotation, BScores
+from bgspy.utils import load_seqlens, BScores
+from bgspy.annotation import Annotation
 from bgspy.recmap import RecMap
 from bgspy.theory2 import B_segment_lazy, bgs_segment_sc16_parts
 from bgspy.parallel import BSC16_segment_lazy_parallel
@@ -40,6 +41,11 @@ class Segments:
         # to exclude certain chroms
         #self._rescaling_excluded = set()
         self._calc_features()
+        self._fit = None
+        self._predict_Vs = None
+        self._predict_Vms = None
+        self._predict_Ts = None
+ 
 
     def __repr__(self):
         nfeats = len(self.feature_map)
@@ -146,12 +152,15 @@ class Segments:
         Vs = np.full(shape, np.nan)
         Vms = np.full(shape, np.nan)
         Ts = np.full(shape, np.nan)
+        t = fit.t
         for j in feature_i:
             mu = mu * W[:, j]
-            t = fit.t
             idx = F == j
             tmp = BSC16_segment_lazy_parallel(mu, t, L[idx], rbp[idx], N, ncores=ncores, pairwise=True)
-            Ts[:, idx], Vs[:, idx], Vms[:, idx] = np.stack(tmp[0]).T, np.stack(tmp[1]).T, np.stack(tmp[2]).T
+            Vs[:, idx], Vms[:, idx], Ts[:, idx] = tmp
+        self._predict_Vs = Vs
+        self._predict_Vms = Vms
+        self._predict_Ts = Ts
         return Vs, Vms, Ts
  
     def _calc_features(self):
@@ -513,7 +522,8 @@ class Genome(object):
 
     def load_annot(self, file):
         self._annot_file = file
-        self.annot, self.all_features = load_bed_annotation(file, chroms=set(self.seqlens.keys()))
+        annot = Annotation.load_bed(file)
+        self.annot, self.all_features = annot.ranges, annot.features
 
     def is_complete(self):
         """

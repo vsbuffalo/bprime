@@ -1,0 +1,136 @@
+import numpy as np
+
+AUTOS = list(range(1, 23))
+AUTOSEX = AUTOS + ['X', 'Y']
+
+## === Human genome data
+
+genome = ["hg38.fa.gz"]
+
+#rule hg38:
+#  # fixes chromosome labels to start with 'chr'
+#  output: "hg38.fa.gz"
+#  shell:
+#    """
+#    curl http://ftp.ensembl.org/pub/release-107/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz | \
+#      zcat | sed 's/^>/>chr/' | gzip > {output}
+#    """
+#
+## only keep autosomes
+#rule seqlens:
+#  input: "hg38.fa.gz"
+#  output: "hg38_seqlens.tsv"
+#  shell:
+#    """
+#      bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
+#      grep -P '^chr[0-9X]+' |  \
+#      sort  --version-sort -k 1,1 -k2,2n > {output}
+#    """
+
+rule seqlens_other:
+  output: "{genome}_seqlens.tsv"
+  shell:
+    """
+    mysql --user=genome --host=genome-mysql.cse.ucsc.edu -B -N  -A -e \
+     "select chrom, size from {wildcards.genome}.chromInfo where {wildcards.genome}.chromInfo.chrom not like '_'" | \
+      grep -v "_" | sort --version-sort | \
+      grep -P '^chr[0-9]+'  > {output[0]}
+    """
+
+## ----- Human Annotation Data
+rule phastcons:
+  output: "phastConsElements100way.txt.gz"
+  shell:
+    """
+    curl http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/phastConsElements100way.txt.gz | \
+     zcat | cut -f2- | grep -P '^chr[0-9]+\t' | gzip > {output}
+    """
+
+# ---- phastcons data ----
+rule phastcons_bed:
+  # VALIDATION: unclear from UCSC doc whether the .txt.gz is 0 or 1-indexed. 
+  # Using table browser BED output produced a version that aligns with ours
+  input: "phastConsElements100way.txt.gz"
+  output: "phastcons_100way.bed.gz"
+  shell:
+    """
+     zcat {input} | bioawk -t '{{ print $1,$2,$3 }}' | sort --version-sort -k1,1 -k2,2n | bedtools merge | gzip > {output}
+    """
+
+# ---- gene tracks ----
+rule ensembl_gff:
+  output: "hg38.ensembl.gff3.gz"
+  shell:
+     """
+     wget -O {output} http://ftp.ensembl.org/pub/release-107/gff3/homo_sapiens/Homo_sapiens.GRCh38.107.chr.gff3.gz 
+     """
+
+rule ensembl_gff_autos:
+  input: "hg38.ensembl.gff3.gz"
+  output: "hg38.ensembl_autos.bed.gz"
+  shell:
+     """
+     zgrep -v '^#' {input} | sed s/^/chr/ | \
+       grep -P '^chr[0-9]+\t' | bioawk -t '{{ print $1,$4-1,$5,$3 }}' | sort --version-sort -k1,1 -k2,2n | \
+       sed 's/five_prime_UTR/5UTR/' | \
+       sed 's/three_prime_UTR/3UTR/' | \
+       gzip > {output}
+     """
+
+rule ncbi_refseq:
+ output: "hg38.ncbiRefSeq.gtf.gz"
+ shell: 
+    """
+    wget -O {output} https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/genes/hg38.ncbiRefSeq.gtf.gz
+    """
+
+rule ncbi_refseq_clean:
+ input: "hg38.ncbiRefSeq.gtf.gz"
+ output: "hg38.refseq_autos.bed.gz"
+ shell: 
+    """
+    zgrep -P '^chr[0-9]+\t' {input} | bioawk -t '{{ print $1,$4-1,$5,$3 }}' | sort --version-sort -k1,1 -k2,2n | gzip > {output}
+    """
+
+## ----- split out features
+annotation_features = ['exon', '5UTR', '3UTR', 'CDS', 'gene'] 
+
+rule split_feature:
+  input: refseq="hg38.refseq_autos.bed.gz", ensembl="hg38.ensembl_autos.bed.gz"
+  output: "hg38.{feature}_autos.bed.gz"
+  shell: 
+     """
+     bioawk -cbed ' $name ~ /^{wildcards.feature}$/ {{ print $chrom,$start,$end,$name }} ' {input} | \
+     sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+     gzip > {output}
+     """
+
+rule phastcons_split:
+  input: "phastcons_100way.bed.gz"
+  output: "hg38.phastcons_autos.bed.gz"
+  shell: 
+     """
+     zcat {input} | \
+       sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+       bioawk -t '{{ print $0,"phastcons" }}' | \
+       gzip > {output}
+     """
+
+rule merge_UTRs:
+  input: "hg38.3UTR_autos.bed.gz", "hg38.5UTR_autos.bed.gz"
+  output: "hg38.UTR_autos.bed.gz"
+  shell: 
+     """
+     zcat {input[0]} {input[1]} | \
+      sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+      bioawk -t '{{ print $0,"UTR" }}' | \
+      gzip > {output}
+     """
+
+split = [f"hg38.{f}_autos.bed.gz" for f in annotation_features]
+split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz"]
+
+clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz", "hg38_seqlens.tsv"]
+
+rule all:
+  input: clean_annot, split

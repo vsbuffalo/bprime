@@ -15,6 +15,7 @@ import statsmodels.api as sm
 import numpy as np
 import pandas as pd
 import newick
+from bgspy.annotation import Annotation
 
 
 GCs = set([ord(b) for b in 'GCgc'])
@@ -807,6 +808,8 @@ def read_bed3(file, keep_chroms=None):
     ranges = defaultdict(list)
     with readfile(file) as f:
         for line in f:
+            if line.startswith('#'):
+                continue
             cols = line.strip().split('\t')
             assert(len(cols) >= 3)
             chrom, start, end = cols[:3]
@@ -945,52 +948,6 @@ def write_bed(chromdict, filename, compress=True, append=False):
         for chrom, ranges in chromdict.items():
             for vals in ranges:
                 f.write("\t".join(map(str, [chrom, *vals])) + "\n")
-
-def load_bed_annotation(file, chroms=None):
-    """
-    Load a four column BED-(ish) file of chrom, start, end, feature name.
-    If chroms is not None, this is the set of chroms to keep annotation for.
-    """
-    ranges = dict()
-    params = []
-    # nloci = 0
-    all_features = set()
-    # index_map = defaultdict(list)
-    if chroms is not None:
-        assert isinstance(chroms, (set, dict)), "chroms must be None, set, or, dict."
-    ignored_chroms = set()
-    with readfile(file) as f:
-        for line in f:
-            if line.startswith('#'):
-                params.append(line.strip().lstrip('#'))
-                continue
-            cols = line.strip().split('\t')
-            assert(len(cols) >= 3)
-            chrom, start, end = cols[:3]
-            if chroms is not None:
-                if chrom not in chroms:
-                    ignored_chroms.add(chrom)
-                    continue
-            if len(cols) == 3:
-                feature = 'undefined'
-            else:
-                feature = cols[3]
-            if chrom not in ranges:
-                ranges[chrom] = ([], [])
-            start, end = int(start), int(end)
-            if end-start < 1:
-                warnings.warn(f"skipping 0-width element {chrom}:{start}-{end})")
-                continue
-            ranges[chrom][0].append((start, end))
-            ranges[chrom][1].append(feature)
-            # index_map[chrom].append(nloci)
-            all_features.add(feature)
-            # nloci += 1
-
-    if len(ignored_chroms):
-        print(f"load_bed_annotation(): ignored {', '.join(ignored_chroms)}")
-    Annotation = namedtuple('Annotation', ('ranges', 'features'))
-    return Annotation(ranges, all_features)
 
 def load_seqlens(file):
     seqlens = dict()
