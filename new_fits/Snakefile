@@ -123,6 +123,9 @@ for popl in pops:
 rule annotation_full:
   input: config_path=config_path, seqlens=files['seqlens']
   output: f"../tracks/{name}_full.bed.gz"
+  resources:
+    mem_mb=60000,
+    time_min=120 
   shell:
      """
      bgspy tracks {input.config_path} --full --seqlens {input.seqlens} | gzip > {output}
@@ -131,6 +134,9 @@ rule annotation_full:
 rule annotation:
   input: config_path=config_path, seqlens=files['seqlens']
   output: f"../tracks/{name}_sparse.bed.gz"
+  resources:
+    mem_mb=60000,
+    time_min=120 
   shell:
      """
      bgspy tracks {input.config_path} --seqlens {input.seqlens} | gzip > {output}
