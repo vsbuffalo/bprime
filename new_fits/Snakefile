@@ -46,11 +46,11 @@ njack = settings['num_jackknife_samples']
 # ------- build the output files
 # Note: the B/B' maps can be reused across runs which 
 # vary in data. The .. is because fits are run in subdirs
-Bs_file = f"../bmaps/bmap_6x8grid_100000step_{N}N_{name}.pkl"
+Bs_file = f"../bmaps/bmap_6x8grid_100000step_{N}N__{name}_{{tracktype}}.pkl"
 
 # Note: the locally-rescaled B/B' maps are **fit specific**
 # so in the fit subdirectory
-Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x8grid_100000step_{N}N_{name}.pkl"
+Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x8grid_100000step_{N}N__{name}_{{tracktype}}.pkl"
 
 Bs_files = [Bs_file]
 if do_rescale:
@@ -71,9 +71,10 @@ for popl in pops:
         rescale = fit_specs['rescaled']
         do_loo = fit_specs['loo']
         jackknife_windows = fit_specs['jackknife']
+        tracktype = fit_specs['type']
 
         # model data -- shared for all fits 
-        path = join("fits", f"pop_{popl}", f"window_{window}")
+        path = join("fits", f"pop_{popl}", f"window_{window}", f"type_{tracktype}")
         data = join(path, f'model_data.pkl')
         model_data.append(data)
 
@@ -129,7 +130,7 @@ rule annotation_full:
 
 rule annotation:
   input: config_path=config_path, seqlens=files['seqlens']
-  output: f"../tracks/{name}.bed.gz"
+  output: f"../tracks/{name}_sparse.bed.gz"
   shell:
      """
      bgspy tracks {input.config_path} --seqlens {input.seqlens} | gzip > {output}
@@ -139,9 +140,9 @@ rule annotation:
 rule bmap:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
-         features="../tracks/{name}.bed.gz"
-  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
-  benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.txt"
+         features="../tracks/{name}_{tracktype}.bed.gz"
+  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
     mem_mb=200000,
     time_min=4320,
@@ -163,8 +164,8 @@ rule save_data:
          access=files['access'], fasta=files['fasta'],
          neut=files['neut'], counts_dir=join(files['counts'], data_path),
          bs_file=Bs_file
-  output: "fits/pop_{popl}/window_{window}/model_data.pkl"
-  benchmark: "benchmarks/data_{popl}_{window}.txt"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl"
+  benchmark: "benchmarks/data_{popl}_{window}_{tracktype}.txt"
   resources:
     mem_mb=100000,
     time_min=300,
@@ -180,14 +181,14 @@ rule save_data:
 
 # ---- fit the MLE
 rule fit:
-  input: "fits/pop_{popl}/window_{window}/model_data.pkl"
-  output: "fits/pop_{popl}/window_{window}/mutrate_{mutrate}/initial/mle.pkl"
+  input: "fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl"
   params: **settings
   resources:
     mem_mb=60000,
     time_min=980,
     threads=50
-  benchmark: "benchmarks/fit_{popl}_{mutrate}_{window}.txt"
+  benchmark: "benchmarks/fit_{popl}_{window}_{tracktype}_{mutrate}.txt"
   shell:
     """
     bgspy fit \
@@ -202,9 +203,9 @@ rule fit:
 rule block_jackknife:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
-  input: data="fits/pop_{popl}/window_{window}/model_data.pkl",
-         fit="fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/mle.pkl"
-  output: "fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/jackknife/block_{blocksize}/jackknife_{frac}.pkl"
+  input: data="fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl",
+         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/mle.pkl"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/jackknife/block_{blocksize}/jackknife_{frac}.pkl"
   params: **settings
   resources:
     mem_mb=10000,
@@ -226,9 +227,9 @@ rule block_jackknife:
 rule loo_chrom:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
-  input: data="fits/pop_{popl}/window_{window}/model_data.pkl",
-         fit="fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/mle.pkl"
-  output: "fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/loo_chrom/loo_{chrom}.pkl"
+  input: data="fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl",
+         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/mle.pkl"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/loo_chrom/loo_{chrom}.pkl"
   params: **settings
   resources:
     mem_mb=10000,
