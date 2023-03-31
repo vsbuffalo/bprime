@@ -544,20 +544,26 @@ check d.
 
 \subsection{Discretization of Parameters and Annotation Feature Classes}
 
+In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
+$s$ in Equation \eqref{suppeqn:b}. We define $\mu_i$ to be the rate of
+mutations entering the population per basepair, per generation with selection
+coefficient $s_i$ (i.e. the product of the mutation rate and the distribution
+of deleterious fitness effects). Then, the reduction at position $x$ is,
+
 \begin{align}
   \label{suppeqn:b}
-  B(x, \Psi) = \exp \left( \sum_g^S \sum_{i} b\left( \mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g) \right)\right)
+  B(x, \Psi) = \exp \left( \sum_g^S \sum_{i} b\left( \mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g) \right)\right).
 \end{align}
 
 %TODO double check
 
-In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
-$s$. Our models use a fixed $m_s$-element grid of selection coefficients, and
-mutation rates are on a fixed $m_\mu$-element grid, which is later interpolated
-over during the maximum likelihood optimization. The number of annotation
-features $K$ is variable and set by the annotation data specified. There are
-two ways to parameterize the mutation rates and DFE for all annotation classes
-in background selection models. First, for the \emph{free-mutation}
+Because it is computationally-intensive to numerically solve the system of two
+non-linear equations to calculate $b$ at each segment, these are pre-computed
+for an $m_s$-element grid of selection coefficients and an $m_\mu$-element grid
+of mutation rates--DFE products. The number of annotation features $K$ is
+variable and set by the annotation data specified. There are two ways to
+parameterize the mutation rates and DFE for all annotation classes in
+background selection models. First, for the \emph{free-mutation}
 parameterization, each annotation feature class has a free mutation rate
 parameter for each of these selection coefficients (as in equation
 \eqref{suppeqn:b}).
