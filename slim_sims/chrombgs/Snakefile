@@ -2,11 +2,15 @@ import sys
 from os.path import join
 from bgspy.slim import SlimRuns
 
+def stringify(x):
+    return ','.join(map(str, x))
+
 if not len(config):
     raise ValueError("config file not specified on command line, use --configfile config.json")
 
 # --- global params --- 
 BMAP_THREADS = 30
+bmap_pattern = "bmap__{name}.pkl"
 
 # --- slim sims --- 
 run = SlimRuns(config)
@@ -49,6 +53,14 @@ if run_fits:
 
     windows = config['mle']['windows']
 
+# for cases where we just want the empirical B maps
+empirical_bmaps = config.get('bmaps', False)
+if empirical_bmaps:
+    for N in config['variable']['N']:
+        for chrom in config['variable']['chrom']:
+            bfile = join(run.basedir, f'bmaps/N__{N}/chrom__{chrom}', bmap_pattern.format(name=name))
+            bmap_output.append(bfile)
+
 # generate all the targets for this YAML file.
 sim_results = run.generate_targets()
 
@@ -69,22 +81,34 @@ rule slim:
     shell: run.slim_cmd()
 
 
-# --- empirical B --- 
-rule empirical_B:
-    input: files=sim_results, dir=run.simdir
-    output: pkl=join(run.basedir, 'empirical_B', 'empirical_Bs.pkl')
-    resources:
-      mem_mb=40000,
-      threads=40
-    shell:
-        """
-        python ../../tools/process_sims.py {input.dir} {output.pkl} --ncores {resources.threads}
-        """
-
-
 # --- B map for sims ---
+if empirical_bmaps:
+    def get_bmap_input(wildcards):
+      input = bmaps[wildcards.name]
+      seqlens, recmap, annot = input['seqlens_file'], input['recmap_file'], input['annot_file']
+      return dict(seqlens=seqlens, recmap=recmap, annot=annot)
+ 
+    rule bmap:
+      input: seqlens=config['input']['seqlens_file'], recmap=config['input']['recmap_file'], annot=config['input']['annot_file']
+      output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/chrom__{chrom}', bmap_pattern)
+      params: step=10000, t=stringify(config['variable']['sh']), w=stringify(config['variable']['mu'])
+      resources:
+        mem_mb=200000,
+        time_min=4320,
+        threads=BMAP_THREADS
+      shell:
+        """
+        bgspy calcb \
+          --recmap {input.recmap} --annot {input.annot} \
+          --seqlens {input.seqlens} --t '{params.t}' \
+          --w '{params.w}' \
+          --output {output} --popsize {wildcards.N} \
+          --chrom {wildcards.chrom} \
+          --ncores {resources.threads} --ncores-Bp {resources.threads} \
+          --step {params.step}
+        """
+ 
 if run_fits:
-    bmap_pattern = "bmap__{name}.pkl"
     
     
     def get_bmap_input(wildcards):
@@ -108,12 +132,10 @@ if run_fits:
           --seqlens {input.seqlens} --t '{params.grid}' \
           --output {output} --popsize {wildcards.N} \
           --chrom {wildcards.chrom} \
-          --ncores {threads} --ncores-Bp {threads} \
+          --ncores {resources.threads} --ncores-Bp {resources.threads} \
           --step {params.step}
         """
     
-    # note about memory: the full track takes up a surprisingly large
-    # amount of memory to compute. Still looking into this. 
     rule bmap_synthetic:
       input: unpack(get_bmap_input)
       output: pkl_b_file=join(run.basedir, 'bmaps/N__{N}/synthetic', bmap_pattern)

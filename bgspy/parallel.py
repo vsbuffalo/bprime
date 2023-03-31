@@ -270,6 +270,7 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
         res = []
         for chunk in tqdm(chunks, total=chunks.total):
             res.append(calc_B_chunk_worker(chunk))
+        res = deque(res)
     else:
         with multiprocessing.Pool(ncores) as p:
             res = deque(p.imap(calc_B_chunk_worker, tqdm(chunks, total=chunks.total)))
@@ -291,6 +292,7 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
         res = []
         for chunk in tqdm(chunks):
             res.append(calc_BSC16_chunk_worker(chunk))
+        res = deque(res)
     else:
         with multiprocessing.Pool(ncores) as p:
             res = deque(p.imap(calc_BSC16_chunk_worker, tqdm(chunks, total=chunks.total)))

@@ -262,9 +262,10 @@ def calc_B_parallel(genome, mut_grid, step, nchunks=1000, ncores=2):
         res = []
         for chunk in tqdm.tqdm(chunks, total=chunks.total):
             res.append(calc_B_chunk_worker(chunk))
+        res = deque(res)
     else:
         with multiprocessing.Pool(ncores) as p:
-            res = list(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
+            res = deque(tqdm.tqdm(p.imap(calc_B_chunk_worker, chunks),
                                  total=chunks.total))
     return chunks.collate(res)
 

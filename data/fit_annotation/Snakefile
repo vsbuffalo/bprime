@@ -128,6 +128,14 @@ rule split_feature:
       gzip > {output}
      """
 
+rule phastcons_min:
+  input: phastcons="hg38.phastcons_autos.bed.gz"
+  output: "hg38.phastcons_autos_min.bed.gz"
+  shell: 
+     """
+     """
+
+
 rule phastcons_split:
   input: "phastcons_100way.bed.gz"
   output: "hg38.phastcons_autos.bed.gz"

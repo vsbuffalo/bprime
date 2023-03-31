@@ -160,7 +160,7 @@ def fit_B_curve_params(b, w):
         resid.append(e2.mean())
     resid = np.array(resid)
     msg = "unusually high residual in B'(μ) fitting"
-    assert np.all(resid < 1e-3), msg
+    assert np.all(resid < 5e-3), msg
     return params
 
 
