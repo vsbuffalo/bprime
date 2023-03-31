@@ -1,6 +1,6 @@
 ---
 name: hg38__phastcons_not_genes_cds_genes_full__hapmap
-pi0_bounds: 0.0005,0.005
+pi0_bounds: 0.0005,0.05
 mu_bounds: 0.5e-8,8e-8
 nstarts: 2000
 nstarts_loo: 1000
@@ -23,7 +23,7 @@ fasta_file: ../../data/annotation/hg38.fa.gz
 neut_file: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz
 counts_dir: ../../data/h1kg/hg1k_yri_counts/
 
-loo: true
+loo: false
 jackknife: false
 
 # whether to run second-round locally-rescaled 

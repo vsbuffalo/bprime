@@ -168,7 +168,8 @@ def negll_softmax(theta, Y, B, w):
     """
     Softmax version of the simplex model wrapper for negll_c().
 
-    For scipy, i.e. no grad argument.
+    For scipy, i.e. no grad argument, so must be wrapped for use
+    with nlopt.
     """
     nx, nw, nt, nf = B.shape
     # get out the W matrix, which on the optimization side, is over all reals
