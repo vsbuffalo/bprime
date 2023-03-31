@@ -969,7 +969,7 @@ def write_bed(chromdict, filename, compress=True, append=False):
             for vals in ranges:
                 f.write("\t".join(map(str, [chrom, *vals])) + "\n")
 
-def load_seqlens(file):
+def load_seqlens(file, exclude=None):
     seqlens = dict()
     params = []
     with readfile(file) as f:
@@ -978,6 +978,9 @@ def load_seqlens(file):
                 params.append(line.strip().lstrip('#'))
                 continue
             chrom, end = line.strip().split('\t')
+            if exclude is not None:
+                if chrom in exclude:
+                    continue
             seqlens[chrom] = int(end)
     return seqlens
 

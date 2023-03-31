@@ -522,7 +522,7 @@ class Genome(object):
 
     def load_annot(self, file):
         self._annot_file = file
-        annot = Annotation.load_bed(file)
+        annot = Annotation.load_bed(file, chroms=self.seqlens, seqlens=self.seqlens)
         self.annot, self.all_features = annot.ranges, annot.features
 
     def is_complete(self):

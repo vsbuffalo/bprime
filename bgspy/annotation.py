@@ -63,9 +63,9 @@ class Annotation:
         self.seqlens = seqlens
 
     @staticmethod
-    def load_bed(file, seqlens=None):
-        ranges, features = load_bed_annotation(file)
-        annot = Annotation(ranges, features)
+    def load_bed(file, chroms=None, seqlens=None):
+        ranges, features = load_bed_annotation(file, chroms=chroms)
+        obj = Annotation(ranges, features, seqlens)
         obj.seqlens = seqlens
         return obj
 
