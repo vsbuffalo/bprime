@@ -667,10 +667,15 @@ def tracks(config, full, seqlens):
     priority = list(features.keys())
     beds = {c: read_bed3(f) for c, f in features.items()}
     masks = combine_features(beds, priority, load_seqlens(seqlens))
-    res = masks_to_ranges(masks, labels=priority, include_other=full)
+    res = masks_to_ranges(masks, labels=priority)
     for chrom, ranges in res.items():
         for range in ranges:
-            print(f"{chrom}\t{range[0]}\t{range[1]}\t{range[2]}")
+            start, end, label = range
+            if not full and label is None:
+                continue
+            else:
+                label = 'other'
+            print(f"{chrom}\t{start}\t{end}\t{label}")
 
 
 @cli.command()

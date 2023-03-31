@@ -871,8 +871,7 @@ def rle(inarray):
             p = np.cumsum(np.append(0, z))[:-1] # positions
             return(z, p, ia[i])
 
-def masks_to_ranges(mask_dict, return_val=False, labels=None,
-                    include_other=False):
+def masks_to_ranges(mask_dict, return_val=False, labels=None):
     """
     Given the masks from combine_features(), turn these into a chromosome
     range dictionary.
@@ -896,13 +895,9 @@ def masks_to_ranges(mask_dict, return_val=False, labels=None,
     for chrom in mask_dict:
         rls, starts, vals = rle(mask_dict[chrom])
         for rl, s, val in zip(rls, starts, vals):
-            if val == 0 and include_other:
-                lab = 'other' if labels is not None else 0
-                x = (s, s + rl, lab)
-                ranges[chrom].append(x)
-                continue
             if labels is not None:
-                x = (s, s + rl, labels[val-1])
+                lab = labels[val-1] if val > 0 else None
+                x = (s, s + rl, lab)
             elif return_val:
                 x = (s, s + rl, val)
             else:
