@@ -35,7 +35,12 @@ features:
 params: 
   N: 10000
 fits: 
-  #- {window: 100000, loo: false, rescaled: false, mu: free, jackknife: 25000000}
-  #- {window: 100000, loo: false, rescaled: false, mu: 1.3e-8, jackknife: 25000000}
-  - {window: 1000000, loo: false, rescaled: false, mu: free, jackknife: false, type: full}
-  - {window: 1000000, loo: false, rescaled: false, mu: 1.3e-8, jackknife: false, type: full}
+  # 1Mb free mutation, full and sparse
+  - {window: 1000000, mu: free, type: full,  loo: false, rescaled: false, jackknife: false}
+  - {window: 1000000, mu: free, type: sparse, loo: false, rescaled: false, jackknife: false}
+
+  # 1Mb mu=1.3e-8, full and sparse
+  - {window: 1000000, mu: 1.3e-8, type: full,  loo: false, rescaled: false, jackknife: false}
+  - {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: false, jackknife: false}
+
+
