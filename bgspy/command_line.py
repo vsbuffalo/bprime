@@ -671,10 +671,11 @@ def tracks(config, full, seqlens):
     for chrom, ranges in res.items():
         for range in ranges:
             start, end, label = range
-            if not full and label is None:
-                continue
+            if not full:
+                if label is None:
+                    continue
             else:
-                label = 'other'
+                label = 'other' if label is None else label
             print(f"{chrom}\t{start}\t{end}\t{label}")
 
 
