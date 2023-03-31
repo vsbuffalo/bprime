@@ -37,9 +37,7 @@ pops = data['pops']
 chroms = load_seqlens(files['seqlens'], 
                       exclude=['chrM', 'chrX', 'chrY'])
 
-do_rescale = any([f['rescaled'] for f in fits.values()])
-do_jackknife = any([f['jackknife'] for f in fits.values()])
-do_loo = any([f['loo'] for f in fits.values()])
+do_rescale = any([f['rescaled'] for f in fits])
 
 # globals
 N = params['N']
@@ -65,32 +63,49 @@ model_data = []
 mle_fits = []
 loo_fits = []
 jackknife_fits = []
-print(fits.keys())
-for pop in pops:
-    for window in fits.keys():
+for popl in pops:
+    for fit_specs in fits:
+        # get some specs out
+        window = fit_specs['window']
+        mutrate = fit_specs['mu']
+        rescale = fit_specs['rescaled']
+        do_loo = fit_specs['loo']
+        jackknife_windows = fit_specs['jackknife']
+
         # model data -- shared for all fits 
-        path = join("fits", f"pop_{pop}", f"window_{window}")
+        path = join("fits", f"pop_{popl}", f"window_{window}")
         data = join(path, f'model_data.pkl')
         model_data.append(data)
 
         # these are fit-specific
-        for mutrate in fits[window]['mu']:
-            # main MLE fitting
-            fit_path = join(path, f"mutrate_{mutrate}")
-            # model data -- shared for htis 
-            mle = join(fit_path, f"mle.pkl")
+        # main MLE fitting
+        fit_path = join(path, f"mutrate_{mutrate}")
+
+        # we may have to do uncertainty for both original and rescaled
+        # so, we for this for the main fit directory, and rescaled/
+        fit_dirs = ["initial"]
+        if rescale:
+            fit_dirs.append("rescaled")
+
+
+        for fit_dir in fit_dirs:
+            this_fit_path = join(fit_path, fit_dir)
+
+            # main mle fit
+            mle = join(this_fit_path, f"mle.pkl")
             mle_fits.append(mle)
 
             # leave-one-out chromosome fits
-            if fits[window]['loo']:
+            if do_loo:
                 for chrom in chroms:
-                    loo_fits.append(join(fit_path, "loo_chrom", f"loo_{chrom}.pkl"))
+                    loo_fits.append(join(this_fit_path, "loo_chrom", f"loo_{chrom}.pkl"))
 
             # block-jackknives
-            jackknife_windows = fits[window]['jackknife']
             if jackknife_windows:
+                if isinstance(jackknife_windows, int):
+                    jackknife_windows = [jackknife_windows]
                 for jk_window in jackknife_windows:
-                    jk_dir = join(fit_path, "jackknife", str(window))
+                    jk_dir = join(this_fit_path, "jackknife", f"block_{jk_window}")
                     for frac in np.linspace(0, 1, njack+1)[:-1]:
                         jackknife_fits.append(join(jk_dir, f"jackknife_{frac}.pkl"))
 
@@ -141,9 +156,6 @@ rule bmap:
       --step {wildcards.step}
     """
 
-rule all:
-  input: Bs_files
-
 # ---- save the fit data
 rule save_data:
   # only get the data, e.g. for testing, for this model
@@ -151,39 +163,86 @@ rule save_data:
          access=files['access'], fasta=files['fasta'],
          neut=files['neut'], counts_dir=join(files['counts'], data_path),
          bs_file=Bs_file
-  output: "fits/pop_{pop}/window_{window}/model_data.pkl"
-  benchmark: "benchmarks/data_{pop}_{window}.txt"
+  output: "fits/pop_{popl}/window_{window}/model_data.pkl"
+  benchmark: "benchmarks/data_{popl}_{window}.txt"
   resources:
     mem_mb=100000,
     time_min=300,
   shell:
     """
-    bgspy data --seqlens {input.seqlens} --recmap {input.recmap_file} \
-      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
-      --access {input.access_file} --bs-file {input.bs_file} \
+    bgspy data --seqlens {input.seqlens} --recmap {input.recmap} \
+      --counts-dir {input.counts_dir} --neutral {input.neut} \
+      --access {input.access} --bs-file {input.bs_file} \
       --window {wildcards.window} \
-      --fasta {input.fasta_file} \
-      --output {output[0]}
+      --fasta {input.fasta} \
+      --output {output}
     """
 
 # ---- fit the MLE
 rule fit:
-  input: "fits/pop_{pop}/window_{window}/model_data.pkl"
-  output: "fits/pop_{pop}/window_{window}/mutrate_{mutrate}/model_data.pkl"
+  input: "fits/pop_{popl}/window_{window}/model_data.pkl"
+  output: "fits/pop_{popl}/window_{window}/mutrate_{mutrate}/initial/mle.pkl"
   params: **settings
   resources:
     mem_mb=60000,
     time_min=980,
     threads=50
-  benchmark: "benchmarks/fit_{pop}_{window}.txt"
+  benchmark: "benchmarks/fit_{popl}_{mutrate}_{window}.txt"
   shell:
     """
     bgspy fit \
       --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
-      --mu {params.mu} \
-      --data {input[0]} \
+      --mu {wildcards.mutrate} \
+      --data {input} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
-      --output {output[0]}
+      --output {output}
+    """
+
+# ---- jackknife
+rule block_jackknife:
+  # note that this doesn't actually require fit object, but 
+  # I prefer that gets calculated first
+  input: data="fits/pop_{popl}/window_{window}/model_data.pkl",
+         fit="fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/mle.pkl"
+  output: "fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/jackknife/block_{blocksize}/jackknife_{frac}.pkl"
+  params: **settings
+  resources:
+    mem_mb=10000,
+    time_min=300,
+    threads=40
+  shell:
+    """
+    bgspy jackblock \
+      --blockwidth {wildcards.blocksize} \
+      --data {input.data} \
+      --mu {wildcards.mutrate} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
+      --output {output[0]} \
+      --blockfrac {wildcards.frac} \
+      --ncores {resources.threads} --nstarts {params.nstarts}
+    """
+
+
+rule loo_chrom:
+  # note that this doesn't actually require fit object, but 
+  # I prefer that gets calculated first
+  input: data="fits/pop_{popl}/window_{window}/model_data.pkl",
+         fit="fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/mle.pkl"
+  output: "fits/pop_{popl}/window_{window}/mutrate_{mutrate}/{type}/loo_chrom/loo_{chrom}.pkl"
+  params: **settings
+  resources:
+    mem_mb=10000,
+    time_min=300,
+    threads=40
+  shell:
+    """
+    bgspy loo \
+      --data {input.data} \
+      --output {output} \
+      --mu {wildcards.mutrate} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
+      --chrom {wildcards.chrom} \
+      --ncores {resources.threads} --nstarts {params.nstarts}
     """
 
 

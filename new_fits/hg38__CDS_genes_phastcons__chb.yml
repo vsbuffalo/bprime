@@ -12,7 +12,7 @@ settings:
 
 # pops
 data: 
-  path: hg1k_{pop}_counts
+  path: hg1k_{popl}_counts
   pops: [yri, ceu, chb]
 
 # files
@@ -35,8 +35,7 @@ features:
 params: 
   N: 10000
 fits: 
-  1000000: {loo: true, 
-            rescaled: false,
-            mu: [free, 1.3e-8],
-            jackknife: [25000000],
-           }
+  #- {window: 100000, loo: false, rescaled: false, mu: free, jackknife: 25000000}
+  #- {window: 100000, loo: false, rescaled: false, mu: 1.3e-8, jackknife: 25000000}
+  - {window: 100000, loo: false, rescaled: false, mu: free, jackknife: false}
+  - {window: 100000, loo: false, rescaled: false, mu: 1.3e-8, jackknife: false}
