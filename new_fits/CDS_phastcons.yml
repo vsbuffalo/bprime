@@ -1,0 +1,45 @@
+---
+name: CDS_phastcons
+
+# fit settings
+settings:
+  pi0_bounds: 0.0005,0.008
+  mu_bounds: 0.5e-8,8e-8
+  nstarts: 2000
+  nstarts_loo: 1000
+  nstarts_jackknife: 1000
+  num_jackknife_samples: 200
+
+# pops
+data: 
+  path: hg1k_{popl}_counts
+  pops: [yri, ceu, chb]
+
+# files
+files:
+  seqlens: ../../data/annotation/hg38_seqlens.tsv
+  recmap: ../../data/annotation/hapmap_genetic_map.txt
+  access: ../../data/annotation/no_centro_strict.bed
+  fasta: ../../data/annotation/hg38.fa.gz
+  neut: ../../data/annotation/neutral_phastcons_genes_with_introns.bed.gz
+  counts: ../../data/h1kg/
+
+# features
+features:
+  features: 
+    CDS: ../../data/fit_annotation/hg38.CDS_autos.bed.gz
+    phastcons: ../../data/fit_annotation/hg38.phastcons_autos.bed.gz
+
+#  the mles, etc to fit
+params: 
+  N: 10000
+fits: 
+  # 1Mb free mutation, full and sparse
+  - {window: 1000000, mu: free, type: full,  loo: false, rescaled: false, jackknife: false}
+  - {window: 1000000, mu: free, type: sparse, loo: false, rescaled: false, jackknife: false}
+
+  # 1Mb mu=1.3e-8, full and sparse
+  - {window: 1000000, mu: 1.3e-8, type: full,  loo: false, rescaled: false, jackknife: false}
+  - {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: false, jackknife: false}
+
+
