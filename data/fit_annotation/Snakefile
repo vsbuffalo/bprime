@@ -32,8 +32,8 @@ rule decode_2019_map:
    output: "aau1043_datas3.gz"
    shell:
       """
-      #wget -O {output} https://www.science.org/doi/suppl/10.1126/science.aau1043/suppl_file/aau1043_datas3.gz
-      wget -O {output} https://www-science-org.libproxy.berkeley.edu/doi/suppl/10.1126/science.aau1043/suppl_file/aau1043_datas3.gz
+      wget -O {output} https://www.science.org/doi/suppl/10.1126/science.aau1043/suppl_file/aau1043_datas3.gz
+      #wget -O {output} https://www-science-org.libproxy.berkeley.edu/doi/suppl/10.1126/science.aau1043/suppl_file/aau1043_datas3.gz
       """
 
 rule decode_2019_hapmap:
@@ -183,7 +183,20 @@ rule neutral_slop:
        bedtools complement -i - -g {input.seqlens} | gzip > {output}
      """
 
-neutral = ["putatively_neutral__slop0.bed.gz", "putatively_neutral__slop1000.bed.gz"]
+rule neutral:
+  input: exon="hg38.exons_autos.bed.gz", cds="hg38.CDS_autos.bed.gz", 
+         UTR="hg38.UTR_autos.bed.gz", phastcons="hg38.phastcons_autos.bed.gz",
+         seqlens="hg38_seqlens.tsv"
+  output: "putatively_neutral.bed.gz"
+  shell:
+     """
+     zcat {input.exon} {input.cds} {input.UTR} {input.phastcons} | \
+      sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+       bedtools complement -i - -g {input.seqlens} | gzip > {output}
+     """
+
+
+neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop1000.bed.gz"]
 
 rule all:
   input: clean_annot, split, recmaps, genome, neutral

@@ -653,17 +653,24 @@ def newfit(config):
 
 
 @cli.command()
-@click.argument("config", required=True)
+@click.argument("config", required=False, default=None)
 @click.option("--full", is_flag=True, help="generate full-coverage tracks too")
+@click.option("--bed", type=(str, str), multiple=True, help="feature type, bed file pair")
 @click.option('--seqlens', required=True, type=click.Path(exists=True),
               help='tab-delimited file of chromosome names and their length')
-def tracks(config, full, seqlens):
+def tracks(config, full, bed, seqlens):
     """
     Build the tracks for a YAML fit config file.
     """
-    with open(config) as f:
-        features = yaml.safe_load(f)['features']
-    features = features['features']
+    if config is not None:
+        assert len(bed) == 0, "config argument and --bed options cannot be combined"
+        with open(config) as f:
+            features = yaml.safe_load(f)['features']
+        features = features['features']
+    else:
+        assert len(bed) > 0, "if config argument not set, --bed must be set"
+        features = dict(bed)
+
     priority = list(features.keys())
     beds = {c: read_bed3(f) for c, f in features.items()}
     masks = combine_features(beds, priority, load_seqlens(seqlens))
