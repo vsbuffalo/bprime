@@ -3,39 +3,48 @@ import numpy as np
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
 
-## === Human genome data
+## ------ Human genome data
 
-genome = ["hg38.fa.gz"]
+genome = ["hg38.fa.gz", "hg38_seqlens.tsv"]
 
-#rule hg38:
-#  # fixes chromosome labels to start with 'chr'
-#  output: "hg38.fa.gz"
-#  shell:
-#    """
-#    curl http://ftp.ensembl.org/pub/release-107/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz | \
-#      zcat | sed 's/^>/>chr/' | gzip > {output}
-#    """
-#
-## only keep autosomes
-#rule seqlens:
-#  input: "hg38.fa.gz"
-#  output: "hg38_seqlens.tsv"
-#  shell:
-#    """
-#      bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
-#      grep -P '^chr[0-9X]+' |  \
-#      sort  --version-sort -k 1,1 -k2,2n > {output}
-#    """
-
-rule seqlens_other:
-  output: "{genome}_seqlens.tsv"
+rule hg38:
+  # fixes chromosome labels to start with 'chr'
+  output: "hg38.fa.gz"
   shell:
     """
-    mysql --user=genome --host=genome-mysql.cse.ucsc.edu -B -N  -A -e \
-     "select chrom, size from {wildcards.genome}.chromInfo where {wildcards.genome}.chromInfo.chrom not like '_'" | \
-      grep -v "_" | sort --version-sort | \
-      grep -P '^chr[0-9]+'  > {output[0]}
+    curl http://ftp.ensembl.org/pub/release-107/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa.gz | \
+      zcat | sed 's/^>/>chr/' | gzip > {output}
     """
+
+## only keep autosomes
+rule seqlens:
+  input: "hg38.fa.gz"
+  output: "hg38_seqlens.tsv"
+  shell:
+    """
+      bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
+      grep -P '^chr[0-9X]+' |  \
+      sort  --version-sort -k 1,1 -k2,2n > {output}
+    """
+
+## ----- Human Recombination Maps
+rule decode_2019_map:
+   output: "aau1043_datas3.gz"
+   shell:
+      """
+      #wget -O {output} https://www.science.org/doi/suppl/10.1126/science.aau1043/suppl_file/aau1043_datas3.gz
+      wget -O {output} https://www-science-org.libproxy.berkeley.edu/doi/suppl/10.1126/science.aau1043/suppl_file/aau1043_datas3.gz
+      """
+
+rule decode_2019_hapmap:
+   input: "aau1043_datas3.gz"
+   output: "decode_2019_map.txt"
+   shell:
+      """
+      python ../../tools/convert_bed_to_hapmap.py {input} > {output}
+      """
+
+recmaps = ["decode_2019_map.txt"]
 
 ## ----- Human Annotation Data
 rule phastcons:
@@ -86,6 +95,7 @@ rule ncbi_refseq:
     """
 
 rule ncbi_refseq_clean:
+ # NOTE: we replace transcript with gene
  input: "hg38.ncbiRefSeq.gtf.gz"
  output: "hg38.refseq_autos.bed.gz"
  shell: 
@@ -118,23 +128,17 @@ rule split_feature_refseq:
      gzip > {output}
      """
 
-rule split_feature:
+# merge the features from ensembl and refseq
+rule merge_features:
   input: refseq="hg38.{feature,[^_]+}_refseq_autos.bed.gz", ensembl="hg38.{feature,[^_]+}_ensembl_autos.bed.gz"
   output: "hg38.{feature,[^_]+}_autos.bed.gz"
   shell: 
      """
      zcat {input.refseq} {input.ensembl} | \
       sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+      bioawk -t '{{ print $0,"{wildcards.feature}" }}' | \
       gzip > {output}
      """
-
-rule phastcons_min:
-  input: phastcons="hg38.phastcons_autos.bed.gz"
-  output: "hg38.phastcons_autos_min.bed.gz"
-  shell: 
-     """
-     """
-
 
 rule phastcons_split:
   input: "phastcons_100way.bed.gz"
@@ -157,7 +161,6 @@ rule merge_UTRs:
       bioawk -t '{{ print $0,"UTR" }}' | \
       gzip > {output}
      """
-
 split = [f"hg38.{f}_autos.bed.gz" for f in annotation_features]
 split += [f"hg38.{f}_refseq_autos.bed.gz" for f in annotation_features]
 split += [f"hg38.{f}_ensembl_autos.bed.gz" for f in annotation_features]
@@ -165,5 +168,23 @@ split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz"]
 
 clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz", "hg38_seqlens.tsv"]
 
+## ----- neutral track
+# we remove all phastcons, exons, CDS, and UTRs
+rule neutral_slop:
+  input: exon="hg38.exons_autos.bed.gz", cds="hg38.CDS_autos.bed.gz", 
+         UTR="hg38.UTR_autos.bed.gz", phastcons="hg38.phastcons_autos.bed.gz",
+         seqlens="hg38_seqlens.tsv"
+  output: "putatively_neutral__slop{slop}.bed.gz"
+  shell:
+     """
+     zcat {input.exon} {input.cds} {input.UTR} {input.phastcons} | \
+      bedtools slop -g {input.seqlens} -b {wildcards.slop}  | \
+      sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+       bedtools complement -i - -g {input.seqlens} | gzip > {output}
+     """
+
+neutral = ["putatively_neutral__slop0.bed.gz", "putatively_neutral__slop1000.bed.gz"]
+
 rule all:
-  input: clean_annot, split
+  input: clean_annot, split, recmaps, genome, neutral
+
