@@ -683,7 +683,7 @@ def tracks(config, full, seqlens):
 @click.argument('fitdir', required=True)
 @click.option('--blocksize', default=25_000_000,
               help="the jackknife blocksize to use")
-@click.option('--output', required=True,
+@click.option('--output', required=False, default=None,
               type=click.Path(writable=True),
               help='a pickle file of the entire fit object')
 def collect(fitdir, blocksize, output):
@@ -691,12 +691,19 @@ def collect(fitdir, blocksize, output):
     Load all the objects in the fit directory, run from a
     snakemake pipeline.
     """
-    assert output.endswith('.pkl'), "output filename should end in .pkl"
-    res = ModelDir(fitdir, jackknife_blocksize=blocksize)
-    res.save(output)
-    for window, fit in res.fits.items():
-        print('-'*10 + f" window size: {si_format(window)}bp " + '-'*10)
+    res = ModelDir(fitdir)
+    if output is not None:
+        assert output.endswith('.pkl'), "output filename should end in .pkl"
+        res.save(output)
+    for pop, (nll, key, fit) in res.best_nlls.items():
+        print(pop)
+        print(key)
         print(fit)
+
+    #for key, fit in res.fits.items():
+    #    #print('-'*10 + f" window size: {si_format(window)}bp " + '-'*10)
+    #    print(key)
+    #    print(fit)
 
 
 @cli.command()

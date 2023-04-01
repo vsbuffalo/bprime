@@ -19,30 +19,58 @@ class ModelDir:
     """ 
     This class is to manage large-scale fits based on the snakemake pipeline.
     """
-    def __init__(self, dir, jackknife_blocksize=25_000_000):
+    def __init__(self, dir):
         """
         """
         self.dir = dir 
         self._get_fits()
+
+    def _get_specs(self):
+        specs = [f for f in os.listdir(self.dir) if f.endswith('.yml')]
+        return specs
         
-    def _get_fits(self, jackknife_blocksize=25_000_000):
-         dirs = {int(f.replace('fit_', '')): join(self.dir, f) for 
-                 f in os.listdir(self.dir) if f.startswith('fit_')}
-         logging.info("loading fits...")
-         fits = {w: (f, load_pickle(join(f, 'mle.pkl'))['mbp']) for w, f 
-                 in dirs.items() if os.path.exists(join(f, 'mle.pkl'))}
-         self._fits = fits
-         out_fits = {}
-         for window, (fit_dir, fit) in self._fits.items(): 
-             fit.std_error_type = None  # hack for back compat; remove
-             jacknife_dir = join(fit_dir, f'jackknife/{jackknife_blocksize}/')
-             if os.path.exists(jacknife_dir):
-                 fit.load_jackknives(jacknife_dir)
-             loo_dir = join(fit_dir, 'loo_chrom/')
-             if os.path.exists(loo_dir):
-                 fit.load_loo(loo_dir)
-             out_fits[window] = fit
-         self.fits = out_fits
+    def _get_fits(self):
+         fits = dict()
+         best_nlls = dict() # per pop
+         for specfile in self._get_specs():
+             specdir = specfile.replace('.yml', '')
+             fitdir = join(self.dir, specdir, 'fits')
+             popdirs = os.listdir(fitdir)
+             for popdir in popdirs:
+                 assert popdir.startswith('pop_')
+                 pop = popdir.replace('pop_', '')
+                 windowdirs = os.listdir(join(fitdir, popdir))
+                 for windowdir in windowdirs:
+                     assert windowdir.startswith('window_')
+                     window = int(windowdir.replace('window_', ''))
+                     typedirs = os.listdir(join(fitdir, popdir, windowdir))
+                     for typedir in typedirs:
+                         assert typedir.startswith('type_')
+                         tracktype = typedir.replace('type_', '')
+                         mutdirs = os.listdir(join(fitdir, popdir, windowdir, typedir))
+                         # exclude model_data.pkl
+                         mutdirs = [d for d in mutdirs if not d.endswith('.pkl')]
+                         for mutdir in mutdirs:
+                             mutrate = mutdir.replace('mutrate_', '')
+                             initialdir = join(fitdir, popdir, windowdir, typedir, mutdir, "initial")
+                             fitfile = join(initialdir, "mle.pkl")
+                             if not os.path.exists(fitfile):
+                                 continue
+                             keyvals = dict(name=specdir, pop=pop, window=window,
+                                            track=tracktype, mutrate=mutrate)
+                             key = tuple(keyvals.items())
+                             fit = load_pickle(fitfile)
+                             nll = fit['mbp'].nll_
+                             if pop not in best_nlls:
+                                 best_nlls[pop] = nll, key, fit
+                             else:
+                                 if best_nlls[pop][0] > nll:
+                                     # replace with this better fit
+                                     best_nlls[pop] = nll, key, fit
+                             fits[key] = fit
+         self.fits = fits
+         self.best_nlls = best_nlls
+         return fits
 
     def save(self, output):
         save_pickle(self, output)
