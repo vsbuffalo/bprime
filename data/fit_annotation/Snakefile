@@ -183,6 +183,7 @@ rule neutral_slop:
        bedtools complement -i - -g {input.seqlens} | gzip > {output}
      """
 
+<<<<<<< HEAD
 rule neutral:
   input: exon="hg38.exons_autos.bed.gz", cds="hg38.CDS_autos.bed.gz", 
          UTR="hg38.UTR_autos.bed.gz", phastcons="hg38.phastcons_autos.bed.gz",
@@ -197,6 +198,9 @@ rule neutral:
 
 
 neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop1000.bed.gz"]
+=======
+neutral = ["putatively_neutral__slop0.bed.gz", "putatively_neutral__slop1000.bed.gz"]
+>>>>>>> new neutral files, with varying slop, new decode map
 
 rule all:
   input: clean_annot, split, recmaps, genome, neutral

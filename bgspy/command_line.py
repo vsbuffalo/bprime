@@ -714,6 +714,25 @@ def collect(fitdir, blocksize, output):
 
 
 @cli.command()
+@click.option('--bfile', required=True, help="the pickled B file")
+@click.option('--simfile', required=True, help="simulation .npz")
+@click.option('--output', required=True,
+              type=click.Path(writable=True),
+              help='a pickle file of the entire fit object')
+@click.option('--t', required=True, help="list of selection coefficients to load in")
+@click.option('--w', required=True, help="list of mutation rates to load in")
+def bfix(bfile, simfile, output):
+    """
+    Given a set of empirically-estimated B values from simulations,
+    load them into an existing B file, to fix issues with strong 
+    selection.
+    """
+    sims = np.load(simfile)
+    pass # TODO
+
+
+
+@cli.command()
 @click.argument('file', required=True)
 @click.option('--only-Bp', default=False, is_flag=True, help="only calculate B'")
 @click.option('--only-B', default=False, is_flag=True, help="only calculate B")
