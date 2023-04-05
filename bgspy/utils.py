@@ -871,7 +871,7 @@ def rle(inarray):
             p = np.cumsum(np.append(0, z))[:-1] # positions
             return(z, p, ia[i])
 
-def masks_to_ranges(mask_dict, return_val=False, labels=None):
+def masks_to_ranges(mask_dict, return_val=False, ignore_zeros=False, labels=None):
     """
     Given the masks from combine_features(), turn these into a chromosome
     range dictionary.
@@ -895,6 +895,8 @@ def masks_to_ranges(mask_dict, return_val=False, labels=None):
     for chrom in mask_dict:
         rls, starts, vals = rle(mask_dict[chrom])
         for rl, s, val in zip(rls, starts, vals):
+            if val == 0 and ignore_zeros:
+                continue
             if labels is not None:
                 lab = labels[val-1] if val > 0 else None
                 x = (s, s + rl, lab)
@@ -909,44 +911,32 @@ def masks_to_ranges(mask_dict, return_val=False, labels=None):
     return ranges
 
 
-def genome_wide_quantiles(chromdict, alphas, subsample_chrom=None,
-                          return_samples=False):
+def inverse_phred(Q):
     """
-    Take a chromdict of values and find the genome-wide quantiles.
+    Given a Phred score Q, return the probability.
+    """
+    return 10**(-Q/10)
 
-    If subsample_chrom is not None, a fraction of each chromosome are sampled.
-    """
-    if not subsample_chrom:
-        cuts = np.nanquantile(list(itertools.chain(*chromdict.values())), alphas)
-        return cuts
-    else:
-        samples = []
-        for chrom, values in chromdict.items():
-            val = values[~np.isnan(values)]
-            seqlen = val.size
-            n = int(subsample_chrom * seqlen)
-            samples.extend(np.random.choice(val[~np.isnan(val)], n, replace=False))
-        cuts = np.nanquantile(samples, alphas)
-    if return_samples:
-        return cuts, samples
-    return cuts
+def phred(P):
+    return -10 * np.log10(P)
 
 
-def quantize_track(chromdict, cuts, labels=None, bed_file=None, progress=True):
+def quantize_track(chromdict, thresh, label=None, bed_file=None, progress=True):
     """
-    Take a conservation track, e.g. CADD, and bin it into quantiles,
-    and output to BEd.
+    Take a chromdict of percentiles and collect or write to BED the top
+    thresh hits.
     """
     bins = dict()
     chroms = list(chromdict.keys())
     if progress:
         chroms = tqdm.tqdm(chroms)
     for chrom in chroms:
-        digitized = np.digitize(chromdict[chrom], cuts)
+        passed = chromdict[chrom] >= thresh
         if bed_file is None:
-            bins[chrom] = digitized
+            bins[chrom] = passed
         else:
-            ranges = masks_to_ranges({chrom: digitized}, labels=labels)
+            # ignore_zeros=True drops all uncovered basepairs (e.g. those not passed the threshold)
+            ranges = masks_to_ranges({chrom: passed}, labels=[label], ignore_zeros=True)
             write_bed(ranges, bed_file, append=True)
     if bed_file is None:
         return bins

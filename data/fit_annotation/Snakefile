@@ -1,4 +1,6 @@
 import numpy as np
+from bgspy.utils import load_seqlens, load_cadd_bed_scores
+from bgspy.utils import quantize_track, phred
 
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
@@ -168,6 +170,71 @@ split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz"]
 
 clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz", "hg38_seqlens.tsv"]
 
+## ----- CADD annotation
+rule cadd:
+  output: "cadd_whole_genome_SNVs.tsv.gz"
+  shell:
+    """
+    wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
+    """
+
+rule cadd_bed:
+  input: "cadd_whole_genome_SNVs.tsv.gz"
+  output: "cadd_whole_genome_SNVs.bed.gz"
+  shell:
+    """
+     zcat {input[0]} | bioawk -t '{{print $1,$2,$2+1,$4,$6}}' | grep -v '^#' | \
+       sed 's/^/chr/' | bedtools merge -i - -d -1 -c 1,5,5 -o count,mean,max | gzip > {output[0]}
+    """
+
+rule cadd_npz:
+  input: cadd="cadd_whole_genome_SNVs.bed.gz", seqlens="hg38_seqlens.tsv"
+  output: "cadd_whole_genome_SNVs.npz"
+  run:
+    seqlens = load_seqlens(input.seqlens)
+    d = load_cadd_bed_scores(input.cadd, seqlens, mode='max')
+    np.savez(output[0], **d)
+
+rule cadd_cov:
+  input: "cadd_whole_genome_SNVs.npz"
+  output: "cadd_{percent}percent_unmerged.bed.gz"
+  run:
+    d = np.load(input[0])
+    percent = float(wildcards.percent)
+    thresh_score = phred(percent)
+    quantize_track(d, thresh_score, label=f"CADD top {percent}%", bed_file=output[0])
+
+rule cadd_merged:
+  input: "cadd_{percent}percent_unmerged.bed.gz"
+  output: "cadd_{percent}percent.bed.gz"
+  shell:
+    """
+    zcat {input} | sort --version-sort -k1,1 -k2,2n | bedtools merge | gzip > {output}
+    """
+
+rule windows:
+  input: seqlens="hg38_seqlens.tsv"
+  output: "window_{width}.bed.gz"
+  shell: 
+     """
+     bedtools makewindows -g {input.seqlens} -w {wildcards.width} > {output}
+     """
+
+
+rule cadd_simple:
+  input: cadd="cadd_{percent}percent.bed.gz", windows="window_{width}.bed.gz"
+  output: "cadd_{percent}percent_simple{width}.bed.gz"
+  shell:
+     """
+     bedtools coverage -b {input.cadd} -a {input.windows} | \
+     bioawk -t 'function ceil(x) {{return (x == int(x)) ? x : int(x)+1}} {{ if ($5 > 0) {{ print $1,($2+$3)/2 - int($5/2),($2+$3)/2 + ceil($5/2)}} }}' | \
+       gzip > {output}
+     """
+
+cadd_annot = ["cadd_6percent.bed.gz", "cadd_7percent.bed.gz", "cadd_8percent.bed.gz"]
+cadd_simple = ["cadd_6percent_simple1000.bed.gz"]
+cadd_annot += cadd_simple
+
 ## ----- neutral track
 # we remove all phastcons, exons, CDS, and UTRs
 rule neutral_slop:
@@ -183,7 +250,6 @@ rule neutral_slop:
        bedtools complement -i - -g {input.seqlens} | gzip > {output}
      """
 
-<<<<<<< HEAD
 rule neutral:
   input: exon="hg38.exons_autos.bed.gz", cds="hg38.CDS_autos.bed.gz", 
          UTR="hg38.UTR_autos.bed.gz", phastcons="hg38.phastcons_autos.bed.gz",
@@ -198,10 +264,7 @@ rule neutral:
 
 
 neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop1000.bed.gz"]
-=======
-neutral = ["putatively_neutral__slop0.bed.gz", "putatively_neutral__slop1000.bed.gz"]
->>>>>>> new neutral files, with varying slop, new decode map
 
 rule all:
-  input: clean_annot, split, recmaps, genome, neutral
+  input: clean_annot, split, recmaps, genome, neutral, cadd_annot
 
