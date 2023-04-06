@@ -15,7 +15,8 @@ Directory structure:
 import sys
 from os.path import join
 import numpy as np
-from bgspy.utils import load_seqlens
+from bgspy.utils import load_seqlens, load_pickle
+
 if '--configfile' in sys.argv:
     i = sys.argv.index('--configfile')
 elif '--configfiles' in sys.argv:
@@ -124,7 +125,7 @@ rule annotation_full:
   input: config_path=config_path, seqlens=files['seqlens']
   output: f"../tracks/{name}_full.bed.gz"
   resources:
-    mem_mb=60000,
+    mem_mb=120000,
     time_min=120 
   shell:
      """
@@ -135,7 +136,7 @@ rule annotation:
   input: config_path=config_path, seqlens=files['seqlens']
   output: f"../tracks/{name}_sparse.bed.gz"
   resources:
-    mem_mb=60000,
+    mem_mb=120000,
     time_min=120 
   shell:
      """
@@ -143,25 +144,59 @@ rule annotation:
      """
 
 # ---- build the bmap
-rule bmap:
+rule bmap_b:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
          features="../tracks/{name}_{tracktype}.bed.gz"
-  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__B.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
-    mem_mb=200000,
+    mem_mb=300000,
     time_min=4320,
-    threads=40
+    threads=30
   shell:
     """
     bgspy calcb \
       --recmap {input.recmap} --annot {input.features} \
       --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.N} \
-      --ncores {resources.threads} --ncores-Bp {resources.threads} \
+      --ncores {resources.threads} --only-B \
       --step {wildcards.step}
     """
+
+rule bmap_bp:
+  input: seqlens=files['seqlens'],
+         recmap=files['recmap'],
+         features="../tracks/{name}_{tracktype}.bed.gz"
+  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__Bp.pkl"
+  benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
+  resources:
+    mem_mb=300000,
+    time_min=4320,
+    threads=30
+  shell:
+    """
+    bgspy calcb \
+      --recmap {input.recmap} --annot {input.features} \
+      --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.N} \
+      --ncores-Bp {resources.threads} --only-Bp \
+      --step {wildcards.step}
+    """
+
+rule combine_bmaps:
+  input: b="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__B.pkl", 
+         bp="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__Bp.pkl"
+  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  resources:
+    mem_mb=300000
+  run:
+    b = load_pickle(input.b)
+    bp = load_pickle(input.bp)
+    bp.Bs = b.Bs
+    bp.B_pos = b.B_pos
+    bp.save(output.pkl_b_file)
+
 
 # ---- save the fit data
 rule save_data:
