@@ -168,7 +168,8 @@ split += [f"hg38.{f}_refseq_autos.bed.gz" for f in annotation_features]
 split += [f"hg38.{f}_ensembl_autos.bed.gz" for f in annotation_features]
 split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz"]
 
-clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz", "hg38_seqlens.tsv"]
+clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz"]
+clean_annot += split
 
 ## ----- CADD annotation
 rule cadd:
@@ -178,8 +179,15 @@ rule cadd:
     wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
     """
 
+rule cadd_sansB:
+  output: "all_SNV.tsv.gz"
+  shell:
+    """
+    wget -O {output} https://kircherlab.bihealth.org/download/CADD/bStatistic/GRCh38/all_SNV.tsv.gz
+    """
+
 rule cadd_bed:
-  input: "cadd_whole_genome_SNVs.tsv.gz"
+  input: "all_SNV.tsv.gz"
   output: "cadd_whole_genome_SNVs.bed.gz"
   shell:
     """
@@ -201,7 +209,7 @@ rule cadd_cov:
   run:
     d = np.load(input[0])
     percent = float(wildcards.percent)
-    thresh_score = phred(percent)
+    thresh_score = phred(percent/100)
     quantize_track(d, thresh_score, label=f"CADD top {percent}%", bed_file=output[0])
 
 rule cadd_merged:
@@ -220,6 +228,13 @@ rule windows:
      bedtools makewindows -g {input.seqlens} -w {wildcards.width} > {output}
      """
 
+rule cadd_simple_merged:
+  input: "cadd_{percent}percent.bed.gz"
+  output: "cadd_{percent}percent_merged{width}.bed.gz"
+  shell:
+    """
+    bedtools merge -i {input} -d {wildcards.width} | gzip > {output}
+    """
 
 rule cadd_simple:
   input: cadd="cadd_{percent}percent.bed.gz", windows="window_{width}.bed.gz"
@@ -232,7 +247,7 @@ rule cadd_simple:
      """
 
 cadd_annot = ["cadd_6percent.bed.gz", "cadd_7percent.bed.gz", "cadd_8percent.bed.gz"]
-cadd_simple = ["cadd_6percent_simple1000.bed.gz"]
+cadd_simple = ["cadd_6percent_simple1000.bed.gz", "cadd_6percent_merged1.bed.gz",  "cadd_6percent_merged2.bed.gz"]
 cadd_annot += cadd_simple
 
 ## ----- neutral track
@@ -265,6 +280,17 @@ rule neutral:
 
 neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop1000.bed.gz"]
 
+## ----- percent summaries
+# calculate the percent of autosomal basepairs all the tracks cover
+rule stats:
+  input: clean_annot, cadd_annot, neutral
+  output: "percent_coverage.tsv"
+  shell: 
+     """
+     echo {input} | sort | xargs -n1 bash ../../tools/percent_genome.sh > {output} 
+     """
+stats = ["percent_coverage.tsv"]
+
 rule all:
-  input: clean_annot, split, recmaps, genome, neutral, cadd_annot
+  input: clean_annot, recmaps, genome, neutral, cadd_annot, stats
 
