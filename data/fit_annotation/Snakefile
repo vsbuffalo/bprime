@@ -289,8 +289,9 @@ rule stats:
      """
      echo {input} | sort | xargs -n1 bash ../../tools/percent_genome.sh > {output} 
      """
+     
 stats = ["percent_coverage.tsv"]
 
 rule all:
-  input: clean_annot, recmaps, genome, neutral, cadd_annot, stats
+  input: clean_annot, recmaps, genome, neutral, cadd_annot, #stats
 

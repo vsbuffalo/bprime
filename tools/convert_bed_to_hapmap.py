@@ -11,6 +11,6 @@ for line in readfile(sys.argv[1]):
     start, end = int(start), int(end)
     if last_pos is not None and (start != last_pos and (chrom == last_chrom)):
         raise ValueError(f"recmap is not full coverage, cannot convert ({chrom}:{start}-{end})")
-    print(f"{chrom}\t{end}\t{rate}")
+    print(f"{chrom}\t{start}\t{rate}")
     last_chrom = chrom
     last_pos = end
