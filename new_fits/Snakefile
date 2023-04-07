@@ -171,9 +171,9 @@ rule bmap_bp:
   output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__Bp.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
-    mem_mb=300000,
+    mem_mb=400000,
     time_min=4320,
-    threads=30
+    threads=20
   shell:
     """
     bgspy calcb \
