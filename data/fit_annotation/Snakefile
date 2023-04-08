@@ -278,7 +278,36 @@ rule neutral:
      """
 
 
-neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop1000.bed.gz"]
+neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop200.bed.gz"]
+
+## ----- Accessible Regions
+accessible = ["h1kg_strict.bed.gz"]
+
+
+rule strict:
+  output: "h1kg_strict.bed.gz"
+  shell: 
+    """
+    curl http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/working/20160622_genome_mask_GRCh38/StrictMask/20160622.allChr.mask.bed | \
+      gzip > {output}
+    """
+
+rule no_centro:
+  input: centro="hg38_centro_slop.bed", seqlens="hg38_seqlens.tsv"
+  output: "no_centro.bed"
+  shell:
+    """
+    bedtools complement -i {input.centro} -g {input.seqlens} > {output}
+    """
+
+rule no_centro_strict:
+  input: no_centro="no_centro.bed", seqlens="hg38_seqlens.tsv", strict="h1kg_strict.bed"
+  output: "no_centro_strict.bed"
+  shell:
+    """
+    bedtools intersect -a {input.no_centro} -b {input.strict} > {output}
+    """
+
 
 ## ----- percent summaries
 # calculate the percent of autosomal basepairs all the tracks cover
@@ -293,5 +322,5 @@ rule stats:
 stats = ["percent_coverage.tsv"]
 
 rule all:
-  input: clean_annot, recmaps, genome, neutral, cadd_annot, #stats
+  input: clean_annot, recmaps, genome, neutral, cadd_annot, accessible #stats
 
