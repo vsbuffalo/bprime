@@ -278,7 +278,9 @@ rule neutral:
      """
 
 
-neutral = ["putatively_neutral.bed.gz", "putatively_neutral__slop200.bed.gz"]
+neutral = ["putatively_neutral.bed.gz",
+           "putatively_neutral__slop200.bed.gz",
+           "putatively_neutral__slop100.bed.gz"]
 
 ## ----- Accessible Regions
 accessible = ["h1kg_strict.bed.gz"]

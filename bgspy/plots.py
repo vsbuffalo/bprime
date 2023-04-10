@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
-from bgspy.utils import mean_ratio, argsort_chroms
+from bgspy.utils import mean_ratio, argsort_chroms, center_and_scale
 import matplotlib as mpl
 lowess = sm.nonparametric.lowess
 
@@ -204,7 +204,7 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
     return np.convolve( m[::-1], y, mode='valid')
 
 
-def predict_chrom_plot(model, chrom, ratio=True,
+def predict_chrom_plot(model, chrom, ratio=True, center_scale=False,
                        label='prediction', lw=2,
                        pred_col='cornflowerblue', pi_col='0.22',
                        alpha_predict=1, alpha_pi=1,
@@ -224,14 +224,23 @@ def predict_chrom_plot(model, chrom, ratio=True,
 
     y = predicts_full[chrom_idx]
     ylab = "$\\pi$"
+    msg = "center_scale and ratio cannot be set"
     if ratio:
+        assert not center_scale, msg
         y = mean_ratio(y)
         ylab = "$\\pi/\\bar{\\pi}$"
+    if center_scale:
+        assert not ratio, msg
+        y = center_and_scale(y)
     #pi = savitzky_golay(pi, window_size=5, order=1)
     ax.plot(midpoints, y, label=label, linewidth=lw, c=pred_col,
             alpha=alpha_predict, zorder=3)
     if ratio:
+        assert not center_scale, msg
         pi = mean_ratio(pi)
+    if center_scale:
+        assert not ratio, msg
+        pi = center_and_scale(pi)
     ax.plot(midpoints, pi, label='data', linewidth=lw, c=pi_col,
             alpha=alpha_pi)
     if add_r2:
