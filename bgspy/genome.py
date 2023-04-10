@@ -402,7 +402,7 @@ def process_annotation(features, recmap, split_length=None):
     assert np.sum(np.isnan(split_rates)) == 0, "some segment recombination rates are nan!"
     features = np.array([feature_map[x] for x in split_features],
                         dtype='uint16')
-    index = {c: np.array(idx, dtype='unint32') for c, idx in index.items}
+    index = {c: np.array(idx, dtype='uint32') for c, idx in index.items()}
     return Segments(ranges, rates, map_pos, features, feature_map, index)
 
 
