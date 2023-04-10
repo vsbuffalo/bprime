@@ -203,14 +203,26 @@ rule cadd_npz:
     d = load_cadd_bed_scores(input.cadd, seqlens, mode='max')
     np.savez(output[0], **d)
 
-rule cadd_cov:
+rule cadd_cov_top:
   input: "cadd_whole_genome_SNVs.npz"
-  output: "cadd_{percent}percent_unmerged.bed.gz"
+  output: "cadd_top{percent}_percent_unmerged.bed.gz"
   run:
     d = np.load(input[0])
     percent = float(wildcards.percent)
     thresh_score = phred(percent/100)
-    quantize_track(d, thresh_score, label=f"CADD top {percent}%", bed_file=output[0])
+    print(f"percent={percent}, thresh_score={thresh_score}")
+    quantize_track(d, thresh_score, label=f"CADD top {percent}%", bed_file=output[0], flip_inequality=False)
+
+rule cadd_cov_bottom:
+  input: "cadd_whole_genome_SNVs.npz"
+  output: "cadd_bottom{percent}_percent_unmerged.bed.gz"
+  run:
+    d = np.load(input[0])
+    percent = float(wildcards.percent)
+    thresh_score = phred(percent/100)
+    print(f"percent={percent}, thresh_score={thresh_score}")
+    quantize_track(d, thresh_score, label=f"CADD bottom {percent}%", bed_file=output[0], flip_inequality=True)
+
 
 rule cadd_merged:
   input: "cadd_{percent}percent_unmerged.bed.gz"
@@ -236,6 +248,8 @@ rule cadd_simple_merged:
     bedtools merge -i {input} -d {wildcards.width} | gzip > {output}
     """
 
+# take all CADD basepairs in a window and move them to the center, to 
+# rough-grid tracks that have fewer contiguous 
 rule cadd_simple:
   input: cadd="cadd_{percent}percent.bed.gz", windows="window_{width}.bed.gz"
   output: "cadd_{percent}percent_simple{width}.bed.gz"
@@ -246,8 +260,9 @@ rule cadd_simple:
        gzip > {output}
      """
 
-cadd_annot = ["cadd_6percent.bed.gz", "cadd_7percent.bed.gz", "cadd_8percent.bed.gz"]
-cadd_simple = ["cadd_6percent_simple1000.bed.gz", "cadd_6percent_merged1.bed.gz",  "cadd_6percent_merged2.bed.gz"]
+cadd_annot = ["cadd_top6_percent.bed.gz", "cadd_top7_percent.bed.gz", "cadd_top8_percent.bed.gz"]
+cadd_simple = ["cadd_top6_percent_simple100.bed.gz", "cadd_top6_percent_simple1000.bed.gz", "cadd_top6_percent_merged1.bed.gz",  
+               "cadd_top6_percent_merged2.bed.gz"]
 cadd_annot += cadd_simple
 
 ## ----- neutral track
@@ -280,7 +295,11 @@ rule neutral:
 
 neutral = ["putatively_neutral.bed.gz",
            "putatively_neutral__slop200.bed.gz",
-           "putatively_neutral__slop100.bed.gz"]
+           "putatively_neutral__slop100.bed.gz",
+           "cadd_bottom20_percent.bed.gz",
+           "cadd_bottom30_percent.bed.gz"
+          ]
+
 
 ## ----- Accessible Regions
 accessible = ["h1kg_strict.bed.gz"]

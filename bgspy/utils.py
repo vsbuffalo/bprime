@@ -938,7 +938,8 @@ def phred(P):
     return -10 * np.log10(P)
 
 
-def quantize_track(chromdict, thresh, label=None, bed_file=None, progress=True):
+def quantize_track(chromdict, thresh, label=None, bed_file=None, 
+                   flip_inequality=False, progress=True):
     """
     Take a chromdict of percentiles and collect or write to BED the top
     thresh hits.
@@ -948,7 +949,10 @@ def quantize_track(chromdict, thresh, label=None, bed_file=None, progress=True):
     if progress:
         chroms = tqdm.tqdm(chroms)
     for chrom in chroms:
-        passed = chromdict[chrom] >= thresh
+        if flip_inequality:
+            passed = chromdict[chrom] <= thresh
+        else:
+            passed = chromdict[chrom] >= thresh
         if bed_file is None:
             bins[chrom] = passed
         else:
