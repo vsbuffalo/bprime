@@ -1,0 +1,48 @@
+---
+name: cadd7__decode
+
+# fit settings
+settings:
+  pi0_bounds: 0.0005,0.008
+  mu_bounds: 0.5e-8,8e-8
+  nstarts: 2000
+  nstarts_loo: 1000
+  nstarts_jackknife: 1000
+  num_jackknife_samples: 200
+
+# pops
+data: 
+  path: hg1k_{popl}_counts
+  pops: [yri, ceu, chb]
+
+# files
+files:
+  seqlens: ../../data/fit_annotation/hg38_seqlens.tsv
+  recmap: ../../data/fit_annotation/decode_2019_map.txt
+  access: ../../data/annotation/no_centro_strict.bed
+  fasta: ../../data/fit_annotation/hg38.fa.gz
+  neut: ../../data/fit_annotation/putatively_neutral__slop200.bed.gz
+  counts: ../../data/h1kg/
+
+# features
+features:
+  features: 
+    cadd6: ../../data/fit_annotation/cadd_7percent.bed.gz
+
+# parameters for B and B' maps
+params: 
+  N: 10000
+  grid: 6x8
+  step: 100000
+
+#  the mles, etc to fit
+fits: 
+  # 1Mb free mutation, full and sparse
+  #- {window: 1000000, mu: free, type: full,  loo: false, rescaled: false, jackknife: false}
+  - {window: 1000000, mu: free, type: sparse, loo: false, rescaled: false, jackknife: false}
+
+  # 1Mb mu=1.3e-8, full and sparse
+  #- {window: 1000000, mu: 1.3e-8, type: full,  loo: false, rescaled: false, jackknife: false}
+  #- {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: false, jackknife: false}
+
+
