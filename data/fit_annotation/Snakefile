@@ -203,6 +203,32 @@ rule cadd_npz:
     d = load_cadd_bed_scores(input.cadd, seqlens, mode='max')
     np.savez(output[0], **d)
 
+rule cadd_cov_track:
+  input: "cadd_whole_genome_SNVs.npz"
+  output: "cadd_quantized.bed.gz"
+  run:
+    d = np.load(input[0])
+
+    quantile_bins = [0, 0.3, 0.90, 0.94, 0.96, 0.98, 1]
+
+    with open(output[0], 'w') as bed_file:
+        for chrom in scores.keys():
+            chrom_scores = scores[chrom]
+            quantiles = np.quantile(chrom_scores, quantile_bins)
+            discretized_scores = pd.cut(chrom_scores, quantiles, labels=False)
+            prev_score = None
+            prev_start = None
+            for i in range(len(discretized_scores)):
+                if prev_score != discretized_scores[i] or i == len(discretized_scores) - 1:
+                    if prev_score is not None:
+                        chrom_start = prev_start
+                        chrom_end = i
+                        score = prev_score
+                        bed_line = f'{chrom}\t{chrom_start}\t{chrom_end}\t.\t{score}\n'
+                        bed_file.write(bed_line)
+                    prev_score = discretized_scores[i] if i < len(discretized_scores) - 1 else None
+                    prev_start = i
+
 rule cadd_cov_top:
   input: "cadd_whole_genome_SNVs.npz"
   output: "cadd_top{percent}_percent_unmerged.bed.gz"
@@ -264,6 +290,7 @@ cadd_annot = ["cadd_top6_percent.bed.gz", "cadd_top7_percent.bed.gz", "cadd_top8
 cadd_simple = ["cadd_top6_percent_simple100.bed.gz", "cadd_top6_percent_simple1000.bed.gz", "cadd_top6_percent_merged1.bed.gz",  
                "cadd_top6_percent_merged2.bed.gz"]
 cadd_annot += cadd_simple
+cadd_annot += ["cadd_quantized.bed.gz"]
 
 ## ----- neutral track
 # we remove all phastcons, exons, CDS, and UTRs
