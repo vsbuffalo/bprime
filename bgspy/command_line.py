@@ -76,6 +76,10 @@ def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
     gn.load_annot(annot)
     gn.load_recmap(recmap, conversion_factor=conv_factor)
     gn.create_segments(split_length=split_length)
+    # segments are sufficient for recmap, so we deleter
+    #delattr(gn, 'recmap')
+    #gn.recmap = None
+    #gc.collect()
     if genome_only:
         return gn
     

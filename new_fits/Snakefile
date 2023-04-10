@@ -24,6 +24,8 @@ elif '--configfiles' in sys.argv:
 config_path = sys.argv[i+1]
 
 # ---- load config file
+# NOTE: name should match this current directory!
+
 name = config["name"]
 settings = config["settings"]
 files = config["files"]
@@ -45,14 +47,31 @@ N = params['N']
 njack = settings['num_jackknife_samples']
 
 # ------- build the output files
-# Note: the B/B' maps can be reused across runs which 
+# NOTE: the B/B' maps can be reused across runs which 
 # vary in data. The .. is because fits are run in subdirs
-Bs_file = f"../bmaps/bmap_6x8grid_100000step_{N}N__{name}_{{tracktype}}.pkl"
+# NOTE: the 'name' is the ID here, and should be the name of the feature set
 
-# Note: the locally-rescaled B/B' maps are **fit specific**
-# so in the fit subdirectory
-Bs_file_rescaled = f"bmap_rescaled_{{window}}_6x8grid_100000step_{N}N__{name}_{{tracktype}}.pkl"
+# B and B' map params
+step = params['step']
 
+if 'grid' in params:
+    grid_str = params['grid']
+    Bs_file = f"../bmaps/bmap_{grid_str}grid_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+
+    # Note: the locally-rescaled B/B' maps are **fit specific**
+    # so in the fit subdirectory
+    Bs_file_rescaled = f"fits/pop_{{popl}}/window_{{window}}/type_{{tracktype}}/mutrate_{{mutrate}}/rescaled/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+else:
+    # we do separate w and t grids, and rename the B maps accordingly]
+    wgrid = params['wgrid']
+    tgrid = params['tgrid']
+    Bs_file = f"../bmaps/bmap_{wgrid}w{tgrid}t_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+
+    # Note: the locally-rescaled B/B' maps are **fit specific**
+    # so in the fit subdirectory
+    Bs_file_rescaled = f"fits/pop_{{popl}}/window_{{window}}/type_{{tracktype}}/mutrate_{{mutrate}}/rescaled/rescaled_bmap_{name}_bmap_B_{wgrid}w{tgrid}t_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+
+   
 Bs_files = [Bs_file]
 if do_rescale:
     Bs_files.append(Bs_file_rescaled)
@@ -93,10 +112,10 @@ for popl in pops:
         for fit_dir in fit_dirs:
             this_fit_path = join(fit_path, fit_dir)
 
-            # main mle fit
+            # the initial or rescaled mle fit
             mle = join(this_fit_path, f"mle.pkl")
             mle_fits.append(mle)
-
+ 
             # leave-one-out chromosome fits
             if do_loo:
                 for chrom in chroms:
@@ -110,6 +129,7 @@ for popl in pops:
                     jk_dir = join(this_fit_path, "jackknife", f"block_{jk_window}")
                     for frac in np.linspace(0, 1, njack+1)[:-1]:
                         jackknife_fits.append(join(jk_dir, f"jackknife_{frac}.pkl"))
+
 
 # for debuggin
 #print(model_data)
@@ -143,17 +163,17 @@ rule annotation:
      bgspy tracks {input.config_path} --seqlens {input.seqlens} | gzip > {output}
      """
 
-# ---- build the bmap
+# ---- build both bmaps
 rule bmap_b:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
          features="../tracks/{name}_{tracktype}.bed.gz"
-  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__B.pkl"
+  output: pkl_b_file="../bmaps/bmap_B_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
     mem_mb=300000,
     time_min=4320,
-    threads=30
+    threads=40
   shell:
     """
     bgspy calcb \
@@ -168,12 +188,12 @@ rule bmap_bp:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
          features="../tracks/{name}_{tracktype}.bed.gz"
-  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__Bp.pkl"
+  output: pkl_b_file="../bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
-    mem_mb=400000,
+    mem_mb=800000,
     time_min=4320,
-    threads=20
+    threads=30
   shell:
     """
     bgspy calcb \
@@ -185,8 +205,8 @@ rule bmap_bp:
     """
 
 rule combine_bmaps:
-  input: b="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__B.pkl", 
-         bp="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}__Bp.pkl"
+  input: b="../bmaps/bmap_B_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl", 
+         bp="../bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
     mem_mb=300000
@@ -287,6 +307,70 @@ rule loo_chrom:
       --ncores {resources.threads} --nstarts {params.nstarts}
     """
 
+# ----- locally-rescaled fits -----
+
+rule bmap_rescale:
+  input: seqlens=files['seqlens'],
+         recmap=files['recmap'],
+         features=f"../tracks/{name}_{{tracktype}}.bed.gz",
+         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
+         b=Bs_file
+  output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  resources:
+    mem_mb=800000,
+    time_min=4320,
+    threads=30
+  shell:
+    """
+    bgspy calcb \
+      --recmap {input.recmap} --annot {input.features} \
+      --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.N} \
+      --ncores {resources.threads} --ncores-Bp {resources.threads} \
+      --step {wildcards.step} \
+      --rescale-fit {input.fit} --only-Bp \
+      --rescale-Bp-file {input.b}
+    """
+
+rule save_data_rescale:
+  input: seqlens=files['seqlens'], recmap=files['recmap'],
+         access=files['access'], fasta=files['fasta'],
+         neut=files['neut'], counts_dir=join(files['counts'], data_path),
+         bs_file=Bs_file_rescaled
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/model_data_rescaled.pkl"
+  params: name=name
+  resources:
+    mem_mb=200000,
+    time_min=300
+  shell:
+    """
+    bgspy data --seqlens {input.seqlens} --recmap {input.recmap} \
+      --counts-dir {input.counts_dir} --neutral {input.neut} \
+      --access {input.access} --bs-file {input.bs_file} \
+      --window {wildcards.window} \
+      --fasta {input.fasta} \
+      --output {output}
+    """
+
+rule fit_rescaled:
+  input: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/model_data_rescaled.pkl"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/mle.pkl"
+  params: **settings
+  benchmark: "benchmarks/fit_{popl}_{window}_{tracktype}_{mutrate}_rescaled.txt"
+  resources:
+    mem_mb=60000,
+    time_min=980,
+    threads=50
+  shell:
+    """
+    bgspy fit \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
+      --mu {wildcards.mutrate} \
+      --data {input} \
+      --ncores {resources.threads} --nstarts {params.nstarts} \
+      --output {output} --only-Bp
+    """
+
 
 ## ----- CLI rules 
 rule data:
@@ -308,118 +392,3 @@ rule all:
   input: model_data, mle_fits, jackknife_fits, loo_fits
 
 
-
-## ---- jackknife
-### NOTE: for jackknife and loo, we don't need to extract window
-## information from the window wildcard, so we just blog over both
-## so these rules work for initial and rescaled fits
-#rule block_jackknife:
-#  # note that this doesn't actually require fit object, but 
-#  # I prefer that gets calculated first
-#  input: data='model_data_{window_rescaled}.pkl', fit='fit_{window_rescaled}/mle.pkl'
-#  output: 'fit_{window_rescaled}/jackknife/{blocksize}/jackknife_{frac}.pkl'
-#  params: nstarts=nstarts_jackknife, mu=mu, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
-#  resources:
-#    mem_mb=10000,
-#    time_min=300,
-#    threads=40
-#  shell:
-#    """
-#    bgspy jackblock \
-#      --blockwidth {wildcards.blocksize} \
-#      --data {input.data} \
-#      --mu {params.mu} \
-#      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
-#      --output {output[0]} \
-#      --blockfrac {wildcards.frac} \
-#      --ncores {resources.threads} --nstarts {params.nstarts}
-#    """
-#
-#
-#rule loo_chrom:
-#  # note that this doesn't actually require fit object, but 
-#  # I prefer that gets calculated first
-#  input: data='model_data_{window_rescaled}.pkl', fit='fit_{window_rescaled}/mle.pkl'
-#  output: 'fit_{window_rescaled}/loo_chrom/loo_{chrom}.pkl'
-#  params: nstarts=nstarts_loo, mu=mu, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
-#  resources:
-#    mem_mb=10000,
-#    time_min=300,
-#    threads=40
-#  shell:
-#    """
-#    bgspy loo \
-#      --data {input.data} \
-#      --output {output[0]} \
-#      --mu {params.mu} \
-#      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
-#      --chrom {wildcards.chrom} \
-#      --ncores {resources.threads} --nstarts {params.nstarts}
-#    """
-#
-## ----- locally-rescaled fits -----
-#rule bmap_rescale:
-#  input: seqlens_file=seqlens_file,
-#         recmap=recmap_file,
-#         features=features_file,
-#         fit='fit_{window}/mle.pkl',
-#         b=Bs_file
-#  output: pkl_b_file="bmap_rescaled_{window,\d+}_{grid_str,[0-9x]+}grid_{step}step_{N}N_{name}.pkl"
-#  resources:
-#    mem_mb=200000,
-#    time_min=4320,
-#    threads=40
-#  shell:
-#    """
-#    bgspy calcb \
-#      --recmap {input.recmap} --annot {input.features} \
-#      --seqlens {input.seqlens_file} --g '{wildcards.grid_str}' \
-#      --output {output} --popsize {wildcards.N} \
-#      --ncores {resources.threads} --ncores-Bp {resources.threads} \
-#      --step {wildcards.step} \
-#      --rescale-fit {input.fit} --only-Bp \
-#      --rescale-Bp-file {input.b}
-#    """
-#
-#rule save_data_rescale:
-#  input: seqlens=seqlens_file, recmap_file=recmap_file,
-#         access_file=access_file, fasta_file=fasta_file,
-#         neut_file=neut_file, counts_dir=counts_dir,
-#         bs_file=Bs_file_rescaled
-#  output: 'model_data_{window,\d+}_rescaled.pkl'
-#  params: name=name
-#  resources:
-#    mem_mb=200000,
-#    time_min=300
-#  shell:
-#    """
-#    mkdir -p {params.name}
-#    bgspy data --seqlens {input.seqlens} --recmap {input.recmap_file} \
-#      --counts-dir {input.counts_dir} --neutral {input.neut_file} \
-#      --access {input.access_file} --bs-file {input.bs_file} \
-#      --window {wildcards.window} \
-#      --fasta {input.fasta_file} \
-#      --output {output[0]}
-#    """
-#
-#rule fit_rescaled:
-#  input: 'model_data_{window,\d+}_rescaled.pkl'
-#  output: 'fit_{window,\d+}_rescaled/mle.pkl'
-#  params: nstarts=nstarts, mu=mu, name=name, pi0_bounds=pi0_bounds, mu_bounds=mu_bounds
-#  benchmark: "benchmarks/fit_{window}_rescaled.txt"
-#  resources:
-#    mem_mb=50000,
-#    time_min=480,
-#    threads=40
-#  shell:
-#    """
-#    mkdir -p {params.name}
-#    bgspy fit \
-#      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
-#      --mu {params.mu} \
-#      --data {input[0]} \
-#      --ncores {resources.threads} --nstarts {params.nstarts} \
-#      --output {output[0]} --only-Bp
-#    """
-#
-#

@@ -3,6 +3,8 @@ import re
 import warnings
 import gzip
 import os
+import gc
+import sys
 import tqdm
 from collections import namedtuple, defaultdict, Counter
 import math
@@ -49,6 +51,21 @@ def midpoints(x):
 def is_sorted_array(x):
     return np.all(x[:-1] <= x[1:])
 
+
+def actualsize(input_obj):
+    # from https://towardsdatascience.com/the-strange-size-of-python-objects-in-memory-ce87bdfbb97f
+    memory_size = 0
+    ids = set()
+    objects = [input_obj]
+    while objects:
+        new = []
+        for obj in objects:
+            if id(obj) not in ids:
+                ids.add(id(obj))
+                memory_size += sys.getsizeof(obj)
+                new.append(obj)
+        objects = gc.get_referents(*new)
+    return memory_size
 
 class BinnedStat:
     __slots__ = ('stat', 'bins', 'n')

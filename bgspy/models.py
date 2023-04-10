@@ -199,11 +199,15 @@ class BGSModel(object):
         no_sc16 = self.genome.segments._segment_parts_sc16 is None
         if use_rescaling or recalc_segments or no_sc16:
             # re-calc the segment parts
+            logging.info("calculating B' segment parts")
             self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
+            logging.info("completed calculating B' segment parts")
 
         Bs, B_pos = calc_BSC16_parallel(self.genome, step=step, N=N,
                                         nchunks=nchunks, ncores=ncores)
+        logging.info("stacking B's")
         stacked_Bs = {chrom: np.stack(x).astype(Bdtype) for chrom, x in Bs.items()}
+        logging.info("freeing memory")
         del Bs  # free up memory
         gc.collect()
         prop_nan = [np.isnan(s).mean() for s in stacked_Bs.values()]

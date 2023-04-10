@@ -296,8 +296,9 @@ def calc_BSC16_parallel(genome, step, N, nchunks=1000, ncores=2):
     else:
         with multiprocessing.Pool(ncores) as p:
             res = deque(p.imap(calc_BSC16_chunk_worker, tqdm(chunks, total=chunks.total)))
-            #p.close()
-            #p.join()
+            p.close()
+            p.join()
+            print("done calculating B'", flush=True)
     print("Collating all B' results...  ", end='', flush=True)
     return chunks.collate(res)
     print("done.")

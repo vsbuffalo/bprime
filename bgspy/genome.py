@@ -5,7 +5,7 @@ from collections import defaultdict, Counter
 import numpy as np
 from scipy import interpolate
 from collections import defaultdict, namedtuple, deque
-from bgspy.utils import load_seqlens, BScores
+from bgspy.utils import load_seqlens, BScores, actualsize
 from bgspy.annotation import Annotation
 from bgspy.recmap import RecMap
 from bgspy.theory2 import B_segment_lazy, bgs_segment_sc16_parts
@@ -45,6 +45,13 @@ class Segments:
         self._predict_Vs = None
         self._predict_Vms = None
         self._predict_Ts = None
+
+    def info(self):
+        storage = ['ranges', 'rates', 'map_pos', 'features', 'feature_map',
+                   'inverse_feature_map', 'index', '_segment_parts',
+                   '_segment_parts_sc16', 'F', 'rescaling', '_predict_Vs',
+                   '_predict_Vms', '_predict_Ts']
+        return {f: actualsize(getattr(self, f))/1e9 for f in storage}
  
 
     def __repr__(self):
@@ -385,13 +392,17 @@ def process_annotation(features, recmap, split_length=None):
         map_end = rm.lookup(chrom, ranges[idx, 1], cumulative=True)
         assert(len(map_start) == len(idx))
         map_pos.append(np.stack((map_start, map_end)).T)
-    map_pos = np.concatenate(map_pos, axis=0)
+    with np.errstate(under='ignore'):
+        map_pos = np.concatenate(map_pos, axis=0).astype('float32')
     assert(map_pos.shape[0] == ranges.shape[0])
     print(f"done.")
     assert np.sum(np.isnan(map_pos)) == 0, "some interpolatd map positions are nan!"
-    rates = np.array(split_rates)
+    with np.errstate(under='ignore'):
+        rates = np.array(split_rates, dtype='float32')
     assert np.sum(np.isnan(split_rates)) == 0, "some segment recombination rates are nan!"
-    features = np.array([feature_map[x] for x in split_features])
+    features = np.array([feature_map[x] for x in split_features],
+                        dtype='uint16')
+    index = {c: np.array(idx, dtype='unint32') for c, idx in index.items}
     return Segments(ranges, rates, map_pos, features, feature_map, index)
 
 
