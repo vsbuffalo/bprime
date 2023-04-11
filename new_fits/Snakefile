@@ -56,7 +56,7 @@ step = params['step']
 
 if 'grid' in params:
     grid_str = params['grid']
-    Bs_file = f"../bmaps/bmap_{grid_str}grid_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+    Bs_file = f"bmaps/bmap_{grid_str}grid_{step}step_{N}N__{name}_{{tracktype}}.pkl"
 
     # Note: the locally-rescaled B/B' maps are **fit specific**
     # so in the fit subdirectory
@@ -65,7 +65,7 @@ else:
     # we do separate w and t grids, and rename the B maps accordingly]
     wgrid = params['wgrid']
     tgrid = params['tgrid']
-    Bs_file = f"../bmaps/bmap_{wgrid}w{tgrid}t_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+    Bs_file = f"bmaps/bmap_{wgrid}w{tgrid}t_{step}step_{N}N__{name}_{{tracktype}}.pkl"
 
     # Note: the locally-rescaled B/B' maps are **fit specific**
     # so in the fit subdirectory
@@ -83,6 +83,7 @@ model_data = []
 mle_fits = []
 loo_fits = []
 jackknife_fits = []
+preds = []
 for popl in pops:
     for fit_specs in fits:
         # get some specs out
@@ -90,6 +91,7 @@ for popl in pops:
         mutrate = fit_specs['mu']
         rescale = fit_specs['rescaled']
         do_loo = fit_specs['loo']
+        do_predict = fit_specs['predict']
         jackknife_windows = fit_specs['jackknife']
         tracktype = fit_specs['type']
 
@@ -108,7 +110,6 @@ for popl in pops:
         if rescale:
             fit_dirs.append("rescaled")
 
-
         for fit_dir in fit_dirs:
             this_fit_path = join(fit_path, fit_dir)
 
@@ -120,6 +121,9 @@ for popl in pops:
             if do_loo:
                 for chrom in chroms:
                     loo_fits.append(join(this_fit_path, "loo_chrom", f"loo_{chrom}.pkl"))
+
+            if do_predict:
+                preds.append(join(this_fit_path, "predicted_subrates.tsv"))
 
             # block-jackknives
             if jackknife_windows:
@@ -143,7 +147,7 @@ for popl in pops:
 # ---- build the annotation tracks
 rule annotation_full:
   input: config_path=config_path, seqlens=files['seqlens']
-  output: f"../tracks/{name}_full.bed.gz"
+  output: f"tracks/{name}_full.bed.gz"
   resources:
     mem_mb=120000,
     time_min=120 
@@ -154,7 +158,7 @@ rule annotation_full:
 
 rule annotation:
   input: config_path=config_path, seqlens=files['seqlens']
-  output: f"../tracks/{name}_sparse.bed.gz"
+  output: f"tracks/{name}_sparse.bed.gz"
   resources:
     mem_mb=120000,
     time_min=120 
@@ -167,8 +171,8 @@ rule annotation:
 rule bmap_b:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
-         features="../tracks/{name}_{tracktype}.bed.gz"
-  output: pkl_b_file="../bmaps/bmap_B_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+         features="tracks/{name}_{tracktype}.bed.gz"
+  output: pkl_b_file="bmaps/bmap_B_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
     mem_mb=300000,
@@ -187,8 +191,8 @@ rule bmap_b:
 rule bmap_bp:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
-         features="../tracks/{name}_{tracktype}.bed.gz"
-  output: pkl_b_file="../bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+         features="tracks/{name}_{tracktype}.bed.gz"
+  output: pkl_b_file="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
     mem_mb=800000,
@@ -205,9 +209,9 @@ rule bmap_bp:
     """
 
 rule combine_bmaps:
-  input: b="../bmaps/bmap_B_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl", 
-         bp="../bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
-  output: pkl_b_file="../bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  input: b="bmaps/bmap_B_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl", 
+         bp="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  output: pkl_b_file="bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
     mem_mb=300000
   run:
@@ -259,6 +263,24 @@ rule fit:
       --ncores {resources.threads} --nstarts {params.nstarts} \
       --output {output}
     """
+
+# ---- predict subrates, etc
+rule subrate_predict:
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl", 
+         bs_file=Bs_file
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predicted_subrates.tsv", 
+  params: **settings
+  resources:
+    mem_mb=200000,
+    time_min=980,
+    threads=50
+  shell:
+    """
+    bgspy subrate \
+      --fit {input.fit} --bs-file {input.bs_file} \
+      --ncores {resources.threads} --output {output}
+    """
+
 
 # ---- jackknife
 rule block_jackknife:
@@ -388,7 +410,10 @@ rule loo:
 #rule rescaled:
 #  input: mle_results_rescaled
 
+rule predict:
+   input: preds
+
 rule all:
-  input: model_data, mle_fits, jackknife_fits, loo_fits
+  input: model_data, mle_fits, jackknife_fits, loo_fits, preds
 
 
