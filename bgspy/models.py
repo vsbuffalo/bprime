@@ -33,7 +33,7 @@ import scipy.stats as stats
 
 from bgspy.utils import Bdtype, BScores, bin_chrom
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
-from bgspy.substitution import ratchet_df
+from bgspy.substitution import ratchet_df2
 
 
 class BGSModel(object):
@@ -262,15 +262,12 @@ class BGSModel(object):
         r = R/seglens
         return midpoints, r, segments.ranges, seglens
 
-    def ratchet_df(self, fit, predict_under_feature=None):
+    def ratchet_df(self, fit, ncores=None):
         """
         Output a combined ratchet, for all segments.
 
-        predict_under_feature: an index of which feature type to predict under
-        (e.g. to predict assuming all segments were CDS)
         """
-        return ratchet_df(self, fit, predict_under_feature)
-
+        return ratchet_df2(self, fit, ncores=ncores)
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)

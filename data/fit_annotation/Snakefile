@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from bgspy.utils import load_seqlens, load_cadd_bed_scores
 from bgspy.utils import quantize_track, phred
 
@@ -172,12 +173,13 @@ clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz"]
 clean_annot += split
 
 ## ----- CADD annotation
-rule cadd:
-  output: "cadd_whole_genome_SNVs.tsv.gz"
-  shell:
-    """
-    wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
-    """
+#rule cadd:
+#  # this version uses the B scores, so we don't use this
+#  output: "cadd_whole_genome_SNVs.tsv.gz"
+#  shell:
+#    """
+#    wget -O {output} https://krishna.gs.washington.edu/download/CADD/v1.6/GRCh38/whole_genome_SNVs.tsv.gz
+#    """
 
 rule cadd_sansB:
   output: "all_SNV.tsv.gz"
@@ -207,15 +209,14 @@ rule cadd_cov_track:
   input: "cadd_whole_genome_SNVs.npz"
   output: "cadd_quantized.bed.gz"
   run:
-    d = np.load(input[0])
+    scores = np.load(input[0])
 
-    quantile_bins = [0, 0.3, 0.90, 0.94, 0.96, 0.98, 1]
+    quantile_bins = np.array([0, 0.3, 0.90, 0.94, 0.96, 0.98, 1])
 
     with open(output[0], 'w') as bed_file:
         for chrom in scores.keys():
             chrom_scores = scores[chrom]
-            quantiles = np.quantile(chrom_scores, quantile_bins)
-            discretized_scores = pd.cut(chrom_scores, quantiles, labels=False)
+            discretized_scores = pd.cut(chrom_scores, phred(quantiles), labels=False)
             prev_score = None
             prev_start = None
             for i in range(len(discretized_scores)):
@@ -245,7 +246,7 @@ rule cadd_cov_bottom:
   run:
     d = np.load(input[0])
     percent = float(wildcards.percent)
-    thresh_score = phred(percent/100)
+    thresh_score = phred(1-percent/100)
     print(f"percent={percent}, thresh_score={thresh_score}")
     quantize_track(d, thresh_score, label=f"CADD bottom {percent}%", bed_file=output[0], flip_inequality=True)
 
@@ -290,7 +291,7 @@ cadd_annot = ["cadd_top6_percent.bed.gz", "cadd_top7_percent.bed.gz", "cadd_top8
 cadd_simple = ["cadd_top6_percent_simple100.bed.gz", "cadd_top6_percent_simple1000.bed.gz", "cadd_top6_percent_merged1.bed.gz",  
                "cadd_top6_percent_merged2.bed.gz"]
 cadd_annot += cadd_simple
-cadd_annot += ["cadd_quantized.bed.gz"]
+#cadd_annot += ["cadd_quantized.bed.gz"]
 
 ## ----- neutral track
 # we remove all phastcons, exons, CDS, and UTRs

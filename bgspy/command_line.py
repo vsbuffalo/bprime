@@ -486,34 +486,34 @@ def fit(data, output, mu, mu_bounds, pi0_bounds, ncores, nstarts, chrom, only_bp
               help="BGSModel genome model pickle file (contains B' and B)")
 @click.option('--fit', required=True, type=click.Path(exists=True),
               help='pickle file of fitted results')
-@click.option('--force-feature', default=None,
-              help='force all predictions using DFE estimates of this feature (experimental)')
+#@click.option('--force-feature', default=None,
+#              help='force all predictions using DFE estimates of this feature (experimental)')
+@click.option('--ncores',
+              help='number of cores to use for multi-start optimization',
+              type=int, default=1)
 @click.option('--output', required=True,
               type=click.Path(dir_okay=False, writable=True),
               help="pickle file for results")
 @click.option('--split', default=False, is_flag=True,
               help="split into different files for each feature "
               "(uses '<output>_<feature_a>.bed', etc)")
-def subrate(bs_file, fit, force_feature, output, split):
+def subrate(bs_file, fit, 
+            #force_feature,
+            ncores,
+            output, split):
     """
     Take a fit and predict the substitution rates.
     """
     m = BGSModel.load(bs_file)
-    bfit, bpfit = pickle.load(open(fit, 'rb'))
+    fits = pickle.load(open(fit, 'rb'))
+    bfit, bpfit = fits['mb'], fits['mbp']
 
-    feature_idx = None
-    if force_feature is not None:
-        avail_feats = [x.lower() for x in bpfit.features]
-        force_feature = force_feature.lower()
-        assert force_feature in avail_feats
-        feature_idx = avail_feats.index(force_feature)
-
-    rdf = m.ratchet_df(bpfit, predict_under_feature=feature_idx)
+    rdf = m.ratchet_df(bpfit, ncores=ncores)
     msg = "feature mismatch between BGSModel and fit!"
     assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
     if not split:
-        rdf.to_csv(output, sep='\t', header=False, index=False)
+        rdf.to_csv(output, sep='\t', header=True, index=False)
         return
     for feature in m.genome.segments.feature_map:
         if output.endswith('.bed'):
@@ -521,7 +521,7 @@ def subrate(bs_file, fit, force_feature, output, split):
         else:
             filename = f'{output}_{feature}.bed'
         rdfx = rdf.loc[rdf['feature'] == feature]
-        rdfx.to_csv(filename, sep='\t', header=False, index=False)
+        rdfx.to_csv(filename, sep='\t', header=True, index=False)
 
 
 @cli.command()

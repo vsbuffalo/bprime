@@ -120,3 +120,74 @@ def ratchet_df(model, fit, predict_under_feature=None):
                         'load': pred_load})
     return d
 
+
+def ratchet_df2(model, fit, ncores=None):
+    """
+    A better version of the function above.
+    """
+    m = model
+    mus = fit.mle_mu
+    W = fit.mle_W
+
+    from bgspy.likelihood import SimplexModel # to prevent circular import
+    if isinstance(fit, SimplexModel):
+        # repeat one for each feature (for simplex, these are all same)
+        mus = np.repeat(mus, fit.nf)
+
+    F = m.genome.segments.F
+    ns, nf = F.shape
+    nt = fit.nt
+    assert fit.nf == nf
+
+    segments = m.genome.segments
+    ranges = segments.ranges
+    seglens = np.diff(segments.ranges, axis=1).squeeze()
+    fmaps = segments.inverse_feature_map
+
+    # get chroms
+    chroms = []
+    for chrom, indices in segments.index.items():
+        chroms.extend([chrom] * len(indices))
+    chroms = np.array(chroms)
+
+    # predict the Vs, Vms, and Ts for all segments
+    Vs, Vms, Ts = segments._predict_segparts(fit, model.N, ncores=ncores)
+
+    R = 1/Ts
+    with np.errstate(under='ignore'):
+        r = R/seglens
+ 
+    pred_rs = []
+    pred_Rs = []
+    pred_Vs = []
+    pred_Vms = []
+    chrom_col = []
+    start_col, end_col = [], []
+    seglen_col = []
+    feature_col = []
+    # iterate over features
+    for i in range(nf):
+        fidx = F[:, i]
+        pred_rs.extend(r[:, fidx].sum(axis=0))
+        pred_Rs.extend(R[:, fidx].sum(axis=0))
+        pred_Vs.extend(Vs[:, fidx].sum(axis=0))
+        pred_Vms.extend(Vms[:, fidx].sum(axis=0))
+        chrom_col.extend(chroms[fidx])
+        start_col.extend(ranges[fidx, 0])
+        end_col.extend(ranges[fidx, 1])
+        seglen_col.extend(seglens[fidx])
+        fs = [fmaps[i]] * fidx.sum()
+        feature_col.extend(fs)
+
+    d = pd.DataFrame({'chrom': chrom_col,
+                      'start': start_col,
+                      'end': end_col,
+                      'feature': feature_col,
+                      'R': pred_Rs,
+                      'r': pred_rs,
+                      'V': pred_Vs,
+                      'Vm': pred_Vms,
+                      'seglen': seglen_col})
+    return d
+
+
