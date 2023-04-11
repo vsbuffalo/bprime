@@ -331,8 +331,7 @@ neutral = ["putatively_neutral.bed.gz",
 
 
 ## ----- Accessible Regions
-accessible = ["h1kg_strict.bed.gz"]
-
+accessible = ["h1kg_strict.bed.gz", "no_centro_strict.bed"]
 
 rule strict:
   output: "h1kg_strict.bed.gz"
