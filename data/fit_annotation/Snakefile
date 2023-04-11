@@ -325,7 +325,8 @@ neutral = ["putatively_neutral.bed.gz",
            "putatively_neutral__slop200.bed.gz",
            "putatively_neutral__slop100.bed.gz",
            "cadd_bottom20_percent.bed.gz",
-           "cadd_bottom30_percent.bed.gz"
+           "cadd_bottom30_percent.bed.gz",
+           "cadd_bottom70_percent.bed.gz"
           ]
 
 
