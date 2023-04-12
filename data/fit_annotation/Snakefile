@@ -207,28 +207,21 @@ rule cadd_npz:
 
 rule cadd_cov_track:
   input: "cadd_whole_genome_SNVs.npz"
-  output: "cadd_quantized.bed.gz"
+  output: "cadd_quantized_{width}bp_{fun}.bed.gz"
   run:
-    scores = np.load(input[0])
-
-    quantile_bins = np.array([0, 0.3, 0.90, 0.94, 0.96, 0.98, 1])
-
-    with open(output[0], 'w') as bed_file:
-        for chrom in scores.keys():
-            chrom_scores = scores[chrom]
-            discretized_scores = pd.cut(chrom_scores, phred(quantiles), labels=False)
-            prev_score = None
-            prev_start = None
-            for i in range(len(discretized_scores)):
-                if prev_score != discretized_scores[i] or i == len(discretized_scores) - 1:
-                    if prev_score is not None:
-                        chrom_start = prev_start
-                        chrom_end = i
-                        score = prev_score
-                        bed_line = f'{chrom}\t{chrom_start}\t{chrom_end}\t.\t{score}\n'
-                        bed_file.write(bed_line)
-                    prev_score = discretized_scores[i] if i < len(discretized_scores) - 1 else None
-                    prev_start = i
+    quantiles = np.array([0, 0.8, 0.9, 0.92, 0.94, 0.96, 0.98, 0.99, 0.999999999999999])
+    labs = np.copy(quantiles)
+    labs[-1] = 1
+    score_quantiles = phred(quantiles)
+    width = int(wildcards.width)
+    fun = {'max': np.nanmax, 'mean': np.nanmean}[wildcards.fun]
+    res, ranges = summarize_npz_by_bin(input[0], width, fun)
+    openfile = gzip.open(output[0], 'wt')
+    for chrom, scores in res.items():
+      bins = labs[np.digitize(scores, score_quantiles)]
+      for i, val in enumerate(bins):
+        start, end = ranges[chrom][i, :]
+        openfile.write(f"{chrom}\t{start}\t{end}\t{val}\n")
 
 rule cadd_cov_top:
   input: "cadd_whole_genome_SNVs.npz"

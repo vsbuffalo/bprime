@@ -1337,3 +1337,20 @@ def argsort_chroms(chromosomes):
     indices.sort(key=lambda i: chromosome_key(chromosomes[i]))
     return indices
 
+def summarize_npz_by_bin(npz_file, bin_width, fun=np.nanmean):
+    data = np.load(npz_file)
+
+    binned_averages = {}
+    for chrom in data.keys():
+        chrom_data = data[chrom]
+        pad_size = bin_width - (len(chrom_data) % bin_width)
+        padded_chrom_data = np.pad(chrom_data, (0, pad_size), constant_values=np.nan)
+        reshaped_chrom_data = padded_chrom_data.reshape(-1, bin_width)
+        binned_averages[chrom] = fun(reshaped_chrom_data, axis=1)
+
+        num_bins = len(reshaped_chrom_data)
+        bin_start_positions = np.arange(0, num_bins * bin_width, bin_width)
+        bin_end_positions = bin_start_positions + bin_width
+        bin_ranges[chrom] = np.column_stack((bin_start_positions, bin_end_positions))
+
+    return binned_averages, bin_ranges
