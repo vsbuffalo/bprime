@@ -424,9 +424,12 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
     assert isinstance(sh, (float, np.ndarray))
     shape = mu.size, sh.size
 
-    Ts, Vs, Vms = np.empty(shape), np.empty(shape), np.empty(shape)
+    dtype = 'float32'
+    Ts, Vs = np.empty(shape, dtype=dtype), np.empty(shape, dtype=dtype)
+    Vms = np.empty(shape, dtype=dtype)
     if return_all:
-        Bs, Bas, Q2s, cbs = np.empty(shape), np.empty(shape), np.empty(shape), np.empty(shape)
+        Bs, Bas = np.empty(shape, dtype=dtype), np.empty(shape, dtype=dtype)
+        Q2s, cbs = np.empty(shape, dtype=dtype), np.empty(shape, dtype=dtype)
     for i, m in enumerate(mu.flat):
         for j, s in enumerate(sh.flat):
             if pairwise and i != j:

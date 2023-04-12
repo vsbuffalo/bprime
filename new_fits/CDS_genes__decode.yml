@@ -1,11 +1,11 @@
 ---
-name: phastcons_CDS_genes__decode
+name: CDS_genes__decode
 
 # fit settings
 settings:
   pi0_bounds: 0.0005,0.008
   mu_bounds: 0.5e-8,8e-8
-  nstarts: 20000
+  nstarts: 2000
   nstarts_loo: 1000
   nstarts_jackknife: 1000
   num_jackknife_samples: 200
@@ -24,10 +24,9 @@ files:
   neut: ../../data/fit_annotation/putatively_neutral__slop200.bed.gz
   counts: ../../data/h1kg/
 
-# features -- RefSeq
+# features
 features:
   features: 
-    phastcons: ../../data/fit_annotation/hg38.phastcons_autos.bed.gz
     CDS: ../../data/fit_annotation/hg38.CDS_refseq_autos.bed.gz
     gene: ../../data/fit_annotation/hg38.gene_refseq_autos.bed.gz
 
@@ -37,7 +36,8 @@ params:
   grid: 6x8
   step: 100000
 
-#  the mles, etc to fit
+
+# the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
   - {window: 1000000, mu: free, type: full,  loo: false, rescaled: false, jackknife: false, predict: false}

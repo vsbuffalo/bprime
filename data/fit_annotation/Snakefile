@@ -341,6 +341,22 @@ rule strict:
       gzip > {output}
     """
 
+rule centro:
+  output: "hg38_centro.bed"
+  shell:
+    """
+    curl http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cytoBand.txt.gz | zgrep "acen" | \
+     grep -v "chrY" | grep -v "chrX" | sort --version-sort -k1,1 -k2,2n > {output}
+    """
+
+rule centro_slop:
+  output: "hg38_centro_slop.bed"
+  input: centro="hg38_centro.bed", seqlens="hg38_seqlens.tsv"
+  shell:
+    """
+    bedtools slop -g {input.seqlens} -b 5000000 -i {input.centro} | sort --version-sort -k1,1 -k2,2n > {output}
+    """
+ 
 rule no_centro:
   input: centro="hg38_centro_slop.bed", seqlens="hg38_seqlens.tsv"
   output: "no_centro.bed"
@@ -350,7 +366,7 @@ rule no_centro:
     """
 
 rule no_centro_strict:
-  input: no_centro="no_centro.bed", seqlens="hg38_seqlens.tsv", strict="h1kg_strict.bed"
+  input: no_centro="no_centro.bed", seqlens="hg38_seqlens.tsv", strict="h1kg_strict.bed.gz"
   output: "no_centro_strict.bed"
   shell:
     """

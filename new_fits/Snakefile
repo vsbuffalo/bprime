@@ -395,6 +395,9 @@ rule fit_rescaled:
 
 
 ## ----- CLI rules 
+rule tracks: 
+  input: f"tracks/{name}_full.bed.gz", f"tracks/{name}_sparse.bed.gz"
+
 rule data:
   input: model_data
 
