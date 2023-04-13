@@ -436,15 +436,16 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
                 continue
             res = bgs_segment_sc16(m, s, L, rbp, rescaling*N, return_parts=True)
             B, B_asymp, T, V, Vm, Q2, classic_bgs = res
-            Ts[i, j] = T
-            Vs[i, j] = V
-            Vms[i, j] = Vm
-            
-            if return_all:
-                Bs[i, j] = B
-                Bas[i, j] = B_asymp
-                Q2s[i, j] = Q2
-                cbs[i, j] = classic_bgs
+            with np.errstate(over='ignore', under='ignore'):
+                Ts[i, j] = T
+                Vs[i, j] = V
+                Vms[i, j] = Vm
+                
+                if return_all:
+                    Bs[i, j] = B
+                    Bas[i, j] = B_asymp
+                    Q2s[i, j] = Q2
+                    cbs[i, j] = classic_bgs
 
     if return_all:
         return Bs, Bas, Ts, Vs, Vms, Q2s, cbs

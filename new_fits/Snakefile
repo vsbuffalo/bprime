@@ -195,7 +195,7 @@ rule bmap_bp:
   output: pkl_b_file="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
   resources:
-    mem_mb=800000,
+    mem_mb=600000,
     time_min=4320,
     threads=30
   shell:
