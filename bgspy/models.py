@@ -221,7 +221,7 @@ class BGSModel(object):
                 # load the rescaling factors from a model fit
                 # NOTE: this only effects the segment parts! nothing past that
                 # in the B' calc
-                self.genome.segments.load_rescaling_from_Bp(bp, fit)
+                self.genome.segments.load_rescaling_from_fit(fit)
 
             del bp  # free up this memory
             gc.collect()

@@ -1,4 +1,5 @@
 import pickle
+import logging
 import warnings
 from dataclasses import dataclass
 from collections import defaultdict, Counter
@@ -164,11 +165,11 @@ class Segments:
         assert np.all(~np.isnan(rbp))
         if t.ndim == 1:
             t = t[:, None]
-        print(f"calculating classic B components...\t", end='', flush=True)
+        print(f"calculating classic B segment components...\t", end='', flush=True)
         self._segment_parts = B_segment_lazy(rbp, L, t)
         print("done.")
         if N is not None:
-            print(f"\ncalculating B' components...\t", end='', flush=True)
+            print(f"\ncalculating B' segment components...\t", end='', flush=True)
             rescaling = self.rescaling
             parts = BSC16_segment_lazy_parallel(w, t, L, rbp, N,
                                                 ncores=ncores,
@@ -221,7 +222,7 @@ class Segments:
         Common code for both ways of rescaling Ne locally, i.e. from a MLE
         fit and from a set of existing Bs, e.g. grid
         """
-
+        logging.info("rescaling segments...")
         predicted_bscores._build_interpolators()
 
         rescaling = list()
@@ -269,22 +270,6 @@ class Segments:
             rescaling.extend(b.squeeze())
         self.rescaling = np.array(rescaling, dtype='float32')
 
-    def load_rescaling_from_Bp(self, bp, fit):
-        """
-        Take a B' map and a fit object, and predict for the given window size.
-        """
-        assert isinstance(bp, BScores), "bp must be a BScores object"
-        # add in extra dimensions to mimic the B nd-array
-        predicted_B = {c: b[:, None, None] for c, b in bp.predict_B(fit).items()}
-        posdict = bp.pos
-
-        # dummy w/t
-        w = np.array([0])
-        t = np.array([0])
-
-        predicted_bscores = BScores(predicted_B, posdict, w=w, t=t)
-        self._load_rescaling(predicted_bscores, w, t)
-
     def load_rescaling_from_fit(self, fit):
         """
         Take a fit and run predict_B to get the rescaling factor.
@@ -308,6 +293,7 @@ class Segments:
         t = np.array([0])
 
         predicted_bscores = BScores(bdict, posdict, w=w, t=t)
+        logging.info("loading rescaling from B' fit")
         self._load_rescaling(predicted_bscores, w, t)
 
 def process_annotation(features, recmap, split_length=None):

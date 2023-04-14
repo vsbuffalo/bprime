@@ -211,14 +211,14 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         # use specified chromosome or set to None to use all in seqlens file
         if isinstance(chrom, str):
             chrom = [chrom]
+        m = make_bgs_model(seqlens, annot, recmap, conv_factor,
+                           w, t, g, chroms=chrom, name=name,
+                           split_length=split_length)
     else:
         # make sure that all chroms are in the keys of the original B'
         assert all([chr in bpfit.bins.keys() for chr in chrom])
-
-    m = make_bgs_model(seqlens, annot, recmap, conv_factor,
-                       w, t, g, chroms=chrom, name=name,
-                       split_length=split_length)
-
+        m = load_pickle(rescale_bp_file)
+    
     if not only_bp:
         m.calc_B(step=step, ncores=ncores, nchunks=nchunks)
     if not only_b:

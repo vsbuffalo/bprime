@@ -340,19 +340,6 @@ class BScores:
         pos = {c: x.midpoints for c, x in means.items()}
         return BScores(B, pos, self.w, self.t)
 
-    def predict_B(self, fit):
-        """
-        Predict the B values of all elements of the B map given a fit object.
-        TODO: this should maybe live elsewhere?
-        """
-        from bgspy.likelihood import predict_simplex
-        theta = np.copy(fit.theta_)
-        theta[0] = 1
-        Bs = dict()
-        for chrom in self.B.keys():
-            Bs[chrom] = predict_simplex(theta, self.B[chrom], self.w)
-        return Bs
-
 def pretty_percent(x, ndigit=3):
     return np.round(100*x, ndigit)
 

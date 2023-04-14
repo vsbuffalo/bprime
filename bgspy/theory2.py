@@ -417,7 +417,7 @@ def bgs_segment_sc16_components(L_rbp_rescaling, mu, sh, N,
     assert isinstance(L, (int, float))
     assert isinstance(rbp, float)
     if rescaling is not None:
-        assert isinstance(rescaling, float)
+        assert isinstance(rescaling, (float, np.float64, np.float32))
     else:
         rescaling = 1.
     assert isinstance(mu, (float, np.ndarray))
