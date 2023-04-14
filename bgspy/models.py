@@ -92,7 +92,7 @@ class BGSModel(object):
                Bps[chrom] = m.Bps[chrom]
                Bp_pos[chrom] = m.Bp_pos[chrom]
                segments[chrom] = m.genome.segments
-       obj = BGSModel(genome, w_grid, t_grid)
+       obj = BGSModel(genome, t_grid=t_grid, w_grid=w_grid)
        obj.Bps = Bps
        obj.Bp_pos = Bp_pos
        segs = Segments.from_chroms(segments)

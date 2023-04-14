@@ -217,6 +217,30 @@ if splits is None:
         --ncores-Bp {resources.threads} --only-Bp \
         --step {wildcards.step}
       """
+
+  rule bmap_rescale:
+    input: seqlens=files['seqlens'],
+           recmap=files['recmap'],
+           features=f"../tracks/{name}_{{tracktype}}.bed.gz",
+           fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
+           b=Bs_file
+    output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+    resources:
+      mem_mb=200000,
+      time_min=4320,
+      threads=30
+    shell:
+      """
+      bgspy calcb \
+        --recmap {input.recmap} --annot {input.features} \
+        --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
+        --output {output} --popsize {wildcards.N} \
+        --ncores {resources.threads} --ncores-Bp {resources.threads} \
+        --step {wildcards.step} \
+        --rescale-fit {input.fit} --only-Bp \
+        --rescale-Bp-file {input.b}
+      """
+
 else:
   split_strs = ['_'.join(chrs) for chrs in chrom_chunks]
   all_bmaps = [f"bmaps/{chrs}/bmap_Bp_{{grid_str,[0-9x]+}}grid_{{step}}step_{{N}}N__{{name}}_{{tracktype}}.pkl" for chrs in split_strs]
@@ -231,6 +255,53 @@ else:
       """
       bgspy merge --output {output} {input}
       """
+
+  fmt = "fits/pop_{{popl}}/window_{{window}}/type_{{tracktype}}/mutrate_{{mutrate}}/rescaled/{chrs}/rescaled_bmap_{{name}}_bmap_B_{{grid_str}}grid_{{step}}step_{{N}}N__{{name}}_{{tracktype}}.pkl"
+  all_bmaps_rescaled = [fmt.format(chrs=chrs) for chrs in split_strs]
+  rule bmap_bp_rescale_combine:
+    input: all_bmaps_rescaled
+    output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+    resources:
+      mem_mb=800000,
+      time_min=4320,
+    shell:
+      """
+      bgspy merge --output {output} {input}
+      """
+
+rule bmap_bp_rescale_split:
+  input: seqlens=files['seqlens'],
+         recmap=files['recmap'],
+         features="tracks/{name}_{tracktype}.bed.gz",
+         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
+         b=Bs_file
+  output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/{chrom_split}/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+  resources:
+    mem_mb=200000,
+    time_min=4320,
+    threads=50
+  shell:
+    """
+    chroms="{wildcards.chrom_split}"
+    chroms=${{chroms//_/' '}}
+
+    # build the --chrom args
+    chrom_args=""
+    for chrom in $chroms; do
+        chrom_args+=" --chrom $chrom"
+    done
+
+    bgspy calcb \
+      --recmap {input.recmap} --annot {input.features} \
+      --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
+      --output {output} --popsize {wildcards.N} \
+      --ncores {resources.threads} --ncores-Bp {resources.threads} \
+      --step {wildcards.step} \
+      $chrom_args \
+      --rescale-fit {input.fit} --only-Bp \
+      --rescale-Bp-file {input.b}
+    """
+
 
 rule bmap_bp_split:
   input: seqlens=files['seqlens'],
@@ -266,7 +337,7 @@ rule combine_bmaps:
          bp="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   output: pkl_b_file="bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
-    mem_mb=200000
+    mem_mb=800000
   run:
     b = load_pickle(input.b)
     bp = load_pickle(input.bp)
@@ -383,29 +454,6 @@ rule loo_chrom:
     """
 
 # ----- locally-rescaled fits -----
-
-rule bmap_rescale:
-  input: seqlens=files['seqlens'],
-         recmap=files['recmap'],
-         features=f"../tracks/{name}_{{tracktype}}.bed.gz",
-         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
-         b=Bs_file
-  output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
-  resources:
-    mem_mb=800000,
-    time_min=4320,
-    threads=30
-  shell:
-    """
-    bgspy calcb \
-      --recmap {input.recmap} --annot {input.features} \
-      --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
-      --output {output} --popsize {wildcards.N} \
-      --ncores {resources.threads} --ncores-Bp {resources.threads} \
-      --step {wildcards.step} \
-      --rescale-fit {input.fit} --only-Bp \
-      --rescale-Bp-file {input.b}
-    """
 
 rule save_data_rescale:
   input: seqlens=files['seqlens'], recmap=files['recmap'],
