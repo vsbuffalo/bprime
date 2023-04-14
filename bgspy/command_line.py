@@ -212,8 +212,8 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
         if isinstance(chrom, str):
             chrom = [chrom]
     else:
-        # match what's in the fit object.
-        chrom = list(bpfit.bins.keys())
+        # make sure that all chroms are in the keys of the original B'
+        assert all([chr in bpfit.bins.keys() for chr in chrom])
 
     m = make_bgs_model(seqlens, annot, recmap, conv_factor,
                        w, t, g, chroms=chrom, name=name,
@@ -232,6 +232,19 @@ def calcb(recmap, annot, seqlens, name, conv_factor, t, w, g,
     #    print(f"done.")
     m.save(output)
 
+
+@cli.command()
+@click.argument('models', required=True, nargs=-1)
+@click.option('--output', required=True,
+              help="output file for merged B' results",
+              type=click.Path(exists=False, writable=True))
+def merge(models, output):
+    """
+    Merge B' maps computed separately.
+    """ 
+    obj = BGSModel.from_chroms(models)
+    obj.save(output)
+   
 
 @cli.command()
 @click.option('--recmap', required=True, type=click.Path(exists=True),

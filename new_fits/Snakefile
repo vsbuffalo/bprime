@@ -39,8 +39,17 @@ data_path = data['path']
 pops = data['pops']
 chroms = load_seqlens(files['seqlens'], 
                       exclude=['chrM', 'chrX', 'chrY'])
+chrom_list = list(chroms.keys())
 
 do_rescale = any([f['rescaled'] for f in fits])
+
+
+# do we need to split the B' map processing?
+splits = settings.get('chrom_splits', None)
+if splits is not None:
+    chrom_chunks = [chrom_list[i:i + splits] for i in range(0, len(chrom_list), splits)]
+    print(f"B' are created in chunks, {chrom_chunks}")
+
 
 # globals
 N = params['N']
@@ -188,22 +197,66 @@ rule bmap_b:
       --step {wildcards.step}
     """
 
-rule bmap_bp:
+if splits is None:
+  rule bmap_bp:
+    input: seqlens=files['seqlens'],
+           recmap=files['recmap'],
+           features="tracks/{name}_{tracktype}.bed.gz"
+    output: pkl_b_file="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+    benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
+    resources:
+      mem_mb=500000,
+      time_min=4320,
+      threads=40
+    shell:
+      """
+      bgspy calcb \
+        --recmap {input.recmap} --annot {input.features} \
+        --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
+        --output {output} --popsize {wildcards.N} \
+        --ncores-Bp {resources.threads} --only-Bp \
+        --step {wildcards.step}
+      """
+else:
+  split_strs = ['_'.join(chrs) for chrs in chrom_chunks]
+  all_bmaps = [f"bmaps/{chrs}/bmap_Bp_{{grid_str,[0-9x]+}}grid_{{step}}step_{{N}}N__{{name}}_{{tracktype}}.pkl" for chrs in split_strs]
+  print(all_bmaps)
+  rule bmap_bp_combine:
+    input: all_bmaps
+    output: pkl_b_file="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
+    resources:
+      mem_mb=800000,
+      time_min=4320,
+    shell:
+      """
+      bgspy merge --output {output} {input}
+      """
+
+rule bmap_bp_split:
   input: seqlens=files['seqlens'],
          recmap=files['recmap'],
          features="tracks/{name}_{tracktype}.bed.gz"
-  output: pkl_b_file="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
-  benchmark: "benchmarks/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.txt"
+  output: pkl_b_file="bmaps/{chrom_split}/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
-    mem_mb=600000,
+    mem_mb=800000,
     time_min=4320,
     threads=30
   shell:
     """
+    chroms="{wildcards.chrom_split}"
+    chroms=${{chroms//_/' '}}
+
+    # build the --chrom args
+    chrom_args=""
+    for chrom in $chroms; do
+        chrom_args+=" --chrom $chrom"
+    done
+
     bgspy calcb \
       --recmap {input.recmap} --annot {input.features} \
       --seqlens {input.seqlens} --g '{wildcards.grid_str}' \
       --output {output} --popsize {wildcards.N} \
+      $chrom_args \
       --ncores-Bp {resources.threads} --only-Bp \
       --step {wildcards.step}
     """
@@ -213,7 +266,7 @@ rule combine_bmaps:
          bp="bmaps/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   output: pkl_b_file="bmaps/bmap_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
-    mem_mb=300000
+    mem_mb=200000
   run:
     b = load_pickle(input.b)
     bp = load_pickle(input.bp)

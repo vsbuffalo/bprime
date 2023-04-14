@@ -1338,14 +1338,15 @@ def load_pickle(path):
     with open(path, 'rb') as f:
         return pickle.load(f)
 
-def argsort_chroms(chromosomes):
-    def chromosome_key(chrom):
-        chrom_number = chrom.replace('chr', '')
-        if chrom_number.isdigit():
-            return int(chrom_number)
-        else:
-            return {'X': 1e6, 'Y': 1e6+1}[chrom_number]
+def chromosome_key(chrom):
+    chrom_number = chrom.replace('chr', '')
+    if chrom_number.isdigit():
+        return int(chrom_number)
+    else:
+        return {'X': 1e6, 'Y': 1e6+1}[chrom_number]
 
+def argsort_chroms(chromosomes):
     indices = list(range(len(chromosomes)))
     indices.sort(key=lambda i: chromosome_key(chromosomes[i]))
     return indices
+

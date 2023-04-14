@@ -9,6 +9,7 @@ settings:
   nstarts_loo: 1000
   nstarts_jackknife: 1000
   num_jackknife_samples: 200
+  chrom_splits: 5
 
 # pops
 data: 

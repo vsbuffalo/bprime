@@ -127,14 +127,15 @@ class RecMap(object):
                 # let's add the end in -- note this already has a rate!
                 pos.append(self.seqlens[chrom])
 
-            rates = np.array(rates)
-            pos = np.array(pos)
+            rates = np.array(rates, dtype='float32')
+            pos = np.array(pos, dtype='uint32')
             check_positions_sorted(pos)
             assert len(rates)+1 == len(pos)
             # TODO: check that rates and cumulative 
             # map positions all match
             new_rates[chrom] = (pos, rates)
-            rates = self.conversion_factor*np.array(rates)
+            with np.errstate(under='ignore'):
+                rates = self.conversion_factor*np.array(rates, dtype='float32')
             # I use tskit to store the rate data and calculate the 
             # cumulative rate distances... it's robust and simplifies 
             # things

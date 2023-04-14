@@ -31,7 +31,9 @@ import warnings
 import numpy as np
 import scipy.stats as stats
 
-from bgspy.utils import Bdtype, BScores, bin_chrom
+from bgspy.utils import Bdtype, BScores, bin_chrom, chromosome_key
+from bgspy.utils import load_pickle
+from bgspy.genome import Segments
 from bgspy.parallel import calc_B_parallel, calc_BSC16_parallel
 from bgspy.substitution import ratchet_df2
 
@@ -64,6 +66,38 @@ class BGSModel(object):
         # B parameters
         self.t = np.sort(t_grid)
         self.w = np.sort(w_grid)
+    
+    @staticmethod
+    def from_chroms(chrom_models):
+       # **experimental**  -- so far for B' only
+       # B parameters
+       m = load_pickle(chrom_models[0])
+       t_grid, w_grid = m.t, m.w
+       segments = dict()
+       step = None
+       genome = None
+       Bps = dict()
+       Bp_pos = dict()
+       for model_file in chrom_models:
+           m = load_pickle(model_file)
+           print(f"processing {model_file}")
+           for chrom in m.Bps.keys():
+               assert np.allclose(m.t, t_grid), (m.t, t_grid)
+               assert np.allclose(m.w, w_grid), (m.w, w_grid)
+               if step is None:
+                   step = m.step
+                   genome = m.genome
+               else:
+                   assert step == m.step
+               Bps[chrom] = m.Bps[chrom]
+               Bp_pos[chrom] = m.Bp_pos[chrom]
+               segments[chrom] = m.genome.segments
+       obj = BGSModel(genome, w_grid, t_grid)
+       obj.Bps = Bps
+       obj.Bp_pos = Bp_pos
+       segs = Segments.from_chroms(segments)
+       obj.genome.segments = segs
+       return obj
 
     @property
     def features(self):

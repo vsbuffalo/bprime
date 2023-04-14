@@ -46,6 +46,41 @@ class Segments:
         self._predict_Vms = None
         self._predict_Ts = None
 
+    @staticmethod
+    def from_chroms(chrom_segments):
+        """
+        Reconstruct Segments object from a bunch of chromosome-specific parts.
+        """
+        assert isinstance(chrom_segments, dict)
+        # first we need to find all features
+        all_features = set()
+        for segment in chrom_segments.values():
+            for feature in segment.feature_map.keys():
+                all_features.add(feature)
+        feature_map = {f: i for i, f in enumerate(sorted(all_features))}
+
+        ranges = []
+        rates = []
+        map_pos = []
+        features = []
+        last_idx = 0
+        index = defaultdict(list)
+        for chrom, segment in chrom_segments.items():
+            assert chrom not in ranges # no dups
+            ranges.append(segment.ranges)
+            rates.append(segment.rates)
+            map_pos.append(segment.map_pos)
+            features.append(segment.features)
+            n = segment.ranges.shape[0]
+            index[chrom].extend([last_idx + i for i in range(n)])
+            last_idx = index[chrom][-1] + 1
+        ranges = np.concatenate(ranges, axis=0, dtype='uint32')
+        rates = np.concatenate(rates, axis=0, dtype='float32') 
+        map_pos = np.concatenate(map_pos, axis=0, dtype='float32') 
+        features = np.concatenate(features, axis=0, dtype='uint16') 
+        index = {c: np.array(idx, dtype='uint32') for c, idx in index.items()}
+        return Segments(ranges, rates, map_pos, features, feature_map, index)
+
     def info(self):
         storage = ['ranges', 'rates', 'map_pos', 'features', 'feature_map',
                    'inverse_feature_map', 'index', '_segment_parts',
@@ -200,7 +235,7 @@ class Segments:
             b = predicted_bscores.B_at_pos(chrom, mids)
             #rescaling[chrom] = b
             rescaling.extend(b.squeeze())
-        self.rescaling = np.array(rescaling)
+        self.rescaling = np.array(rescaling, dtype='float32')
 
     def load_rescaling_from_fixed_params(self, bp, w, t):
         """
@@ -232,7 +267,7 @@ class Segments:
             b = predicted_bscores.B_at_pos(chrom, mids)
             #rescaling[chrom] = b
             rescaling.extend(b.squeeze())
-        self.rescaling = np.array(rescaling)
+        self.rescaling = np.array(rescaling, dtype='float32')
 
     def load_rescaling_from_Bp(self, bp, fit):
         """
