@@ -1340,7 +1340,8 @@ def argsort_chroms(chromosomes):
 def summarize_npz_by_bin(npz_file, bin_width, fun=np.nanmean):
     data = np.load(npz_file)
 
-    binned_averages = {}
+    binned_averages = dict()
+    bin_ranges = dict()
     for chrom in data.keys():
         chrom_data = data[chrom]
         pad_size = bin_width - (len(chrom_data) % bin_width)

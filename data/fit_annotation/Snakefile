@@ -1,7 +1,8 @@
+import gzip
 import numpy as np
 import pandas as pd
 from bgspy.utils import load_seqlens, load_cadd_bed_scores
-from bgspy.utils import quantize_track, phred
+from bgspy.utils import quantize_track, phred, summarize_npz_by_bin
 
 AUTOS = list(range(1, 23))
 AUTOSEX = AUTOS + ['X', 'Y']
@@ -205,13 +206,17 @@ rule cadd_npz:
     d = load_cadd_bed_scores(input.cadd, seqlens, mode='max')
     np.savez(output[0], **d)
 
+# note: I call these quantiles but this a bit inaccurate -- 
+QUANTS = [0, 0.8, 0.9, 0.92, 0.94, 0.96, 0.98, 0.99, 1]
 rule cadd_cov_track:
   input: "cadd_whole_genome_SNVs.npz"
-  output: "cadd_quantized_{width}bp_{fun}.bed.gz"
+  output: "unmerged_cadd_quantized_{width}bp_{fun}.bed.gz"
   run:
-    quantiles = np.array([0, 0.8, 0.9, 0.92, 0.94, 0.96, 0.98, 0.99, 0.999999999999999])
+    # the phred-scale is logged hence the 0.9999...
+    quantiles = np.array(QUANTS)
     labs = np.copy(quantiles)
     labs[-1] = 1
+    quantiles[quantiles == 1] = 1 - 1e-9
     score_quantiles = phred(quantiles)
     width = int(wildcards.width)
     fun = {'max': np.nanmax, 'mean': np.nanmean}[wildcards.fun]
@@ -221,8 +226,21 @@ rule cadd_cov_track:
       bins = labs[np.digitize(scores, score_quantiles)]
       for i, val in enumerate(bins):
         start, end = ranges[chrom][i, :]
+        if val == val - 1e9:
+            val = 1
         openfile.write(f"{chrom}\t{start}\t{end}\t{val}\n")
 
+rule cadd_cov_track_merged:
+  input: "unmerged_cadd_quantized_{width}bp_{fun}.bed.gz"
+  output: "cadd_quantile{quantile}_{width}bp_{fun}.bed.gz"
+  shell:
+    """
+    zcat {input} | bioawk -t '{{ if ($4 == {wildcards.quantile} ) {{ print $0 }} }}'  | \
+        bedtools merge | \
+        bioawk -t -v "q={wildcards.quantile}" '{{ print $0,"quantile_"q }}' | \
+        gzip > {output}
+    """
+ 
 rule cadd_cov_top:
   input: "cadd_whole_genome_SNVs.npz"
   output: "cadd_top{percent}_percent_unmerged.bed.gz"
@@ -284,7 +302,7 @@ cadd_annot = ["cadd_top6_percent.bed.gz", "cadd_top7_percent.bed.gz", "cadd_top8
 cadd_simple = ["cadd_top6_percent_simple100.bed.gz", "cadd_top6_percent_simple1000.bed.gz", "cadd_top6_percent_merged1.bed.gz",  
                "cadd_top6_percent_merged2.bed.gz"]
 cadd_annot += cadd_simple
-#cadd_annot += ["cadd_quantized.bed.gz"]
+cadd_annot += [f"cadd_quantile{q}_5bp_mean.bed.gz" for q in QUANTS]
 
 ## ----- neutral track
 # we remove all phastcons, exons, CDS, and UTRs
