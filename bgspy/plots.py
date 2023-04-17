@@ -40,7 +40,7 @@ def smooth(x, y, frac=None):
     """
     Smooth a line for visual clarity.
     """
-    assert isinstance(x, np.ndarray) and np.array(y, np.ndarray)
+    assert isinstance(x, np.ndarray) and isinstance(y, np.ndarray)
     idx = np.argsort(x)
     x, y = x[idx], y[idx]
     if frac is None:
