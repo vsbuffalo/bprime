@@ -675,7 +675,6 @@ def get_files(dir, suffix, as_dict=False):
 
     Recursively get files from directories in dir with suffix, e.g. used for
     getting all .tree files across seed subdirectories.
-    
     """
     all_files = dict()
     for root, dirs, files in os.walk(dir):
