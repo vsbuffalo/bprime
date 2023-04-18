@@ -9,7 +9,7 @@ settings:
   nstarts_loo: 1000
   nstarts_jackknife: 1000
   num_jackknife_samples: 200
-  chrom_splits: 5
+  chrom_splits: 3
 
 # pops
 data: 
@@ -28,7 +28,7 @@ files:
 # features
 features:
   features: 
-    cadd6: ../../data/fit_annotation/cadd_6percent.bed.gz
+    cadd6: ../../data/fit_annotation/cadd_top6_percent.bed.gz
 
 # parameters for B and B' maps
 params: 

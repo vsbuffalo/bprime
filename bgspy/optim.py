@@ -100,6 +100,19 @@ def run_optims(workerfunc, starts, progress=True, ncores=50,
         else:
             res = list(map(workerfunc, starts))
 
+
+    # sometimes NLOpt will throw an exception, which is caught in
+    # try/except
+    cleaned_res = []
+    bad = 0
+    for opt in res:
+        if opt is None:
+            bad += 1
+            continue
+        cleaned_res.append(opt)
+    if bad:
+        logging.warn(f"{bad} number of optimizations raised exceptions")
+    res = cleaned_res
     nlls, thetas, success = array_all(zip(*map(extract_opt_info, res)))
     if return_raw:
         return nlls, thetas, success
@@ -138,7 +151,10 @@ def nlopt_softmax_fixedmu_worker(start, func, nt, nf, bounds,
     opt.set_xtol_rel(xtol_rel)
     opt.set_maxeval(maxeval)
     assert start.size == nparams
-    mle = opt.optimize(start)
+    try:
+        mle = opt.optimize(start)
+    except:
+        return None
     nll = opt.last_optimum_value()
     success = opt.last_optimize_result()
     mle = convert_softmax(mle, nt, nf, mu_is_fixed=True)
@@ -162,7 +178,10 @@ def nlopt_softmax_worker(start, func, nt, nf, bounds,
     opt.set_xtol_rel(xtol_rel)
     opt.set_maxeval(maxeval)
     assert start.size == nparams
-    mle = opt.optimize(start)
+    try:
+        mle = opt.optimize(start)
+    except:
+        return None
     nll = opt.last_optimum_value()
     success = opt.last_optimize_result()
     mle = convert_softmax(mle, nt, nf)

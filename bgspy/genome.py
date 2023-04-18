@@ -236,6 +236,9 @@ class Segments:
             b = predicted_bscores.B_at_pos(chrom, mids)
             #rescaling[chrom] = b
             rescaling.extend(b.squeeze())
+        rescaling = np.array(rescaling)
+        assert all(rescaling > 0), "some rescaling factors < 0!"
+        assert all(rescaling <= 1), "some rescaling factors > 1!"
         self.rescaling = np.array(rescaling, dtype='float32')
 
     def load_rescaling_from_fixed_params(self, bp, w, t):

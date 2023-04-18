@@ -253,7 +253,7 @@ class BScores:
         """
         Build positional interpolators for each chromsome and w/t combination.
         """
-        defaults = {'kind': 'quadratic',
+        defaults = {'kind': 'linear',
                     'assume_sorted': True,
                     'bounds_error': False,
                     'copy': False}

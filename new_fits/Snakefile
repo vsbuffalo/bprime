@@ -277,9 +277,9 @@ rule bmap_bp_rescale_split:
          b=Bs_file
   output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/{chrom_split}/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
-    mem_mb=200000,
+    mem_mb=500000,
     time_min=4320,
-    threads=50
+    threads=30
   shell:
     """
     chroms="{wildcards.chrom_split}"
@@ -309,7 +309,7 @@ rule bmap_bp_split:
          features="tracks/{name}_{tracktype}.bed.gz"
   output: pkl_b_file="bmaps/{chrom_split}/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
-    mem_mb=800000,
+    mem_mb=500000,
     time_min=4320,
     threads=30
   shell:
