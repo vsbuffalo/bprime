@@ -27,7 +27,7 @@ rule seqlens:
   shell:
     """
       bioawk -cfastx '{{ print $name,length($seq) }}' hg38.fa.gz | \
-      grep -P '^chr[0-9X]+' |  \
+      grep -P '^chr[0-9]+' |  \
       sort  --version-sort -k 1,1 -k2,2n > {output}
     """
 
@@ -155,6 +155,17 @@ rule phastcons_split:
        gzip > {output}
      """
 
+rule merge_UTRs_perdb:
+  input: "hg38.3UTR_{db}_autos.bed.gz", "hg38.5UTR_{db}_autos.bed.gz"
+  output: "hg38.UTR_{db,(refseq,ensembl)}_autos.bed.gz"
+  shell: 
+     """
+     zcat {input[0]} {input[1]} | \
+      sort --version-sort -k1,1 -k2,2n | bedtools merge | \
+      bioawk -t '{{ print $0,"UTR" }}' | \
+      gzip > {output}
+     """
+ 
 rule merge_UTRs:
   input: "hg38.3UTR_autos.bed.gz", "hg38.5UTR_autos.bed.gz"
   output: "hg38.UTR_autos.bed.gz"
@@ -168,7 +179,7 @@ rule merge_UTRs:
 split = [f"hg38.{f}_autos.bed.gz" for f in annotation_features]
 split += [f"hg38.{f}_refseq_autos.bed.gz" for f in annotation_features]
 split += [f"hg38.{f}_ensembl_autos.bed.gz" for f in annotation_features]
-split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz"]
+split += ["hg38.phastcons_autos.bed.gz",  "hg38.UTR_autos.bed.gz", "hg38.UTR_refseq_autos.bed.gz"]
 
 clean_annot = ["hg38.ensembl_autos.bed.gz", "hg38.refseq_autos.bed.gz"]
 clean_annot += split

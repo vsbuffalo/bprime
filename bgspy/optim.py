@@ -36,7 +36,7 @@ with nlopt's BOBYQA out performs everything else.
 
 """
 
-
+import logging
 import warnings
 import multiprocessing
 from collections import Counter

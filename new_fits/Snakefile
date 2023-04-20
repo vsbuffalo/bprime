@@ -375,7 +375,7 @@ rule fit:
   params: **settings
   resources:
     mem_mb=60000,
-    time_min=980,
+    time_min=1980,
     threads=50
   benchmark: "benchmarks/fit_{popl}_{window}_{tracktype}_{mutrate}.txt"
   shell:
