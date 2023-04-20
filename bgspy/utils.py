@@ -1354,3 +1354,12 @@ def summarize_npz_by_bin(npz_file, bin_width, fun=np.nanmean):
         bin_ranges[chrom] = np.column_stack((bin_start_positions, bin_end_positions))
 
     return binned_averages, bin_ranges
+
+def latex_scientific_notation(num, digits=2):
+    exponent = int(np.floor(np.log10(abs(num))))
+    mantissa = num / (10 ** exponent)
+    if mantissa == int(mantissa):
+        mantissa = int(mantissa)
+    else:
+        mantissa = np.round(mantissa, digits)
+    return f'${mantissa} \\times 10^{{{exponent}}}$'
