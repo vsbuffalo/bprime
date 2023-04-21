@@ -212,6 +212,7 @@ def predict_chrom_plot(model, chrom, ratio=True, center_scale=False,
     m = model
     fig, ax = get_figax(figax)
     midpoints, pi = model.bins.pi_pairs(chrom)
+    midpoints = to_mb(midpoints)
     bins = m.bins.flat_bins(filter_masked=False)
     chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
     
@@ -387,3 +388,5 @@ def annot_resid(fit, annot_df, figax=None, scatter_kwargs={}):
     ax.semilogx()
     return mod
 
+def to_mb(x):
+    return np.array(x) / 1e6
