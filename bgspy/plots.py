@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import binned_statistic
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from bgspy.utils import mean_ratio, argsort_chroms, center_and_scale
@@ -276,6 +277,25 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     ax.set_ylabel(ylabel)
     return fig, ax
 
+def predicted_observed(fit, n_bins=50, smooth_col = 'orange', use_B=False, figax=None):
+    equal_num = False
+    fig, ax = get_figax(figax)
+    x, y = fit.predict(B=use_B), fit.pi()
+    ax.scatter(x, y, s=3, c='0.22', alpha=0.5, linewidth=0)
+    if equal_num:
+        bins = [np.percentile(x, 100 * i / n_bins) for i in range(n_bins + 1)]
+    else:
+        bins = n_bins
+    bin_means, bin_edges, _ = binned_statistic(x, y, statistic='mean', bins=bins)
+    bin_counts, *_ = binned_statistic(x, y, statistic=lambda x: len(x), bins=bins)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    keep_idx = bin_counts >= 10
+    ax.scatter(bin_centers[keep_idx], bin_means[keep_idx], marker='o', color=smooth_col, s=2, 
+               zorder=2)
+    ax.plot(bin_centers[keep_idx], bin_means[keep_idx],color=smooth_col, zorder=2)
+    m = ax.get_xlim()[0]
+    #ax.axline((m, m), slope=1, zorder=1)
+    return fig, ax
 
 def binned_means_plot(df, min_n=None, gen=None,
                       stat='mean', s=5,
