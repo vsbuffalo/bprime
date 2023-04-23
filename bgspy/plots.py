@@ -41,6 +41,10 @@ def smooth(x, y, frac=None):
     """
     Smooth a line for visual clarity.
     """
+    if isinstance(x, list):
+        x = np.array(x)
+    if isinstance(y, list):
+        y = np.array(y)
     assert isinstance(x, np.ndarray) and isinstance(y, np.ndarray)
     idx = np.argsort(x)
     x, y = x[idx], y[idx]
@@ -277,11 +281,13 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     ax.set_ylabel(ylabel)
     return fig, ax
 
-def predicted_observed(fit, n_bins=50, smooth_col = 'orange', use_B=False, figax=None):
+def predicted_observed(fit, n_bins=40, smooth_col = 'orange',
+                       c='0.22', use_lowess=True, frac=0.1,
+                       use_B=False, figax=None):
     equal_num = False
     fig, ax = get_figax(figax)
     x, y = fit.predict(B=use_B), fit.pi()
-    ax.scatter(x, y, s=3, c='0.22', alpha=0.5, linewidth=0)
+    ax.scatter(x, y, s=3, c=c, alpha=0.5, linewidth=0)
     if equal_num:
         bins = [np.percentile(x, 100 * i / n_bins) for i in range(n_bins + 1)]
     else:
@@ -292,7 +298,11 @@ def predicted_observed(fit, n_bins=50, smooth_col = 'orange', use_B=False, figax
     keep_idx = bin_counts >= 10
     ax.scatter(bin_centers[keep_idx], bin_means[keep_idx], marker='o', color=smooth_col, s=2, 
                zorder=2)
-    ax.plot(bin_centers[keep_idx], bin_means[keep_idx],color=smooth_col, zorder=2)
+    if use_lowess:
+        sx, sy = lowess(y, x, frac=frac).T
+        ax.plot(sx, sy, color=smooth_col, zorder=2)
+    else:
+        ax.plot(bin_centers[keep_idx], bin_means[keep_idx],color=smooth_col, zorder=2)
     m = ax.get_xlim()[0]
     #ax.axline((m, m), slope=1, zorder=1)
     return fig, ax

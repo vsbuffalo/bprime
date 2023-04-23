@@ -1336,6 +1336,7 @@ def argsort_chroms(chromosomes):
     indices.sort(key=lambda i: chromosome_key(chromosomes[i]))
     return indices
 
+
 def summarize_npz_by_bin(npz_file, bin_width, fun=np.nanmean):
     data = np.load(npz_file)
 
@@ -1355,6 +1356,7 @@ def summarize_npz_by_bin(npz_file, bin_width, fun=np.nanmean):
 
     return binned_averages, bin_ranges
 
+
 def latex_scientific_notation(num, digits=2):
     exponent = int(np.floor(np.log10(abs(num))))
     mantissa = num / (10 ** exponent)
@@ -1363,3 +1365,7 @@ def latex_scientific_notation(num, digits=2):
     else:
         mantissa = np.round(mantissa, digits)
     return f'${mantissa} \\times 10^{{{exponent}}}$'
+
+
+def coefvar(y):
+    return (np.nanstd(y) / np.nanmean(y))

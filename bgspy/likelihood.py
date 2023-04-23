@@ -24,7 +24,7 @@ from ctypes import POINTER, c_double, c_ssize_t, c_int
 #     pass
 
 from scipy import interpolate
-from bgspy.utils import signif, load_pickle
+from bgspy.utils import signif, load_pickle, coefvar
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, scipy_softmax_worker
 from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
@@ -767,6 +767,24 @@ class BGSLikelihood:
         ax.axline((0, 0), slope=1)
         ax.set_ylabel('predicted $\\hat{\pi}$')
         ax.set_xlabel('observed $\pi$')
+
+    def coefvar(self, use_B=True):
+        """
+        Get the coefficient of variation for predictions and pi.
+        """
+        pred_cfs = dict()
+        data_cfs = dict()
+        for chrom in self.bins.seqlens:
+            bins = self.bins.flat_bins(filter_masked=False)
+            chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
+            predicts = self.predict(B=use_B)
+            pi = self.pi()
+            predicts_full = self.bins.merge_filtered_data(predicts)
+            pi_full = self.bins.merge_filtered_data(pi)
+            y = predicts_full[chrom_idx]
+            pred_cfs[chrom] = np.nanvar(y)
+            data_cfs[chrom] = coefvar(pi_full[chrom_idx])
+        return data_cfs, pred_cfs
 
     @property
     def mle_pi0(self):
