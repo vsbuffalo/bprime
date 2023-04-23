@@ -221,7 +221,7 @@ if splits is None:
   rule bmap_rescale:
     input: seqlens=files['seqlens'],
            recmap=files['recmap'],
-           features=f"../tracks/{name}_{{tracktype}}.bed.gz",
+           features=f"tracks/{name}_{{tracktype}}.bed.gz",
            fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
            b=Bs_file
     output: pkl_b_file="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/rescaled_bmap_{name}_bmap_B_{grid_str}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
@@ -309,9 +309,9 @@ rule bmap_bp_split:
          features="tracks/{name}_{tracktype}.bed.gz"
   output: pkl_b_file="bmaps/{chrom_split}/bmap_Bp_{grid_str,[0-9x]+}grid_{step}step_{N}N__{name}_{tracktype}.pkl"
   resources:
-    mem_mb=500000,
+    mem_mb=800000,
     time_min=4320,
-    threads=30
+    threads=20
   shell:
     """
     chroms="{wildcards.chrom_split}"
@@ -374,7 +374,7 @@ rule fit:
   output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl"
   params: **settings
   resources:
-    mem_mb=60000,
+    mem_mb=80000,
     time_min=1980,
     threads=50
   benchmark: "benchmarks/fit_{popl}_{window}_{tracktype}_{mutrate}.txt"
@@ -390,9 +390,9 @@ rule fit:
 
 # ---- predict subrates, etc
 rule subrate_predict:
-  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl", 
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{fit_type}/mle.pkl", 
          bs_file=Bs_file
-  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predicted_subrates.tsv", 
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{fit_type}/predicted_subrates.tsv", 
   params: **settings
   resources:
     mem_mb=200000,

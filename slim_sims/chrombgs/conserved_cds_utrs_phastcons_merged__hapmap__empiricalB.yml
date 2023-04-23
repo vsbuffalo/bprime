@@ -1,0 +1,46 @@
+---
+name: conserved_cds_utrs_phastcons_merged__hapmap__fixed_empiricalB
+# slim parameters
+script: chrombgs_features.slim
+nreps: 100
+seed: 0
+dir: runs
+simdir: sims
+suffices: 
+  treeseq_file: treeseq.tree
+input: 
+  seqlens_file: ../../data/annotation/hg38_seqlens.tsv
+  recmap_file: ../../data/annotation/hapmap_genetic_map.txt
+  annot_file: ../../data/annotation/conserved_cds_utrs_phastcons_merged.bed
+fixed: 
+  duration: 10
+variable:
+  expansion:
+    - "false"
+    - "1.004_9.3"
+  h:
+    - 0.5
+  chrom:
+    - chr10
+  N:
+    - 1000
+  mu:
+    - 1.00e-10
+    - 3.16e-10
+    - 1.00e-9
+    - 3.16e-9
+    - 1.00e-8
+    - 3.16e-8
+  sh: 
+    - 0.000001
+    - 3.16e-6
+    - 1e-5
+    - 3.16e-5
+    - 0.0001
+    - 0.000316
+    - 0.001
+    - 0.00316
+    - 0.01
+    - 0.0316
+    - 0.1
+bmaps: true

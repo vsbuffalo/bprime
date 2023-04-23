@@ -124,7 +124,7 @@ rule split_feature_ensembl:
 
 rule split_feature_refseq:
   input: refseq="hg38.refseq_autos.bed.gz"
-  output: "hg38.{feature,[^_]+}_refseq_autos.bed.gz"
+  output: "hg38.{feature,(exon|5UTR|3UTR|CDS|gene)}_refseq_autos.bed.gz"
   shell: 
      """
      zcat {input.refseq} | bioawk -cbed ' $name ~ /^{wildcards.feature}$/ {{ print $chrom,$start,$end,$name }} ' | \
@@ -157,7 +157,7 @@ rule phastcons_split:
 
 rule merge_UTRs_perdb:
   input: "hg38.3UTR_{db}_autos.bed.gz", "hg38.5UTR_{db}_autos.bed.gz"
-  output: "hg38.UTR_{db,(refseq,ensembl)}_autos.bed.gz"
+  output: "hg38.UTR_{db,(refseq|ensembl)}_autos.bed.gz"
   shell: 
      """
      zcat {input[0]} {input[1]} | \
