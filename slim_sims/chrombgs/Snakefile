@@ -11,6 +11,7 @@ if not len(config):
 # --- global params --- 
 BMAP_THREADS = 30
 bmap_pattern = "bmap__{name}.pkl"
+bmap_rescale_pattern = "bmap__{name}__{w}w__{t}t.pkl"
 
 # --- slim sims --- 
 run = SlimRuns(config)
@@ -59,8 +60,11 @@ if empirical_bmaps:
         for chrom in config['variable']['chrom']:
             bfile = join(run.basedir, f'bmaps/N__{N}/chrom__{chrom}', bmap_pattern.format(name=name))
             if rescale:
-                rescaled_bfile = join(run.basedir, f'bmaps_rescaled_{rescale}/N__{N}/chrom__{chrom}', bmap_pattern.format(name=name))
-                bmap_output.append(rescaled_bfile)
+                # we need to rescale all combinations of w and t
+                for w in config['variable']['mu']:
+                    for t in config['variable']['sh']:
+                        rescaled_bfile = join(run.basedir, f'bmaps_rescaled_{rescale}/N__{N}/chrom__{chrom}', bmap_rescale_pattern.format(name=name, w=w, t=t))
+                        bmap_output.append(rescaled_bfile)
             bmap_output.append(bfile)
 
 # generate all the targets for this YAML file.
@@ -112,8 +116,8 @@ if empirical_bmaps:
 
     rule bmap_rescaled:
       input: seqlens=config['input']['seqlens_file'], recmap=config['input']['recmap_file'], annot=config['input']['annot_file'], 
-             pkl_b_file=join(run.basedir, 'bmaps/N__{N}/chrom__{chrom}', bmap_pattern)
-      output: pkl_b_file=join(run.basedir, 'bmaps_rescaled_1/N__{N}/chrom__{chrom}', bmap_pattern)
+             pkl_b_file=join(run.basedir, 'bmaps/N__{N}/chrom__{chrom}', bmap_rescale_pattern)
+      output: pkl_b_file=join(run.basedir, 'bmaps_rescaled_1/N__{N}/chrom__{chrom}', bmap_rescale_pattern)
       params: step=10000, t=stringify(config['variable']['sh']), w=stringify(config['variable']['mu'])
       resources:
         mem_mb=200000,
@@ -123,8 +127,8 @@ if empirical_bmaps:
         """
         bgspy calcb \
           --recmap {input.recmap} --annot {input.annot} \
-          --seqlens {input.seqlens} --t '{params.t}' \
-          --w '{params.w}' \
+          --seqlens {input.seqlens} --t '{wildcards.t}' \
+          --w '{wildcards.w}' \
           --output {output} --popsize {wildcards.N} \
           --chrom {wildcards.chrom} \
           --rescale {wildcards.w},{wildcards.t} --rescale-Bp-file {input.pkl_b_file} \
@@ -132,27 +136,27 @@ if empirical_bmaps:
           --step {params.step}
         """
 
-     rule bmap_rescaled_additional:
-      input: seqlens=config['input']['seqlens_file'], recmap=config['input']['recmap_file'], annot=config['input']['annot_file'], 
-             pkl_b_file=lambda w: join(run.basedir, f'bmaps_rescaled_{w.i-1}/N__{w.N}/chrom__{w.chrom}', bmap_pattern)
-      output: pkl_b_file=join(run.basedir, 'bmaps_rescaled_{i}/N__{N}/chrom__{chrom}', bmap_pattern)
-      params: step=10000, t=stringify(config['variable']['sh']), w=stringify(config['variable']['mu'])
-      resources:
-        mem_mb=200000,
-        time_min=4320,
-        threads=BMAP_THREADS
-      shell:
-        """
-        bgspy calcb \
-          --recmap {input.recmap} --annot {input.annot} \
-          --seqlens {input.seqlens} --t '{params.t}' \
-          --w '{params.w}' \
-          --output {output} --popsize {wildcards.N} \
-          --chrom {wildcards.chrom} \
-          --rescale {wildcards.w},{wildcards.t} --rescale-Bp-file {input.pkl_b_file} \
-          --ncores {resources.threads} --ncores-Bp {resources.threads} \
-          --step {params.step}
-        """
+    rule bmap_rescaled_additional:
+     input: seqlens=config['input']['seqlens_file'], recmap=config['input']['recmap_file'], annot=config['input']['annot_file'], 
+            pkl_b_file=lambda w: join(run.basedir, f'bmaps_rescaled_{int(w.i)-1}/N__{w.N}/chrom__{w.chrom}', bmap_rescale_pattern)
+     output: pkl_b_file=join(run.basedir, 'bmaps_rescaled_{i}/N__{N}/chrom__{chrom}', bmap_rescale_pattern)
+     params: step=10000, t=stringify(config['variable']['sh']), w=stringify(config['variable']['mu'])
+     resources:
+       mem_mb=200000,
+       time_min=4320,
+       threads=BMAP_THREADS
+     shell:
+       """
+       bgspy calcb \
+         --recmap {input.recmap} --annot {input.annot} \
+         --seqlens {input.seqlens} --t '{wildcards.t}' \
+         --w '{wildcards.w}' \
+         --output {output} --popsize {wildcards.N} \
+         --chrom {wildcards.chrom} \
+         --rescale {wildcards.w},{wildcards.t} --rescale-Bp-file {input.pkl_b_file} \
+         --ncores {resources.threads} --ncores-Bp {resources.threads} \
+         --step {params.step}
+       """
  
  
 if run_fits:
@@ -328,7 +332,6 @@ if run_fits:
         """
         bgspy fit --data {input.pkl} --nstarts {params.nstarts} --output {output.pkl} --ncores {resources.threads}
         """
-
 
 rule allsims:
     input: sim_results

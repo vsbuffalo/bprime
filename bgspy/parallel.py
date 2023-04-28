@@ -316,8 +316,18 @@ def BSC16_segment_lazy_parallel(mu, sh, L, rbp, N, ncores,
     if isinstance(mu, np.ndarray):
         assert isinstance(sh, np.ndarray)
         # stuff that's run on each core
-        mu = mu.squeeze()[:, None]
-        sh = sh.squeeze()[None, :]
+
+        # deal with odd mu/sh shapes
+        if mu.ndim > 0:
+            mu = mu.squeeze()
+        if mu.ndim == 0:
+            mu = mu.reshape(1)
+        mu = mu[:, None]
+        if sh.ndim > 0:
+            sh = sh.squeeze()
+        if sh.ndim == 0:
+            sh = sh.reshape(1)
+        sh = sh[None, :]
 
     # stuff that's shipped off to cores
     rbp = rbp.squeeze().tolist()

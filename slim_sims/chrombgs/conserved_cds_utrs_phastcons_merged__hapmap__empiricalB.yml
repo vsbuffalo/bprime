@@ -44,3 +44,5 @@ variable:
     - 0.0316
     - 0.1
 bmaps: true
+rescaled_bmaps: 2
+

@@ -13,13 +13,13 @@ def main(simdir: str, output: str, *, ncores: int=1):
    :param output: output .npz file
    :param ncores: number of cores to use
    """
-   mu, sh, pos, X, files = load_b_chrom_sims(simdir, ncores=ncores)
+   mu, sh, pos, X, files, pis, r2sum = load_b_chrom_sims(simdir, ncores=ncores)
 
    nreps = X.shape[3]
    mean = X.mean(axis=3)
    sd = X.std(axis=3)
    np.savez(output, mu=mu, sh=sh, pos=pos, X=X, nreps=nreps,
-            mean=mean, sd=sd, files=files)
+            mean=mean, sd=sd, files=files, pis=pis, r2sum=r2sum)
 
 
 

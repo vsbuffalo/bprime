@@ -122,6 +122,9 @@ def parse_sim_filename(file, types=None, basedir='runs'):
     res['seed'] = int(seed)
     return res
 
+def ldsum(tr):
+    cc = np.cov(tr.genotype_matrix())
+    return np.nansum(np.triu(cc, k=1))
 
 def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     """
@@ -151,6 +154,8 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
     # we do one less than position since these are window boundaries
     # including start
     X = np.full((npos-1, len(mus), len(shs), len(reps)), np.nan, dtype=np.single)
+    pis = np.empty((len(mus), len(shs), len(reps)), dtype='float32')
+    r2sum = np.empty((len(mus), len(shs), len(reps)), dtype='float32')
 
     # for indices
     mu_lookup = {float(mu): i for i, mu in enumerate(sorted(mus))}
@@ -164,6 +169,9 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
             mu = sim_params['mu']
             sh = sim_params['sh']
             X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
+            tr = tsk.load(file)
+            pis[mu_lookup[mu], sh_lookup[sh], rep] = tr.diversity(mode='branch')
+            r2sum[mu_lookup[mu], sh_lookup[sh], rep] = ldsum(tr)
     else:
         with multiprocessing.Pool(ncores) as p:
             func = partial(calc_b_from_treeseqs, **kwargs)
@@ -171,6 +179,9 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
             for (sim_params, pos, b), file in zip(res, tree_files):
                 rep = parse_sim_filename(file)['rep']
                 mu, sh = sim_params['mu'], sim_params['sh']
+                tr = tsk.load(file)
+                pis[mu_lookup[mu], sh_lookup[sh], rep] = tr.diversity(mode='branch')
+                r2sum[mu_lookup[mu], sh_lookup[sh], rep] = ldsum(tr)
                 try:
                     X[:, mu_lookup[mu], sh_lookup[sh], rep] = b
                 except:
@@ -178,7 +189,7 @@ def load_b_chrom_sims(dir, progress=True, ncores=None, **kwargs):
 
     mu = np.fromiter(mu_lookup.keys(), dtype=float)
     sh = np.fromiter(sh_lookup.keys(), dtype=float)
-    return mu, sh, pos, X, tree_files
+    return mu, sh, pos, X, tree_files, pis, r2sum
 
 
 def process_substitution_files(dir, outfile, suffix='sub.tsv.gz'):
