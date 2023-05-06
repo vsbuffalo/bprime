@@ -130,35 +130,57 @@ perturb the selection at other sites.
 
 
 \section*{Results}
-\subsection*{Theory}
 
 Similar to previous work, our method characterizes the negative selection
-process through its indirect effects on neighboring levels of pairwise
-diversity. While pairwise diversity is a less-informative statistic than the
-full site frequency spectrum, it is far easier to derive models of how
-selection alters expected pairwise coalescence times at linked sites than to
-describe the entire genealogy. Statistical methods then fit observed diversity
-to the expectation of a particular theoretic model of the linked selection
-process. Consequently, statistical inferences about selection may be incorrect
-when the underlying theory inaccurately predicts average pairwise coalescence
-times.
+process through the signal left on pairwise diversity at linked sites. Although
+pairwise diversity is a less-informative statistic than the full site frequency
+spectrum, it is much easier to derive models of how selection alters expected
+pairwise coalescence times at linked sites than to describe the entire
+genealogy. Spatial patterns of pairwise diversity are highly variable across
+eukaryotic genomes, as linked selection leads diversity to become correlated
+with spatial heterogeneity in recombination rates and the density of conserved
+sites. Statistical methods then fit observed diversity to the expected level
+under a particular theoretic model of linked selection processes. Consequently,
+statistical inferences about selection may be incorrect when the underlying
+theory inaccurately predicts average pairwise coalescence times.
 
 Our work is motivated by a well-known limitation of classic background
-selection theory: it is only accurate for strongly deleterious mutations. Given
-that statistical methods rely on background selection theory to estimate the
-mutation rate and distribution of fitness effects of deleterious mutations, it
-is important to characterize and remedy these shortcomings of the model.
-However, this is 
+selection theory: it is only accurate for strongly deleterious mutations
+\parencite{Charlesworth1993-gb,McVean2000-bt,Good2013-lp,Gordo2002-dr}. Given
+statistical methods that fit genome-wide diversity to linked selection
+processes rely on the classic BGS model to estimate the distribution of fitness
+effects and rate of deleterious mutations, it is important to characterize and
+remedy these shortcomings. However, extending background selection theory to
+model weak negative selection is challenging, and it is worthwhile to develop
+some intuition for how the classic background selection works and why this is
+the case. 
+
+The classic background selection model \parencite{Charlesworth1993-gb} 
+
+First, the frequency trajectory of a weakly selected allele is
+predominantly determined by stochastic evolutionary processes. When the changes
+due to stochasticity are large, deterministic approximations that work well
+under strong selection no longer capture selection dynamics. Second, weakly
+selected alleles are impacted by two sources of evolutionary stochasticity:
+genetic drift (i.e. non-heritable differences in offspring number and Mendelian
+segregation) and genetic draft, the stochastic changes in allele frequency
+caused by selection on the same genetic background
+\parencite{Neher2013-dz,McVean2000-bt}. 
+
+Moreover, when the magnitude of stochastic changes can exceed the deterministic
+changes caused by selection, mutations that decrease fitness now have a chance
+of fixation \parencite{Kimura1962-su,Malecot1948-zv}. Because there is a steady
+influx of weakly deleterious mutations, each with a non-zero chance of
+substitution, there must be a corresponding substitution process. The rate of
+this deleterious substitution process (e.g. ``Muller's ratchet") is 
 
 
-It is well-known that the approximations that underpin classic background
-selection theory
-\parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1994-oh,Hudson1995-pt}
-break down when selection against deleterious mutations is weak, and the
-reduction in diversity predicted by this model is incorrect
-\parencite{McVean2000-bt,Good2013-lp,Gordo2002-dr}. Before introducing how th 
+By contrast, when selection is assumed to be strong,
+deterministic models of mutation and selection that ignore these sources of
+stochasticity adequately capture the dynamics. Since weakly deleterious
+mutations have some chance of fixation, 
 
-
+\subsection*{Theory}
 
 describe how selection alters pairwise coalescence times rather than full
 genealogy (since $\E[\pi] = 2\mu \E(T_2)$). Statistical methods that fit the
