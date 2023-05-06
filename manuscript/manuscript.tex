@@ -56,22 +56,22 @@
 \section*{Introduction}
 
 The continual influx of new mutations into populations is the ultimate source
-of all adaptations, but the vast majority of mutations either do not have an
-effect on fitness or are deleterious. Negative selection works to eliminate
-such deleterious mutations from the population, which is essential to
-maintaining the integrity of information in the genome to maintain a lineage.
-Mutations under negative selection are kept at low frequencies (Haldane?),
-contributing to human traits (XXX) and diseases. As with most selection in the
-genome, this process perturbs the allele frequencies of neighboring linked
-variation. This reduces genetic variability around conserved segments and
-creates large-scale spatial patterns in genetic diversity. These patterns are
-mediated by the deleterious mutation rate, the strength of selection in
-conserved segments, and the spatial distribution of recombination rates and
-conserved segments. Since genome-wide recombination maps and putatively
-conserved segments are available for many species, researchers have combined
-these with population genetic theory to estimate the mutation rate and
-selection coefficients of deleterious mutations, as well as the overall
-reduction in genetic variability due to the negative selection process.
+of all adaptations, but the vast majority of mutations either do not affect
+fitness or are deleterious. Negative selection works to eliminate such
+deleterious mutations from the population, which is essential to maintaining
+the integrity of information in the genome to maintain a lineage. Mutations
+under negative selection are kept at low frequencies (Haldane?), contributing
+to human traits (XXX) and diseases. As with most selection in the genome, this
+process perturbs the allele frequencies of neighboring linked variation. This
+reduces genetic variability around conserved segments and creates large-scale
+spatial patterns in genetic diversity. These patterns are mediated by the
+deleterious mutation rate, the strength of selection in conserved segments, and
+the spatial distribution of recombination rates and conserved segments. Since
+genome-wide recombination maps and putatively conserved segments are available
+for many species, researchers have combined these with population genetic
+theory to estimate the mutation rate and selection coefficients of deleterious
+mutations, as well as the overall reduction in genetic variability due to the
+negative selection process.
 
 Classic Background Selection (BGS) theory is the predominant model for the
 reduction in linked neutral diversity used by statistical approaches to
@@ -133,71 +133,81 @@ perturb the selection at other sites.
 \subsection*{Theory}
 
 Similar to previous work, our method characterizes the negative selection
-process through its indirect effects on levels of neighboring pairwise
-diversity at putatively neutral sites. Essential to this approach are accurate
-theoretic models for how a selection process alters pairwise coalescence times
-at sites some recombination distance away. The predominant model for how
-negative (or purifying) selection reduces pairwise coalescence times at linked
-sites is the classic background selection model
-\parencite{Charlesworth1993-gb}. This simple and elegant model assumes new
-deleterious mutations enter a region of $L$-basepairs at a rate of $\mu$ per
-basepair per generation with a selection coefficient $s$ in heterozygotes that
-is sufficiently deleterious that it is destined to loss. Under this setup, the
-number of segregating deleterious mutations in the region reaches a stationary
-Poisson distribution with rate $\nicefrac{U}{s}$ ($U=\mu L$), which is
-precisely the equilibrium number under a deterministic mutation-selection
-balance models \parencite{Kimura1966-bk,Crow1970-wj}. Modifications of this
-basic model that allow for recombination between the segment under negative
-selection and a focal neutral site \parencite{Nordborg1996-nq,Hudson1994-oh}
-have been the basis of statistical methods that fit genome-wide patterns of
-diversity to theoretic expectations \parencite{McVicker2009-ax,Hudson1995-xc}.
-Furthermore, jointly incorporating both hitchhiking and background selection
-have allowed for model comparison approaches that can estimate the relative
-contributions of these two modes of selection
-\parencite{Elyashiv2016-vt,Murphy2022-sj}.
+process through its indirect effects on neighboring levels of pairwise
+diversity. While pairwise diversity is a less-informative statistic than the
+full site frequency spectrum, it is far easier to derive models of how
+selection alters expected pairwise coalescence times at linked sites than to
+describe the entire genealogy. Statistical methods then fit observed diversity
+to the expectation of a particular theoretic model of the linked selection
+process. Consequently, statistical inferences about selection may be incorrect
+when the underlying theory inaccurately predicts average pairwise coalescence
+times.
+
+Our work is motivated by a well-known limitation of classic background
+selection theory: it is only accurate for strongly deleterious mutations. Given
+that statistical methods rely on background selection theory to estimate the
+mutation rate and distribution of fitness effects of deleterious mutations, it
+is important to characterize and remedy these shortcomings of the model.
+However, this is 
+
+
+It is well-known that the approximations that underpin classic background
+selection theory
+\parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1994-oh,Hudson1995-pt}
+break down when selection against deleterious mutations is weak, and the
+reduction in diversity predicted by this model is incorrect
+\parencite{McVean2000-bt,Good2013-lp,Gordo2002-dr}. Before introducing how th 
 
 
 
+describe how selection alters pairwise coalescence times rather than full
+genealogy (since $\E[\pi] = 2\mu \E(T_2)$). Statistical methods that fit the
+relationship between observed diversity to an expectation provided by a
+particular theoretic model of the linked selection process. 
 
-These linked selection models predict how selection increases the rate
-of coalescence at a neighboring neutral site some recombination distance away. 
+Our work considers a well-known
+shortcoming of the classic background selection model: that 
 
+The classic theoretic model of how negative or purifying selection changes the
+mean coalescence time at linked neutral sites is the background selection model
+\parencite{Charlesworth1993-gb}. In the simplest case without recombination,
+this model assumes that deleterious mutations enter a segment.
 
-
-In general, these methods characterize selection processes by fitting the
-relationship between observed pairwise diversity and expected levels according
-to a theoretic model of linked selection. These linked selection models predict
-how selection impacts the coalescence rate at some nearby site, which is
-mediated by the strength of selection (e.g. the rate of new selected 
-
-For negative selection, the background
-selection model predicts the expected pairwise coalescence time at some focal
-neutral site near a region under mutation-selection balance. The increase in
-coalescence rate 
-
-The impact of selection on linked neutral sites is mediated by the rate at
-which selected mutations enter the population, the strength of selection, and
-the recombination distance between 
+classic background selection model are only applicable for strongly deleterious
+mutations that have no probability of fixation
+\parencite{Good2014-yz,Gordo2002-dr,Charlesworth2013-kl}.
 
 
-Both
-hitchhiking and background selection models approximate the increased rate of
-coalescence near sites under positive and negative selection as a reduction in
-effective population size. Hitchhiking models 
-
-typically imagine a sweeping
-beneficial allele creating 
-
-
-feature of linked selection theory is that the increased rate of coalescence at
-sites neighboring regions under either positive or negative selection
-
-
-Both positive
-and negative selection increase the rate of coalescence at neighboring sites,
-which both hitchhiking (XXX) and background selection (XXX) models 
+new deleterious mutations enter a region of $L$-basepairs at a rate of $\mu$
+per basepair per generation with a selection coefficient $s$ in heterozygotes
+that is sufficiently deleterious that it is destined to loss. Under this setup,
+the number of segregating deleterious mutations in the region reaches a
+stationary Poisson distribution with rate $\nicefrac{U}{s}$ ($U=\mu L$), which
+is precisely the equilibrium number under a deterministic mutation-selection
+balance models \parencite{Kimura1966-bk,Crow1970-wj}. Since any linear carrying
+a deleterious mutation is destined to extinction, coalescence events can only
+occur in the $N \exp(-\nicefrac{U}{s})$ individuals carrying zero deleterious
+mutations. Working back through the ancestors of two lineages carrying $i$ and
+$j$ deleterious mutations, both 
 
 
+Modifications of this basic model that allow for recombination between the
+segment under negative selection and a focal neutral site
+\parencite{Nordborg1996-nq,Hudson1994-oh} have been the basis of statistical
+methods that fit genome-wide patterns of diversity to theoretic expectations
+\parencite{McVicker2009-ax,Hudson1995-xc}. Furthermore, methods that
+incorporate both hitchhiking and background selection allow for estimates of
+the relative contributions of these two modes of selection and model
+comparisions \parencite{Elyashiv2016-vt,Murphy2022-sj}.
+
+However, the predicted reduction in diversity under the classic background
+selection model is inaccurate whenever selection is weak enough that
+deleterious mutations may rise in frequency in the population and possibly
+reach fixation. This is a well-known problem (XXX), that is mathematically
+difficult because the 
+
+\subsection*{DFE Estimates}
+ - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
 
 \begin{figure}[!htb]
   \centering
