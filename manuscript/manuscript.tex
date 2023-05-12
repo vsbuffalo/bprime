@@ -183,33 +183,70 @@ coalescence timescale of $N_0$ among these ancestors (the ``coalescence
 phase"), and can be ignored (\textcite{Durrett2008-ql}, p. 213;
 \textcite{Good2014-yz}).
 
-When mutations are weakly deleterious, their frequency trajectories are no
-longer well-approximated by deterministic models. This is because the selection
-on an allele is only weak relative to the scale of stochastic perturbations it
-encounters along its trajectory. When genetic drift is the only source of
-randomness in allele frequency change, the relevant scale of stochastic
-perturbations is the drift-effective population size $N$ and selection dynamics
-are governed by compound parameter $2Ns$. When $2Ns \gg 1$, the stochastic
-component of allele frequency change is minuscule relative to selection and can
-be ignored as the classic BGS theory does; this is why the rescaling factor
-under the BGS model does not depend on $N$. However, when $2Ns \le 1$
-stochastic perturbations are large relative to selection, and a weakly
-deleterious allele can drift up to intermediate frequencies before eventual
-loss or fixation. Weakly deleterious alleles can persist in the population much
-longer, and consequently 
+When mutations are weakly deleterious, their allele frequencies are strongly
+influenced by stochastic perturbations and their frequency trajectories are no
+longer well-approximated by deterministic models. When genetic drift is the
+only source of randomness in allele frequency change, the relevant scale of
+stochastic perturbations is determined by the drift-effective population size
+$N_d$ (e.g. due to only non-selective process). For reasons that will soon be
+clear, we consider a general expression of the drift-effective population size
+that allows for extra non-heritable variability in offspring number $V_k$,
 
-When this occurs, the distribution of the number of deleterious mutations (and
-its corresponding fitness distribution) are no longer stationary and become a
-traveling wave \parencite{Rouzine2008-qz,Good2013-lp}. Furthermore, individuals
-in the least-loaded class are stochastically lost, fixing those mutations with
-a click of ``Muller's ratchet" \parencite{Muller1964-ki}. Determining both the
-rate of Muller's ratchet \parencite{Haigh1978-gt,Gordo2002-dr,Gessler1995-hz}
-and the shape of genealogies under weak selection
-\parencite{Przeworski1999-mb,OFallon2010-my,Higgs1995-xc} have been stubborn
-problems 
+\begin{align}
+    N_d = \frac{2N}{V_k + 2}
+\end{align}
 
+where if $V_k = 2$, this reduces to the classic Wright--Fisher model
+\parencite{Wright1938-tv}.
 
+The insight of nearly neutral theory (XXX) was that the qualitative behavior of
+selected sites is determined by the compound parameter $2N_d s$. When $2N_d s
+\gg 1$, the stochastic component of allele frequency change is minuscule
+relative to selection and can be ignored; this is why the factor that rescales
+the drift-effective population size under the BGS model does not depend on
+$N_d$. However, when $2N_d s \le 1$ stochastic perturbations are on a scale
+equal to or greater than the changes due to selection. In this regime, weakly
+deleterious alleles can drift up to intermediate frequencies before their
+eventual loss or fixation. When this occurs, classic BGS theory breaks down for
+several reasons. First, the ``delay phase" is no longer negligible as lineages
+carrying weakly deleterious mutations can persist on coalescent timescales.
+This distorts genealogies away those expected under neutrality
+\parencite{Przeworski1999-mb,OFallon2010-my,Higgs1995-xc}. Second, the
+distribution of the number of deleterious mutations (and its corresponding
+fitness distribution) are no longer stationary and become a traveling wave
+\parencite{Rouzine2008-qz,Good2013-lp,Gessler1995-hz} towards reduced
+population fitness (since beneficial mutations are ignored). Consequently,
+individuals in the least-loaded class are stochastically lost, fixing those
+mutations with a click of ``Muller's ratchet" \parencite{Muller1964-ki}.
+Determining both the rate of Muller's ratchet
+\parencite{Haigh1978-gt,Gordo2002-dr,Gessler1995-hz} and the shape of
+genealogies under weak selection have been stubborn open problems in
+evolutionary genetics.
 
+To further complicate matters, both strong and weakly deleterious mutations
+create \emph{heritable} fitness variation. In turn, the presence of heritable
+fitness variation generates another source of randomness in allele frequency
+change known as genetic \emph{draft} \parencite{Neher2013-dz}. Genetic draft
+occurs when alleles become randomly associated with different fitness
+backgrounds each generation, which stochastically perturbs their trajectories.
+Like genetic drift, perturbations due to draft are directionless but overall
+increase the variance in allele frequency change. Unlike drift, the stochastic
+perturbations each generation due to draft are autocorrelated as long as
+segregation and recombination do not decouple an allele from its fitness
+background and the selective environment does not change
+\parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. When selection is
+strong, 
+
+When selection is
+weak and fitness is polygenic, the stochasticity introduced by draft is
+well-approximated by rescaling the drift-effective population size 
+
+that exist when there are heritable differences among haplotypes.
+Mathematical models of genetic draft 
+
+Gillespie2000-mh
+
+,Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Barton2000-zg
 
  
 \subsection*{DFE Estimates}
