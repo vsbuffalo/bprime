@@ -144,74 +144,47 @@ under a particular theoretic model of linked selection processes. Consequently,
 statistical inferences about selection may be incorrect when the underlying
 theory inaccurately predicts average pairwise coalescence times.
 
+\subsection*{Theory}
+
 Our work is motivated by a well-known limitation of classic background
 selection theory: it is only accurate for strongly deleterious mutations
 \parencite{Charlesworth1993-gb,McVean2000-bt,Good2013-lp,Gordo2002-dr}. Given
-statistical methods that fit genome-wide diversity to linked selection
-processes rely on the classic BGS model to estimate the distribution of fitness
-effects and rate of deleterious mutations, it is important to characterize and
-remedy these shortcomings. However, extending background selection theory to
-model weak negative selection is challenging, and it is worthwhile to develop
-some intuition for how the classic background selection works and why this is
-the case. 
+statistical methods that fit linked selection processes to genome-wide
+diversity data rely on the classic BGS model to estimate the distribution of
+fitness effects and rate of deleterious mutations, it is important to
+characterize and remedy these shortcomings. However, extending background
+selection theory to model weak negative selection is challenging, and it is
+worthwhile to develop some intuition for why this is the case, how the classic
+background selection works, and how the model of \textcite{Santiago2016-mu}
+solves these problems and can be extended to genome-wide inference.
 
-The classic background selection model \parencite{Charlesworth1993-gb} 
-
-First, the frequency trajectory of a weakly selected allele is
-predominantly determined by stochastic evolutionary processes. When the changes
-due to stochasticity are large, deterministic approximations that work well
-under strong selection no longer capture selection dynamics. Second, weakly
-selected alleles are impacted by two sources of evolutionary stochasticity:
-genetic drift (i.e. non-heritable differences in offspring number and Mendelian
-segregation) and genetic draft, the stochastic changes in allele frequency
-caused by selection on the same genetic background
-\parencite{Neher2013-dz,McVean2000-bt}. 
-
-Moreover, when the magnitude of stochastic changes can exceed the deterministic
-changes caused by selection, mutations that decrease fitness now have a chance
-of fixation \parencite{Kimura1962-su,Malecot1948-zv}. Because there is a steady
-influx of weakly deleterious mutations, each with a non-zero chance of
-substitution, there must be a corresponding substitution process. The rate of
-this deleterious substitution process (e.g. ``Muller's ratchet") is 
-
-
-By contrast, when selection is assumed to be strong,
-deterministic models of mutation and selection that ignore these sources of
-stochasticity adequately capture the dynamics. Since weakly deleterious
-mutations have some chance of fixation, 
-
-\subsection*{Theory}
-
-describe how selection alters pairwise coalescence times rather than full
-genealogy (since $\E[\pi] = 2\mu \E(T_2)$). Statistical methods that fit the
-relationship between observed diversity to an expectation provided by a
-particular theoretic model of the linked selection process. 
-
-Our work considers a well-known
-shortcoming of the classic background selection model: that 
-
-The classic theoretic model of how negative or purifying selection changes the
-mean coalescence time at linked neutral sites is the background selection model
-\parencite{Charlesworth1993-gb}. In the simplest case without recombination,
-this model assumes that deleterious mutations enter a segment.
-
+Both the classic background selection and SC16 models imagine a negative
+selection process where a continual influx of deleterious mutations flow into
+the population at a rate of $\mu$ per basepair per generation in a conserved
+region of $L$ basepairs, such that the region-wide per generation mutation rate
+is $U = \mu L$. Each mutation imposes an additive selective cost of $s$ in
+heterozygotes and $2s$ in homozygotes. The classic background selection model
+considers when mutations are sufficiently deleterious that they are destined to
+extinction
+\parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1994-oh}. In
+this case, the genealogy is well-approximated by a neutral coalescence process
+with a rescaled effective population size of $N_0 = N \exp(-\nicefrac{U}{s})$.
+This approximation works reasonably well for two reasons (though see
+\textcite{Cvijovic2018-vd}). First, when selection is strong, the number of
+deleterious mutations per haplotype has a stationary Poisson distribution with
+mean equal to the equilibrium under the deterministic mutation-selection model
+\parencite{Haldane1927-ga}. Since lineages carrying any strongly deleterious
+mutations cannot contribute to the genealogy, coalescence events only occur in
+the fraction $\exp(-\nicefrac{U}{s}$ free of mutations. Second, two present-day
+lineages carrying any deleterious mutations trace their ancestry back to the
+pool of $N_0$ mutation-free ancestors very quickly, since these harmful
+mutations could only have been acquired recently by the lineage. On coalescence
+timescales of $\sim 2N_0$, this time is negligible and can be ignored
+(\textcite{Durrett2008-ql}, p. 213; \textcite{Good2014-yz}). 
+ 
 classic background selection model are only applicable for strongly deleterious
 mutations that have no probability of fixation
 \parencite{Good2014-yz,Gordo2002-dr,Charlesworth2013-kl}.
-
-
-new deleterious mutations enter a region of $L$-basepairs at a rate of $\mu$
-per basepair per generation with a selection coefficient $s$ in heterozygotes
-that is sufficiently deleterious that it is destined to loss. Under this setup,
-the number of segregating deleterious mutations in the region reaches a
-stationary Poisson distribution with rate $\nicefrac{U}{s}$ ($U=\mu L$), which
-is precisely the equilibrium number under a deterministic mutation-selection
-balance models \parencite{Kimura1966-bk,Crow1970-wj}. Since any linear carrying
-a deleterious mutation is destined to extinction, coalescence events can only
-occur in the $N \exp(-\nicefrac{U}{s})$ individuals carrying zero deleterious
-mutations. Working back through the ancestors of two lineages carrying $i$ and
-$j$ deleterious mutations, both 
-
 
 Modifications of this basic model that allow for recombination between the
 segment under negative selection and a focal neutral site
