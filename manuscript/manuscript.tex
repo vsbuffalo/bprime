@@ -248,19 +248,22 @@ variation $C^2$ becomes inflated by a factor $Q^2$,
     N_e = \frac{N}{C^2 Q^2 + 1}.
 \end{align}
 
-(c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see XXX for a proof).
+(c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see XXX for a proof). Note that
+this assumes the usual Wright--Fisher non-heritable variance, i.e. $V^2=2$.
+However, because the autocorrelation in allele frequency builds up each
+generation relative to the fitness background its on, the inflation term $Q^2$
+has a temporal dimension. For notational efficiency, we assume $Q^2$ refers to
+the asymptotic $Q_t^2$ as $t \to \infty$ and we consider the \emph{asymptotic}
+$N_e$ created by draft. In general, however, statistics such as heterozygosity
+depend on the cumulative autocorrelation factor \emph{up to some time} $t$,
+$Q_t^2$ \parencite[p. 2111]{Santiago1998-bs}. This reflects the fact that
+effective population size experienced by a mutation newly associated with a
+fitness background is larger than the asymptotic effective population size,
+since not much autocorrelation has accumulated in the stochastic perturbations
+caused by drift yet. 
 
-Note that assuming $V^2=2$.
 
-
-are subtle differences in the effective population sizes
-
-This is often
-expressed as rescaling the effective population size by 
-
-
-rescaling the
-drift-effective population size by an appropriate factor
+rescaling the drift-effective population size by an appropriate factor
 \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Barton2000-zg}.
 While a simple rescaling cannot elucidate details about how selection alters
 the genealogy, it does allow for the calculation of key quantities like the
