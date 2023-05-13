@@ -69,7 +69,8 @@ and be responsible for a significant portion of phenotypic variation and disease
 Selection on both beneficial and deleterious alleles leads to 
 perturbations in the allele frequency spectrum of neighboring, linked variation.
 This phenomenon, known as linked selection, is a major force shaping patterns of
-genetic variation along chromosomes \citep{Maynard_Smith1974-zr,Charlesworth1993-gb,Barton1998-aj,Gillespie2000-mh}.
+genetic variation along chromosomes 
+\parencite{Maynard_Smith1974-zr,Charlesworth1993-gb,Barton1998-aj,Gillespie2000-mh}.
 As deleterious variation is clustered in functional portions of the genome,
 we expect linked selection to reduce levels of diversity surrounding evolutionarily
 conserved segments (e.g. genes, regulatory elements, etc.) 
@@ -81,27 +82,31 @@ Since genome-wide recombination maps and putatively conserved segments are avail
 for many species, there has been consistent effort to fit models of
 linked selection to patterns of diversity to estimate population genetic
 parameters such as the strength of selection and the deleterious mutation rate 
-\citep{Hudson1995-pt,McVicker2009-ax},
+\parencite{Hudson1995-pt,McVicker2009-ax},
 the overall reduction in genetic variability due to the
-selection on deleterious variants \citep{Elyashiv2016-vt,Murphy2022-sj},
-and in some cases the rate of beneficial mutations \citep{corbett2015natural,Elyashiv2016-vt}.
+selection on deleterious variants \parencite{Elyashiv2016-vt,Murphy2022-sj},
+and in some cases the rate of beneficial mutations \parencite{corbett2015natural,Elyashiv2016-vt}.
 
-Classic Background Selection (BGS) theory is the predominant model for the
-reduction in linked neutral diversity used by statistical approaches to
-quantify the impacts of negative selection. However, this model makes some
-assumptions for mathematical tractability that could distort inferences about
-the negative selection process. First, since fixation probabilities ultimately
-depend on the product of the deleterious selection coefficient (s) and
-population size (N), the efficacy of negative selection should depend on
-demography. Unfortunately, accommodating demography into theoretic negative
-selection models remains an open, difficult problem (XXX). Second, building off
-classic models of mutation-selection balance (Crow 1970, Kimura and Maruyama
-196), the Background Selection (XXX) model assumes that new mutations are
-sufficiently deleterious that they are invariably driven to loss. Under this
-assumption, the effect of selection is well-approximated by simply rescaling
-the neutral coalescent by a reduction factor known as B (XXX). However, this is
-only appropriate in a limited domain of parameters relevant to the negative
-selection process (XXX). Because the BGS model cannot accommodate the
+Prior attempts to model the reduction in linked diversity due to deleterious alleles
+have largely relied on the now canonical Background Selection (BGS) model \parencite{Charlesworth1993-gb,Nordborg1996-nq}.
+While this model has been successful in explaining many patterns of diversity,
+some its simplifying assumptions
+may distort inferences about the negative selection process.
+First, since fixation probabilities ultimately
+depend on the product of the deleterious selection coefficient ($s$) and
+population size ($N$), the efficacy of negative selection should depend on
+demography. Unfortunately, accommodating demography into analytic models of negative
+selection remains an open, difficult problem (XXX). Second, building off
+classic models of mutation-selection balance \parencite{Crow1970-wj,Kimura1966-bk}
+BGS assumes that new mutations are sufficiently deleterious
+such that they are invariably driven to loss. 
+Under this assumption, the effect of selection is well-approximated by simply rescaling
+the coalescent effective size by a reduction factor, 
+sometimes called $B$ such that $N_eB=N_{0}$ \parencite{Charlesworth2013-kl}.
+However this rescaling is not appropriate across parts of parameter space
+that are relevant to natural populations segregating deleterious variation
+ \parencite[e.g.][]{good2014genetic,Santiago2016-mu}.
+In particular, because the BGS model cannot accommodate the
 possibility of fixation for mutations with $Ns \ll 1$, diversity is incorrectly
 predicted to fall to zero as the strength of selection diminishes. This weak
 selection problem is related to the wider problem of modeling the substitution
@@ -112,34 +117,43 @@ since under sufficiently high mutation rates or with little recombination,
 selective interference can occur with a segment. 
 
 In this work, we extend another class of linked selection models that derive
-from quantitative genetics to address limitations of the classic BGS model.
+from quantitative genetics to address limitations of the classic BGS model 
+\parencite{santiago1998effective,Santiago2016-mu}.
 These models consider how polygenic fitness variation increases the rate of
 stochastic allele frequency change as alleles become randomly linked to fitness
 backgrounds. While these models can theoretically accommodate polygenic fitness
 variation from any source as long as its rate of change is not too rapid, we
 focus specifically on a deleterious-mutations-only model from Santiago and
-Caballero (2016). This model is identical to the classic BGS model when
-selection against deleterious mutations is strong, but it also correctly
-predicts the reduction in diversity and substitutions rates of weakly
+Caballero (2016). 
+This model is identical to BGS when selection against deleterious mutations is strong,
+but it also correctly predicts the reduction in diversity and substitution rates of weakly
 deleterious mutations by accurately modeling levels of genic fitness variation.
-We extend Santiago and Caballero’s (hereafter the SC16) model so that it can be
-used to model genome-wide patterns of diversity under negative selection
-processes, and develop Python software to use this theoretic approach to fit
+We extend Santiago and Caballero model (hereafter the SC16) so that it can be
+used to model genome-wide patterns of diversity,
+and develop Python software to use this theoretic approach to fit
 genome-wide models of negative selection. Using forward simulations, we show
-this model leads to more accurate DFE estimates under weak selection. While
-this new model accommodates the possibility that a given reduction B could be
-due to weaker selection, in applying our composite-likelihood method to human
-population genomic data, we confirm earlier findings that strong negative
-selection at a small fraction of sites fits human data across populations best.
-Finally, we show that while this model solves some limitations of the classic
-BGS model, simulations reveal another mysterious defect: a poor fit around
-$Ns=1$. We show that this can be partially corrected by incorporating the effects
-of selective interference on genic variation, but the remaining discrepancy is
-due to the build up of negative linkage disequilibrium that cannot be
-adequately captured by this model. We find accounting for genic selective
-interference between segments fits human population genomic data slightly
-better, suggesting levels of negative selection in humans are sufficient to
-perturb the selection at other sites.
+this model leads to more accurate DFE estimates under weak selection. 
+Finally, we apply our composite-likelihood method to human population genomic data
+and provide new estimates of the landscape of negative selection in humans.
+
+%
+%
+% ADK- Vince I commented out the below because I don't like to walk through the results
+% in an intro. Instead say what you did, and then the results are in the results section.
+%
+%While this new model accommodates the possibility that a given reduction B could be
+%due to weaker selection, in applying our composite-likelihood method to human
+%population genomic data, we confirm earlier findings that strong negative
+%selection at a small fraction of sites fits human data across populations best.
+%Finally, we show that while this model solves some limitations of the classic
+%BGS model, simulations reveal another mysterious defect: a poor fit around
+%$Ns=1$. We show that this can be partially corrected by incorporating the effects
+%of selective interference on genic variation, but the remaining discrepancy is
+%due to the build up of negative linkage disequilibrium that cannot be
+%adequately captured by this model. We find accounting for genic selective
+%interference between segments fits human population genomic data slightly
+%better, suggesting levels of negative selection in humans are sufficient to
+%perturb the selection at other sites.
 
 
 \section*{Results}
