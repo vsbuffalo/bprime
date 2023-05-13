@@ -193,6 +193,7 @@ clear, we consider a general expression of the drift-effective population size
 that allows for extra non-heritable variability in offspring number $V^2$,
 %
 \begin{align}
+    \label{eq:simple_Ne}
     N_d = \frac{2N}{V^2 + 2}
 \end{align}
 
@@ -242,25 +243,45 @@ However, when selection is weak and polygenic, draft can be approximated as an
 increase in the rate of drift. The key insight is that the draft rescaling
 factor is like extra variability in offspring number, but because of
 autocorrelation due to linkage and similar environments, the heritable fitness
-variation $C^2$ becomes inflated by a factor $Q^2$,
+variation $C^2$ (on a relative fitness scale, i.e. the squared coefficient of
+variance) becomes inflated by a factor $Q^2$. Intuitively, the product $V^2
+Q^2$ represents the expected total variance a neutral mutation experiences over
+its lifetime in a system with draft. This \emph{heritable} fitness variance
+that neutral allele experiences can then be included in Equation
+\eqref{eq:simple_Ne} (assuming the usual Wright--Fisher non-heritable variance,
+i.e. $V^2=2$),
 
 \begin{align}
+    \label{eq:main_Ne}
     N_e = \frac{N}{C^2 Q^2 + 1}.
 \end{align}
 
 (c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see XXX for a proof). Note that
-this assumes the usual Wright--Fisher non-heritable variance, i.e. $V^2=2$.
-However, because the autocorrelation in allele frequency builds up each
-generation relative to the fitness background its on, the inflation term $Q^2$
-has a temporal dimension. For notational efficiency, we assume $Q^2$ refers to
-the asymptotic $Q_t^2$ as $t \to \infty$ and we consider the \emph{asymptotic}
-$N_e$ created by draft. In general, however, statistics such as heterozygosity
-depend on the cumulative autocorrelation factor \emph{up to some time} $t$,
-$Q_t^2$ \parencite[p. 2111]{Santiago1998-bs}. This reflects the fact that
-effective population size experienced by a mutation newly associated with a
-fitness background is larger than the asymptotic effective population size,
-since not much autocorrelation has accumulated in the stochastic perturbations
-caused by drift yet. 
+because the variance under drift increases each generation due to the
+accumulation of drift perturbations and draft autocorrelations, the inflation
+term $Q^2$ has a temporal dimension. For notational efficiency, we assume $Q^2$
+refers to the asymptotic $Q_t^2$ as $t \to \infty$ and $N_e$ is the
+\emph{asymptotic} draft effective population size. In general, however,
+statistics such as heterozygosity depend on the cumulative autocorrelation
+factor \emph{up to some time} $t$, $Q_t^2$ \parencite[p.
+2111]{Santiago1998-bs}. This reflects the fact that effective population size
+experienced by a mutation newly associated with a fitness background is larger
+than the asymptotic effective population size, since not much autocorrelation
+has accumulated in the stochastic perturbations caused by drift yet. From a
+backwards-time perspective, this reflects the fact that pairwise diversity
+(which is approximately heterozygosity in most cases) depends on the pairwise
+coalescence rate per generation, which will is not constant under draft. The
+benefit of using a forward-time model of draft is that it the inflation factor
+is invariant with respect to the particular fitness background the neutral
+allele becomes stochastically associated with. By contrast, the difficulty with
+backwards-time models is that the coalescence rates experienced by a lineage
+are not invariant to which lineage was sampled.
+
+Equation \eqref{eq:main_Ne} 
+
+
+Shortly, we will show that Robertson (1961) and Santiago and Caballero's (1995,
+1998, 2016) approach 
 
 
 rescaling the drift-effective population size by an appropriate factor
