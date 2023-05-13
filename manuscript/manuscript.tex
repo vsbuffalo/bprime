@@ -191,7 +191,7 @@ stochastic perturbations is determined by the drift-effective population size
 $N_d$ (e.g. due to only non-selective process). For reasons that will soon be
 clear, we consider a general expression of the drift-effective population size
 that allows for extra non-heritable variability in offspring number $V_k$,
-
+%
 \begin{align}
     N_d = \frac{2N}{V_k + 2}
 \end{align}
@@ -230,27 +230,33 @@ change known as genetic \emph{draft} \parencite{Neher2013-dz}. Genetic draft
 occurs when alleles become randomly associated with different fitness
 backgrounds each generation, which stochastically perturbs their trajectories.
 Like genetic drift, perturbations due to draft are directionless but overall
-increase the variance in allele frequency change. Unlike drift, the stochastic
-perturbations each generation due to draft are autocorrelated as long as
-segregation and recombination do not decouple an allele from its fitness
-background and the selective environment does not change
+increase the variance in allele frequency change. Unlike drift, stochastic
+perturbations caused by draft are autocorrelated across generations as long an
+allele does not recombine or segregate off its fitness background and the
+selective environment does not change
 \parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. When selection is
-strong, 
+strong, draft can generate multiple-merger coalescences that create
+discontinuities in allele frequency trajectories, making diffusion
+approximations ill-suited \parencite{Gillespie2000-mh,Der2011-it,Neher2013-dz}.
+However, when selection is weak and fitness is polygenic, the stochasticity
+introduced by draft can be approximated by assuming draft just increases the
+rate of drift. This is often expressed as rescaling the effective population
+size
 
-When selection is
-weak and fitness is polygenic, the stochasticity introduced by draft is
-well-approximated by rescaling the drift-effective population size 
+Though there are subtle differences in the effective population sizes
 
-that exist when there are heritable differences among haplotypes.
-Mathematical models of genetic draft 
+rescaling the
+drift-effective population size by an appropriate factor
+\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Barton2000-zg}.
+While a simple rescaling cannot elucidate details about how selection alters
+the genealogy, it does allow for the calculation of key quantities like the
+pairwise coalescence time (though see \textcite{Santiago1998-bs}, p. 2111).
 
-Gillespie2000-mh
 
-,Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Barton2000-zg
 
  
 \subsection*{DFE Estimates}
- - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
+% - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
 
 \begin{figure}[!htb]
   \centering
