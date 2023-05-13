@@ -57,11 +57,16 @@
 
 The continual influx of new mutations into populations is the ultimate source
 of all adaptations, but the vast majority of mutations either do not affect
-fitness or are deleterious. Negative selection works to eliminate such
-deleterious mutations from the population, which is essential to maintaining
-the integrity of information in the genome to maintain a lineage. Mutations
-under negative selection are kept at low frequencies (Haldane?), contributing
-to human traits (XXX) and diseases. As with most selection in the genome, this
+fitness or are deleterious. 
+Natural selection works to eliminate these deleterious mutations from the population,
+thus we expect them to appear at low frequencies (Haldane?Muller?) within populations
+and be less likely to fix between lineages. 
+The genome itself is the product of over a billion years of evolutionary optimization,
+so even though they are rare within populations, we expect that deleterious variants
+should be the overwhelming majority of segregating variation in functional regions,
+and be responsible for a significant portion of phenotypic variation and disease (XX cites XX),
+
+As with most selection in the genome, selection on deleterious variation
 process perturbs the allele frequencies of neighboring linked variation. This
 reduces genetic variability around conserved segments and creates large-scale
 spatial patterns in genetic diversity. These patterns are mediated by the
@@ -250,7 +255,7 @@ Gillespie2000-mh
 
  
 \subsection*{DFE Estimates}
- - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
+ - Table s5 %https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
 
 \begin{figure}[!htb]
   \centering
@@ -378,7 +383,7 @@ two sources, (1) bias from a breakdown in our theory $B(x)$ for the average
 reduction, and (2) variance from the simulations. We show that for most of the
 parameter space, the measured mean-squared error between simulation averages
 and our B' maps is at the theoretic minimum. This minimum variance is entirely
-from the coalescent noise when estimating $\bar{B}\text{sim}(x), which 
+from the coalescent noise when estimating $\bar{B}\text{sim}(x)$, which 
 
 \subsection*{Maximum Likelihood Estimation}
 
@@ -1168,8 +1173,9 @@ fitness variance that accounts for the reduction due to the fixation of weakly
 deleterious alleles (i.e. the rate of Muller's ratchet). There derivation for
 the variance uses a heuristic approach based on Fisher's Fundamental Theorem of
 Natural Selection (equation 2, \cite{Santiago2016-mu}, equation 15A
-\cite{Garcia-Dorado2007-jj}). A more formal derivation follows from
-\textcite{Higgs1995-xc} (though they assume a haploid asexual system, the end
+%`'\cite{Garcia-Dorado2007-jj}). 
+A more formal derivation follows from \textcite{Higgs1995-xc} 
+(though they assume a haploid asexual system, the end
 result is the same up to a factor of two). In their work, they derive equations
 for the change per generation for the moments and cross-moments of the fitness
 distribution under multiplicative selection in a haploid model. They find, the
@@ -2046,8 +2052,7 @@ and local optimization approaches and parameterizations, but found that
 
 % Bin-level tail filtering.
 
-\printbibliography
-
+%\printbibliography
 \end{document}
 
 % A central goal of evolutionary genetics is to quantify the relative roles
