@@ -190,13 +190,13 @@ only source of randomness in allele frequency change, the relevant scale of
 stochastic perturbations is determined by the drift-effective population size
 $N_d$ (e.g. due to only non-selective process). For reasons that will soon be
 clear, we consider a general expression of the drift-effective population size
-that allows for extra non-heritable variability in offspring number $V_k$,
+that allows for extra non-heritable variability in offspring number $V^2$,
 %
 \begin{align}
-    N_d = \frac{2N}{V_k + 2}
+    N_d = \frac{2N}{V^2 + 2}
 \end{align}
 
-where if $V_k = 2$, this reduces to the classic Wright--Fisher model
+where if $V^2 = 2$, this reduces to the classic Wright--Fisher model
 \parencite{Wright1938-tv}.
 
 The insight of nearly neutral theory (XXX) was that the qualitative behavior of
@@ -238,12 +238,26 @@ selective environment does not change
 strong, draft can generate multiple-merger coalescences that create
 discontinuities in allele frequency trajectories, making diffusion
 approximations ill-suited \parencite{Gillespie2000-mh,Der2011-it,Neher2013-dz}.
-However, when selection is weak and fitness is polygenic, the stochasticity
-introduced by draft can be approximated by assuming draft just increases the
-rate of drift. This is often expressed as rescaling the effective population
-size
+However, when selection is weak and polygenic, draft can be approximated as an
+increase in the rate of drift. The key insight is that the draft rescaling
+factor is like extra variability in offspring number, but because of
+autocorrelation due to linkage and similar environments, the heritable fitness
+variation $C^2$ becomes inflated by a factor $Q^2$,
 
-Though there are subtle differences in the effective population sizes
+\begin{align}
+    N_e = \frac{N}{C^2 Q^2 + 1}.
+\end{align}
+
+(c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see XXX for a proof).
+
+Note that assuming $V^2=2$.
+
+
+are subtle differences in the effective population sizes
+
+This is often
+expressed as rescaling the effective population size by 
+
 
 rescaling the
 drift-effective population size by an appropriate factor
