@@ -279,6 +279,12 @@ has accumulated in the stochastic perturbations caused by drift yet. From a
 backwards-time perspective, this reflects the fact that pairwise diversity
 (which is approximately heterozygosity when $2N\mu \ll 1$) depends on the
 pairwise coalescence rate per generation, which is not constant under draft.
+The benefit of using Robertson's forward-time model of draft is that the
+inflation factor is invariant with respect to the particular fitness background
+the neutral allele becomes stochastically associated with. By contrast, the
+difficulty with modeling draft backwards in time is that the coalescence rates
+experienced by a lineage are not invariant to which lineage was sampled due to
+its particular associated fitness background.
 
 Equation \eqref{eq:main_Ne} is general, since different modes of selection and
 linkage can be accommodated by different expressions for the inflation factor
@@ -299,7 +305,7 @@ segments $i \in \{1, 2, \ldots, n\}$ each undergoing selection such that
 segment $i$ contributes additive fitness variance $V_{A,i}$ to the total
 additive genetic fitness variance. Under equilibrium levels of fitness
 variation, the autocorrelation function for a neutral allele associated with
-segment $i$ is the time-invariant function $C(t) = \[(1-r_i)(1-\kappa_i)\]^t$,
+segment $i$ is the time-invariant function $C(t) = [(1-r_i)(1-\kappa_i)]^t$,
 where $r_i$ is the recombination fraction to the segment and $\kappa_i$ is the
 rate that the associated fitness variance decays due to selective dynamics.
 Then, the cumulative autocorrelation is,
@@ -331,10 +337,8 @@ increase in fitness variation to new mutations $V_m$ each generation and
 changes in the LD term \parencite{Bulmer1971-ae}. Note that the loss in genic
 fitness due to drift is not time-invariant due to the build up of
 autocorrelation, and considered elsewhere in the derivation (see Supplementary
-Materials Equation \ref{eq:vardecay}). Similarly, the loss in variation due to
-fixation of weakly deleterious occurs on much slower timescales and can be
-ignored here. Then, $\kappa_i = \nicefrac{V_{m,i}}{V_{a,i}}$ (see Supplementary
-Materials Equation \ref{eq:Z}). 
+Materials Equation \ref{eq:vardecay}). Then, $\kappa_i =
+\nicefrac{V_{m,i}}{V_{a,i}}$ (see Supplementary Materials Equation \ref{eq:Z}). 
 
 Under any selection model, the genic fitness variance created by a new mutation
 (at frequency $x=\nicefrac{1}{2N}$) is $2s^2 x(1-x) \approx \nicefrac{s^2}{N}$.
@@ -351,10 +355,10 @@ variance $V_{a,i}^{BGS} \approx U_i s$ (see Supplementary Materials Equation
 \end{align}
 
 which is exactly the genome-wide model of background selection used in previous
-studies \parencite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj} (note that
-\cite{Santiago1998-bs} have shown a similar correspondence between their work
-and BGS models with recombination from \cite{Nordborg1996-nq} and
-\cite{Hudson1995-xc}).
+studies \parencite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj}. Thus, the
+classic background selection model is a special case of the more general theory
+of Santiago and Caballero (\citeyear{Santiago2016-mu}), which they have shown
+previously (\citeyear{Santiago1998-bs}).
 
 When selection is weak, however, the additive fitness variance under the
 classic BGS model is no longer accurate. \parencite{Santiago2016-mu} suggested
@@ -362,26 +366,37 @@ that this is due to the loss of fitness variation that occurs when a
 segregating site fixes and its heterozygosity becomes zero. If we let $R$
 represent twice the rate of the ratchet of deleterious mutations in fixations
 per generation, each fixation removes exactly the variation mutation puts in
-$V_m = Us$, thus under a general equilibrium negative selection process,
+$V_m = Us$ (we omit the segment index for clarity). Thus, under a general
+equilibrium negative selection process,
 
 \begin{align}
+  \label{eq:Va}
   V_{a} = (U - R)s. 
 \end{align}
 
-Our results differ from \parencite{Santiago2016-mu}, since we find from
-simulations their expression models the additive \emph{genic} fitness
-variation, not additive genetic fitness variation. Intuitively, the equilibrium
-genic fitness variation is a balance between the rate of gain of genic fitness
-variation due to mutation and its loss due to fixation. Note that since
-mutation is the ultimate source of all mutations that fix or are lost, $U \ge
-R$.
+Note that since mutation is the ultimate source of all mutations that fix or
+are lost, $U \ge R$. Intuitively, this equilibrium genic fitness variation is a
+balance between the rate of gain of genic fitness variation due to mutation and
+its loss due to fixation. Our results differ from \parencite{Santiago2016-mu},
+since we find from simulations their expression models the additive
+\emph{genic} fitness variation, not additive genetic fitness variation (see
+Section XXX), since it does not adequately capture linkage disequilibria
+dynamics. Santiago and Caballero demonstrate Equation \eqref{eq:Va} through
+Fisher's Fundamental Theorem of Natural Selection, but we find an alternative
+proof (\cite{Higgs1995-xc}; see Supplementary Materials Section
+\ref{supp:weak-strong}).
 
-The benefit of using Robertson's forward-time model of draft is that the
-inflation factor is invariant with respect to the particular fitness background
-the neutral allele becomes stochastically associated with. By contrast, the
-difficulty with modeling draft backwards in time is that the coalescence rates
-experienced by a lineage are not invariant to which lineage was sampled due to
-its particular associated fitness background.
+However, closed-form expressions for the rate of the ratchet $R$ have generally
+been hard to find \parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key
+insight of \parencite{Santiago2016-mu} is that the ratchet rate under draft is
+given by the probability of fixation $p_f(N_e, s)$
+\parencite{Kimura1962-su,Malecot1948-zv} with the draft-rescaled effective
+population size, e.g. $R = N U p_f(N_e, s)$. Given this equation for the
+ratchet and Equation \eqref{eq:polygenic_Ne} for $N_e$ under draft, we have a
+system of non-linear equations that can be solved numerically for $N_e$ and
+$R$.
+
+\subsection*{Simulations of the Diploid Model}
 
 
 \subsection*{DFE Estimates}
@@ -514,7 +529,7 @@ two sources, (1) bias from a breakdown in our theory $B(x)$ for the average
 reduction, and (2) variance from the simulations. We show that for most of the
 parameter space, the measured mean-squared error between simulation averages
 and our B' maps is at the theoretic minimum. This minimum variance is entirely
-from the coalescent noise when estimating $\bar{B}\text{sim}(x), which 
+from the coalescent noise when estimating $\bar{B}\text{sim}(x)$, which 
 
 \subsection*{Maximum Likelihood Estimation}
 
@@ -1272,7 +1287,7 @@ arrive at the same equation as classic BGS theory,
 This matches equation 8 of \textcite{Hudson1995-xc} except for the $Ms$ term
 and equation 10 of \textcite{Nordborg1996-nq} except for the $2s$ term.
 
-\subsection*{Effective Population Size Under Weak and Strong BGS}
+\subsection*{Effective Population Size Under Weak and Strong BGS} \label{supp:weak-strong}
 
 With the possibility of weak selection, deleterious alleles can drift up in
 frequency and fix. Consequently, the fitness distribution is no longer
