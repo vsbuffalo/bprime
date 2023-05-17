@@ -245,18 +245,20 @@ according to,
 However, unlike non-heritable variation in offspring number, the heritable
 variation is autocorrelated across generations. At the individual level
 Robertson considered, this is because offspring from large families tend to
-beget many descendents themselves (and likewise with small families). However,
-the same process acts at the genomic level, as the perturbations to a neutral
+beget many descendents themselves (and likewise with small families). The same
+autocorrelation occurs at the genomic level, as the perturbations to a neutral
 allele's trajectory from its particular fitness background tend to occur in the
-same direction across generations. The additional heritable variation in
+same direction across generations as long as the linkage exists and the
+selective environment is constant. The additional heritable variation in
 offspring number is the additive fitness variation $V_A$, which is inflated by
 a factor $Q_t^2$ due to the build up of autocorrelation to generation $t$. We
 let $Q^2 = Q_t^2$ as $t \to \infty$. Intuitively, the product $V_A Q^2$
 represents the expected total variance in reproductive success a neutral
 mutation experiences over its lifetime in a system with draft. Incorporating
-the impact of time-invariant autocorrelation created by draft as rescaled rate
-of drift is analogous to using the Green--Kubo relation to find the transport
-coefficient \parencite{Green1954-kl,Kubo1957-va}.
+the impact of time-invariant autocorrelation created by draft as a rescaled
+rate of drift is analogous to using the Green--Kubo relation to find the
+transport coefficient in molecular dynamics with velocity autocorrelation
+\parencite{Green1954-kl,Kubo1957-va}.
 
 Including the total asymptotic variance in reproductive success in Equation
 \eqref{eq:simple_Ne} and assuming Wright--Fisher levels of non-heritable
@@ -277,12 +279,6 @@ has accumulated in the stochastic perturbations caused by drift yet. From a
 backwards-time perspective, this reflects the fact that pairwise diversity
 (which is approximately heterozygosity when $2N\mu \ll 1$) depends on the
 pairwise coalescence rate per generation, which is not constant under draft.
-The benefit of using Robertson's forward-time model of draft is that the
-inflation factor is invariant with respect to the particular fitness background
-the neutral allele becomes stochastically associated with. By contrast, the
-difficulty with modeling draft backwards in time is that the coalescence rates
-experienced by a lineage are not invariant to which lineage was sampled due to
-its particular associated fitness background.
 
 Equation \eqref{eq:main_Ne} is general, since different modes of selection and
 linkage can be accommodated by different expressions for the inflation factor
@@ -301,11 +297,12 @@ unlinked regions and chromosomes (see XXX). In our genome-wide model, we
 consider the summation in Equation \eqref{eq:polygenic_Ne} over non-overlapping
 segments $i \in \{1, 2, \ldots, n\}$ each undergoing selection such that
 segment $i$ contributes additive fitness variance $V_{A,i}$ to the total
-additive genetic fitness variance. Under draft, the autocorrelation function
-for a neutral allele associated with segment $i$ is the time-invariant function
-$C(t) = \[(1-r_i)(1-\kappa_i)\]^t$, where $r_i$ is the recombination fraction
-to the segment and $\kappa_i$ is the rate that the associated fitness decays
-due to selective dynamics. Then, the cumulative autocorrelation is,
+additive genetic fitness variance. Under equilibrium levels of fitness
+variation, the autocorrelation function for a neutral allele associated with
+segment $i$ is the time-invariant function $C(t) = \[(1-r_i)(1-\kappa_i)\]^t$,
+where $r_i$ is the recombination fraction to the segment and $\kappa_i$ is the
+rate that the associated fitness variance decays due to selective dynamics.
+Then, the cumulative autocorrelation is,
 
 \begin{align}
     Q_i &= 1 + \sum_{j=1}^\infty \left[(1-r_i)(1-\kappa_i)\right]^j \\
@@ -314,15 +311,77 @@ due to selective dynamics. Then, the cumulative autocorrelation is,
 
 (see Appendix Equation \ref{eq:Qinf}). This general equation can accommodate
 models of polygenic selection as long as the equilibrium additive fitness
-variation $C_i^2$ can be specified and the change in variance due to selection
-can be approximated as a geometric decay, i.e. $\Delta C_i^2 = -\kappa C_i^2$
-\parencite{Bulmer1971-ae,Keightley1988-eq,Walsh2018-bt}. This is usually a
-reasonable assumption since within-generation selection removes a fraction of
-phenotypic variation from the population, and some fraction of that is additive
-genetic variation \parencite{Bulmer1971-ae,Keightley1988-eq}.
+variation $V_{A,i}$ can be specified and the change in variance due to
+selection can be approximated as a geometric decay, i.e. $\Delta V_{A,i} =
+-\kappa V_{A,i}$ \parencite{Bulmer1971-ae,Keightley1988-eq,Walsh2018-bt}. This
+is usually a reasonable assumption since within-generation selection removes a
+fraction of phenotypic variation from the population, and some fraction of that
+is additive genetic variation \parencite{Bulmer1971-ae,Keightley1988-eq}.
 
-The final pieces are the equilibrium additive fitness variance $V_A$ and the
-decay rate in associated fitness $1-\kappa$. At equilibrium, 
+The remaining pieces are expressions for the equilibrium additive fitness
+variance $V_A$ and the decay rate in associated fitness $1-\kappa$. At this
+point, we diverge from Santiago and Caballero (\citeyear{Santiago1998-bs},
+\citeyear{Santiago2016-mu}) to note that the additive fitness variation is the
+sum of additive \emph{genic} fitness variance $V_a$ (i.e. due to allele
+frequencies) and the total linkage disequilibria $\delta_{LD}$ between selected
+sites, $V_A = V_a + \delta_{LD}$. Considering only the genic variation, at
+equilibrium $\Delta V_{a,i} = 0$; thus, the loss in genic fitness each
+generation due to selective dynamics $-\kappa V_{A,i}$ must be equal to the
+increase in fitness variation to new mutations $V_m$ each generation and
+changes in the LD term \parencite{Bulmer1971-ae}. Note that the loss in genic
+fitness due to drift is not time-invariant due to the build up of
+autocorrelation, and considered elsewhere in the derivation (see Supplementary
+Materials Equation \ref{eq:vardecay}). Similarly, the loss in variation due to
+fixation of weakly deleterious occurs on much slower timescales and can be
+ignored here. Then, $\kappa_i = \nicefrac{V_{m,i}}{V_{a,i}}$ (see Supplementary
+Materials Equation \ref{eq:Z}). 
+
+Under any selection model, the genic fitness variance created by a new mutation
+(at frequency $x=\nicefrac{1}{2N}$) is $2s^2 x(1-x) \approx \nicefrac{s^2}{N}$.
+For the entire population of $2N$ chromosomes, the fresh variance from mutation
+each generation in segment $i$ is $V_{m,i} \approx U_is^2$ where $U_i = 2\mu
+L_i$ is the diploid mutation rate per generation within the segment. Under
+mutation-selection balance assumed by BGS, an $L_i$-basepair segment has genic
+variance $V_{a,i}^{BGS} \approx U_i s$ (see Supplementary Materials Equation
+\ref{eq:va_bgs}) and thus $\kappa_i^{BGS} = s$. Combining this with $\kappa_i =
+\nicefrac{V_{m,i}}{V_{a,i}} = s$ in Equation \eqref{eq:simple_Ne}, we have
+
+\begin{align}
+    N_e = N \exp \left( - \sum_i^n \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
+\end{align}
+
+which is exactly the genome-wide model of background selection used in previous
+studies \parencite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj} (note that
+\cite{Santiago1998-bs} have shown a similar correspondence between their work
+and BGS models with recombination from \cite{Nordborg1996-nq} and
+\cite{Hudson1995-xc}).
+
+When selection is weak, however, the additive fitness variance under the
+classic BGS model is no longer accurate. \parencite{Santiago2016-mu} suggested
+that this is due to the loss of fitness variation that occurs when a
+segregating site fixes and its heterozygosity becomes zero. If we let $R$
+represent twice the rate of the ratchet of deleterious mutations in fixations
+per generation, each fixation removes exactly the variation mutation puts in
+$V_m = Us$, thus under a general equilibrium negative selection process,
+
+\begin{align}
+  V_{a} = (U - R)s. 
+\end{align}
+
+Our results differ from \parencite{Santiago2016-mu}, since we find from
+simulations their expression models the additive \emph{genic} fitness
+variation, not additive genetic fitness variation. Intuitively, the equilibrium
+genic fitness variation is a balance between the rate of gain of genic fitness
+variation due to mutation and its loss due to fixation. Note that since
+mutation is the ultimate source of all mutations that fix or are lost, $U \ge
+R$.
+
+The benefit of using Robertson's forward-time model of draft is that the
+inflation factor is invariant with respect to the particular fitness background
+the neutral allele becomes stochastically associated with. By contrast, the
+difficulty with modeling draft backwards in time is that the coalescence rates
+experienced by a lineage are not invariant to which lineage was sampled due to
+its particular associated fitness background.
 
 
 \subsection*{DFE Estimates}
@@ -909,6 +968,7 @@ happens is the effective population size each generation implied by this model.
 We can write,
 
 \begin{align}
+    \label{eq:vardecay}
   \var(x_2 - p_0) &= \E({S_1}^2) + \E(S_1 S_2) + \E({S_2}^2) \\
                   & + \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) \\
   \frac{\var(x_2 - p_0)}{p_0(1-p_0)} &= \frac{V_h}{2N_{e,1}} + \frac{V_h Q_2^2}{2N_{e,2}}\left(1-\frac{1}{2N_{e,1}}\right)  +  \frac{V_h}{2N_{e,2}}  \left(1-\frac{1}{2N_{e,1}}\right)  \\ 
@@ -1265,10 +1325,10 @@ Now, note that under a diploid model, the fitness variance is twice that as the
 haploid model, so $V_A = 2 v_A$. Then, the fitness variance is,
 
 \begin{align}
-  V_{A} = Us - 2Rs. 
+  V_{A} = Us - Rs. 
 \end{align}
 
-where $U = 2u$ and $R$ is the diploid rate of the ratchet, which depends on
+where $U = 2u$ and $R=2r$ is the diploid rate of the ratchet, which depends on
 higher moments of the fitness distribution, but only differs from $r$ through a
 rescaling of the population size. Note that if selected sites are sufficiently
 deleterious that they cannot fix (or the population is infinite), $R=0$ and the
