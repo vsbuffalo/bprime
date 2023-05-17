@@ -170,43 +170,32 @@ extinction
 this case, the genealogy is well-approximated by a neutral coalescence process
 with a rescaled effective population size of $N_0 = N \exp(-\nicefrac{U}{s})$.
 This approximation works reasonably well for two reasons (though see
-\textcite{Cvijovic2018-vd,Walczak2012-fi,Nicolaisen2012-vs}). First, when
-selection is strong, the number of deleterious mutations per haplotype has a
-stationary Poisson distribution with an average equal to the equilibrium under
-the deterministic mutation-selection model \parencite{Haldane1927-ga}. Since
+\cite{Cvijovic2018-vd,Walczak2012-fi,Nicolaisen2012-vs}). First, when selection
+is strong, the number of deleterious mutations per haplotype has a stationary
+Poisson distribution with an average equal to the equilibrium under the
+deterministic mutation-selection model \parencite{Haldane1927-ga}. Since
 lineages carrying any strongly deleterious mutations cannot contribute to the
 genealogy, coalescence events only occur in the fraction
-$\exp(-\nicefrac{U}{s}$ of the population free of mutations. Second, the time
+$\exp(-\nicefrac{U}{s})$ of the population free of mutations. Second, the time
 it takes for a present-day lineage to trace their ancestry back to a
 mutation-free ancestor (the ``delay phase") is negligible compared to the
 coalescence timescale of $N_0$ among these ancestors (the ``coalescence
-phase"), and can be ignored (\textcite{Durrett2008-ql}, p. 213;
-\textcite{Good2014-yz}).
+phase"), and can be ignored (\cite{Durrett2008-ql}, p. 213;
+\cite{Good2014-yz}).
 
-When mutations are weakly deleterious, their allele frequencies are strongly
-influenced by stochastic perturbations and their frequency trajectories are no
-longer well-approximated by deterministic models. When genetic drift is the
-only source of randomness in allele frequency change, the relevant scale of
-stochastic perturbations is determined by the drift-effective population size
-$N_d$ (e.g. due to only non-selective process). For reasons that will soon be
-clear, we consider a general expression of the drift-effective population size
-that allows for extra non-heritable variability in offspring number $V^2$,
-%
-\begin{align}
-    \label{eq:simple_Ne}
-    N_d = \frac{2N}{V^2 + 2}
-\end{align}
-
-where if $V^2 = 2$, this reduces to the classic Wright--Fisher model
-\parencite{Wright1938-tv}.
-
-The insight of nearly neutral theory (XXX) was that the qualitative behavior of
-selected sites is determined by the compound parameter $2N_d s$. When $2N_d s
-\gg 1$, the stochastic component of allele frequency change is minuscule
-relative to selection and can be ignored; this is why the factor that rescales
-the drift-effective population size under the BGS model does not depend on
-$N_d$. However, when $2N_d s \le 1$ stochastic perturbations are on a scale
-equal to or greater than the changes due to selection. In this regime, weakly
+When mutations are only weakly deleterious, their allele frequencies are
+strongly influenced by stochastic perturbations and their frequency
+trajectories are no longer well-approximated by deterministic models. When
+genetic drift is the only source of randomness in allele frequency change, the
+relevant scale of stochastic perturbations is determined by the drift-effective
+population size $N_e$ (e.g. due to only non-selective process). The insight of
+nearly neutral theory (XXX) was that the qualitative behavior of selected sites
+is determined by the compound parameter $2N_e s$. When $2N_e s \gg 1$, the
+stochastic component of allele frequency change is minuscule relative to
+selection and can be ignored; this is why the factor that rescales the
+drift-effective population size under the BGS model does not depend on $N_e$.
+However, when $2N_e s \le 1$, the stochastic perturbations are on a scale equal
+to or greater than the changes due to selection. In this regime, weakly
 deleterious alleles can drift up to intermediate frequencies before their
 eventual loss or fixation. When this occurs, classic BGS theory breaks down for
 several reasons. First, the ``delay phase" is no longer negligible as lineages
@@ -227,41 +216,63 @@ evolutionary genetics.
 To further complicate matters, both strong and weakly deleterious mutations
 create \emph{heritable} fitness variation. In turn, the presence of heritable
 fitness variation generates another source of randomness in allele frequency
-change known as genetic \emph{draft} \parencite{Neher2013-dz}. Genetic draft
-occurs when alleles become randomly associated with different fitness
-backgrounds each generation, which stochastically perturbs their trajectories.
+change known as genetic \emph{draft} \parencite{Neher2013-dz}. An allele
+experiences genetic draft when it becomes randomly associated with a fitness
+background, which stochastically perturbs its trajectory across generations.
 Like genetic drift, perturbations due to draft are directionless but overall
 increase the variance in allele frequency change. Unlike drift, stochastic
-perturbations caused by draft are autocorrelated across generations as long an
-allele does not recombine or segregate off its fitness background and the
+perturbations caused by draft are autocorrelated across generations for as long
+an allele does not recombine or segregate off its fitness background and the
 selective environment does not change
 \parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. When selection is
 strong, draft can generate multiple-merger coalescences that create
 discontinuities in allele frequency trajectories, making diffusion
 approximations ill-suited \parencite{Gillespie2000-mh,Der2011-it,Neher2013-dz}.
-However, when selection is weak and polygenic, draft can be approximated as an
-increase in the rate of drift. The key insight is that the draft rescaling
-factor is like extra variability in offspring number, but because of
-autocorrelation due to linkage and similar environments, the heritable fitness
-variation $C^2$ (on a relative fitness scale, i.e. the squared coefficient of
-variance) becomes inflated by a factor $Q^2$. Intuitively, the product $V^2
-Q^2$ represents the expected total variance a neutral mutation experiences over
-its lifetime in a system with draft. This \emph{heritable} fitness variance
-that neutral allele experiences can then be included in Equation
-\eqref{eq:simple_Ne} (assuming the usual Wright--Fisher non-heritable variance,
-i.e. $V^2=2$),
+However, when selection is weak, draft can be approximated as an increase in
+the rate of drift (or equivalently, a reduction in effective population size).
+
+A key insight from Robertson (\citeyear{Robertson1961-ho}) is that in the
+long-run draft acts like an increase in the variance in offspring number.
+\textcite{Wright1938-tv} showed that additional non-heritable variance in
+offspring number (e.g. due to mating strategy) rescales the population size
+according to,
+
+\begin{align}
+    \label{eq:simple_Ne}
+    N_e = \frac{2N}{V + 2}
+\end{align}
+
+However, unlike non-heritable variation in offspring number, the heritable
+variation is autocorrelated across generations. At the individual level
+Robertson considered, this is because offspring from large families tend to
+beget many descendents themselves (and likewise with small families). However,
+the same process acts at the genomic level, as the perturbations to a neutral
+allele's trajectory from its particular fitness background tend to occur in the
+same direction across generations. The additional heritable variation in
+offspring number is the additive fitness variation $V_A$, which is inflated by
+a factor $Q_t^2$ due to the build up of autocorrelation to generation $t$. We
+let $Q^2 = Q_t^2$ as $t \to infty$. Intuitively, the product $V_A Q^2$
+represents the expected total variance in reproductive success a neutral
+mutation experiences over its lifetime in a system with draft. Incorporating
+the impact of time-invariant autocorrelation created by draft as rescaled rate
+of drift is analogous to using the Green--Kubo relation to find the transport
+coefficient \parencite{Green1954-kl,Kubo1957-va}.
+
+Including the total asymptotic variance in reproductive success in Equation
+\eqref{eq:simple_Ne} and assuming Wright--Fisher levels of non-heritable
+variation (i.e. $V = 2 + 4 Q^2 V_A$),
 
 \begin{align}
     \label{eq:main_Ne}
-    N_e = \frac{N}{C^2 Q^2 + 1}.
+    N_e = \frac{N}{Q^2 V_A + 1}
 \end{align}
 
 (c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see XXX for a proof). Note that
 because the variance under drift increases each generation due to the
 accumulation of drift perturbations and draft autocorrelations, the inflation
-term $Q^2$ has a temporal dimension. For notational efficiency, we assume $Q^2$
-refers to the asymptotic $Q_t^2$ as $t \to \infty$ and $N_e$ is the
-\emph{asymptotic} draft effective population size. In general, however,
+term $Q^2$ has a temporal dimension. For notational efficiency, we let $Q^2$
+refer to the asymptotic $Q_t^2$ as $t \to \infty$ and $N_e$ is the
+\emph{asymptotic} weak draft effective population size. In general, however,
 statistics such as heterozygosity depend on the cumulative autocorrelation
 factor \emph{up to some time} $t$, $Q_t^2$ \parencite[p.
 2111]{Santiago1998-bs}. This reflects the fact that effective population size
@@ -269,30 +280,113 @@ experienced by a mutation newly associated with a fitness background is larger
 than the asymptotic effective population size, since not much autocorrelation
 has accumulated in the stochastic perturbations caused by drift yet. From a
 backwards-time perspective, this reflects the fact that pairwise diversity
-(which is approximately heterozygosity in most cases) depends on the pairwise
-coalescence rate per generation, which will is not constant under draft. The
-benefit of using a forward-time model of draft is that it the inflation factor
-is invariant with respect to the particular fitness background the neutral
-allele becomes stochastically associated with. By contrast, the difficulty with
-backwards-time models is that the coalescence rates experienced by a lineage
-are not invariant to which lineage was sampled.
+(which is approximately heterozygosity when $2N\mu \ll 1$) depends on the
+pairwise coalescence rate per generation, which is not constant under draft.
+The benefit of using Robertson's forward-time model of draft is that the
+inflation factor is invariant with respect to the particular fitness background
+the neutral allele becomes stochastically associated with. By contrast, the
+difficulty with modeling draft backwards in time is that the coalescence rates
+experienced by a lineage are not invariant to which lineage was sampled due to
+its particular associated fitness background.
 
-Equation \eqref{eq:main_Ne} 
+Equation \eqref{eq:main_Ne} is general, since different modes of selection and
+linkage can be accommodated by different expressions for the inflation factor
+$Q^2$. When fitness variation has a multiplicative polygenic basis, as it does
+for genome-wide negative selection processes, the asymptotic weak draft
+effective population size experienced by an arbitrary neutral site under the
+influence of all linked regions is,
+
+\begin{align}
+    \label{eq:polygenic_Ne}
+    N_e \approx N \exp\left(-\sum_{i=1}^n V_{A,i} \frac{Q_i^2}{2}\right)
+\end{align}
+
+where the factor of one-half comes from ignoring weak associations from
+unlinked regions and chromosomes (see XXX). In our genome-wide model, we
+consider the summation in Equation \eqref{eq:polygenic_Ne} over non-overlapping
+segments $i \in \{1, 2, \ldots, n\}$ each undergoing selection such that
+segment $i$ contributes additive fitness variance $V_{A,i}$ to the total
+additive genetic fitness variance. The degree to which segment $i$ inflates the
+total variance in reproductive success depends on the how quickly the
+autocorrelations in 
+
+autocorrelation function in
+reproductive success. Assuming a constant selective environment, the
+autocorrelation in reproductive success of the neutral allele is given by a
+geometric autocorrelation function $C(t) = \[(1-r_i)(1-\kappa_i)\]^t$. The
+decay in autocorrelation is due to 
 
 
-Shortly, we will show that Robertson (1961) and Santiago and Caballero's (1995,
-1998, 2016) approach 
-
-
-rescaling the drift-effective population size by an appropriate factor
-\parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Barton2000-zg}.
-While a simple rescaling cannot elucidate details about how selection alters
-the genealogy, it does allow for the calculation of key quantities like the
-pairwise coalescence time (though see \textcite{Santiago1998-bs}, p. 2111).
+\begin{align}
+    Q_i &= 1 + \sum_{j=1}^\infty \left[(1-r_i)(1-\kappa_i)\right]^j \\
+        &= \frac{1}{\kappa_i + r_i(1-\kappa_i)} 
+\end{align}
 
 
 
- 
+Segment $i$ inflates the total variance in
+reproductive success of the neutral allele by $Q_i^2$, according to two key
+parameters. First, 
+
+according to the chance it stays
+associated each generation, given by the recombination fraction $r_i$, and the
+extent that the associated heritable fitness variation within the segment
+determines future reproductive success in later generations. Assuming a
+constant environment for selection, this 
+
+
+, according to
+the recombination fraction $r_i$ to the segment and the extent to which the
+fitness variation in the segment perturbs the trajectory in later generations. 
+
+the fitness
+variation associated with the neutral allele 
+
+persistence of the
+associated fitness variance through the generations. 
+
+
+
+
+Here, we consider each $i$ to refer
+to an $L_i$-basepair segment under negative selection (though this model
+accommodates other forms of polygenic selection, \cite[p.
+2109]{Santiago1998-bs}). The inflation factor $Q_i^2$ depends on the
+recombination fraction $r_i$ between the neutral site and selected segment, and
+the rate at which the fitness variance at segment $i$ associated with the
+
+neutral allele decays across generations, $1-\kappa_i$. This associated fitness
+variation decays at rate $1-\kappa_i$ due only to the dynamics of polygenic
+selection within the segment \parencite{Bulmer1980-zo,Turelli1990-kd}, assuming
+a constant environment. Then, the root of the asymptotic variance inflation
+factor $Q_i$ experienced by the neutral allele is,
+
+\begin{align}
+    Q_i &= 1 + \sum_{j=1}^\infty \left[(1-r_i)(1-\kappa_i)\right]^j \\
+        &= \frac{1}{\kappa_i + r_i(1-\kappa_i)} 
+\end{align}
+
+(see Appendix Equation \ref{eq:Qinf}). This general equation can accommodate
+models of polygenic selection as long as the equilibrium additive fitness
+variation $C_i^2$ can be specified and the change in variance due to selection
+can be approximated as a geometric decay, i.e. $\Delta C_i^2 = -\kappa C_i^2$
+\parencite{Bulmer1971-ae,Keightley1988-eq,Walsh2018-bt}. This is usually a
+reasonable assumption since within-generation selection removes a fraction of
+phenotypic variation from the population, and the fraction of that phenotypic
+variation that is genetic is approximately the heritability $h^2$.
+
+Assuming the fitness
+variation $C_i^2$ in the segment is at an equilibrium between mutation and
+selection, $\Delta C_i^2 = 0$, and $\Delta C_i^2 = V_{m,i} - \kappa C_i^2$
+
+
+Note that
+the decay in fitness variation due to the substitution of weakly deleterious
+mutations happens on a slower timescale and is ignored here, but as we will
+impacts the overall level of $C_i^2$. 
+
+
+
 \subsection*{DFE Estimates}
 % - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
 
@@ -346,7 +440,8 @@ churning of new variation
 
 - need for coalescent simulations with reduced $N_e$ along the genome.
 
--  
+- we need to talk about Fisher's Fundamental Theorem and how this model
+connects fitness variation to absolute changes in fitness.
 
 
 \section*{Methods}
@@ -840,13 +935,12 @@ $1$ can be written as,
   Q_t &= 1 + \sum_{i=1}^t (1-r)^i(1-\kappa)^i
 \end{align}
 
-or for continuous $t$, 
+% or for continuous $t$, 
 
-\begin{align}
-  \label{eq:q_t}
-  Q_t &= 1+\frac{(1-\kappa) (1-r) \left(1-(1-\kappa)^t (1-r)^t\right)}{\kappa+(1-\kappa)r}
-\end{align}
-
+% \begin{align}
+%   \label{eq:q_t}
+%   Q_t &= 1+\frac{(1-\kappa) (1-r) \left(1-(1-\kappa)^t (1-r)^t\right)}{\kappa+(1-\kappa)r}
+% \end{align}
 which as $t \to \infty$, converges to,
 
 \begin{align}
