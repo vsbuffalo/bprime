@@ -39,7 +39,7 @@
 
 \addbibresource{biblio.bib}
 
-\title{Towards a Complete Model of Mutation Selection Balance in Humans}
+\title{Towards a Complete Model of the Negative Selection Process in Humans}
 
 \author{Vince Buffalo and Andrew Kern}
 
@@ -262,11 +262,12 @@ transport coefficient in molecular dynamics with velocity autocorrelation
 
 Including the total asymptotic variance in reproductive success in Equation
 \eqref{eq:simple_Ne} and assuming Wright--Fisher levels of non-heritable
-variation (i.e. $V = 2 + 4 Q^2 V_A$),
+variation (i.e. $V = 2 + 4 Q^2 V_A$), the draft-effective population size $N_d$
+is
 
 \begin{align}
     \label{eq:main_Ne}
-    N_e = \frac{N}{Q^2 V_A + 1}
+    N_d = \frac{N}{Q^2 V_A + 1}
 \end{align}
 
 (c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see XXX for a proof). In
@@ -295,7 +296,7 @@ all linked regions is,
 
 \begin{align}
     \label{eq:polygenic_Ne}
-    N_e \approx N \exp\left(-\sum_{i=1}^n V_{A,i} \frac{Q_i^2}{2}\right)
+    N_d \approx N \exp\left(-\sum_{i=1}^n V_{A,i} \frac{Q_i^2}{2}\right)
 \end{align}
 
 where the factor of one-half comes from ignoring weak associations from
@@ -347,18 +348,18 @@ each generation in segment $i$ is $V_{m,i} \approx U_is^2$ where $U_i = 2\mu
 L_i$ is the diploid mutation rate per generation within the segment. Under
 mutation-selection balance assumed by BGS, an $L_i$-basepair segment has genic
 variance $V_{a,i}^{BGS} \approx U_i s$ (see Supplementary Materials Equation
-\ref{eq:va_bgs}) and thus $\kappa_i^{BGS} = s$. Combining this with $\kappa_i =
-\nicefrac{V_{m,i}}{V_{a,i}} = s$ in Equation \eqref{eq:simple_Ne}, we have
+\ref{eq:va_bgs}) and thus $\kappa_i^{BGS} = s$. Substituting $V_{a,i}^{BGS}$
+and $\kappa_i^{BGS}$ in Equation \eqref{eq:simple_Ne} and simplifying, we have
 
 \begin{align}
-    N_e = N \exp \left( - \sum_i^n \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
+    N_d = N \exp \left( - \sum_i^n \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
 \end{align}
 
-which is exactly the genome-wide model of background selection used in previous
-studies \parencite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj}. Thus, the
-classic background selection model is a special case of the more general theory
-of Santiago and Caballero (\citeyear{Santiago2016-mu}), which they have shown
-previously (\citeyear{Santiago1998-bs}).
+which is identical to the genome-wide model of background selection used in
+previous studies \parencite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj}.
+Thus, the classic background selection model is a special case of the more
+general theory of Santiago and Caballero (\citeyear{Santiago2016-mu}), which
+they have shown previously (\citeyear{Santiago1998-bs}).
 
 When selection is weak, however, the additive fitness variance under the
 classic BGS model is no longer accurate. \parencite{Santiago2016-mu} suggested
@@ -374,29 +375,74 @@ equilibrium negative selection process,
   V_{a} = (U - R)s. 
 \end{align}
 
-Note that since mutation is the ultimate source of all mutations that fix or
-are lost, $U \ge R$. Intuitively, this equilibrium genic fitness variation is a
-balance between the rate of gain of genic fitness variation due to mutation and
-its loss due to fixation. Our results differ from \parencite{Santiago2016-mu},
-since we find from simulations their expression models the additive
-\emph{genic} fitness variation, not additive genetic fitness variation (see
-Section XXX), since it does not adequately capture linkage disequilibria
-dynamics. Santiago and Caballero demonstrate Equation \eqref{eq:Va} through
-Fisher's Fundamental Theorem of Natural Selection, but we find an alternative
-proof (\cite{Higgs1995-xc}; see Supplementary Materials Section
-\ref{supp:weak-strong}).
+Note that since mutation is the ultimate source of all alleles that are fixed
+by the ratchet or are lost, $U \ge R$. Intuitively, this equilibrium genic
+fitness variation is a balance between the rate of gain of genic fitness
+variation due to mutation and its loss due to fixation. Our results differ from
+\parencite{Santiago2016-mu}, since we find from simulations their expression
+models the additive \emph{genic} fitness variation, not additive genetic
+fitness variation (see Section XXX), since it does not adequately capture
+linkage disequilibria dynamics. Santiago and Caballero demonstrate Equation
+\eqref{eq:Va} through Fisher's Fundamental Theorem of Natural Selection, but we
+find an alternative proof (\cite{Higgs1995-xc}; see Supplementary Materials
+Section \ref{supp:weak-strong}).
 
 However, closed-form expressions for the rate of the ratchet $R$ have generally
 been hard to find \parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key
 insight of \parencite{Santiago2016-mu} is that the ratchet rate under draft is
-given by the probability of fixation $p_f(N_e, s)$
+given by the probability of fixation $p_f(N_d, s)$
 \parencite{Kimura1962-su,Malecot1948-zv} with the draft-rescaled effective
-population size, e.g. $R = N U p_f(N_e, s)$. Given this equation for the
-ratchet and Equation \eqref{eq:polygenic_Ne} for $N_e$ under draft, we have a
-system of non-linear equations that can be solved numerically for $N_e$ and
-$R$.
+population size, e.g. $R = N U p_f(N_d, s)$. Given this equation for the
+ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
+system of two non-linear equations that can be solved numerically for $N_d$ and
+$R$ for each segment,
 
-\subsection*{Simulations of the Diploid Model}
+\begin{align}
+  \label{eq:}
+  N_d &= N \exp \left( -V_a \frac{Q^2}{2} \right) & \text{\emph{draft-effective population equation}} \\
+  R &= \frac{4N_d U s}{\exp(4 N_d s)-1}  & \text{\emph{ratchet equation}}
+\end{align}
+
+where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}.
+
+% where,
+
+% \begin{align}
+%   V_a &= (U - R(x)) s & \text{\emph{fitness variance equation}} \\
+%   Q^2 &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage inflation factor}} \\
+%   Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
+% \end{align}
+
+\subsection*{Segment Simulations of the Diploid Model}
+
+Given that Santiago and Caballero's (\citeyear{Santiago2016-mu}) model is a
+haploid-model for a single region under equilibrium negative selection, we
+first sought to confirm it could accurately predict the reduction in realistic
+forward-time simulations of diploid populations with recombination. Using SLiM
+\parencite{Haller2019-vu,Haller2023-uk} we simulated a region of $10^5$
+basepairs under varying levels of mutation and selection. We find a close
+correspondence between the observed and predicted reduction in effective
+population size $B=\nicefrac{N_d}{N}$ over all selection and mutation
+parameters including weak selection (Figure 1A), in contrast to classic BGS
+theory. Furthermore, to investigate whether this accuracy was caused by the
+model capturing the equilibrium fitness variance and ratchet rate, we also
+measured these throughout the simulation. Again, we find their theory
+accurately predicts both the ratchet rate (Figure 1B) and the genic fitness
+variance (Figure 1C). Additionally, these figures provide further intuition for
+the underlying negative selection process. When selection is strong the ratchet
+rate is zero, as there is no probability that strongly deleterious can fix.
+However, around $2N_e s \approx 1$, the ratchet begins clicking as $p_F > 0$.
+Ultimately, the ratchet rate reaches the neutral mutation rate, as $V_a = 0$
+and $N_d = N$ (e.g. no draft). Likewise, the additive genic fitness variance
+matches the level predicted by BGS ($Us$), but begins to diverge when the
+ratchet begins clicking.
+
+\subsection*{Chromosome-wide Simulations and Models of Negative Selection}
+
+Given the accuracy of the SC16 model in predicting the reduction in effective
+population size and ratchet rate when equilibrium negative selection processes
+were acting in single segment, we extended their model so that it could be
+applied to whole-genome data. 
 
 
 \subsection*{DFE Estimates}
