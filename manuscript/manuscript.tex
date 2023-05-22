@@ -365,32 +365,44 @@ When selection is weak, however, the additive fitness variance under the
 classic BGS model is no longer accurate. \parencite{Santiago2016-mu} suggested
 that this is due to the loss of fitness variation that occurs when a
 segregating site fixes and its heterozygosity becomes zero. If we let $R$
-represent twice the rate of the ratchet of deleterious mutations in fixations
-per generation, each fixation removes exactly the variation mutation puts in
-$V_m = Us$ (we omit the segment index for clarity). Thus, under a general
-equilibrium negative selection process,
+represent the rate of the ratchet of deleterious mutations in fixations per
+generation, each fixation removes the equivalent amount of equilibrium
+variation put in by mutation. Thus, the steady-state genic variance under
+mutation and negative selection is (omitting the segment index $i$ for
+clarity),
 
 \begin{align}
   \label{eq:Va}
-  V_{a} = (U - R)s. 
+  V_{a} = (U - 2 R)s. 
 \end{align}
 
-Note that since mutation is the ultimate source of all alleles that are fixed
-by the ratchet or are lost, $U \ge R$. Intuitively, this equilibrium genic
-fitness variation is a balance between the rate of gain of genic fitness
-variation due to mutation and its loss due to fixation. Our results differ from
+where the condition $V_a \ge 0$ is met when the probability of fixation is less
+than or equal to the neutral fixation probability of $\nicefrac{1}{2N}$, which
+is held when considering deleterious mutations. This equation connects the
+equilibrium additive genic fitness variance to the flux of new variation in due
+to new deleterious mutations and the flux out due to their substitution and the
+decline in mean population fitness. When $R=0$, the selection is so strong it
+cannot fix, and the equilibrium fitness variation is due entirely to young rare
+mutations before their extinction $V_a = V_a^{BGS} = Us$. Santiago and
+Caballero demonstrate Equation \eqref{eq:Va} through Fisher's Fundamental
+Theorem of Natural Selection, but we find an alternative proof
+(\cite{Higgs1995-xc}; see Supplementary Materials Section
+\ref{supp:weak-strong}). We find that the steady-state additive genic variance
+in Equation \eqref{eq:Va} also results from diffusion models with a flux of
+mutations into discrete sites (\cite{Kimura1969-jw}; see Supplementary
+Materials Section \ref{supp:kimura}). Our results differ from
 \parencite{Santiago2016-mu}, since we find from simulations their expression
 models the additive \emph{genic} fitness variation, not additive genetic
-fitness variation (see Section XXX), since it does not adequately capture
-linkage disequilibria dynamics. Santiago and Caballero demonstrate Equation
-\eqref{eq:Va} through Fisher's Fundamental Theorem of Natural Selection, but we
-find an alternative proof (\cite{Higgs1995-xc}; see Supplementary Materials
-Section \ref{supp:weak-strong}).
+fitness variation (see Section XXX). This is because Equation \eqref{eq:Va}
+does not capture the expected build-up of negative linkage disequilibria when
+selection is only mildly deleterious.
 
-However, closed-form expressions for the rate of the ratchet $R$ have generally
-been hard to find \parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key
-insight of \parencite{Santiago2016-mu} is that the ratchet rate under draft is
-given by the probability of fixation $p_f(N_d, s)$
+While using Equation \eqref{eq:Va} in Equation \eqref{eq:main_Ne} leads to a
+prediction for the draft-effective population size $N_d$, closed-form
+expressions for the rate of the ratchet $R$ have generally been hard to find
+\parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key insight of
+\parencite{Santiago2016-mu} is that the ratchet rate under draft is given by
+the probability of fixation $p_f(N_d, s)$
 \parencite{Kimura1962-su,Malecot1948-zv} with the draft-rescaled effective
 population size, e.g. $R = N U p_f(N_d, s)$. Given this equation for the
 ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
@@ -428,21 +440,56 @@ theory. Furthermore, to investigate whether this accuracy was caused by the
 model capturing the equilibrium fitness variance and ratchet rate, we also
 measured these throughout the simulation. Again, we find their theory
 accurately predicts both the ratchet rate (Figure 1B) and the genic fitness
-variance (Figure 1C). Additionally, these figures provide further intuition for
-the underlying negative selection process. When selection is strong the ratchet
-rate is zero, as there is no probability that strongly deleterious can fix.
-However, around $2N_e s \approx 1$, the ratchet begins clicking as $p_F > 0$.
-Ultimately, the ratchet rate reaches the neutral mutation rate, as $V_a = 0$
-and $N_d = N$ (e.g. no draft). Likewise, the additive genic fitness variance
-matches the level predicted by BGS ($Us$), but begins to diverge when the
-ratchet begins clicking.
+variance (Figure 1C).
+
+Additionally, these figures provide further intuition for the underlying
+negative selection process. When selection is strong the ratchet rate is zero,
+as there is no probability that strongly deleterious can fix. However, around
+$2N_e s \approx 1$, the ratchet begins clicking as $p_F > 0$. Ultimately, the
+ratchet rate reaches the neutral mutation rate, as $V_a = 0$ and $N_d = N$
+(e.g. no draft). Likewise, the additive genic fitness variance matches the
+level predicted by BGS ($Us$), but begins to diverge when the ratchet begins
+clicking. This occurs when the level of variation diverges from the
+deterministic mutation-selection equilibrium $V_a = Us$ due to the stochastic
+clicking of the ratchet at rate $R$.
 
 \subsection*{Chromosome-wide Simulations and Models of Negative Selection}
 
 Given the accuracy of the SC16 model in predicting the reduction in effective
 population size and ratchet rate when equilibrium negative selection processes
 were acting in single segment, we extended their model so that it could be
-applied to whole-genome data. 
+applied to whole-genome data. Our method, implemented in the software
+\texttt{bgspy}, calculates the equilibrium additive genic fitness variance
+$V_a$ and ratchet rate $R$ for each specified segment in the genome for a range
+of mutation rates and selection coefficients and a fixed genome-wide
+drift-effective population size $N$ (see Methods XXX). Genomic regions
+putatively under negative selection (e.g. coding sequences or UTRs) and the
+recombination rate map are specified as arguments so that the predicted values
+accurately reflect local genomic details. Note that each equation is solved
+independently, since here we assume no selective interference between segments.
+
+To assess our genome-wide extension of the SC16 model, we simulated negative
+selection for fixed mutation rates and selection coefficient on human
+chromosome 10, using the HapMap recombination map (XXX) and in coding regions,
+PhastCons regions, and UTRs as an approximate set of putatively conserved
+segments. We then compared the reduction over an average of XXX simulation
+replicates with the predicted reduction using our method. 
+
+We find that our theory closely matches simulations when selection is strong
+(Figure 1XXX and Figure 1XXX). Since our theory is identical to classic BGS in
+this domain, this provides the first genome-wide realistic forward-time
+simulation confirmation of this theory. However, we find slight discrepancies
+in regions with low recombination (Figure XXX). Second, we find our theory is
+vastly more accurate than classic BGS theory when selection is weak ($2N_e s
+\ll 1$; Figure 1XXX). However, when the strength of selection is at the
+drift-barrier of $2N_e s \approx 1$), we find our theory has about a 10\%
+relative error rate, which is slightly lower than classic BGS theory.
+
+We first hypothesized that this discrepancy could be because slight selective
+interference between segments 
+
+could be due to the build up of negative
+linkage disequilibrium
 
 
 \subsection*{DFE Estimates}
@@ -1386,10 +1433,11 @@ Now, note that under a diploid model, the fitness variance is twice that as the
 haploid model, so $V_A = 2 v_A$. Then, the fitness variance is,
 
 \begin{align}
-  V_{A} = Us - Rs. 
+  \label{supp-eq:Va}
+  V_{A} = Us - 2Rs. 
 \end{align}
 
-where $U = 2u$ and $R=2r$ is the diploid rate of the ratchet, which depends on
+where $U = 2u$ and $R=r$ is the diploid rate of the ratchet, which depends on
 higher moments of the fitness distribution, but only differs from $r$ through a
 rescaling of the population size. Note that if selected sites are sufficiently
 deleterious that they cannot fix (or the population is infinite), $R=0$ and the
@@ -1445,6 +1493,25 @@ variance, $\widetilde{V} = Us - 2\widetilde{R}s$, or $\widetilde{V} = (U -
 deleterious to neutral variation, $2R \le U$, or the diploid mutation rate must
 be greater than twice the per-basepair per-generation substitution rate for
 equilibrium variance $\widetilde{V} > 0$ for $s>0$. 
+
+\subsection*{Steady-state Equilibrium Genic Variance} \label{supp:genic-va}
+
+We also find that Equation \eqref{eq:Va} (and Supplementary Materials Equation
+\ref{supp-eq:Va} above) can also be found through Kimura's diffusion models
+with a flux of mutations into infinite, discrete sites
+(\citeyear{Kimura1969-jw}). This model integrates the Kolmogorov backwards
+equation over time and forward variable to find the expected value of a
+functional of the initial frequency. Using the functional $I(p) = s^2 p(1-p)$
+for genic variance given mutations start at frequency $p$, one finds that the
+steady-state genic variance for $p=\nicefrac{1}{2N_e}$ is
+
+\begin{align}
+    V_a^{SS} &= 2 U N s \left(\frac{1}{2N_e} - p_f(N_e, s)\right) \\
+             &= \left(\frac{UN}{N_e} - 2 U Np_f(N_e, s))\right)s \nonumber \\
+             &\approx \left(U - 2 R\right)s \nonumber
+\end{align}
+
+which is approximately Equation \eqref{eq:Va}.
 
 \subsection*{Misspecification of the Polygenic Selection Model}
 
