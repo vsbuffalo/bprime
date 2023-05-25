@@ -128,23 +128,7 @@ interference between segments fits human population genomic data slightly
 better, suggesting levels of negative selection in humans are sufficient to
 perturb the selection at other sites.
 
-
-\section*{Results}
-
-Similar to previous work, our method characterizes the negative selection
-process through the signal left on pairwise diversity at linked sites. Although
-pairwise diversity is a less-informative statistic than the full site frequency
-spectrum, it is much easier to derive models of how selection alters expected
-pairwise coalescence times at linked sites than to describe the entire
-genealogy. Spatial patterns of pairwise diversity are highly variable across
-eukaryotic genomes, as linked selection leads diversity to become correlated
-with spatial heterogeneity in recombination rates and the density of conserved
-sites. Statistical methods then fit observed diversity to the expected level
-under a particular theoretic model of linked selection processes. Consequently,
-statistical inferences about selection may be incorrect when the underlying
-theory inaccurately predicts average pairwise coalescence times.
-
-\subsection*{Theory}
+\section*{Theory}
 
 Our work is motivated by a well-known limitation of classic background
 selection theory: it is only accurate for strongly deleterious mutations
@@ -410,7 +394,7 @@ system of two non-linear equations that can be solved numerically for $N_d$ and
 $R$ for each segment,
 
 \begin{align}
-  \label{eq:}
+  \label{eq:main_eqns}
   N_d &= N \exp \left( -V_a \frac{Q^2}{2} \right) & \text{\emph{draft-effective population equation}} \\
   R &= \frac{4N_d U s}{\exp(4 N_d s)-1}  & \text{\emph{ratchet equation}}
 \end{align}
@@ -425,7 +409,49 @@ where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}.
 %   Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
 % \end{align}
 
-\subsection*{Segment Simulations of the Diploid Model}
+
+
+\section*{Results}
+
+Similar to previous work, our method characterizes the negative selection
+process through the signal left on pairwise diversity at linked sites. Although
+pairwise diversity is a less-informative statistic than the full site frequency
+spectrum, it is much easier to derive models of how selection alters expected
+pairwise coalescence times at linked sites than to describe the entire
+genealogy. Spatial patterns of pairwise diversity are highly variable across
+eukaryotic genomes, as linked selection leads diversity to become correlated
+with spatial heterogeneity in recombination rates and the density of conserved
+sites. Statistical methods then fit observed diversity to the expected level
+under a particular theoretic model of linked selection processes. Consequently,
+statistical inferences about selection may be incorrect when the underlying
+theory inaccurately predicts average pairwise coalescence times.
+
+\subsection*{Simulations of a Segment under Negative Selection}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/figure_1.pdf}
+  \caption{Theory compared to simulation results. (A) The predicted reduction
+      factor under classic B theory (dark gray line) and the diploid SC16 model
+      (colored lines corresponding to mutation rate) compared to average
+      reduction across XXX simulation replicates (points). (B) The predicted
+      ratchet rate under the SC16 model scaled by mutation rate (colored lines)
+      compared to the ratchet estimated from simulation (points). When $2Ns>1$,
+      the ratchet rate is near zero. (C) The genic variance from simulations
+      (points) against the predicted variance under the SC16 model (colored
+      lines). As the ratchet begins to click, the genic variance is decreased
+      from the level expected under strong BGS (dashed line). (D, bottom) The
+      mean squared error (MSE) between whole-chromosome simulations and
+      predicted classic B (dots), new B' (solid), and locally-rescaled B'
+      (dashed) for different mutation rates (colors). The dashed horizontal
+      line is the approximate theoretic minimum MSE. (D, top) The build up of
+      negative linkage disequilibria around $2Ns=1$ in whole-chromosome
+      simulations. (E) The average B map from 100 chromosome 10 simulation
+  replicates (gray) against different predictions, for parameters that
+correspond to $2Ns < 1$, $2Ns = 1$, and $2Ns > 1$. The chromosome shows 
+the density of conserved sites and recombination map used in simulations. }
+  \label{fig:figure-1}
+\end{figure}
 
 Given that Santiago and Caballero's (\citeyear{Santiago2016-mu}) model is a
 haploid-model for a single region under equilibrium negative selection, we
@@ -435,12 +461,13 @@ forward-time simulations of diploid populations with recombination. Using SLiM
 basepairs under varying levels of mutation and selection. We find a close
 correspondence between the observed and predicted reduction in effective
 population size $B=\nicefrac{N_d}{N}$ over all selection and mutation
-parameters including weak selection (Figure 1A), in contrast to classic BGS
-theory. Furthermore, to investigate whether this accuracy was caused by the
-model capturing the equilibrium fitness variance and ratchet rate, we also
-measured these throughout the simulation. Again, we find their theory
-accurately predicts both the ratchet rate (Figure 1B) and the genic fitness
-variance (Figure 1C).
+parameters including weak selection (Figure \ref{fig:figure-1}A), in contrast
+to classic BGS theory. Furthermore, to investigate whether this accuracy was
+caused by the model capturing the equilibrium fitness variance and ratchet
+rate, we also measured these throughout the simulation. Again, we find the
+diploid SC16 theory accurately predicts both the ratchet rate (Figure
+1\ref{fig:figure-1}B) and the genic fitness variance (Figure
+1\ref{fig:figure-1}C).
 
 Additionally, these figures provide further intuition for the underlying
 negative selection process. When selection is strong the ratchet rate is zero,
@@ -467,58 +494,60 @@ putatively under negative selection (e.g. coding sequences or UTRs) and the
 recombination rate map are specified as arguments so that the predicted values
 accurately reflect local genomic details. Note that each equation is solved
 independently, since here we assume no selective interference between segments.
+We refer to the prediction reductions along the genome from our approach as B'
+maps (analogous to B maps from \cite{McVicker2009-ax}).
 
-To assess our genome-wide extension of the SC16 model, we simulated negative
-selection for fixed mutation rates and selection coefficient on human
-chromosome 10, using the HapMap recombination map (XXX) and in coding regions,
-PhastCons regions, and UTRs as an approximate set of putatively conserved
-segments. We then compared the reduction over an average of XXX simulation
-replicates with the predicted reduction using our method. 
+To assess our B' maps, we simulated negative selection for fixed mutation rates
+and selection coefficient on human chromosome 10 using realistic recombination
+and conserved feature maps. Averaging over $n=100$ simulation replicates, we
+estimated the simulation expected reduction map and compared this to the
+predicted B and B' maps for the same parameters. We find that our B' maps and
+the classic BGS theory B maps closely match simulations when selection is
+strong (top row of Figure \ref{fig:figure-1}E). This provides the first
+realistic forward-time simulation confirmation of classic background selection
+theory. However, we find slight discrepancies in regions with low recombination
+(Figure \ref{fig:figure-1}E). Second, we find our theory is vastly more
+accurate than the classic B maps when selection is very weak ($2N_e s \ll 1$;
+bottom row of Figure \ref{fig:figure-1}E), which is expected since BGS theory
+does not work in this domain. Across all mutation and selection parameters
+simulated, the relative error of the classic B maps is 14.6\% whereas the
+relative error in the new B' maps is 5\%. Additionally, we find that the mean
+squared error between simulations and B' maps is close to the theoretic lower
+bound set by the coalescence variance \parencite[see Methods
+XXX]{Tajima1983-gu}.
 
-We find that our theory closely matches simulations when selection is strong
-(Figure 1XXX and Figure 1XXX). Since our theory is identical to classic BGS in
-this domain, this provides the first genome-wide realistic forward-time
-simulation confirmation of this theory. However, we find slight discrepancies
-in regions with low recombination (Figure XXX). Second, we find our theory is
-vastly more accurate than classic BGS theory when selection is weak ($2N_e s
-\ll 1$; Figure 1XXX). However, when the strength of selection is at the
-drift-barrier of $2N_e s \approx 1$), we find our theory has about a 10\%
-relative error rate, which is slightly lower than classic BGS theory.
+Nearly all of the error between the new B' maps and chromosome-wide simulations
+occurs around the drift-barrier domain of $2Ns \approx 1$ (Figure
+\ref{fig:figure-1}D). The higher error in this domain occurs across all
+mutation rates. First, we hypothesized that the reason this occurred was the
+when we numerically solve Equations \eqref{eq:main_eqns} for each segment, this
+does does not consider the reduction due to selection at other linked segments.
+In particular, we use $N=1000$ corresponding to the number of diploids in the
+simulations rather than $B'(x) N$ at position $x$. To test this, we implemented
+a locally-rescaled version of the B' maps, which numerically solves Equations
+\eqref{eq:main_eqns} for each segment at position $x$ taking into account the
+reduction experienced due to selection at other segments by setting $B'(x)N$ as
+the population size (see Method XXX). We find the locally-rescaled B' maps
+reduce the relative error from 5\% to 0.4\% and mean squared error (Figure
+\ref{fig:figure-1}D, dashed colored lines), but does not entirely eliminate the
+error in the $2Ns \approx 1$ domain.
 
-We first hypothesized that this discrepancy could be because slight selective
-interference between segments 
+Finally, we hypothesized that the remaining error is because of the build up of
+negative linkage disequilibria between selected sites due to Hill--Robertson
+interference \parencite{Hill1966-kd,McVean2000-bt,Comeron2007-wq}. To assess
+this possibility, we calculated the sum of all linkage disequilibria in our
+chromosome-wide simulations. We find negative linkage disequilibria build ups
+around $2Ns \approx 1$ (Figure \ref{fig:figure-1}D, top row) and is greater
+when mutation rates are higher (Supplementary Figure XXX). This is consistent
+our view that the equilibrium fitness variance under the SC16 model is the
+additive \emph{genic} fitness variance, which differs from the additive genetic
+variance by the sum of linkage disequilibria between selected sites,
+$\delta_{LD} = s^2 \sum_{i\nej} D_{i,k}$. 
 
-could be due to the build up of negative
-linkage disequilibrium
-
+\subsection*{Estimates of Negative Selection in Humans}
 
 \subsection*{DFE Estimates}
 % - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\textwidth]{figures/figure_1.pdf}
-  \caption{Theory compared to simulation results. (A) The predicted reduction
-      factor under classic B theory (dark gray line) and the diploid SC16 model
-      (colored lines corresponding to mutation rate) compared to average
-      reduction across XXX simulation replicates (points). (B) The predicted
-      ratchet rate under the SC16 model scaled by mutation rate (colored lines)
-      compared to the ratchet estimated from simulation (points). When $2Ns>1$,
-      the ratchet rate is near zero. (C) The genic variance from simulations
-      (points) against the predicted variance under the SC16 model (colored
-      lines). As the ratchet begins to click, the genic variance is decreased
-      from the level expected under strong BGS (dashed line). (D, bottom) The
-      mean squared error (MSE) between whole-chromosome simulations and
-      predicted classic B (dots), new B' (solid), and locally-rescaled B'
-      (dashed) for different mutation rates (colors). The dashed horizontal
-      line is the approximate theoretic minimum MSE  (D, top) The build up of
-      negative linkage disequilibria around $2Ns=1$ in whole-chromosome
-      simulations. (E) The average B across 100 chromosome 10 simulation
-  replicates (gray) against different predictions, for parameters that
-correspond to $2Ns < 1$, $2Ns = 1$, and $2Ns > 1$. }
-  \label{fig:figure-1}
-\end{figure}
-
 
 \subsection*{Evolutionary Models}
 
@@ -567,6 +596,19 @@ connects fitness variation to absolute changes in fitness.
 
 
 \section*{Methods}
+
+
+\subsection*{Chromosome-wide Simulations}
+
+, using the HapMap recombination map (XXX) and in coding regions, PhastCons
+regions, and UTRs as an approximate set of putatively conserved segments
+
+
+\subsection*{Local-rescaled }
+We note that it is computationally intractable to solve this equation excluding
+the contribution of the focal segment 
+
+
 
 \subsection*{Solving the B' Equations for each Segment}
 
