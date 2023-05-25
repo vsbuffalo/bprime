@@ -719,9 +719,8 @@ def collect(fitdir, blocksize, output):
     if output is not None:
         assert output.endswith('.pkl'), "output filename should end in .pkl"
         res.save(output)
-    for pop, (nll, key, fit) in res.best_nlls.items():
-        print(pop)
-        print(key)
+    for key, fit in res.fits.items():
+        print('------ ' + ' '.join(key) + ' ------')
         print(fit)
 
     #for key, fit in res.fits.items():

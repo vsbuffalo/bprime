@@ -1,7 +1,8 @@
 import warnings
+import re
 import logging
 import os
-from os.path import basename, join
+from os.path import basename, join, isdir
 import pickle
 import tskit as tsk
 import numpy as np
@@ -15,6 +16,31 @@ from bgspy.likelihood import SimplexModel
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
+def load_model(base_dir='./'):
+    results = {}
+    pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]
+    for pop_dir in pop_dirs:
+        pop = re.findall(r'pop_(\w+)', pop_dir)[0]
+        window_dirs = [d for d in os.listdir(join(base_dir, pop_dir)) if isdir(join(base_dir, pop_dir, d)) and "window_" in d]
+        for window_dir in window_dirs:
+            window = re.findall(r'window_(\d+)', window_dir)[0]
+            type_dirs = [d for d in os.listdir(join(base_dir, pop_dir, window_dir)) if isdir(join(base_dir, pop_dir, window_dir, d)) and "type_" in d]
+            for type_dir in type_dirs:
+                type_ = re.findall(r'type_(\w+)', type_dir)[0]
+                # construct the directory path to the intial fits
+                dir_path = join(base_dir, pop_dir, window_dir, type_dir, 'mutrate_free', 'initial')
+                # load the main results if mle.pkl exists
+                mle_file_path = join(dir_path, 'mle.pkl')
+                if os.path.isfile(mle_file_path):
+                    fit = load_pickle(mle_file_path)
+                    # load the LOO if done
+                    loo_chrom_dir = join(dir_path, 'loo_chrom')
+                    if isdir(loo_chrom_dir):
+                        fit['mbp'].load_loo(loo_chrom_dir)
+                    # store the results
+                    results[(pop, window, type_)] = fit
+    return results
+
 class ModelDir:
     """ 
     This class is to manage large-scale fits based on the snakemake pipeline.
@@ -25,52 +51,8 @@ class ModelDir:
         self.dir = dir 
         self._get_fits()
 
-    def _get_specs(self):
-        specs = [f for f in os.listdir(self.dir) if f.endswith('.yml')]
-        return specs
-        
     def _get_fits(self):
-         fits = dict()
-         best_nlls = dict() # per pop
-         for specfile in self._get_specs():
-             specdir = specfile.replace('.yml', '')
-             fitdir = join(self.dir, specdir, 'fits')
-             popdirs = os.listdir(fitdir)
-             for popdir in popdirs:
-                 assert popdir.startswith('pop_')
-                 pop = popdir.replace('pop_', '')
-                 windowdirs = os.listdir(join(fitdir, popdir))
-                 for windowdir in windowdirs:
-                     assert windowdir.startswith('window_')
-                     window = int(windowdir.replace('window_', ''))
-                     typedirs = os.listdir(join(fitdir, popdir, windowdir))
-                     for typedir in typedirs:
-                         assert typedir.startswith('type_')
-                         tracktype = typedir.replace('type_', '')
-                         mutdirs = os.listdir(join(fitdir, popdir, windowdir, typedir))
-                         # exclude model_data.pkl
-                         mutdirs = [d for d in mutdirs if not d.endswith('.pkl')]
-                         for mutdir in mutdirs:
-                             mutrate = mutdir.replace('mutrate_', '')
-                             initialdir = join(fitdir, popdir, windowdir, typedir, mutdir, "initial")
-                             fitfile = join(initialdir, "mle.pkl")
-                             if not os.path.exists(fitfile):
-                                 continue
-                             keyvals = dict(name=specdir, pop=pop, window=window,
-                                            track=tracktype, mutrate=mutrate)
-                             key = tuple(keyvals.items())
-                             fit = load_pickle(fitfile)
-                             nll = fit['mbp'].nll_
-                             if pop not in best_nlls:
-                                 best_nlls[pop] = nll, key, fit
-                             else:
-                                 if best_nlls[pop][0] > nll:
-                                     # replace with this better fit
-                                     best_nlls[pop] = nll, key, fit
-                             fits[key] = fit
-         self.fits = fits
-         self.best_nlls = best_nlls
-         return fits
+        self.fits = load_model(self.dir)
 
     def save(self, output):
         save_pickle(self, output)
