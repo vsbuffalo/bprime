@@ -81,6 +81,19 @@ def calc_B_chunk_worker(args):
 
 ## Map Version of Functions
 
+@np.vectorize
+def B_var_limit(B, R=1, N=None, n=None):
+    """
+    The based on the Tajima (1983) variance for π.
+    """
+    if N is None or n is None:
+        # the case where n = N, and N --> inf
+        return 2/9 * B**2 / R
+    VarBhat = (n+1)/(3*(n-1)) * ((4*N*B)/(16*N**2)) + (2*(n**2 + n + 3))/ (9*n*(n-1)) * (4*N*B)**2/(16*N**2)
+    return VarBhat/R 
+
+B_var_limit(1, 100)
+
 def Q2_asymptotic(Z, M):
     """
     This is the map-version asymptotic Q² term — including the factor of two
