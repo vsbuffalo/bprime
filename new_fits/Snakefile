@@ -440,7 +440,7 @@ rule loo_chrom:
   params: **settings
   resources:
     mem_mb=10000,
-    time_min=300,
+    time_min=1000,
     threads=40
   shell:
     """
