@@ -16,7 +16,7 @@ from bgspy.likelihood import SimplexModel
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
-def load_model(base_dir='./'):
+def load_model(base_dir='./', jackwidth=10000000):
     initial = {}
     rescaled = {}
     pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]
@@ -42,6 +42,10 @@ def load_model(base_dir='./'):
                         loo_chrom_dir = join(dir_path, 'loo_chrom')
                         if isdir(loo_chrom_dir):
                             fit['mbp'].load_loo(loo_chrom_dir)
+                        # load the jackknife if done
+                        jk_chrom_dir = join(dir_path, 'jackknife', f"block_{jackwidth}")
+                        if isdir(jk_chrom_dir):
+                            fit['mbp'].load_jackknives(jk_chrom_dir)
                         # store the results
                         if i == 0:
                             initial[(pop, window, type_)] = fit

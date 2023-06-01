@@ -550,15 +550,15 @@ class BGSLikelihood:
         self.loo_thetas_ = thetas
         self.loo_chroms_ = chroms
 
-    def ci(self, method='quantile'):
-        assert self.boot_thetas_ is not None, "bootstrap() has not been run"
-        if method == 'quantile':
-            lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
-        elif method == 'percentile':
-            lower, upper = percentile_ci(self.boot_thetas_)
-        else:
-            raise ValueError("improper bootstrap method")
-        return np.stack((lower, self.theta_, upper)).T
+    #def ci(self, method='quantile'):
+    #    assert self.boot_thetas_ is not None, "bootstrap() has not been run"
+    #    if method == 'quantile':
+    #        lower, upper = pivot_ci(self.boot_thetas_, self.theta_)
+    #    elif method == 'percentile':
+    #        lower, upper = percentile_ci(self.boot_thetas_)
+    #    else:
+    #        raise ValueError("improper bootstrap method")
+    #    return np.stack((lower, self.theta_, upper)).T
 
     def save(self, filename):
         """
@@ -632,7 +632,7 @@ class BGSLikelihood:
 
     def W_stderrs(self):
         """
-        A dictionary of standard errors.
+        A dictionary of standard errors for each feature.
         """
         if self.sigma_ is None:
             return None
@@ -688,7 +688,7 @@ class BGSLikelihood:
         Calculate the jackknife standard errors.
         """
         # the MLE fit -- currently we use the bootstrap mean
-        theta = self.theta_
+        #theta = self.theta_
         if not use_loo_chrom:
             msg = "SimplexModel.jack_thetas_ is None, load jackknife results first"
             assert self.jack_thetas_ is not None, msg
@@ -701,11 +701,11 @@ class BGSLikelihood:
         Tni = thetas
         n = Tni.shape[0]
         Tn = Tni.mean(axis=0)
-        # TODO uses the jackknife estimates! should be option
         Q = np.sum((Tni - Tn[None, :])**2, axis=0)
         sigma2_jack = (n-1)/n * Q
         sigma_jack = np.sqrt(sigma2_jack)
         self.sigma_ = sigma_jack
+        self.sigma_n_ = n
         self.std_error_type = 'loo' if use_loo_chrom else 'moving block jackknife'
         return sigma_jack
 
@@ -866,6 +866,7 @@ class SimplexModel(BGSLikelihood):
         self.loo_thetas_ = None
         self.loo_chroms_ = None
         self.sigma_ = None
+        self.sigma_n_ = None
         self.std_error_type = None
 
     @staticmethod
@@ -1045,7 +1046,7 @@ class SimplexModel(BGSLikelihood):
         if self.theta_ is None:
             return "\n[not fit yet]\n"  # not fit yet
         if index is None:
-            pi0 = self.mle_pi0  # FIX TODO
+            pi0 = self.mle_pi0  # FIX TODO (to handle fixed, low priority)
             mu = self.mle_mu
             W = self.mle_W
             R2 = self.R2()
