@@ -444,7 +444,7 @@ class BGSLikelihood:
         obj._chrom_loo_fit = chrom
         return obj
 
-    def jackknife_block(self, blocksize, blocknum=None, 
+    def jackknife_block(self, blocksize, blocknum=None,
                         calc_loo_R2=True, **kwargs):
         """
         Use the block-jackknife to estimate uncertainty. This 

@@ -544,12 +544,12 @@ def subrate(bs_file, fit,
               help=('pickle file of fitted results, for starting at MLE '
                     '(ignore for random starts)'))
 @click.option('--blocksize', type=int,
-              help='the blocksize, in number basepairs')
+              help='the blocksize, in consecutive number of windows')
 @click.option('--blockwidth', type=int, help="the blockwidth in basepairs")
 @click.option('--blocknum', default=None, type=int,
               help='which block to run the fit on (e.g. for cluster use)')
 @click.option('--blockfrac', default=None, type=float,
-              help='for not a full jackknife, drop the block at this fraction '
+              help='for not a full jackknife, drop the block at this fraction position of the genome'
                    "(this approach doesn't require a prior knowledge of number of blocks")
 @click.option('--mu', help='fixed mutation rate (by default, free)', 
               default=None)
@@ -573,13 +573,16 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu,
     """
     Run the block-jackknifing routine. 
 
-    There are two modes:
+    There are three modes:
         1. Run with --blocksize set only, and all blocks will be 
             jackknifed.
         2. Run with --blocksize and --blocknum, and only that 
             block number is left out (e.g. for cluster use).
+        3. --blockfrac and --blocksize, exclude blocks at the fraction 
+            specified (which is the fraction of total genome); this is for 
+            cluster use when we need to parallelize things (approximate jackknife)
 
-    <!> blocksize is in NUMBER of consecutive blocks to jackknife over.
+    <!> blocksize is in NUMBER of consecutive blocks to jackknife over (e.g. blockwidth = window width x blocksize)
     """
     if blockfrac is not None or blockwidth is not None:
         # we need to figure out the block width or num blocks
