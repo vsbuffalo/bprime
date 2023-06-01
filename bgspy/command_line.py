@@ -544,7 +544,7 @@ def subrate(bs_file, fit,
               help=('pickle file of fitted results, for starting at MLE '
                     '(ignore for random starts)'))
 @click.option('--blocksize', type=int,
-              help='the blocksize, in number of consecutive windows')
+              help='the blocksize, in number basepairs')
 @click.option('--blockwidth', type=int, help="the blockwidth in basepairs")
 @click.option('--blocknum', default=None, type=int,
               help='which block to run the fit on (e.g. for cluster use)')
@@ -578,11 +578,14 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu,
             jackknifed.
         2. Run with --blocksize and --blocknum, and only that 
             block number is left out (e.g. for cluster use).
+
+    <!> blocksize is in NUMBER of consecutive blocks to jackknife over.
     """
     if blockfrac is not None or blockwidth is not None:
         # we need to figure out the block width or num blocks
         bins = load_pickle(data)['bins']
         if blockwidth is not None:
+            # get the the number of window this blocksize in bp is
             blocksize = int(blockwidth / bins.width)
         blocks = block_bins(bins, blocksize)
         nblocks = len(blocks)

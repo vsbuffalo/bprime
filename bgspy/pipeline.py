@@ -250,6 +250,11 @@ def mle_fit(data, output_file, ncores=70, nstarts=200,
         chromosome.
       - Save the results.
     save the results.
+
+    <!> blocksize is in NUMBER of consecutive blocks to jackknife over.
+
+    blocknum is the particular block number to remove. For use
+    when we need to use a blockfrac to run things across a cluster.
     """
     # deal with start
     if start is not None:

@@ -138,6 +138,8 @@ for popl in pops:
             if jackknife_windows:
                 if isinstance(jackknife_windows, int):
                     jackknife_windows = [jackknife_windows]
+                else:
+                    assert(isinstance(jackknife_windows, list))
                 for jk_window in jackknife_windows:
                     jk_dir = join(this_fit_path, "jackknife", f"block_{jk_window}")
                     for frac in np.linspace(0, 1, njack+1)[:-1]:
@@ -416,7 +418,7 @@ rule block_jackknife:
   params: **settings
   resources:
     mem_mb=10000,
-    time_min=300,
+    time_min=1000,
     threads=40
   shell:
     """
@@ -427,7 +429,7 @@ rule block_jackknife:
       --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --output {output[0]} \
       --blockfrac {wildcards.frac} \
-      --ncores {resources.threads} --nstarts {params.nstarts}
+      --ncores {resources.threads} --nstarts {params.nstarts_jackknife}
     """
 
 
@@ -450,7 +452,7 @@ rule loo_chrom:
       --mu {wildcards.mutrate} \
       --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --chrom {wildcards.chrom} \
-      --ncores {resources.threads} --nstarts {params.nstarts}
+      --ncores {resources.threads} --nstarts {params.nstarts_loo}
     """
 
 # ----- locally-rescaled fits -----
