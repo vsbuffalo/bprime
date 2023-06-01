@@ -17,7 +17,8 @@ AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
 def load_model(base_dir='./'):
-    results = {}
+    initial = {}
+    rescaled = {}
     pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]
     for pop_dir in pop_dirs:
         pop = re.findall(r'pop_(\w+)', pop_dir)[0]
@@ -28,18 +29,25 @@ def load_model(base_dir='./'):
             for type_dir in type_dirs:
                 type_ = re.findall(r'type_(\w+)', type_dir)[0]
                 # construct the directory path to the intial fits
-                dir_path = join(base_dir, pop_dir, window_dir, type_dir, 'mutrate_free', 'initial')
-                # load the main results if mle.pkl exists
-                mle_file_path = join(dir_path, 'mle.pkl')
-                if os.path.isfile(mle_file_path):
-                    fit = load_pickle(mle_file_path)
-                    # load the LOO if done
-                    loo_chrom_dir = join(dir_path, 'loo_chrom')
-                    if isdir(loo_chrom_dir):
-                        fit['mbp'].load_loo(loo_chrom_dir)
-                    # store the results
-                    results[(pop, window, type_)] = fit
-    return results
+                fit_dir_path = join(base_dir, pop_dir, window_dir, type_dir, 'mutrate_free', 'initial')
+                rescale_dir_path = join(base_dir, pop_dir, window_dir, type_dir, 'mutrate_free', 'rescaled')
+                dir_paths = [fit_dir_path, rescale_dir_path]
+                runs = 'initial', 'rescaled'
+                for i, dir_path in enumerate(dir_paths):
+                    # load the main results if mle.pkl exists
+                    mle_file_path = join(dir_path, 'mle.pkl')
+                    if os.path.isfile(mle_file_path):
+                        fit = load_pickle(mle_file_path)
+                        # load the LOO if done
+                        loo_chrom_dir = join(dir_path, 'loo_chrom')
+                        if isdir(loo_chrom_dir):
+                            fit['mbp'].load_loo(loo_chrom_dir)
+                        # store the results
+                        if i == 0:
+                            initial[(pop, window, type_)] = fit
+                        else:
+                            rescaled[(pop, window, type_)] = fit
+    return initial, rescaled
 
 class ModelDir:
     """ 
@@ -52,7 +60,7 @@ class ModelDir:
         self._get_fits()
 
     def _get_fits(self):
-        self.fits = load_model(self.dir)
+        self.fits, self.rescaled = load_model(self.dir)
 
     def save(self, output):
         save_pickle(self, output)
