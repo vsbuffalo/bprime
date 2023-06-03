@@ -599,6 +599,11 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu,
     mu = sterialize_mu(mu)
     pi0_bounds = tuple(map(float, pi0_bounds.split(',')))
     mu_bounds = tuple(map(float, mu_bounds.split(',')))
+    start = None
+    if fit is not None:
+        # recycle the MLE for a start (saves time)
+        start = fit.theta_
+        nstarts = None
     mle_fit(data=data,
             output_file=output,
             ncores=ncores,
@@ -606,6 +611,7 @@ def jackblock(data, fit, blocksize, blockwidth, blocknum, blockfrac, mu,
             pi0_bounds=pi0_bounds,
             mu_bounds=mu_bounds,
             nstarts=nstarts,
+            start=start,
             loo_chrom=chrom,
             blocksize=blocksize, blocknum=blocknum,
             bp_only=True)

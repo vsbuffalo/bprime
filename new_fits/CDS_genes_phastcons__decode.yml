@@ -7,8 +7,9 @@ settings:
   mu_bounds: 0.5e-8,8e-8
   nstarts: 10000
   nstarts_loo: 10000
-  nstarts_jackknife: 5000
-  num_jackknife_samples: 200
+  nstarts_jackknife: 2000
+  #num_jackknife_samples: 200 # note this was for 2e6 run
+  num_jackknife_samples: 140 # for 20e6 run, full coverage
 
 # pops
 data: 
@@ -41,8 +42,9 @@ params:
 # the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife:  [15000000], predict: false}
-  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: false}
+  #- {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife:  [2000000], predict: false}
+  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife:  [20000000], predict: true}
+  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: true, jackknife: false, predict: false}
 
   # 1Mb mu=1.3e-8, full and sparse
   #- {window: 1000000, mu: 1.3e-8, type: full,  loo: false, rescaled: false, jackknife: false}
