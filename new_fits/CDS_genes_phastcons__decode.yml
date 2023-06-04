@@ -5,6 +5,7 @@ name: CDS_genes_phastcons__decode
 settings:
   pi0_bounds: 0.0005,0.008
   mu_bounds: 0.5e-8,8e-8
+  mu_bounds_rescale: 0.5e-8,8e-7
   nstarts: 10000
   nstarts_loo: 10000
   nstarts_jackknife: 2000

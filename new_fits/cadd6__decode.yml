@@ -5,6 +5,7 @@ name: cadd6__decode
 settings:
   pi0_bounds: 0.0005,0.008
   mu_bounds: 0.5e-8,8e-8
+  mu_bounds_rescale: 0.5e-8,8e-8
   nstarts: 20000
   nstarts_loo: 1000
   nstarts_jackknife: 1000
@@ -40,8 +41,10 @@ params:
 fits: 
   # 1Mb free mutation, full and sparse
   - {window: 1000000, mu: free, type: full,  loo: true, rescaled: true, jackknife: false, predict: false}
-  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: true, jackknife: false, predict: false}
-
+  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: true, jackknife: [20000000], predict: false}
+ 
+  # rescale with fixed mutation
+  - {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false}
   - {window: 100000, mu: free, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false}
 
   # 1Mb mu=1.3e-8, full and sparse

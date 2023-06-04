@@ -437,8 +437,8 @@ rule loo_chrom:
   # note that this doesn't actually require fit object, but 
   # I prefer that gets calculated first
   input: data="fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl",
-         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/mle.pkl"
-  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/loo_chrom/loo_{chrom}.pkl"
+         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/loo_chrom/loo_{chrom}.pkl"
   params: **settings
   resources:
     mem_mb=10000,
@@ -454,6 +454,30 @@ rule loo_chrom:
       --chrom {wildcards.chrom} \
       --ncores {resources.threads} --nstarts {params.nstarts_loo}
     """
+
+rule loo_chrom_rescale:
+  # note that this doesn't actually require fit object, but 
+  # I prefer that gets calculated first
+  # -- this one is only different because we widen parameters for rescale
+  input: data="fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl",
+         fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/mle.pkl"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/loo_chrom/loo_{chrom}.pkl"
+  params: **settings
+  resources:
+    mem_mb=10000,
+    time_min=1000,
+    threads=40
+  shell:
+    """
+    bgspy loo \
+      --data {input.data} \
+      --output {output} \
+      --mu {wildcards.mutrate} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds_rescale} \
+      --chrom {wildcards.chrom} \
+      --ncores {resources.threads} --nstarts {params.nstarts_loo}
+    """
+
 
 # ----- locally-rescaled fits -----
 
@@ -489,7 +513,7 @@ rule fit_rescaled:
   shell:
     """
     bgspy fit \
-      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
+      --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds_rescale} \
       --mu {wildcards.mutrate} \
       --data {input} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
