@@ -14,6 +14,9 @@ from tabulate import tabulate
 from functools import partial
 import numpy as np
 from ctypes import POINTER, c_double, c_ssize_t, c_int
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # no longer needed
 # HAS_JAX = False
@@ -634,37 +637,52 @@ class BGSLikelihood:
         """
         A dictionary of standard errors for each feature.
         """
-        if self.sigma_ is None:
-            return None
+        do_se = self.sigma_ is not None
         fixed_mu_offset = 1 + int(not self._fixed_mu is not None)
-        ses = self.sigma_[fixed_mu_offset:].reshape(self.mle_W.shape)
-        se = defaultdict(list)
+        if do_se:
+            ses = self.sigma_[fixed_mu_offset:].reshape(self.mle_W.shape)
+            se = defaultdict(list)
+        else:
+            se =None
         mean = defaultdict(list)
         for i, feature in enumerate(self.features):
             for j, t in enumerate(self.t):
-                se[feature].append(ses[j,i])
+                if do_se:
+                    se[feature].append(ses[j,i])
                 mean[feature].append(self.mle_W[j,i])
         return mean, se
 
+    def W_df(self):
+        mean, se = self.W_stderrs()
+        t = self.t
+        means, errors = self.W_stderrs()
+        df_means = pd.DataFrame(means)
+        df_means['t'] = t
+        df_means_melted = pd.melt(df_means, id_vars='t', var_name='category', value_name='mean')
+        df_merged = df_means_melted
+        
+        if errors is not None:
+            df_errors = pd.DataFrame(errors)
+            df_errors['t'] = t
+            df_errors_melted = pd.melt(df_errors, id_vars='t', var_name='category', value_name='std_err')
+            df_merged = pd.merge(df_means_melted, df_errors_melted, on=['t', 'category'])
+        return df_merged
 
-    def dfe_plot(self, add_legend=True, legend_kwargs={}, figax=None):
+    def dfe_plot(self, add_legend=True, legend_kwargs={}, figax=None, ylabel='probability'):
         """
         Plot a boxplot of all features.
         """
+        df = self.W_df()
         fig, ax = get_figax(figax)
-        xt = np.log10(self.t)
-
-        nf = self.nf
-        pad = 0.03
-        w = 1/nf - pad  # width of bars, for each feature with allowance
-        hw = w/2
-        for i in range(nf):
-            feat = self.features[i]
-            ax.bar(xt - 1/(nf/2) + i/nf, self.mle_W[:, i], align='edge', width=w, label=feat)
-        ax.set_xticks(np.log10(self.t), [f"$10^{{{int(x)}}}$" for x in xt])
-        ax.set_ylabel('probability')
+        sns.barplot(data=df, x='t', y='mean', hue='category', ax=ax)
+        xticks = ax.get_xticks()
+        xlabels = ax.get_xticklabels()
+        ax.set_xticks(xticks, [f"$10^{{{int(np.log10(float(x.get_text())))}}}$" for x in xlabels])
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
         if add_legend:
             ax.legend(**legend_kwargs)
+        return fig, ax
 
     def pi(self):
         pi = pi_from_pairwise_summaries(self.Y)
