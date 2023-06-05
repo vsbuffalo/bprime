@@ -9,7 +9,7 @@ settings:
   nstarts: 20000
   nstarts_loo: 1000
   nstarts_jackknife: 1000
-  num_jackknife_samples: 200
+  num_jackknife_samples: 140
   chrom_splits: 3
 
 # pops
@@ -40,12 +40,12 @@ params:
 # the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: true, jackknife: false, predict: false}
-  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: true, jackknife: [20000000], predict: false}
+  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: true, jackknife: [20000000], predict: false, jackknife_rescaled: false}
+  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: true, jackknife: false, predict: false, jackknife_rescaled: false}
  
   # rescale with fixed mutation
-  - {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false}
-  - {window: 100000, mu: free, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false}
+  #- {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false, jackknife_rescaled: false}
+  #- {window: 100000, mu: free, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false, jackknife_rescaled: false}
 
   # 1Mb mu=1.3e-8, full and sparse
   #- {window: 1000000, mu: 1.3e-8, type: full,  loo: false, rescaled: false, jackknife: false}

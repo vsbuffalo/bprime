@@ -16,7 +16,7 @@ from bgspy.likelihood import SimplexModel
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
 
-def load_model(base_dir='./', jackwidth=10000000):
+def load_model(base_dir='./', jackwidth=20_000_000):
     initial = {}
     rescaled = {}
     pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]

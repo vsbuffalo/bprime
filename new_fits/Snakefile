@@ -136,6 +136,8 @@ for popl in pops:
 
             # block-jackknives
             if jackknife_windows:
+                if fit_dirs == 'rescaled' and not fit_specs.get('jackknife_rescaled', False):
+                    continue
                 if isinstance(jackknife_windows, int):
                     jackknife_windows = [jackknife_windows]
                 else:
