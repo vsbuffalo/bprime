@@ -49,7 +49,7 @@
 
 
 \begin{abstract} 
-
+% TODO: emphasize connection to nearly neutral theory
 \end{abstract}
 
 
@@ -385,8 +385,8 @@ While using Equation \eqref{eq:Va} in Equation \eqref{eq:main_Ne} leads to a
 prediction for the draft-effective population size $N_d$, closed-form
 expressions for the rate of the ratchet $R$ have generally been hard to find
 \parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key insight of
-\parencite{Santiago2016-mu} is that the ratchet rate under draft is given by
-the probability of fixation $p_f(N_d, s)$
+\textcite{Santiago2016-mu} is that the ratchet rate under draft is determined
+by the probability of fixation $p_f(N_d, s)$
 \parencite{Kimura1962-su,Malecot1948-zv} with the draft-rescaled effective
 population size, e.g. $R = N U p_f(N_d, s)$. Given this equation for the
 ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
@@ -428,28 +428,28 @@ theory inaccurately predicts average pairwise coalescence times.
 
 \subsection*{Simulations of a Segment under Negative Selection}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\textwidth]{figures/figure_1.pdf}
-  \caption{Theory compared to simulation results. (A) The predicted reduction
-      factor under classic B theory (dark gray line) and the diploid SC16 model
-      (colored lines corresponding to mutation rate) compared to average
-      reduction across XXX simulation replicates (points). (B) The predicted
-      ratchet rate under the SC16 model scaled by mutation rate (colored lines)
-      compared to the ratchet estimated from simulation (points). When $2Ns>1$,
-      the ratchet rate is near zero. (C) The genic variance from simulations
-      (points) against the predicted variance under the SC16 model (colored
-      lines). As the ratchet begins to click, the genic variance is decreased
-      from the level expected under strong BGS (dashed line). (D, bottom) The
-      mean squared error (MSE) between whole-chromosome simulations and
-      predicted classic B (dots), new B' (solid), and locally-rescaled B'
-      (dashed) for different mutation rates (colors). The dashed horizontal
-      line is the approximate theoretic minimum MSE. (D, top) The build up of
-      negative linkage disequilibria around $2Ns=1$ in whole-chromosome
-      simulations. (E) The average B map from 100 chromosome 10 simulation
-  replicates (gray) against different predictions, for parameters that
-correspond to $2Ns < 1$, $2Ns = 1$, and $2Ns > 1$. The chromosome shows 
-the density of conserved sites and recombination map used in simulations. }
+\begin{figure}[htbp] \centering
+    \includegraphics[width=\textwidth]{figures/figure_1.pdf} \caption{Theory
+        compared to simulation results. (A) The predicted reduction factor
+        under classic B theory (dark gray line) and the diploid SC16 model
+        (colored lines corresponding to mutation rate) compared to average
+        reduction across XXX simulation replicates (points). (B) The predicted
+        ratchet rate under the SC16 model scaled by mutation rate (colored
+        lines) compared to the ratchet estimated from simulation (points). When
+        $2Ns>1$, the ratchet rate is near zero. (C) The genic variance from
+        simulations (points) against the predicted variance under the SC16
+        model (colored lines). As the ratchet begins to click, the genic
+        variance is decreased from the level expected under strong BGS (dashed
+        line). (D, bottom) The mean squared error (MSE) between
+        whole-chromosome simulations and predicted classic B (dots), new B'
+        (solid), and locally-rescaled B' (dashed) for different mutation rates
+        (colors). The dashed horizontal line is the approximate theoretic
+        minimum MSE. (D, top) The build up of negative linkage disequilibria
+        around $2Ns=1$ in whole-chromosome simulations in bottom panel. (E) The
+        average B map from 100 chromosome 10 simulation replicates (gray)
+    against different predictions, for parameters that correspond to $2Ns < 1$,
+$2Ns = 1$, and $2Ns > 1$. The chromosome shows the density of conserved sites
+and recombination map used in simulations. }
   \label{fig:figure-1}
 \end{figure}
 
@@ -537,17 +537,86 @@ negative linkage disequilibria between selected sites due to Hill--Robertson
 interference \parencite{Hill1966-kd,McVean2000-bt,Comeron2007-wq}. To assess
 this possibility, we calculated the sum of all linkage disequilibria in our
 chromosome-wide simulations. We find negative linkage disequilibria build ups
-around $2Ns \approx 1$ (Figure \ref{fig:figure-1}D, top row) and is greater
-when mutation rates are higher (Supplementary Figure XXX). This is consistent
-our view that the equilibrium fitness variance under the SC16 model is the
-additive \emph{genic} fitness variance, which differs from the additive genetic
-variance by the sum of linkage disequilibria between selected sites,
-$\delta_{LD} = s^2 \sum_{i\nej} D_{i,k}$. 
+around $2Ns \approx 1$ (Figure \ref{fig:figure-1}D, top row) and is stronger
+when mutation rates are higher (Supplementary Figure XXX). As $Ns \to 0$, the
+variance in LD inflates as expected \parencite{Ohta1969-ae,Hill1968-ue}.
+Overall, the build up of negative LD is consistent our view that the
+equilibrium fitness variance modeled by the SC16 theory is the additive
+\emph{genic} fitness variance, which differs from the additive genetic variance
+by the sum of linkage disequilibria between selected sites (i.e. $\delta_{LD} =
+s^2 \sum_{i\ne j} D_{i,j}$ where $D_{i,j}$ is the LD between sites $i$ and
+$j$). However, according to theory, the reductions in diversity should be
+determined by levels of additive genetic fitness variance that include the
+contribution of LD (Supplementary Materials Section XXX).
 
 \subsection*{Estimates of Negative Selection in Humans}
 
+Next, we developed a composite-likelihood method to estimate pairwise diversity
+in the absence of linked selection $\pi_0$, the deleterious mutation rate
+($\mu_D$), and distribution of fitness effects ($\mathbf{W}$) under negative
+selection. Because the focus of our work is to fix deficiencies in the classic
+BGS model, our current implementation does not consider reductions in diversity
+due to recurrent hitchhiking or other positive selection processes. Since
+previous work has established that purifying selection is the dominant mode of
+linked selection in humans and hitchhiking plays a limited role
+\parencite{McVicker2009-ax,Murphy2022-sj}, humans are a suitable organism to
+test our method. 
+
+Given that previous methods used classic BGS theory to fit genome-wide patterns
+of human diversity, we were curious whether their qualitative findings would
+change once weak selection was more accurately predicted. In particular, the
+U-shaped relationship between $B'$ and the strength of selection suggests that
+a given reduction factor could be explained by two different selection
+coefficients.
+
 \subsection*{DFE Estimates}
 % - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
+
+Like other methods, our method divides the putatively conserved basepairs up
+
+Generally, when the putatively conserved region is larger, there is a tradeoff
+in two dimensions. First, more bases are conserved according to the same DFE,
+so the total mutational load increases. This causes the tradeoff between
+mutation rate estimate and CADD fraction we observe across both our B' model
+and the classic B when using sparse tracks (Figure 2XXX). 
+
+
+We find that mutation rate estimates are fairly sensitive to model choice
+(Figure 2XXX). 
+
+Since B' has a U-shaped relationship with the selection coefficient, we
+hypothesized that our model may reveal true identifiability issues in
+estimating the DFE that do not occur under the classic B model. We find that
+this is not the case for our models fit at the megabase-scale. The DFE
+estimates for our CADD6 and CADD8 models are consistent (Figure XXX), and both
+produce similar mutation rates.
+
+While we do not comprehensively fit all of our model to other spatial scales,
+we 
+
+However, while a given reduction level may be explained by either a weak or
+strong selection coefficient, the spatial extent of these reductions caused by
+weak selection is much narrower than under strong selection. 
+
+We see evidence this is the case in several of our models, where
+genome-wide diversity fits equally well between models with mutation rates 
+
+Indeed, we see this by comparing parameter estimates of the CADD6
+sparse-track model using classic BGS B and our B' method. 
+
+
+(which mimics the best-fitting model of
+\cite{Murphy2022-sj}) 
+
+(see also
+Appendix 1, Figure 26A of \cite{Murphy2022-sj})
+
+correlation between s and feature
+
+Overall, we find evidence that negative selection models are very sensitive to
+the input track. Because inference based on our B' method accommodates weaker
+selection, the primary models we fit here more robust to misspecification of
+the regions
 
 \subsection*{Evolutionary Models}
 
@@ -602,6 +671,16 @@ connects fitness variation to absolute changes in fitness.
 
 , using the HapMap recombination map (XXX) and in coding regions, PhastCons
 regions, and UTRs as an approximate set of putatively conserved segments
+
+We calculate the mean squared error (MSE) and relative error between
+whole-chromosome simulations and the predicted B and B' maps by averaging
+branch diversity in 10 kilobase windows (tskit, XXX) and dividing by the
+neutral expectation of $4N$. The theoretic lower bound of the MSE is due the
+noise in estimating the expected reduction map from simulations. For $n=100$
+replicates, the sampling noise is minimal relative to the evolutionary noise in
+the coalescence process \parencite{Tajima1983-gu}. We use this as the theoretic
+lower bound assuming the maximum coalescence noise at $B=1$, $\var(\bar{B})
+\approx \nicefrac{2}{9n}$.
 
 
 \subsection*{Local-rescaled }
