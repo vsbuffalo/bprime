@@ -549,7 +549,44 @@ $j$). However, according to theory, the reductions in diversity should be
 determined by levels of additive genetic fitness variance that include the
 contribution of LD (Supplementary Materials Section XXX).
 
+\subsection*{Annotation Model Comparison}
+
+Our method takes tracks of annotated features that are \emph{a priori} expected
+to have similar fitness effects, and estimates the distribution of fitness
+effects for each feature type. Additionally, our method estimates the
+per-basepair per-generation deleterious mutation rate ($\mu_\text{del}$) and
+the background level of pairwise diversity ($\pi_0$). Since the theory used by
+our method can in principle accommodate weak selection and neutrality. To test
+this, for each our annotation models, we fit (1) ``sparse" models that only
+cover the fraction of the genome that is the union of all tracks, and (2)
+``full`` models that are sparse models with the remaining complement of the
+genome labeled as ``other".
+
+Overall, we find that 
+
+\begin{figure}[htbp] \centering
+    \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
+    \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all 
+    populations (colors). Round points are our B' method; diamonds are the 
+    classic B. For our method, we also calculate leave-one-out out-sample $R^2$
+    (lighter filled points).}
+  \label{fig:figure-2}
+\end{figure}
+
 \subsection*{Estimates of Negative Selection in Humans}
+
+\begin{figure}[htbp] \centering
+    \includegraphics[width=\textwidth]{figures/figure_3.pdf} 
+    \caption{The distribution of fitness effects of new mutations estimates for
+        Yoruba individuals. (A) The DFEs using sparse (left column) and
+        full-coverage (right column) tracks, across different annotation models
+        (row). Color indicates the feature type. (B) The DFE of the
+        full-coverage CDS-priority model comparing the estimates across
+    populations.}
+  \label{fig:figure-3}
+\end{figure}
+
+
 
 Next, we developed a composite-likelihood method to estimate pairwise diversity
 in the absence of linked selection $\pi_0$, the deleterious mutation rate
@@ -570,6 +607,49 @@ a given reduction factor could be explained by two different selection
 coefficients.
 
 \subsection*{DFE Estimates}
+
+\begin{table}
+\centering
+\caption{$R^2$ and mutation rate estimates for all models}
+\begin{tabular}{lll|crr|cc}
+    \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
+\hline
+\hline
+    \textbf{phastcons$>$CDS$>$genes} &            sparse &          YRI &                        \textbf{68.45} &             68.16 &            65.23 &                                 1.8636 &                                0.2975 \\
+phastcons$>$CDS$>$genes &              full &          YRI &                        68.19 &             68.12 &            63.67 &                                 1.7082 &                                0.1666 \\
+               CADD 6\% &              full &          YRI &                        68.08 &             68.08 &            62.96 &                                 1.4612 &                                0.1721 \\
+               CADD 6\% &            sparse &          YRI &                        68.04 &             68.03 &            68.01 &                                 2.0912 &                                2.0716 \\
+               CADD 8\% &              full &          YRI &                        66.98 &             67.11 &            63.61 &                                 1.0126 &                                0.1713 \\
+               CADD 8\% &            sparse &          YRI &                        66.67 &             67.01 &            66.98 &                                 1.5688 &                                1.5473 \\
+CDS$>$genes$>$phastcons &              full &          YRI &                        64.90 &             65.51 &            61.23 &                                 4.1951 &                                0.1620 \\
+CDS$>$genes$>$phastcons &            sparse &          YRI &                        64.90 &             65.51 &            63.16 &                                 4.1795 &                                0.3070 \\
+\textbf{phastcons$>$CDS$>$genes} &            sparse &          CEU &                        \textbf{61.98} &             63.02 &            60.02 &                                 2.0194 &                                0.3036 \\
+phastcons$>$CDS$>$genes &              full &          CEU &                        61.78 &             63.01 &            58.57 &                                 2.3499 &                                0.1679 \\
+               CADD 6\% &              full &          CEU &                        61.74 &             62.94 &            57.42 &                                 1.5365 &                                0.1739 \\
+               CADD 6\% &            sparse &          CEU &                        61.66 &             62.86 &            62.84 &                                 2.1215 &                                2.1084 \\
+               CADD 8\% &              full &          CEU &                        60.80 &             62.12 &            57.95 &                                 1.1572 &                                0.1742 \\
+               CADD 8\% &            sparse &          CEU &                        60.59 &             62.06 &            62.04 &                                 1.6030 &                                1.5876 \\
+               CADD 6\% &              full &          CHB &                        59.62 &             61.31 &            55.31 &                                 1.5083 &                                0.1727 \\
+               CADD 6\% &            sparse &          CHB &                        59.54 &             61.21 &            61.20 &                                 2.1242 &                                2.1170 \\
+               \textbf{phastcons$>$CDS$>$genes} &            sparse &          CHB &                        \textbf{59.44} &             61.08 &            57.88 &                                 2.1982 &                                0.3060 \\
+phastcons$>$CDS$>$genes &              full &          CHB &                        59.29 &             61.08 &            56.71 &                                 2.5573 &                                0.1694 \\
+               CADD 8\% &              full &          CHB &                        58.88 &             60.63 &            55.86 &                                 1.1128 &                                0.1733 \\
+               CADD 8\% &            sparse &          CHB &                        58.65 &             60.57 &            60.55 &                                 1.6098 &                                1.6001 \\
+CDS$>$genes$>$phastcons &            sparse &          CEU &                        58.58 &             60.30 &            58.41 &                                 4.1041 &                                0.3110 \\
+CDS$>$genes$>$phastcons &              full &          CEU &                        58.58 &             60.30 &            56.75 &                                 4.1001 &                                0.1648 \\
+CDS$>$genes$>$phastcons &            sparse &          CHB &                        56.48 &             58.73 &            56.60 &                                 3.7195 &                                0.3136 \\
+CDS$>$genes$>$phastcons &              full &          CHB &                        56.48 &             58.73 &            54.95 &                                 3.7552 &                                0.1654 \\
+\hline
+\end{tabular}
+\end{table}
+
+Our best-fitting models have out-sample $R^2$ of around 68\% for Yoruba, 62\%
+European, and 60\% for Han Chinese ancestry individuals. However, $R^2$ has a
+theoretic upper bound due to coalescence noise around the predicted mean level
+$\widehat{\pi}(x)$.
+
+
+
 % - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
 
 Like other methods, our method divides the putatively conserved basepairs up
