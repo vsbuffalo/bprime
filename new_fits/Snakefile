@@ -53,7 +53,7 @@ if splits is not None:
 
 # globals
 N = params['N']
-njack = settings['num_jackknife_samples']
+#njack = settings['num_jackknife_samples']
 
 # ------- build the output files
 # NOTE: the B/B' maps can be reused across runs which 
@@ -136,13 +136,13 @@ for popl in pops:
 
             # block-jackknives
             if jackknife_windows:
-                if fit_dirs == 'rescaled' and not fit_specs.get('jackknife_rescaled', False):
+                if fit_dir == 'rescaled' and not fit_specs.get('jackknife_rescaled', False):
                     continue
                 if isinstance(jackknife_windows, int):
                     jackknife_windows = [jackknife_windows]
                 else:
                     assert(isinstance(jackknife_windows, list))
-                for jk_window in jackknife_windows:
+                for (jk_window, njack) in jackknife_windows:
                     jk_dir = join(this_fit_path, "jackknife", f"block_{jk_window}")
                     for frac in np.linspace(0, 1, njack+1)[:-1]:
                         jackknife_fits.append(join(jk_dir, f"jackknife_{frac}.pkl"))

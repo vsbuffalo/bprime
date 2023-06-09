@@ -668,13 +668,13 @@ class BGSLikelihood:
             df_merged = pd.merge(df_means_melted, df_errors_melted, on=['t', 'category'])
         return df_merged
 
-    def dfe_plot(self, add_legend=True, legend_kwargs={}, figax=None, ylabel='probability'):
+    def dfe_plot(self, add_legend=True, legend_kwargs={}, figax=None, ylabel='probability', barplot_kwargs={}):
         """
         Plot a boxplot of all features.
         """
         df = self.W_df()
         fig, ax = get_figax(figax)
-        sns.barplot(data=df, x='t', y='mean', hue='category', ax=ax)
+        sns.barplot(data=df, x='t', y='mean', hue='category', ax=ax, **barplot_kwargs)
         xticks = ax.get_xticks()
         xlabels = ax.get_xticklabels()
         ax.set_xticks(xticks, [f"$10^{{{int(np.log10(float(x.get_text())))}}}$" for x in xlabels])
