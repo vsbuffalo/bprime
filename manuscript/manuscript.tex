@@ -551,25 +551,81 @@ contribution of LD (Supplementary Materials Section XXX).
 
 \subsection*{Annotation Model Comparison}
 
-Our method takes tracks of annotated features that are \emph{a priori} expected
-to have similar fitness effects, and estimates the distribution of fitness
-effects for each feature type. Additionally, our method estimates the
-per-basepair per-generation deleterious mutation rate ($\mu_\text{del}$) and
-the background level of pairwise diversity ($\pi_0$). Since the theory used by
-our method can in principle accommodate weak selection and neutrality. To test
-this, for each our annotation models, we fit (1) ``sparse" models that only
-cover the fraction of the genome that is the union of all tracks, and (2)
-``full`` models that are sparse models with the remaining complement of the
-genome labeled as ``other".
+Our method takes tracks of annotated features (an ``annotation model") that are
+\emph{a priori} expected to have similar fitness effects, and estimates the
+distribution of fitness effects for each feature type. We consider two classes
+of annotation models: (1) CADD score models, which assign a rank-order
+pathogenicity score to each basepair, and (2) and more interpretable gene
+feature-based models that includes protein coding regions, intron and UTRs, and
+PhastCons regions. We include PhastCons regions because there is abundant
+evidence of highly-conserved non-coding regions in humans that we would expect
+to be under negative selection and impact patterns of linked selection (XXX).
+Since our method fits a DFE for each feature type, PhastCons regions that
+overlap other gene annotations (e.g. coding sequences) must be assigned to
+either of the two feature types. Since this can impact estimates, we fit both
+alternatives: a PhastCons Priority model, where features that overlap PhastCons
+regions are classified as PhastCons, and a Feature Priority model, where gene
+structure features take priority and the PhastCons type catches all
+highly-conserved non-genic regions. In total, we fit four annotation models
+(CADD 6\%, CADD 8\%, PhastCons Priority, and Feature Priority) to high-coverage
+1000 Genome data for three populations: Yoruba (YRI), Han Chinese (CHB), and
+European (CEU) ancestries.
 
-Overall, we find that 
+Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
+as well (Figure \ref{fig:figure-2}A), explaining $R^2=68.45$\% and
+$R^2=68.04$\% of the out-sample variance in Yoruba pairwise diversity at the
+megabase-scale, respectively. In populations impacted by the out-of-Africa
+bottleneck, the goodness-of-fit was lower (62.98\% and 59.98\% for CEU and CHB,
+respectively). The CADD 6\% model was previously found by
+\textcite{Murphy2022-sj} to be the best-fitting model using classic BGS. Our
+PhastCons Priority model fits marginally better than the CADD 6\% model
+consistently across all three populations (Supplementary Table XXX). This is
+likely because the PhastCons Priority model has more DFE parameters, and thus
+can fit finer-scale differences in the DFE across its four feature types. By
+contrast, the CADD 6\% track must fit patterns of diversity to conserved sites
+under a single DFE. The CADD 8\% model fit slightly worse than the CADD 6\%
+across all populations, and the Feature Priority model had the poorest-fit.
+
+Since our method is built upon theory that fixes the weak selection problem of
+classic BGS theory, it should in principle fit equally well when the annotation
+model covers the full genome, the bulk of which is expected to be neutrally
+evolution. To test this, for each annotation model (which is ``sparse") we fit
+a ``full" model that contains the remaining complement of the genome labeled as
+``other". Ideally, the goodness-of-fit of fit using our B' method should be
+invariant to whether an annotation model is sparse or full. Indeed, we find
+that 
+
+NOTE: there looks like a bug in the table... repeated values.
+
+
+Each model was fit to the high-coverage 1000 human genome data for
+three populations, YRI, CEU, and CHB. Additionally, we also fit each of these
+models using our method, but using classic BGS theory rather than our B'
+theory. In total, we fit and compared 48 different models.
+
+Overall, we find that the goodness-of-fit, measured by both in- and out-sample
+$R^2$ are nearly identical across sparse and full fits using our B' method,
+regardless of the different annotation models (Figure \ref{fig:figure-2},
+Supplementary Materials Table XXX). By contrast, we find that when set our
+method to use classic BGS theory, the model fits are worse in full-coverage
+annotation models (Figure \ref{fig:figure-2}B). Additionally, when sparse
+annotation models contain genomic features that are likely under weak
+constraint (such as introns and UTRs), models fit worse under classic BGS
+theory than our B' method (Figure \ref{fig:figure-2}A). However, among the CADD
+annotation models, the goodness-of-fit is nearly identical between B' and
+classic BGS methods. This behavior is what we would expect given that the CADD
+annotation models only contain the most pathogenic sites, which are \emph{a
+prior} very likely under the strong selection domain under which B' and classic
+BGS theory agree.
+
+The out-sample $R^2$ 
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
     \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all 
-    populations (colors). Round points are our B' method; diamonds are the 
-    classic B. For our method, we also calculate leave-one-out out-sample $R^2$
-    (lighter filled points).}
+    populations (colors) fit at the megabase-scale. Round points are our B' 
+    method; diamonds are the classic B. For our method, we also calculate 
+    leave-one-out out-sample $R^2$ (lighter filled points).}
   \label{fig:figure-2}
 \end{figure}
 
@@ -607,41 +663,6 @@ a given reduction factor could be explained by two different selection
 coefficients.
 
 \subsection*{DFE Estimates}
-
-\begin{table}
-\centering
-\caption{$R^2$ and mutation rate estimates for all models}
-\begin{tabular}{lll|crr|cc}
-    \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
-\hline
-\hline
-    \textbf{phastcons$>$CDS$>$genes} &            sparse &          YRI &                        \textbf{68.45} &             68.16 &            65.23 &                                 1.8636 &                                0.2975 \\
-phastcons$>$CDS$>$genes &              full &          YRI &                        68.19 &             68.12 &            63.67 &                                 1.7082 &                                0.1666 \\
-               CADD 6\% &              full &          YRI &                        68.08 &             68.08 &            62.96 &                                 1.4612 &                                0.1721 \\
-               CADD 6\% &            sparse &          YRI &                        68.04 &             68.03 &            68.01 &                                 2.0912 &                                2.0716 \\
-               CADD 8\% &              full &          YRI &                        66.98 &             67.11 &            63.61 &                                 1.0126 &                                0.1713 \\
-               CADD 8\% &            sparse &          YRI &                        66.67 &             67.01 &            66.98 &                                 1.5688 &                                1.5473 \\
-CDS$>$genes$>$phastcons &              full &          YRI &                        64.90 &             65.51 &            61.23 &                                 4.1951 &                                0.1620 \\
-CDS$>$genes$>$phastcons &            sparse &          YRI &                        64.90 &             65.51 &            63.16 &                                 4.1795 &                                0.3070 \\
-\textbf{phastcons$>$CDS$>$genes} &            sparse &          CEU &                        \textbf{61.98} &             63.02 &            60.02 &                                 2.0194 &                                0.3036 \\
-phastcons$>$CDS$>$genes &              full &          CEU &                        61.78 &             63.01 &            58.57 &                                 2.3499 &                                0.1679 \\
-               CADD 6\% &              full &          CEU &                        61.74 &             62.94 &            57.42 &                                 1.5365 &                                0.1739 \\
-               CADD 6\% &            sparse &          CEU &                        61.66 &             62.86 &            62.84 &                                 2.1215 &                                2.1084 \\
-               CADD 8\% &              full &          CEU &                        60.80 &             62.12 &            57.95 &                                 1.1572 &                                0.1742 \\
-               CADD 8\% &            sparse &          CEU &                        60.59 &             62.06 &            62.04 &                                 1.6030 &                                1.5876 \\
-               CADD 6\% &              full &          CHB &                        59.62 &             61.31 &            55.31 &                                 1.5083 &                                0.1727 \\
-               CADD 6\% &            sparse &          CHB &                        59.54 &             61.21 &            61.20 &                                 2.1242 &                                2.1170 \\
-               \textbf{phastcons$>$CDS$>$genes} &            sparse &          CHB &                        \textbf{59.44} &             61.08 &            57.88 &                                 2.1982 &                                0.3060 \\
-phastcons$>$CDS$>$genes &              full &          CHB &                        59.29 &             61.08 &            56.71 &                                 2.5573 &                                0.1694 \\
-               CADD 8\% &              full &          CHB &                        58.88 &             60.63 &            55.86 &                                 1.1128 &                                0.1733 \\
-               CADD 8\% &            sparse &          CHB &                        58.65 &             60.57 &            60.55 &                                 1.6098 &                                1.6001 \\
-CDS$>$genes$>$phastcons &            sparse &          CEU &                        58.58 &             60.30 &            58.41 &                                 4.1041 &                                0.3110 \\
-CDS$>$genes$>$phastcons &              full &          CEU &                        58.58 &             60.30 &            56.75 &                                 4.1001 &                                0.1648 \\
-CDS$>$genes$>$phastcons &            sparse &          CHB &                        56.48 &             58.73 &            56.60 &                                 3.7195 &                                0.3136 \\
-CDS$>$genes$>$phastcons &              full &          CHB &                        56.48 &             58.73 &            54.95 &                                 3.7552 &                                0.1654 \\
-\hline
-\end{tabular}
-\end{table}
 
 Our best-fitting models have out-sample $R^2$ of around 68\% for Yoruba, 62\%
 European, and 60\% for Han Chinese ancestry individuals. However, $R^2$ has a
@@ -745,6 +766,8 @@ connects fitness variation to absolute changes in fitness.
 
 
 \section*{Methods}
+% (the method would support a new
+% ``interaction" type, but this greatly increases the number of parameters).
 
 
 \subsection*{Chromosome-wide Simulations}
