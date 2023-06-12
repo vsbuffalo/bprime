@@ -57,14 +57,15 @@ class ModelDir:
     """ 
     This class is to manage large-scale fits based on the snakemake pipeline.
     """
-    def __init__(self, dir):
+    def __init__(self, dir, jackwidth=10_000_000):
         """
         """
         self.dir = dir 
+        self.jackwidth = jackwidth
         self._get_fits()
 
     def _get_fits(self):
-        self.fits, self.rescaled = load_model(self.dir)
+        self.fits, self.rescaled = load_model(self.dir, jackwidth=self.jackwidth)
 
     def save(self, output):
         save_pickle(self, output)

@@ -1183,7 +1183,7 @@ class SimplexModel(BGSLikelihood):
         base_rows += self.summary()
         return base_rows
 
-    def sigma_ci(self, factor=2):
+    def sigma_ci(self, factor=1):
         """
         """
         theta = self.theta_

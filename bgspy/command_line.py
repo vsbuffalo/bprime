@@ -719,17 +719,17 @@ def tracks(config, full, bed, seqlens):
 
 @cli.command()
 @click.argument('fitdir', required=True)
-@click.option('--blocksize', default=25_000_000,
+@click.option('--jackwidth', default=10_000_000,
               help="the jackknife blocksize to use")
 @click.option('--output', required=False, default=None,
               type=click.Path(writable=True),
               help='a pickle file of the entire fit object')
-def collect(fitdir, blocksize, output):
+def collect(fitdir, jackwidth, output):
     """
     Load all the objects in the fit directory, run from a
     snakemake pipeline.
     """
-    res = ModelDir(fitdir)
+    res = ModelDir(fitdir, jackwidth=jackwidth)
     if output is not None:
         assert output.endswith('.pkl'), "output filename should end in .pkl"
         res.save(output)
