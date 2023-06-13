@@ -437,23 +437,29 @@ explore different ratios to assess sensitivity of this calculation
 (Supplementary Figure \ref{suppfig:r2_upper}). 
 
 This back-of-the-envelope calculation finds that the upper bound of $R^2$ would
-be around 74\% for Yoruba, and 80-81\% for European and Han Chinese models
-(Figure \ref{suppfig:r2_upper} This rough approximation assumes constant
-demography, which for bottlenecked out-of-Africa populations assumes that the
-variance in coalescence times is determined entirely by reducing the effective
-population size. However, the variance in coalescence times is \emph{higher} in
+be around 67\% for Yoruba, and 64\% for European and Han Chinese models (Figure
+\ref{suppfig:drift_r2} This rough approximation assumes constant demography,
+which for bottlenecked out-of-Africa populations assumes that the variance in
+coalescence times is determined entirely by reducing the effective population
+size. However, the variance in coalescence times is \emph{higher} in
 bottlenecked populations (CEU and CHB) compared to Yoruba, which we confirm
 with simple simulations using the \texttt{OutOfAfrica\_3G09} model from
 \texttt{stdpopsim} \parencite{Gutenkunst2009-pg,Adrion2020-cf}. This higher
 than expected variance would inflate $SS_\text{res}$, which would decrease
-
-A more accurate approximate of the upper $R^2$ bound could rely on simulations
-with more realistic demography.
+$R_\text{drift}^2$, bringing it closer to the observed $R_\text{LOO}^2$. A more
+accurate approximation of the $R_\text{drift}^2$ could be found with
+simulations with more realistic demography and varying coalescence rates along
+the genome.
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/supplementary/suppfigure_drift_R2.pdf}
-    \caption{A rough approximation to the theoretic $R^2$ upper bound assuming constant demography.}
-  \label{suppfig:r2_upper}
+    \caption{(A) the theoretic $R_\text{drift}^2$ using different plugin
+        estimators for $B_i$ under different models. This shows that among the
+        best-fitting models, the predicted $R_\text{drift}^2$ varies little;
+        most variation is among populations due to differing $\pi_0$. (B) The 
+        $R_\text{drift}^2$ across different populations, for varying ratio of recombination
+        to mutation rates (x-axis).}
+  \label{suppfig:drift_r2}
 \end{figure}
 
 
