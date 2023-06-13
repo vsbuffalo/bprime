@@ -5,9 +5,13 @@ from bgspy.models import BGSModel
 
 PF_DIR = 'phylofit_estimates/'
 # MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
-MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
-RESCALE_MODEL_FILE = '../bmaps/bgspy/bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
-FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
+#RESCALE_MODEL_FILE = '../bmaps/bgspy/bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
+#FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
+
+MODEL_FILE = '../../new_fits/CDS_genes_phastcons__decode/bmaps/bmap_6x8grid_100000step_10000N__CDS_genes_phastcons__decode_full.pkl'
+RESCALE_MODEL_FILE = '../../new_fits/CDS_genes_phastcons__decode/fits/pop_yri/window_1000000/type_sparse/mutrate_free/rescaled/mle.pkl'
+FIT_FILE = '../../new_fits/CDS_genes_phastcons__decode/fits/pop_yri/window_1000000/type_full/mutrate_free/initial/mle.pkl'
+
 
 rule get_knowncanonical_multiz:
   output: "knownCanonical.exonNuc.fa.gz"

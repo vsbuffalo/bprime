@@ -131,6 +131,7 @@ def load_from_bs_dir(bootstrap_dir):
     Because of the way parallelization was done, 
     this these assume there are B and B' results in each 
     .npz.
+    DEPRECATED
     """
     strap_files = os.listdir(bootstrap_dir)
     nlls_b, thetas_b = [], []
@@ -148,3 +149,16 @@ def load_from_bs_dir(bootstrap_dir):
     bp_boot_thetas = np.concatenate(thetas_bp, axis=1).T
 
     return BootstrapResults(b_boot_nlls, b_boot_thetas, bp_boot_nlls, bp_boot_thetas)
+
+
+def jackknife_stderr(thetas):
+    """
+    Jackknife standard errors, from http://harvard.edu/sites/reich.hms.harvard.edu/files/inline-files/lecture2.pdf
+    """
+    Tni = thetas
+    n = (~np.isnan(Tni)).sum(axis=0)
+    Tn = np.nanmean(Tni, axis=0)
+    Q = np.nansum((Tni - Tn[None, :])**2, axis=0)
+    sigma2_jack = (n-1)/n * Q
+    sigma_jack = np.sqrt(sigma2_jack)
+    return sigma_jack, n

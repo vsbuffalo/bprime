@@ -34,7 +34,7 @@ from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
 from bgspy.plots import model_diagnostic_plots, predict_chrom_plot
 from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
-from bgspy.bootstrap import moving_block_bins
+from bgspy.bootstrap import moving_block_bins, jackknife_stderr
 
 
 # load the library (relative to this file in src/)
@@ -503,7 +503,7 @@ class BGSLikelihood:
             jackknife_results.append(obj)
         return jackknife_results, r2s
 
-    def load_jackknives(self, fit_dir, label=False):
+    def load_jackknives(self, fit_dir, label=False, trim=None):
         """
         Load the jackknife results by setting attributes.
         """
@@ -526,7 +526,7 @@ class BGSLikelihood:
         self.jack_thetas_ = thetas
         self.jack_indices = indices
         self.jack_r2s = r2s
-        self.jackknife_stderr()
+        self.jackknife_stderr(trim=trim)
 
     def load_loo(self, loo_dir):
         """
@@ -701,7 +701,7 @@ class BGSLikelihood:
             return R2(pred_pi, pi)
         return R2(pred_pi[_indices], pi[_indices])
 
-    def jackknife_stderr(self, use_loo_chrom=False):
+    def jackknife_stderr(self, use_loo_chrom=False, trim=None, iqr_factor=2):
         """
         Calculate the jackknife standard errors.
         """
@@ -716,6 +716,29 @@ class BGSLikelihood:
                    "load leave-one-out chromosome reults first")
             assert self.loo_thetas_ is not None, msg
             thetas = self.loo_thetas_
+
+        if trim:
+            if trim.upper() != "IQR":
+                if isinstance(trim, float):
+                    lower, upper = trim, 1-trim
+                else:
+                    lower, upper = trim
+                l, u = np.quantile(thetas, (lower, upper), axis=0)
+            else:
+                q1, q3 = np.percentile(thetas, (25, 75), axis=0)
+                iqr = q3 - q1
+                l, u = q1 - iqr_factor*iqr, q3 + iqr_factor*iqr
+            thetas = np.where((thetas < l) | (thetas > u), np.nan, thetas)
+
+        sigma_jack, n = jackknife_stderr(thetas)
+        self.sigma_trim_ = trim
+        self.sigma_ = sigma_jack
+        self.sigma_n_ = n
+        self.std_error_type = 'loo' if use_loo_chrom else 'moving block jackknife'
+        return sigma_jack
+
+
+
         Tni = thetas
         n = Tni.shape[0]
         Tn = Tni.mean(axis=0)

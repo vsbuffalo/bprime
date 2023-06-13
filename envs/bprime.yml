@@ -34,5 +34,6 @@ dependencies:
   - ipywidgets
   - pyBigWig
   - pip
+  - phast
   - pip:
     - newick
