@@ -571,65 +571,90 @@ highly-conserved non-genic regions. In total, we fit four annotation models
 1000 Genome data for three populations: Yoruba (YRI), Han Chinese (CHB), and
 European (CEU) ancestries.
 
-Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
-as well (Figure \ref{fig:figure-2}A), explaining $R^2=68.45$\% and
-$R^2=68.04$\% of the out-sample variance in Yoruba pairwise diversity at the
-megabase-scale, respectively. In populations impacted by the out-of-Africa
-bottleneck, the goodness-of-fit was lower (62.98\% and 59.98\% for CEU and CHB,
-respectively). The CADD 6\% model was previously found by
-\textcite{Murphy2022-sj} to be the best-fitting model using classic BGS. Our
-PhastCons Priority model fits marginally better than the CADD 6\% model
-consistently across all three populations (Supplementary Table XXX). This is
-likely because the PhastCons Priority model has more DFE parameters, and thus
-can fit finer-scale differences in the DFE across its four feature types. By
-contrast, the CADD 6\% track must fit patterns of diversity to conserved sites
-under a single DFE. The CADD 8\% model fit slightly worse than the CADD 6\%
-across all populations, and the Feature Priority model had the poorest-fit.
-
-Since our method is built upon theory that fixes the weak selection problem of
-classic BGS theory, it should in principle fit equally well when the annotation
-model covers the full genome, the bulk of which is expected to be neutrally
-evolution. To test this, for each annotation model (which is ``sparse") we fit
-a ``full" model that contains the remaining complement of the genome labeled as
-``other". Ideally, the goodness-of-fit of fit using our B' method should be
-invariant to whether an annotation model is sparse or full. Indeed, we find
-that 
-
-NOTE: there looks like a bug in the table... repeated values.
-
-
-Each model was fit to the high-coverage 1000 human genome data for
-three populations, YRI, CEU, and CHB. Additionally, we also fit each of these
-models using our method, but using classic BGS theory rather than our B'
-theory. In total, we fit and compared 48 different models.
-
-Overall, we find that the goodness-of-fit, measured by both in- and out-sample
-$R^2$ are nearly identical across sparse and full fits using our B' method,
-regardless of the different annotation models (Figure \ref{fig:figure-2},
-Supplementary Materials Table XXX). By contrast, we find that when set our
-method to use classic BGS theory, the model fits are worse in full-coverage
-annotation models (Figure \ref{fig:figure-2}B). Additionally, when sparse
-annotation models contain genomic features that are likely under weak
-constraint (such as introns and UTRs), models fit worse under classic BGS
-theory than our B' method (Figure \ref{fig:figure-2}A). However, among the CADD
-annotation models, the goodness-of-fit is nearly identical between B' and
-classic BGS methods. This behavior is what we would expect given that the CADD
-annotation models only contain the most pathogenic sites, which are \emph{a
-prior} very likely under the strong selection domain under which B' and classic
-BGS theory agree.
-
-The out-sample $R^2$ 
-
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
     \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all 
     populations (colors) fit at the megabase-scale. Round points are our B' 
-    method; diamonds are the classic B. For our method, we also calculate 
-    leave-one-out out-sample $R^2$ (lighter filled points).}
+    method and diamonds are the classic B. Lighter color round points are
+    the out-sample $R_\text{LOO}^2$ estimates for our B' method, and arrows show the decline
+    in goodness-of-fit due to in-sample overfitting (out-sample $R_\text{LOO}^2$ 
+    were not calculated for classic B values due to computational costs). The 
+    horizontal dashed lines are the $R_\text{drift}^2$ expected when the residual
+    variance is given by the theoretic variance in coalescence times due to drift alone.}
   \label{fig:figure-2}
 \end{figure}
 
-\subsection*{Estimates of Negative Selection in Humans}
+Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
+as well (Figure \ref{fig:figure-2}A), explaining $R^2=68.45$\% and
+$R^2=68.04$\% of the out-sample variance in Yoruba pairwise diversity at the
+megabase-scale, respectively. In populations impacted by the out-of-Africa
+bottleneck, the goodness-of-fit was lower across all models (e.g. 62.98\% and
+59.98\% for CEU and CHB respectively in the PhastCons Priority model). The CADD
+6\% model was previously found by \textcite{Murphy2022-sj} to be the
+best-fitting model using classic BGS. Our PhastCons Priority model fits
+marginally better than the CADD 6\% model consistently across all three
+populations (Supplementary Table XXX). This is likely because the PhastCons
+Priority model has more DFE parameters, and thus can fit finer-scale
+differences in the DFE across its four feature types. By contrast, the CADD 6\%
+track must fit patterns of diversity to conserved sites under a single DFE. The
+CADD 8\% model fit slightly worse than the CADD 6\% across all populations, and
+the Feature Priority model had the poorest-fit.
+
+Since our method is built upon theory that fixes the weak selection problem of
+classic BGS theory, it should in principle fit equally well when an annotation
+model includes regions that are likely neutrally evolution. To test this, for
+each annotation model (which are ``sparse") we fit a ``full" model that assigns
+the remaining complement of the genome as a feature called ``other". This other
+category is likely to predominantly neutrally evolving. Ideally, the
+goodness-of-fit of model using our B' method should be invariant to whether an
+annotation model is sparse or full. Indeed, we find this to be the case: both
+in-sample $R^2$ and out-sample $R_\text{LOO}^2$ values are nearly identical
+across full and sparse-track models (Figures \ref{fig:figure-2} A and B, round
+points). 
+
+By contrast, full annotation models fit poorly when using classic BGS theory
+(Figure \ref{fig:figure-2}B, diamond-shaped points) and lead to unreasonable
+parameter estimates (discussed below). Additionally, when sparse annotation
+models contain genomic features that are likely under weak constraint (such as
+introns and UTRs), models fit worse under classic BGS theory than our B' method
+(Figure \ref{fig:figure-2}A). However, among the CADD annotation models, the
+goodness-of-fit is nearly identical between B' and classic BGS methods. This
+behavior is what we would expect given that the CADD annotation models contain
+only the most pathogenic sites, which are \emph{a prior} very likely under the
+strong selection domain under which B' and classic BGS theory agree.
+
+Along the chromosome, our approach models the observed megabase-scale diversity
+in window $i$ as the predicted level under our negative selection model,
+$B_i'$, plus some residual error $\varepsilon_i$, $\pi_i = B_i' +
+\varepsilon_i$. The out-sample $R_\text{LOO}^2$ estimates the ratio of variance
+explained by the negative selection model ($\var_i(\pi_i)$) to the total
+variance in diversity along the genome ($\var_i(\pi_i) = \var_i(B_i) +
+\var_i(\varepsilon_i) + 2\cov_i(B_i', \varepsilon_i)$, \cite{Murphy2022-sj}).
+Since our $R_\text{LOO}^2$ estimates suggest our models fit left-out
+chromosomes well even though our method assumes constant demography and
+homogeneous mutation rates along the genome, we wondered what $R^2$ we could
+expect under a simple theoretic model where $\cov_i(B_i', \varepsilon_i) = 0$
+and $\var_i(\varepsilon_i)$ was determined by the variance in coalescence times
+due to drift alone with an effective population size rescaled by $B_i'$. We
+calculate this ``drift $R^2$" by calculating the theoretic coalescence time
+variance in a megabase window with recombination and an effective population
+size of $B_i' N_e$ where we use our best-fitting model's as a plug-in estimator
+of $B_i'$. We note that this is a rough approximation, since this calculation
+assumes constant demography and that the variance in coalescence times under
+negative selection is likely lower than expected under drift alone. Still, we
+find that our out-sample $R_\text{LOO}^2$ for Yoruba individuals
+($R_\text{LOO}^2 \approx 68$\%) is close to the theoretic drift
+$R_\text{drift}^2 \approx 67$\%. For bottlenecked out-of-Africa populations,
+$R_\text{drift}^2 \approx 64$\% compared to the observed $R_\text{LOO}^2
+\approx 62$\% for CEU and $R_\text{LOO}^2 \approx 59$\% for CHB. We note that
+because bottlenecks increase the variance in coalescence times beyond the level
+implied by the effective population size, the disagreement between observed
+$R_\text{LOO}^2$ and the theoretic $R_\text{drift}^2$ is likely to shrink.
+Overall, this suggests that negative selection models explain the vast majority
+coalescence time variation at the megabase-scale that is capable of being
+explained (i.e. that is not coalescence noise).
+
+\subsection*{Estimates of Negative Selection Parameters in Humans}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_3.pdf} 
