@@ -350,50 +350,91 @@ CDS$>$genes$>$phastcons &              full &          CHB &                    
 \end{table}
 
 
+\section*{Derivation of Approximate Drift $R^2$}
 
-\section*{Approximate $R^2$ Limit}
-
-We derive a rough approximation of the theoretic upper bound of $R^2$ by
-noting that,
-
-\begin{align}
-    R^2 &= \frac{SS_\text{reg}}{SS_\text{reg} + SS_\text{res}} \\ 
-        &= \frac{\sum_i (\pi_i - \widehat{\pi}_i)^2}{\sum_i (\pi_i - \widehat{\pi}_i)^2 + SS_\text{res}}
-\end{align}
-
-where $\pi_i$ is the observed diversity in window $i$, and $\widehat{\pi}_i$ is
-the predicted diversity under a particular model.
-
-Then, $SS_\text{res}$ is the residual noise due to the randomness in mutation
-and average coalescence times in the window. If we make the assumptions that
-mutation rates are heterogeneous across the genome and the coalescence rate in
-a window is simply a background rate rescaled by the reduction factor $B_i$,
-then,
+Our approach models the observed megabase-scale diversity $y_i$ in window $i$
+as the predicted level under our negative selection model, $\pi_0 B_i$, plus
+some random residual error $\varepsilon_i$,
 
 \begin{align}
-    SS_\text{res} &= \frac{1}{n} \sum_{i=1}^n \var(w\pi_i) \\ 
-                  &= \frac{1}{n} \sum_{i=1}^n \var(w\pi_0 B_i) 
+    y_i = \pi_0 B_i + \varepsilon_i
 \end{align}
 
-where $w$ is the width of the window such that the per-basepair $\pi$ is
-appropriately scaled. We use the predicted $\hat{B}_i$ as the plugin estimator
-for $B_i$. Then, we note that the variance in pairwise diversity is equivalent
-to the variance in the number of segregating sites for a sample of two,
-$\var(\pi) = \var(S_2)$. From \textcite[eq. 7.20]{Wakeley2009-ua}
+where each $B_i = f(X_i | \Psi)$ for some data $X_i$ (i.e. the recombinaton map
+and annotation model) and parameters $\Psi$. To compare our models and assess
+model goodness-of-fit, we use the out-sample $R_\text{LOO}^2$ which is
+calculated by fitting the genome-wide model leaving one chromosome out, and
+calculating the residual variance between predictions and observed values for
+this out-sample chromosome. 
+
+In general, $R^2$ is calculated for a model fit across windows as,
+
+\begin{align}
+    R^2 = 1 - \frac{V_\text{res}}{V_\text{tot}}
+\end{align}
+
+where $V_\text{res}$ is the mean squared error across windows and
+$V_\text{tot}$ is the total variance in the predicator. Suppose we have
+estimates $\widehat{\pi}_0 \widehat{B}_i$ for $\pi_0 B_i$ from our model. Then,
+
+\begin{align}
+    V_\text{res} &= \frac{1}{n} \sum_{i=1}^n (y_i - \widehat{\pi}_0 \widehat{B}_i)^2  \\
+                 &= \underbrace{\frac{1}{n} \sum_{i=1}^n \varepsilon_i^2}_\text{irreducible error} + \underbrace{\left(\frac{1}{n} \sum_{i=1}^n (\pi_0 B_i - \widehat{\pi}_0 \widehat{B}_i)\right)^2}_\text{bias squared}.
+\end{align}
+
+The total variance in the predictor is,
+
+\begin{align}
+    V_\text{tot} = V_\text{res} + V_\text{model} + 2\widehat{\pi}_0\cov_i(\varepsilon_i, \widehat{B}_i)
+\end{align}
+where 
+\begin{align}
+    V_\text{model} = \frac{\widehat{\pi}_0^2}{n} \sum_{i=1}^n \left(\widehat{B}_i - \frac{1}{n}\sum_{i=1}^n\widehat{B}_i\right)^2.
+\end{align}
+
+Generally, fitting procedures act to minimize the squared deviation between
+predictors and observed values, which drives $\cov_i(\varepsilon_i,
+\widehat{B}_i)$ to zero XXX. \textcite{Murphy2022-sj} suggest  XXX 
+
+Thus, our $R^2$ depends on (1) the bias of our predictors, (2) the covariance
+between residuals and predictors, and (3) the irreducible error due to variance
+in diversity within windows. However, it is of interest to approximate the
+irreducible error under theoretic models that assume all irreducible error is
+due entirely to the variance of coalescence times in a window, assuming that
+all of the effects of negative selection on the variance can be thought of as a
+local reduction in the effective population size to $B_i N_e$ and demographic
+effects amount to a simple rescaling of $N_e$. This also assumes mutation rates
+are constant across the genome, and do not contribute to the irreducible
+variance. We call this theoretic goodness-of-fit under drift
+$R_\text{drift}^2$, and it provides a rough approximation of the irreducible
+error in our model due to ``coalescence noise" around the modeled reductions
+due to negative selection.
+
+Then, 
+
+\begin{align}
+    \E(\varepsilon_i^2) = \var(\pi_i)
+\end{align}
+
+since the mean residual is zero. The variance in pairwise diversity
+$\var(\pi_i)$ is equivalent to the variance in the number of segregating sites
+for a sample of two, $\var(\pi) = \var(S_2)$. The variance in coalescence times
+in a window of width $w$ basepairs with population-scaled recombination rate
+$\rho = 4 B_i N_e r w$ is,
 
 \begin{align}
     \var(S_2) = \theta + \theta^2 \frac{2}{\rho^2} \int_0^\rho (\rho - x) f_2(x) dx
 \end{align}
-where,
+(\cite[eq. 7.20]{Wakeley2009-ua}) where,
 \begin{align}
     f_2(\rho) = \frac{\rho + 18}{\rho^2 + 13 \rho + 18}.
 \end{align}
 
-Since this is a rough approximation, we set $\theta = w \pi_0 B_i$ and fix
+Since this is a rough approximation,  we set $\theta = w \pi_0 B_i$ and fix
 $\rho = w \gamma \pi_0 B_i$ where $\gamma$ is the ratio of recombination to
-mutation rates, $\nicefrac{r}{\mu}$. In humans, $\gamma \approx 1$, but explore
-different ratios to assess sensitivity of this calculation (Supplementary
-Figure \ref{suppfig:r2_upper}). 
+mutation rates, $\nicefrac{r}{\mu}$. In humans, $\gamma \approx 1$, but we
+explore different ratios to assess sensitivity of this calculation
+(Supplementary Figure \ref{suppfig:r2_upper}). 
 
 This back-of-the-envelope calculation finds that the upper bound of $R^2$ would
 be around 74\% for Yoruba, and 80-81\% for European and Han Chinese models

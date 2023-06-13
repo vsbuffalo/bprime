@@ -623,13 +623,7 @@ behavior is what we would expect given that the CADD annotation models contain
 only the most pathogenic sites, which are \emph{a prior} very likely under the
 strong selection domain under which B' and classic BGS theory agree.
 
-Along the chromosome, our approach models the observed megabase-scale diversity
-in window $i$ as the predicted level under our negative selection model,
-$B_i'$, plus some residual error $\varepsilon_i$, $\pi_i = B_i' +
-\varepsilon_i$. The out-sample $R_\text{LOO}^2$ estimates the ratio of variance
-explained by the negative selection model ($\var_i(\pi_i)$) to the total
-variance in diversity along the genome ($\var_i(\pi_i) = \var_i(B_i) +
-\var_i(\varepsilon_i) + 2\cov_i(B_i', \varepsilon_i)$, \cite{Murphy2022-sj}).
+
 Since our $R_\text{LOO}^2$ estimates suggest our models fit left-out
 chromosomes well even though our method assumes constant demography and
 homogeneous mutation rates along the genome, we wondered what $R^2$ we could
@@ -641,8 +635,10 @@ variance in a megabase window with recombination and an effective population
 size of $B_i' N_e$ where we use our best-fitting model's as a plug-in estimator
 of $B_i'$. We note that this is a rough approximation, since this calculation
 assumes constant demography and that the variance in coalescence times under
-negative selection is likely lower than expected under drift alone. Still, we
-find that our out-sample $R_\text{LOO}^2$ for Yoruba individuals
+negative selection is likely lower than expected under drift alone. 
+
+
+Still, we find that our out-sample $R_\text{LOO}^2$ for Yoruba individuals
 ($R_\text{LOO}^2 \approx 68$\%) is close to the theoretic drift
 $R_\text{drift}^2 \approx 67$\%. For bottlenecked out-of-Africa populations,
 $R_\text{drift}^2 \approx 64$\% compared to the observed $R_\text{LOO}^2
