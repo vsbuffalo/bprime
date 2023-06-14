@@ -155,10 +155,12 @@ def ratchet_df2(model, fit, ncores=None):
 
     R = 1/Ts
     with np.errstate(under='ignore'):
+        # per bp
         r = R/seglens
  
     pred_rs = []
     pred_Rs = []
+    pred_loads = []
     pred_Vs = []
     pred_Vms = []
     chrom_col = []
@@ -172,6 +174,10 @@ def ratchet_df2(model, fit, ncores=None):
         pred_Rs.extend(R[:, fidx].sum(axis=0))
         pred_Vs.extend(Vs[:, fidx].sum(axis=0))
         pred_Vms.extend(Vms[:, fidx].sum(axis=0))
+        # the indexed r below is nt, nl long
+        # the m.t is nt so we expand dim to sweep down
+        load = (np.log((1-2*m.t[:, ]))*r[:, fidx]).sum(axis=0)
+        pred_loads.extend(load)
         chrom_col.extend(chroms[fidx])
         start_col.extend(ranges[fidx, 0])
         end_col.extend(ranges[fidx, 1])
@@ -187,6 +193,7 @@ def ratchet_df2(model, fit, ncores=None):
                       'r': pred_rs,
                       'V': pred_Vs,
                       'Vm': pred_Vms,
+                      'load': load,
                       'seglen': seglen_col})
     return d
 
