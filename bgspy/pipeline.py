@@ -6,6 +6,7 @@ from os.path import basename, join, isdir
 import pickle
 import tskit as tsk
 import numpy as np
+import pandas as pd
 from bgspy.models import BGSModel
 from bgspy.utils import load_seqlens, load_pickle, save_pickle
 from bgspy.sim_utils import mutate_simulated_tree
@@ -19,6 +20,8 @@ AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 def load_model(base_dir='./', jackwidth=20_000_000):
     initial = {}
     rescaled = {}
+    initial_predict = {}
+    rescaled_predict = {}
     pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]
     for pop_dir in pop_dirs:
         pop = re.findall(r'pop_(\w+)', pop_dir)[0]
@@ -36,6 +39,7 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                 for i, dir_path in enumerate(dir_paths):
                     # load the main results if mle.pkl exists
                     mle_file_path = join(dir_path, 'mle.pkl')
+                    pred_file_path = join(dir_path, 'predicted_subrates.tsv')
                     if os.path.isfile(mle_file_path):
                         fit = load_pickle(mle_file_path)
                         # load the LOO if done
@@ -51,7 +55,15 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                             initial[(pop, window, type_)] = fit
                         else:
                             rescaled[(pop, window, type_)] = fit
-    return initial, rescaled
+                    if os.path.isfile(pred_file_path):
+                        d = pd.read_csv(pred_file_path, delimiter='\t')
+                        # store the results
+                        if i == 0:
+                            initial_predict[(pop, window, type_)] = d
+                        else:
+                            rescaled_predict[(pop, window, type_)] = d
+ 
+    return initial, rescaled, initial_predict, rescaled_predict
 
 class ModelDir:
     """ 
@@ -65,7 +77,8 @@ class ModelDir:
         self._get_fits()
 
     def _get_fits(self):
-        self.fits, self.rescaled = load_model(self.dir, jackwidth=self.jackwidth)
+        tmp = load_model(self.dir, jackwidth=self.jackwidth)
+        self.fits, self.rescaled, self.predicts, self.predicts_rescaled = tmp
 
     def save(self, output):
         save_pickle(self, output)
