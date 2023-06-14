@@ -176,7 +176,8 @@ def ratchet_df2(model, fit, ncores=None):
         pred_Vms.extend(Vms[:, fidx].sum(axis=0))
         # the indexed r below is nt, nl long
         # the m.t is nt so we expand dim to sweep down
-        load = (np.log((1-2*m.t[:, ]))*r[:, fidx]).sum(axis=0)
+        # note: load has to be whole region!
+        load = (np.log((1-2*m.t[:, ]))*R[:, fidx]).sum(axis=0)
         pred_loads.extend(load)
         chrom_col.extend(chroms[fidx])
         start_col.extend(ranges[fidx, 0])
