@@ -519,7 +519,7 @@ def subrate(bs_file, fit,
     """
     m = BGSModel.load(bs_file)
     fits = pickle.load(open(fit, 'rb'))
-    bfit, bpfit = fits['mb'], fits['mbp']
+    bpfit = fits['mbp']
 
     rdf = m.ratchet_df(bpfit, ncores=ncores)
     msg = "feature mismatch between BGSModel and fit!"

@@ -198,8 +198,9 @@ class Segments:
         t = fit.t
         for j in feature_i:
             muW = mu * W[:, j]
-            idx = F == j
+            idx = np.where(F == j)[0][:100]
             tmp = BSC16_segment_lazy_parallel(muW, t, L[idx], rbp[idx], N, ncores=ncores, pairwise=True)
+            __import__('pdb').set_trace()
             Vs[:, idx], Vms[:, idx], Ts[:, idx] = tmp
         self._predict_Vs = Vs
         self._predict_Vms = Vms
