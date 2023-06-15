@@ -8,10 +8,15 @@ PF_DIR = 'phylofit_estimates/'
 #RESCALE_MODEL_FILE = '../bmaps/bgspy/bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
 #FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
 
-MODEL_FILE = '../../new_fits/CDS_genes_phastcons__decode/bmaps/bmap_6x8grid_100000step_10000N__CDS_genes_phastcons__decode_full.pkl'
-RESCALE_MODEL_FILE = '../../new_fits/CDS_genes_phastcons__decode/fits/pop_yri/window_1000000/type_sparse/mutrate_free/rescaled/mle.pkl'
-FIT_FILE = '../../new_fits/CDS_genes_phastcons__decode/fits/pop_yri/window_1000000/type_full/mutrate_free/initial/mle.pkl'
+RATCHET="../../new_fits/CDS_genes_phastcons__decode/fits/pop_yri/window_1000000/type_full/mutrate_free/initial/predicted_subrates.tsv"
 
+rule ratchet_cds:
+  input: RATCHET
+  output: "unscaled_ratchet_data_cds.bed"
+  shell:
+     """
+     awk '{{ if ($4 == "CDS") {{ print $0 }} }}' {input} > {output}
+     """
 
 rule get_knowncanonical_multiz:
   output: "knownCanonical.exonNuc.fa.gz"
@@ -156,48 +161,29 @@ rule windows:
     bedtools makewindows -g {input.annot} -w {wildcards.width} | bedtools sort > {output[0]}
     """
 
-rule unscaled_ratchet_data:
-  # this is the full raw segment ratchet data, calculated alongside 
-  # the B scores.
-  # NOTE: this is UNSCALED and should most likely NOT BE USED
-  input: model = MODEL_FILE, fit = FIT_FILE
-  output: "unscaled_ratchet_data.bed"
-  shell: 
-     """
-     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
-     """
+#rule ratchet_rescale_data_split_cds:
+#  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
+#  output: "rescaled_ratchet_data_cdsdfe_cds.bed", "rescaled_ratchet_data_cdsdfe_utr.bed", "rescaled_ratchet_data_cdsdfe_phastcons.bed"
+#  shell: 
+#     """
+#     bgspy subrate --force-feature CDS --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data_cdsdfe"
+#     """
 
-rule ratchet_rescale_data_split_cds:
-  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-  output: "rescaled_ratchet_data_cdsdfe_cds.bed", "rescaled_ratchet_data_cdsdfe_utr.bed", "rescaled_ratchet_data_cdsdfe_phastcons.bed"
-  shell: 
-     """
-     bgspy subrate --force-feature CDS --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data_cdsdfe"
-     """
+#rule ratchet_rescale_data_split:
+#  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
+#  output: "rescaled_ratchet_data_cds.bed", "rescaled_ratchet_data_utr.bed", "rescaled_ratchet_data_phastcons.bed"
+#  shell: 
+#     """
+#     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data"
+#     """
 
-rule ratchet_rescale_data_split:
-  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-  output: "rescaled_ratchet_data_cds.bed", "rescaled_ratchet_data_utr.bed", "rescaled_ratchet_data_phastcons.bed"
-  shell: 
-     """
-     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data"
-     """
-
-rule ratchet_rescale_data:
-  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-  output: "rescaled_ratchet_data.bed"
-  shell: 
-     """
-     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
-     """
-
-rule unscaled_ratchet_data_cds:
-  input: model = MODEL_FILE, fit = FIT_FILE
-  output: "unscaled_ratchet_data_cds.bed", "unscaled_ratchet_data_utr.bed", "unscaled_ratchet_data_phastcons.bed"
-  shell: 
-     """
-     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "unscaled_ratchet_data"
-     """
+#rule ratchet_rescale_data:
+#  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
+#  output: "rescaled_ratchet_data.bed"
+#  shell: 
+#     """
+#     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
+#     """
 
 ## load and clean up Uricchio et al data
 ## NOTE: the protein coding stats is processed in data/annotation
@@ -248,11 +234,11 @@ rule uricchio_merged_raw:
   input: data="uricchio_data.tsv", 
          unscaled_ratchet="unscaled_ratchet_data_cds.bed", 
          pf="phylofit_cds_rates.bed", 
-         rescaled_ratchet="rescaled_ratchet_data_cds.bed"
+         #rescaled_ratchet="rescaled_ratchet_data_cds.bed"
   output: "uricchio_data_merged_raw.bed"
   shell:
+      #bedtools map -a {input.data} -b {input.rescaled_ratchet} -c 6,7 -o mean,sum > tmp.bed
       """
-      bedtools map -a {input.data} -b {input.rescaled_ratchet} -c 6,7 -o mean,sum > tmp.bed
       bedtools map -a tmp.bed -b {input.unscaled_ratchet} -c 6,7 -o mean,sum > tmp2.bed
       bedtools map -a tmp2.bed -b {input.pf} -c 5,6,10 -o mean,sum,mean > {output[0]}
       rm -f tmp.bed tmp2.bed
@@ -295,24 +281,24 @@ rule ratchet_windows:
     bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
     """
 
-rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed", 
-                          "rescaled_ratchet_cds_rates_binned_100000.bed",
-                          "rescaled_ratchet_cds_rates_binned_5000000.bed"]
+#rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed", 
+#                          "rescaled_ratchet_cds_rates_binned_100000.bed",
+#                          "rescaled_ratchet_cds_rates_binned_5000000.bed"]
 
 feature_by_genes= [f"gff_by_chrom_gene_level/hg38.ensembl_chr{c}.gff" for c in range(1, 23)]
 
 ALL_FILES = ["phylofit_cds_rates.bed",
              "cds_alns/dummy.txt",
-             "rescaled_ratchet_data_cds.bed", 
-             "rescaled_ratchet_data.bed",
+             #"rescaled_ratchet_data_cds.bed", 
+             #"rescaled_ratchet_data.bed",
              "uricchio_data.tsv", 
              "uricchio_data_merged_raw.bed", 
              "uricchio_data_merged.tsv",
              "unscaled_ratchet_data_cds.bed", 
-             "phylofit_rescaled_ratchet_cds_merged.bed",
-             "phylofit_rescaled_ratchet_utr_merged.bed",
-             "phylofit_rescaled_ratchet_phastcons_merged.bed",
-             *rescale_window_ratchet,
+             #"phylofit_rescaled_ratchet_cds_merged.bed",
+             #"phylofit_rescaled_ratchet_utr_merged.bed",
+             #"phylofit_rescaled_ratchet_phastcons_merged.bed",
+             #*rescale_window_ratchet,
 
              # the phylofit of features x gene_tx_ids_canonical
              *feature_by_genes

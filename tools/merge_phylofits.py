@@ -30,7 +30,7 @@ for file in os.listdir(PF_DIR):
         continue
 
     pf = read_phylofit(os.path.join(PF_DIR, file))
-    rate = get_branch_length(pf['tree'], 'hg38')
+    rate = get_branch_length(pf['tree'])['hg38']
     chroms.append(chrom)
     starts.append(int(start))
     ends.append(int(end))

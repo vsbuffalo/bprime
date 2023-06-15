@@ -394,9 +394,9 @@ rule fit:
 
 # ---- predict subrates, etc
 rule subrate_predict:
-  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{fit_type}/mle.pkl", 
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl", 
          bs_file=Bs_file
-  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{fit_type}/predicted_subrates.tsv", 
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predicted_subrates.tsv", 
   params: **settings
   resources:
     mem_mb=200000,
@@ -408,6 +408,23 @@ rule subrate_predict:
       --fit {input.fit} --bs-file {input.bs_file} \
       --ncores {resources.threads} --output {output}
     """
+
+rule subrate_predict_rescale:
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/mle.pkl", 
+         bs_file=Bs_file_rescaled
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/predicted_subrates.tsv", 
+  params: **settings
+  resources:
+    mem_mb=200000,
+    time_min=980,
+    threads=50
+  shell:
+    """
+    bgspy subrate \
+      --fit {input.fit} --bs-file {input.bs_file} \
+      --ncores {resources.threads} --output {output}
+    """
+
 
 
 # ---- jackknife

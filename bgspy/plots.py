@@ -282,12 +282,13 @@ def surface_plot(x, y, z, xlabel=None, ylabel=None,
     return fig, ax
 
 def predicted_observed(fit, n_bins=40, smooth_col = 'orange',
-                       c='0.22', use_lowess=True, frac=0.1,
+                       c='0.22', s=15, use_lowess=True, frac=0.1,
+                       alpha=0.6,
                        use_B=False, figax=None):
     equal_num = False
     fig, ax = get_figax(figax)
     x, y = fit.predict(B=use_B), fit.pi()
-    ax.scatter(x, y, s=3, c=c, alpha=0.5, linewidth=0)
+    ax.scatter(x, y, s=s, c=c, alpha=alpha, linewidth=0)
     if equal_num:
         bins = [np.percentile(x, 100 * i / n_bins) for i in range(n_bins + 1)]
     else:
