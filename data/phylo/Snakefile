@@ -281,6 +281,8 @@ rule ratchet_windows:
     bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
     """
 
+
+
 #rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed", 
 #                          "rescaled_ratchet_cds_rates_binned_100000.bed",
 #                          "rescaled_ratchet_cds_rates_binned_5000000.bed"]
