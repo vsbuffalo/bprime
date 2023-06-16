@@ -2,6 +2,9 @@ import numpy as np
 from sklearn.utils.validation import check_X_y
 import warnings
 from sklearn.model_selection import KFold, LeaveOneOut
+from sklearn.model_selection import cross_validate
+from sklearn.base import BaseEstimator
+from statsmodels.nonparametric.smoothers_lowess import lowess
 from collections import defaultdict
 from bgspy.utils import binned_statistic, cutbins
 from bgspy.plots import get_figax
@@ -94,3 +97,48 @@ def kfolds_results(kf_res, figax=None):
     ax.scatter(b[best_idx], mse[best_idx])
     return b[best_idx]
 
+
+class Lowess(BaseEstimator):
+    def __init__(self, frac):
+        self.frac = frac
+    def fit(self, x, y):
+        self.x_ = x
+        self.y_ = y
+        return self
+    def predict(self, x):
+        return lowess(self.y_, self.x_, xvals=x, frac=self.frac)
+
+def lowess_cv_frac(x, y, cv=20, fracs=np.linspace(0.05, 1, 60),
+                   min_n=10):
+    """
+    Find the lowess frac with CV.
+
+    min_n is the minimum number of data points to consider for a 
+    fraction, e.g. if frac * len(x) < min_n the score is set to NaN
+    """
+    n = len(x[~np.isnan(x)])
+    res = []
+    for f in fracs:
+        if f * n < min_n:
+            res.append(np.nan)
+            continue
+        clf = Lowess(f)
+        scores = cross_validate(clf, x, y, scoring='neg_mean_squared_error', cv=cv)
+        res.append(scores['test_score'].mean())
+    res = np.array(res)
+    idx = np.nanargmax(res)
+    return (fracs[idx], res[idx]), fracs, res
+
+def lowess_bootstrap(x, y, frac, nboot=200, alpha=0.05):
+    n = len(x)
+    res = []
+    for i in range(nboot):
+        idx = np.random.choice(range(n), size=n, replace=True)
+        x_rs = x[idx]
+        y_rs = y[idx]
+        smoothed_bootstrap = Lowess(frac).fit(x_rs, y_rs).predict(np.sort(x_rs))
+        res.append(smoothed_bootstrap)
+    res = np.array(res)
+    lb = np.percentile(res, 100 * alpha/2, axis=0)
+    ub = np.percentile(res, 100 * (1-alpha/2), axis=0)
+    return np.array(res), lb, ub

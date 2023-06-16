@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 #     pass
 
 from scipy import interpolate
-from bgspy.utils import signif, load_pickle, coefvar
+from bgspy.utils import signif, load_pickle, coefvar, center_and_scale
 from bgspy.data import pi_from_pairwise_summaries, GenomicBinnedData
 from bgspy.optim import run_optims, scipy_softmax_worker
 from bgspy.optim import nlopt_softmax_worker, nlopt_softmax_fixedmu_worker
@@ -793,6 +793,24 @@ class BGSLikelihood:
         return predict_chrom_plot(self, chrom, figax=figax, 
                                   predict_kwargs=predict_kwargs,
                                   **kwargs)
+
+    def spatial_resid(self, chrom):
+        idx = self.bins.chrom_indices(chrom)
+        x = self.bins.midpoints(filter_masked=True)[chrom]
+        y = self.resid()
+        y_all = self.bins.merge_filtered_data(y)
+
+        bins = self.bins.flat_bins(filter_masked=False)
+        chrom_idx = np.array([i for i, (c, s, e) in enumerate(bins) if c == chrom])
+
+        x, y = np.array(self.bins.midpoints(filter_masked=False)[chrom]), center_and_scale(y_all[chrom_idx])
+        return x, y
+
+    def spatial_error(self, chrom, figax=None):
+        fig, ax = get_figax(figax)
+        x, y = self.spatial_resid(chrom)
+        ax.plot(x, y)
+        ax.axhline(0, linestyle='dashed', c='0.44', zorder=-1)
 
     def scatter_plot(self, figax=None, highlight_chrom=None, chrom_cols=False, **scatter_kwargs):
         fig, ax = get_figax(figax)
