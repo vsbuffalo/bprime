@@ -101,6 +101,7 @@ for popl in pops:
         rescale = fit_specs['rescaled']
         do_loo = fit_specs['loo']
         do_predict = fit_specs['predict']
+        do_predict_mu = fit_specs.get('predict_mu', False)
         jackknife_windows = fit_specs['jackknife']
         tracktype = fit_specs['type']
 
@@ -133,6 +134,9 @@ for popl in pops:
 
             if do_predict:
                 preds.append(join(this_fit_path, "predicted_subrates.tsv"))
+
+            if do_predict_mu:
+                preds.append(join(this_fit_path, f"predicted_subrates_{do_predict_mu}.tsv"))
 
             # block-jackknives
             if jackknife_windows:
@@ -401,13 +405,30 @@ rule subrate_predict:
   resources:
     mem_mb=200000,
     time_min=980,
-    threads=50
+    threads=40
   shell:
     """
     bgspy subrate \
       --fit {input.fit} --bs-file {input.bs_file} \
       --ncores {resources.threads} --output {output}
     """
+
+rule subrate_predict_mu:
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl", 
+         bs_file=Bs_file
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predicted_subrates_{mu}.tsv", 
+  params: **settings
+  resources:
+    mem_mb=200000,
+    time_min=980,
+    threads=40
+  shell:
+    """
+    bgspy subrate \
+      --fit {input.fit} --bs-file {input.bs_file} --mu {wildcards.mu }\
+      --ncores {resources.threads} --output {output}
+    """
+
 
 rule subrate_predict_rescale:
   input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/rescaled/mle.pkl", 
