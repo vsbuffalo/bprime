@@ -121,12 +121,15 @@ def ratchet_df(model, fit, predict_under_feature=None):
     return d
 
 
-def ratchet_df2(model, fit, ncores=None):
+def ratchet_df2(model, fit, mu=None, ncores=None):
     """
     A better version of the function above.
     """
     m = model
-    mus = fit.mle_mu
+    if mu is None:
+        mus = fit.mle_mu
+    else:
+        mus = mu
     W = fit.mle_W
 
     from bgspy.likelihood import SimplexModel # to prevent circular import
