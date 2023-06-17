@@ -299,7 +299,6 @@ class BGSModel(object):
     def ratchet_df(self, fit, mu=None, ncores=None):
         """
         Output a combined ratchet, for all segments.
-        
         mu is optional mutation rate to predict under (otherwise 
         MLE will be used).
         """
