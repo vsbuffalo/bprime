@@ -462,6 +462,27 @@ the genome.
   \label{suppfig:drift_r2}
 \end{figure}
 
+\section*{Ratchet Rate Predictions}
+
+\section*{Load Predictions}
+
+Each fixation of a mutant with effect $-s$ decreases the population fitness by
+$(1-2s)$ since we assume additive effects throughout. For each feature's DFE
+vector $\mathbf{w}$ and grid of selection coefficients $\mathbf{s}$, we have a
+corresponding vector $\widehat{\mathbf{r}}$ of predicted ratchet rates. Each
+generation $\widehat{\mathbf{r}}$ substitutions are fixed each generation.
+Since we assume multiplicative fitness, the log load for selection coefficient
+$i$ in the vector is,
+
+\begin{align}
+    l_i = \log(1-2 s_i) \widehat{r_i}.
+\end{align}
+
+The total log load is,
+
+\begin{align}
+    \log(L) = \sum_{i} l_i.
+\end{align}
 
 
 \section*{Likelihood}

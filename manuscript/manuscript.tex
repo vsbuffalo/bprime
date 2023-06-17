@@ -551,6 +551,7 @@ contribution of LD (Supplementary Materials Section XXX).
 
 \subsection*{Annotation Model Comparison}
 
+
 Our method takes tracks of annotated features (an ``annotation model") that are
 \emph{a priori} expected to have similar fitness effects, and estimates the
 distribution of fitness effects for each feature type. We consider two classes
@@ -569,7 +570,11 @@ structure features take priority and the PhastCons type catches all
 highly-conserved non-genic regions. In total, we fit four annotation models
 (CADD 6\%, CADD 8\%, PhastCons Priority, and Feature Priority) to high-coverage
 1000 Genome data for three populations: Yoruba (YRI), Han Chinese (CHB), and
-European (CEU) ancestries.
+European (CEU) ancestries. We assessed and compared models according to how
+well they predict the genome-wide patterns of diversity they were fit on. We
+use $R_\text{LOO}^2$, which is the proportion of the observed variance in
+megabase-scale diversity that is predicted by our model in out-samples (i.e.
+whole chromosomes left out during the fitting process).
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
@@ -623,32 +628,31 @@ behavior is what we would expect given that the CADD annotation models contain
 only the most pathogenic sites, which are \emph{a prior} very likely under the
 strong selection domain under which B' and classic BGS theory agree.
 
-
 Since our $R_\text{LOO}^2$ estimates suggest our models fit left-out
 chromosomes well even though our method assumes constant demography and
 homogeneous mutation rates along the genome, we wondered what $R^2$ we could
 expect under a simple theoretic model where $\cov_i(B_i', \varepsilon_i) = 0$
-and $\var_i(\varepsilon_i)$ was determined by the variance in coalescence times
-due to drift alone with an effective population size rescaled by $B_i'$. We
-calculate this ``drift $R^2$" by calculating the theoretic coalescence time
-variance in a megabase window with recombination and an effective population
-size of $B_i' N_e$ where we use our best-fitting model's as a plug-in estimator
-of $B_i'$. We note that this is a rough approximation, since this calculation
-assumes constant demography and that the variance in coalescence times under
-negative selection is likely lower than expected under drift alone. 
-
+and $\var_i(\varepsilon_i)$ was determined by the variance in neutral
+coalescence times alone with an effective population size rescaled by $B_i'$.
+We calculate this ``coalescence $R^2$" by calculating the theoretic coalescence
+time variance in a megabase window with recombination and an effective
+population size of $B_i' N_e$ where we use our best-fitting model's as a
+plug-in estimator of $B_i'$. We note that this is a rough approximation, since
+this calculation assumes constant demography and that the variance in
+coalescence times under negative selection is likely lower than expected under
+drift alone. 
 
 Still, we find that our out-sample $R_\text{LOO}^2$ for Yoruba individuals
-($R_\text{LOO}^2 \approx 68$\%) is close to the theoretic drift
-$R_\text{drift}^2 \approx 67$\%. For bottlenecked out-of-Africa populations,
-$R_\text{drift}^2 \approx 64$\% compared to the observed $R_\text{LOO}^2
-\approx 62$\% for CEU and $R_\text{LOO}^2 \approx 59$\% for CHB. We note that
-because bottlenecks increase the variance in coalescence times beyond the level
-implied by the effective population size, the disagreement between observed
-$R_\text{LOO}^2$ and the theoretic $R_\text{drift}^2$ is likely to shrink.
-Overall, this suggests that negative selection models explain the vast majority
-coalescence time variation at the megabase-scale that is capable of being
-explained (i.e. that is not coalescence noise).
+($R_\text{LOO}^2 \approx 68$\%) is close to the theoretic $R_\text{coal}^2
+\approx 67$\%. For bottlenecked out-of-Africa populations, $R_\text{coal}^2
+\approx 64$\% compared to the observed $R_\text{LOO}^2 \approx 62$\% for CEU
+and $R_\text{LOO}^2 \approx 59$\% for CHB. We note that because bottlenecks
+increase the variance in coalescence times beyond the level implied by the
+effective population size, the disagreement between observed $R_\text{LOO}^2$
+and the theoretic $R_\text{coal}^2$ is likely to shrink. Overall, this suggests
+that negative selection models explain the vast majority coalescence time
+variation at the megabase-scale that is capable of being explained (i.e. that
+is not coalescence noise).
 
 \subsection*{Estimates of Negative Selection Parameters in Humans}
 
@@ -676,6 +680,12 @@ linked selection in humans and hitchhiking plays a limited role
 \parencite{McVicker2009-ax,Murphy2022-sj}, humans are a suitable organism to
 test our method. 
 
+\begin{figure}[htbp] \centering
+    \includegraphics{figures/figure_4_pop_mu_trimmed.pdf} 
+    \caption{}
+  \label{fig:figure-4}
+\end{figure}
+
 Given that previous methods used classic BGS theory to fit genome-wide patterns
 of human diversity, we were curious whether their qualitative findings would
 change once weak selection was more accurately predicted. In particular, the
@@ -683,14 +693,83 @@ U-shaped relationship between $B'$ and the strength of selection suggests that
 a given reduction factor could be explained by two different selection
 coefficients.
 
-\subsection*{DFE Estimates}
+\subsection*{Predicted Diversity and $B'(x)$ maps}
 
-Our best-fitting models have out-sample $R^2$ of around 68\% for Yoruba, 62\%
-European, and 60\% for Han Chinese ancestry individuals. However, $R^2$ has a
-theoretic upper bound due to coalescence noise around the predicted mean level
-$\widehat{\pi}(x)$.
+When we fit our negative selection model to genome-wide patterns of diversity,
+the parameter estimates generate three predicted quantities: (1) the $B(x)$
+map, (2) the substitution rates per segment, and (3) the fitness variance per
+segment. Here we focus on the predicted $B(x)$ map and implied levels of
+diversity at the megabase scale. We discuss substitution rates and fitness
+variance in the next section.
+
+We also obtain a prediction $\widehat{B}_i$ for the reduction factor $B_i$ in
+each window $i$, which can be multiplied by our estimate of $\widehat{\pi}_0$
+to obtain a prediction of diversity $\widehat{\pi}_i = \widehat{\pi}_0
+\widehat{B}_i$. 
+
+\subsection*{Model Predictions and the Substitution Process}
+
+Our method accommodates weak selection by modeling the fitness variance in each
+segment under an equilibrium negative selection process. This fitness variance
+is found by simultaneously solving for the per-generation substitution rate $R$
+and the draft-effective population size $N_d$ for each segment. When our model
+is fit to genome-wide diversity data, the parameter estimates imply predictions
+of the deleterious substitution rate per basepair, per generation, for each
+feature. Our method only considers within-species pairwise diversity, so these
+predicted substitution rates constitute a test that our model is making
+reasonable out-sample predictions of the substitution rates across features.
+
+We focus specifically on the predictions from our feature-based annotation
+models, since we can readily estimate human substitution distances for each
+feature to compare to our predictions.
+
+The estimated substitution distance should in theory equal the product of the
+substitution rate per site, per year and the branch length in years.
+
+When comparing our predicted mutation rates to observed substitution distances,
+we must account for three major sources of uncertainty.
+
+First, the split time between humans and chimpanzees is unknown, with estimates
+ranging from 6Mya to 12Mya (XXX). Second, our predictions are in sites per
+generation, and the appropriate human generation time is unknown. Third, 
 
 
+
+
+
+For a particular feature $f$, the estimated per-site substitution distance
+$S_f$ along a branch (which accounts for back mutations) should correspond to
+$S_f = T_g r_f$, where $T_g$ is the time in generations and $r_f$ is the
+substitution rate per basepair, per generation of that feature. 
+
+Each feature is
+composed of basepairs with varying selection coefficients distributed according
+to the feature-specific DFE vector $\mathbf{w}_f$ and corresponding vector of
+substitution rates per selection coefficient, $\mathbf{r}_f$.
+
+Our estimate of a feature's DFE
+is $\widehat{\mathbf{w}}_f$.
+
+We calculate the 
+
+
+\begin{align}
+    \label{eq:sub}
+    r_f = \mu \int_0^1 p_f(s) ds
+\end{align}
+
+Solving the XXX equations, we end up with predictions $\widehat{r}_f$ for the
+per-basepair, per-generation substitution rate for each feature. These are
+calibrated to the MLE mutation rate estimate $\widehat{\mu}_\text{del}$, which
+as mentioned, excludes the contribution of lethal mutations which act purely to
+reduce $N_e$ and thus only impact $\pi_0$. Using Equation \eqref{eq:sub} we can
+re-calibrate these estimates against other mutation rates. 
+
+Because of it's greater interpretabilty, we initially focus on the substitution
+rate estimates from the Feature Priority model even though it had a poorer-fit
+and high mutation rate estimate. 
+
+We can also re-calibrate this model to an alternate mutation rate.
 
 % - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
 
