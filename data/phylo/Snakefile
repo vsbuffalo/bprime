@@ -62,17 +62,66 @@ rule merge_phylofit:
 
 # ----------- phylotfit for whole regions ---------------
 
+rule intron_gff:
+  input: bed="../annotation/hg38.ensembl_introns.bed.gz"
+  output: "hg38.ensembl_introns.gff"
+  shell:
+    """
+    zcat {input.bed} | awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "intron", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
+    """
+
+rule neutral_gff:
+  input: bed="../fit_annotation/putatively_neutral.bed.gz"
+  output: "hg38.putatively_neutral.gff"
+  shell:
+    """
+    zcat {input.bed} | awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "neutral", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
+    """
+
+
+rule gff_with_introns_neutral:
+  input: gff="../annotation/hg38.ensembl.gff3.gz", introns="hg38.ensembl_introns.gff", neutral="hg38.putatively_neutral.gff"
+  output: "hg38.ensembl_with_introns_neutral.gff"
+  shell:
+    """
+    (zcat {input.gff}; cat {input.introns} {input.neutral}) | sort -k1,1 -k4,4n > {output}
+    """
+
+rule merge_features:
+  input: "hg38.ensembl_with_introns_neutral.gff"
+  output: "gff_features/hg38.ensembl_{feature}.gff"
+  shell: 
+    """
+      awk 'BEGIN{{OFS="\t"}} {{ if ($3 == "{wildcards.feature}") {{ print $0 }}}}' {input} | bedtools merge \
+       |  awk 'BEGIN{{OFS="\t"}}{{print $1, ".", "{wildcards.feature}", $2+1, $3, ".", ".", ".", "."}}' > {output} \ 
+    """
+
+all_features = ['CDS', 'three_prime_UTR', 'five_prime_UTR',
+                'intron', 'neutral', 'pseudogene']
+
+rule merged_gff:
+  input: [f"gff_features/hg38.ensembl_{f}.gff" for f in all_features]
+  output: "hg38.ensembl_with_introns_neutral_merged.gff"
+  shell:
+     """
+     cat {input} | sort -k1,1 -k4,4n > {output}
+     """
+
 rule split_gff:
-  input: "../annotation/hg38.ensembl.gff3.gz"
+  #input: "../annotation/hg38.ensembl.gff3.gz"
+  input: "hg38.ensembl_with_introns_neutral_merged.gff"
   output: "gff_by_chrom/hg38.ensembl_{chrom}.gff"
   shell: 
     """
-    zcat {input} | bioawk -cgff '$seqname~/{wildcards.chrom}/ {{ print $0 }}' | bioawk -cgff '$feature~/CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
+    cat {input} | bioawk -cgff '$seqname~/{wildcards.chrom}/ {{ print $0 }}' | bioawk -cgff '$feature~/intron|neutral|CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
     """
 
+# use maf_parse to split out the MAFs by feature
 rule maf_by_feature:
    input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", maf="filtered_mafs/{chrom}.maf"
    output: "mafs_by_feature/{chrom}.CDS.maf", "mafs_by_feature/{chrom}.three_prime_UTR.maf", 
+           "mafs_by_feature/{chrom}.intron.maf", 
+           "mafs_by_feature/{chrom}.neutral.maf", 
            "mafs_by_feature/{chrom}.five_prime_UTR.maf", "mafs_by_feature/{chrom}.pseudogene.maf",
    shell:
      """
@@ -136,6 +185,7 @@ rule split_gff_gene:
     """
     python ../../tools/annot_gff.py {input.gff}  {input.map} "all_genes_{wildcards.chrom}.txt" > {output[0]}
     """
+
 
 #all_genes_features = [line.strip() for line in open("all_genes.txt")]
 
@@ -316,6 +366,8 @@ for chrom_num in range(1, 23):
   ALL_FILES.append(f"pfests_by_feature/{chrom}.pseudogene.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.three_prime_UTR.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.five_prime_UTR.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.neutral.mod")
+  ALL_FILES.append(f"pfests_by_feature/{chrom}.intron.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons.mod")
   ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons_no_cds_utr.mod")
 
