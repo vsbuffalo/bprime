@@ -15,6 +15,7 @@ encountered_genes = set()
 
 for entry in read_gff(sys.argv[1], parse_attributes=True):
     feature = entry['feature']
+    # genes only!
     if feature in ('CDS', 'five_prime_UTR', 'three_prime_UTR'):
         cols = [entry['seqname'], entry['start'], entry['end']]
         tx_id = entry['attribute']['Parent'].replace('transcript:', '')

@@ -1,5 +1,10 @@
 ## Substitution rates from 10-primate phylogeny
 
+
+### Other files 
+
+- repeat_masker.bed.gz: from UCSC, just BED of Repeat Masker.
+
 ### Gene ID Mapping
 
 BioMart's API sucks so this was done online. The file is checked in.

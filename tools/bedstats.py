@@ -10,7 +10,7 @@ def count_features(bedfile, seqlens):
     for line in readfile(bedfile):
         row = line.strip().split('\t')
         seen_chroms.add(row[0])
-        feature = row[3]
+        feature = row[3] if len(row) == 4 else '.'
         if feature not in basepair_counts:
             basepair_counts[feature] = 0
         basepair_counts[feature] += int(row[2]) - int(row[1])

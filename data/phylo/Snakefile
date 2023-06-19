@@ -1,66 +1,45 @@
-import os
-import pickle
-import pandas as pd
-from bgspy.models import BGSModel
 
-PF_DIR = 'phylofit_estimates/'
-# MODEL_FILE = '../bmaps/bgspy/bmap_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons_full.pkl'
-#RESCALE_MODEL_FILE = '../bmaps/bgspy/bmap_rescaled_hg38_6x7grid_10000step_10000N_cds_utrs_phastcons.pkl'
-#FIT_FILE = '../../fits/hg38_cds_utrs_phastcons_simplex/hg38_cds_utrs_phastcons/window_1000000/mle.pkl'
 
-RATCHET="../../new_fits/CDS_genes_phastcons__decode/fits/pop_yri/window_1000000/type_full/mutrate_free/initial/predicted_subrates.tsv"
-
-rule ratchet_cds:
-  input: RATCHET
-  output: "unscaled_ratchet_data_cds.bed"
-  shell:
-     """
-     awk '{{ if ($4 == "CDS") {{ print $0 }} }}' {input} > {output}
-     """
-
-rule get_knowncanonical_multiz:
-  output: "knownCanonical.exonNuc.fa.gz"
-  shell:
-     """
-     wget https://hgdownload.soe.ucsc.edu/goldenPath/hg38/multiz20way/alignments/knownCanonical.exonNuc.fa.gz
-     """
-
-rule filter_mafs:
-  input: "raw_mafs/{chrom}.maf.gz"
-  output: "filtered_mafs/{chrom}.maf"
-  shell: 
-    """
-    mafFilter <( zcat {input} ) -speciesFilter=species.txt > {output[0]}
-    """
-
-rule separate_alns:
-   # note the "ensembl_ucsc_stable_id.tsv" file was downloaded from biomart website
-   input: multiz="knownCanonical.exonNuc.fa.gz", map="ensembl_ucsc_stable_id.tsv"
-   output: "cds_alns/dummy.txt"
-   shell:
-       """
-       python ../../tools/split_multiz.py {input.multiz} cds_alns/ {input.map} 
-       touch cds_alns/dummy.txt
-       """
-
-# ----------- phylotfit of whole CDS ---------------
-
-# not needed, we use whole directory
-# if it fails here, run the phylofit command in the README.md 
-# (this can't be put in snakemake)
-phylo_fits = [os.path.join(PF_DIR, f) for f in os.listdir(PF_DIR)]
-
-rule merge_phylofit:
-  input: dummy="phylofit_estimates/dummy.txt", dir=PF_DIR, pc="../annotation/conserved_phastcons.bed.gz"
-  output: "phylofit_cds_rates.bed"
+rule cpg:
+  output: "cpgIslandExt.txt.gz"
   shell:
     """
-    python ../../tools/merge_phylofits.py {input.dir} tmp.bed
-    sort -k1,1 -k2,2n tmp.bed |  \
-      bedtools coverage -a - -b {input.pc} > {output[0]}
+    wget http://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/cpgIslandExt.txt.gz
     """
 
-# ----------- phylotfit for whole regions ---------------
+rule cpg_bed:
+  input: "cpgIslandExt.txt.gz"
+  output: "cpg_islands.bed.gz"
+  shell:
+    """
+    zcat {input} |  bioawk -t '{{ print $2,$3,$4,"cpg_island" }}' | gzip > {output}
+    """
+
+
+rule mask:
+  input: cpg="cpg_islands.bed.gz", mask="repeat_masker.bed.gz"
+  output: "repeat_cpg_mask.bed.gz"
+  shell:
+    """
+    (zcat {input.mask} | bioawk -t '{{ print $1,$2,$3,"repeat_mask"}}'; zcat {input.cpg}) | sort -k1,1 -k2,2n | bedtools merge | gzip > {output} 
+    """
+
+rule multiz17:
+  output: "hg38.17way.maf.gz"
+  shell:
+     """
+     wget http://hgdownload.cse.ucsc.edu/goldenPath/hg38/multiz17way/hg38.17way.maf.gz
+     """
+
+# version with sliding mask splitter 
+#./MafFilter/maffilter input.file.compression=gzip 'maf.filter=Subset(species=(ponAbe2,hg38,panTro4,panPan1,gorGor3), strict=yes,remove_duplicates=yes),SelectChr(ref_species=hg38,chromosome={wildcards.chrom}),Output(file={output}),MaskFilter(species=hg38,window.size=10,window.step=1,max.masked=2)' input.file={input}
+rule split_multiz17:
+  input: "hg38.17way.maf.gz"
+  output: "multiz17_filtered/{chrom}.maf"
+  shell:
+     """
+     ./MafFilter/maffilter input.file.compression=gzip 'maf.filter=Subset(species=(ponAbe2,hg38,panTro4,panPan1,gorGor3), strict=yes,remove_duplicates=yes),SelectChr(ref_species=hg38,chromosome={wildcards.chrom}),Output(file={output})' input.file={input}
+     """
 
 rule intron_gff:
   input: bed="../annotation/hg38.ensembl_introns.bed.gz"
@@ -75,9 +54,9 @@ rule neutral_gff:
   output: "hg38.putatively_neutral.gff"
   shell:
     """
-    zcat {input.bed} | awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "neutral", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
+    zcat {input.bed} | \
+      awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "neutral", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
     """
-
 
 rule gff_with_introns_neutral:
   input: gff="../annotation/hg38.ensembl.gff3.gz", introns="hg38.ensembl_introns.gff", neutral="hg38.putatively_neutral.gff"
@@ -87,38 +66,74 @@ rule gff_with_introns_neutral:
     (zcat {input.gff}; cat {input.introns} {input.neutral}) | sort -k1,1 -k4,4n > {output}
     """
 
+# This is tedious, but we need to give phylofit the cleanest GFF possible, 
+# e.g. no overlapping ranges so basepairs doesn't accidentally get double counted.
+# (I'm not sure whether phylofit does a merge, so we do it)
+# The merge must be **feature** specific though, hence why we split all features
+# We also subtrack the mask (CpG + repeat masker)
 rule merge_features:
-  input: "hg38.ensembl_with_introns_neutral.gff"
+  input: feats="hg38.ensembl_with_introns_neutral.gff", mask="repeat_cpg_mask.bed.gz"
   output: "gff_features/hg38.ensembl_{feature}.gff"
   shell: 
     """
-      awk 'BEGIN{{OFS="\t"}} {{ if ($3 == "{wildcards.feature}") {{ print $0 }}}}' {input} | bedtools merge \
-       |  awk 'BEGIN{{OFS="\t"}}{{print $1, ".", "{wildcards.feature}", $2+1, $3, ".", ".", ".", "."}}' > {output} \ 
+      awk 'BEGIN{{OFS="\t"}} {{ if ($3 == "{wildcards.feature}") {{ print $0 }}}}' {input} | bedtools merge | \
+        bedtools subtract -a - -b {input.mask} | \
+        awk 'BEGIN{{OFS="\t"}}{{print $1, ".", "{wildcards.feature}", $2+1, $3, ".", ".", ".", "."}}' > {output} 
     """
 
 all_features = ['CDS', 'three_prime_UTR', 'five_prime_UTR',
                 'intron', 'neutral', 'pseudogene']
 
+# now, we need to merge all features again
 rule merged_gff:
   input: [f"gff_features/hg38.ensembl_{f}.gff" for f in all_features]
-  output: "hg38.ensembl_with_introns_neutral_merged.gff"
+  output: "hg38.ensembl_with_introns_neutral_merged_masked.gff"
   shell:
      """
      cat {input} | sort -k1,1 -k4,4n > {output}
      """
 
+## Now, we split by chromosome (makes parallelization possible)
 rule split_gff:
   #input: "../annotation/hg38.ensembl.gff3.gz"
-  input: "hg38.ensembl_with_introns_neutral_merged.gff"
+  input: "hg38.ensembl_with_introns_neutral_merged_masked.gff"
   output: "gff_by_chrom/hg38.ensembl_{chrom}.gff"
   shell: 
     """
     cat {input} | bioawk -cgff '$seqname~/{wildcards.chrom}/ {{ print $0 }}' | bioawk -cgff '$feature~/intron|neutral|CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
     """
 
-# use maf_parse to split out the MAFs by feature
+# we also do phastcons regions, but separately
+rule phastcons_no_cds_utr:
+   # subtract out the genomic annotation features to mimic what B is calc'd on
+   input: pc="../annotation/conserved_phastcons/{chrom}.bed", gff="gff_by_chrom/hg38.ensembl_{chrom}.gff"
+   output: "../annotation/conserved_phastcons_no_cds/{chrom}.bed"
+   shell:
+     """
+     bedtools subtract -a {input.pc} -b {input.gff} > {output[0]}
+     """
+
+rule maf_for_phastcons_no_cds_utrs:
+   input: bed="../annotation/conserved_phastcons_no_cds/{chrom}.bed", maf="multiz17_filtered/{chrom}.maf"
+   output: "mafs_by_feature/{chrom}.phastcons_no_cds_utr.maf"
+   shell:
+     """
+     # the echo BS is because maf_parse is dropping the header for BEDs(!)
+     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
+     """
+
+rule maf_for_phastcons:
+   input: bed="../annotation/conserved_phastcons/{chrom}.bed", maf="multiz17_filtered/{chrom}.maf"
+   output: "mafs_by_feature/{chrom}.phastcons.maf"
+   shell:
+     """
+     # the echo BS is because maf_parse is dropping the header for BEDs(!)
+     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
+     """
+
+# *Main* GFF->MAF (minus phastcons) use maf_parse to split out the MAFs per chrom also by feature
 rule maf_by_feature:
-   input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", maf="filtered_mafs/{chrom}.maf"
+   input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", maf="multiz17_filtered/{chrom}.maf"
    output: "mafs_by_feature/{chrom}.CDS.maf", "mafs_by_feature/{chrom}.three_prime_UTR.maf", 
            "mafs_by_feature/{chrom}.intron.maf", 
            "mafs_by_feature/{chrom}.neutral.maf", 
@@ -134,242 +149,18 @@ rule phylofit_by_feature:
    shell:
      """
      TREE="(ponAbe2,((hg38,(panTro4,panPan1)),gorGor3))"
-     phyloFit --tree $TREE --subst-mod HKY85  --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
+     phyloFit --tree $TREE --subst-mod UNREST --EM --precision MED --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
      """
 
-rule phylofit_by_feature_lengths:
-   # TODO
-   input: "mafs_by_feature/{chrom_feature}.maf"
-   output: "mafs_by_feature_lengths/{chrom_feature}.tsv"
-   shell:
-     """
-     """
+features = ['intron', 'neutral', 'five_prime_UTR', 
+            'three_prime_UTR', 'CDS', 
+            'phastcons', 'phastcons_no_cds_utr']
 
-rule phastcons_no_cds_utr:
-   # subtract out the genomic annotation features to mimic what B is calc'd on
-   input: pc="../annotation/conserved_phastcons/{chrom}.bed", gff="gff_by_chrom/hg38.ensembl_{chrom}.gff"
-   output: "../annotation/conserved_phastcons_no_cds/{chrom}.bed"
-   shell:
-     """
-     bedtools subtract -a {input.pc} -b {input.gff} > {output[0]}
-     """
-
-rule maf_for_phastcons_no_cds_utrs:
-   input: bed="../annotation/conserved_phastcons_no_cds/{chrom}.bed", maf="filtered_mafs/{chrom}.maf"
-   output: "mafs_by_feature/{chrom}.phastcons_no_cds_utr.maf"
-   shell:
-     """
-     # the echo BS is because maf_parse is dropping the header for BEDs(!)
-     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
-     """
-
-rule maf_for_phastcons:
-   input: bed="../annotation/conserved_phastcons/{chrom}.bed", maf="filtered_mafs/{chrom}.maf"
-   output: "mafs_by_feature/{chrom}.phastcons.maf"
-   shell:
-     """
-     # the echo BS is because maf_parse is dropping the header for BEDs(!)
-     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
-     """
-# ----------- feature x gene subrates ---------------
-# NOTE: this has to be run in stages... this is because we do not know a priori 
-# how many genes there are.
-
-
-# this step is run to produce all the chromosome-level genes IDs, which is merged
-# into all_genes.txt
-rule split_gff_gene:
-  input: gff="gff_by_chrom/hg38.ensembl_{chrom}.gff", map="../annotation/gene_tx_ids_canonical.txt" 
-  output: gff="gff_by_chrom_gene_level/hg38.ensembl_{chrom}.gff", gene="all_genes_{chrom}.txt"
-  shell: 
-    """
-    python ../../tools/annot_gff.py {input.gff}  {input.map} "all_genes_{wildcards.chrom}.txt" > {output[0]}
-    """
-
-
-#all_genes_features = [line.strip() for line in open("all_genes.txt")]
-
-gene_feature_mafs = "mafs_by_feature_gene/{chrom}.{feature_gene}.maf"
-
-rule maf_by_feature_gene:
-   input: gff="gff_by_chrom_gene_level/hg38.ensembl_{chrom}.gff", 
-          maf="filtered_mafs/{chrom}.maf"
-   output: "mafs_by_feature_gene/{chrom}.{feature_gene}.maf"
-   shell:
-     """
-     maf_parse --features {input.gff} --by-category --out-root mafs_by_feature/{wildcards.chrom} {input.maf}
-     """
-
-
-# ----------- other processsing ---------------
-
-rule windows:
-  input: annot="../annotation/hg38_seqlens.tsv"
-  output: "hg38_windows_{width}.bed"
-  shell:
-    """
-    bedtools makewindows -g {input.annot} -w {wildcards.width} | bedtools sort > {output[0]}
-    """
-
-#rule ratchet_rescale_data_split_cds:
-#  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-#  output: "rescaled_ratchet_data_cdsdfe_cds.bed", "rescaled_ratchet_data_cdsdfe_utr.bed", "rescaled_ratchet_data_cdsdfe_phastcons.bed"
-#  shell: 
-#     """
-#     bgspy subrate --force-feature CDS --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data_cdsdfe"
-#     """
-
-#rule ratchet_rescale_data_split:
-#  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-#  output: "rescaled_ratchet_data_cds.bed", "rescaled_ratchet_data_utr.bed", "rescaled_ratchet_data_phastcons.bed"
-#  shell: 
-#     """
-#     bgspy subrate --split --bs-file {input.model} --fit {input.fit} --outfile "rescaled_ratchet_data"
-#     """
-
-#rule ratchet_rescale_data:
-#  input: model = RESCALE_MODEL_FILE, fit = FIT_FILE
-#  output: "rescaled_ratchet_data.bed"
-#  shell: 
-#     """
-#     bgspy subrate --bs-file {input.model} --fit {input.fit} --outfile {output[0]}
-#     """
-
-## load and clean up Uricchio et al data
-## NOTE: the protein coding stats is processed in data/annotation
-rule uricchio_data:
-  input: data="41559_2019_890_MOESM3_ESM.txt", cds_stats="../annotation/ensembl_cds_canonical_protein_coding_stats.tsv"
-  output: "uricchio_data.tsv"
-  run: 
-    cols = ('gene_id', 'n_nonsyn', 'nonsyn_daf', 'n_syn', 
-        'syn_daf', 'fixed_nonsyn', 'fixed_syn')
-
-    gr = pd.read_csv(input.data,
-                     sep='\t', names=cols, comment='#')
-    gr['dnds'] = gr['fixed_nonsyn'] / gr['fixed_syn']
-
-    cd = pd.read_csv(input.cds_stats, sep='\t')
-
-    gr = gr.merge(cd, on='gene_id')
-    gr['total_fixed'] = gr['fixed_nonsyn']+gr['fixed_syn']
-    gr['syn_prop'] = gr['fixed_syn'] / gr['S']
-    gr['nonsyn_prop'] = gr['fixed_nonsyn'] / gr['N']
-    gr['total_prop'] = gr['total_fixed'] / (gr['S'] + gr['N'])
-    gr['dNdS'] = gr['fixed_nonsyn']/gr['fixed_syn']
-    gr = gr[~gr['chrom'].isin(['chrX', None])]
-
-
-    new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
-                'fixed_nonsyn', 'fixed_syn', 'dnds', 
-                'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
-                'nonsyn_prop', 'total_prop', 'dNdS', 'S', 'N']
-
-    gr = gr.sort_values(['chrom', 'start', 'end'])
-    gr = gr[new_cols]
-    gr = gr.rename(columns={'chrom': '#chrom'})
-    gr.to_csv(output[0], sep='\t', index=False)
-
-rule uricchio_merged_raw:
-  """
-  Merge in the raw ratchet data and the phylofit substitution rates for
-  the whole CDS from ensembl_cds_canonical_protein_coding_stats.tsv.
-
-  NOTE: We do not have the precise transcripts Uricchio et al used.
-  But this is fine, it's just for validation and dn/ds.
-  The stats are on the canonical transcripts CDS FASTA file.
-
-  The phylofit data is from the UCSC Multiz 20-way, but subset for 5 primates.
-  The UCSC file I use is knownCanonical.exonNuc.fa.gz  for the phylofit estimates.
-  """
-  input: data="uricchio_data.tsv", 
-         unscaled_ratchet="unscaled_ratchet_data_cds.bed", 
-         pf="phylofit_cds_rates.bed", 
-         #rescaled_ratchet="rescaled_ratchet_data_cds.bed"
-  output: "uricchio_data_merged_raw.bed"
-  shell:
-      #bedtools map -a {input.data} -b {input.rescaled_ratchet} -c 6,7 -o mean,sum > tmp.bed
-      """
-      bedtools map -a tmp.bed -b {input.unscaled_ratchet} -c 6,7 -o mean,sum > tmp2.bed
-      bedtools map -a tmp2.bed -b {input.pf} -c 5,6,10 -o mean,sum,mean > {output[0]}
-      rm -f tmp.bed tmp2.bed
-      """
-
-rule uricchio_merged:
-  input: "uricchio_data_merged_raw.bed"
-  output: "uricchio_data_merged.tsv"
-  run:
-    new_cols = ['chrom',  'start', 'end', 'gene_id', 'n_nonsyn', 'n_syn',
-                'fixed_nonsyn', 'fixed_syn', 'dnds', 
-                'total_fixed', 'len', 'cai', 'gc', 'gc3', 'syn_prop', 
-                'nonsyn_prop', 'total_prop', 'dNdS', 'S', 'N',
-                
-                'r_rs', 'r_rs_nbases',
-                'r_us', 'r_us_nbases',
-                'pf_subrate', 'pf_nbases',
-                'pf_overlap_phastcons'
-                ]
-    gr = pd.read_csv(input[0], sep='\t', comment='#', names=new_cols)
-    gr['width'] = gr['end'] - gr['start']
-    gr['midpoint'] = 0.5*(gr['start'] + gr['end'])
-    gr.to_csv(output[0], sep='\t', index=False)
-
-
-rule phylofit_cds:
-  input: pf="phylofit_cds_rates.bed", ratchet="rescaled_ratchet_data_{feature}.bed"
-  output: "phylofit_rescaled_ratchet_{feature}_merged.bed"
-  shell:
-     """
-     bedtools map -a {input.pf} -b {input.ratchet} -prec 10 -c 6 -o mean > {output[0]}
-     """
-
-
-rule ratchet_windows:
-  input: ratchet="rescaled_ratchet_data_cds.bed", win="hg38_windows_{width}.bed"
-  output: "rescaled_ratchet_cds_rates_binned_{width}"
-  shell:
-    """
-    bedtools map -a {input.win} -b {input.ratchet} -c 5,6,7 -o mean,mean,sum > {output}
-    """
-
-
-
-#rescale_window_ratchet = ["rescaled_ratchet_cds_rates_binned_1000000.bed", 
-#                          "rescaled_ratchet_cds_rates_binned_100000.bed",
-#                          "rescaled_ratchet_cds_rates_binned_5000000.bed"]
-
-feature_by_genes= [f"gff_by_chrom_gene_level/hg38.ensembl_chr{c}.gff" for c in range(1, 23)]
-
-ALL_FILES = ["phylofit_cds_rates.bed",
-             "cds_alns/dummy.txt",
-             #"rescaled_ratchet_data_cds.bed", 
-             #"rescaled_ratchet_data.bed",
-             "uricchio_data.tsv", 
-             "uricchio_data_merged_raw.bed", 
-             "uricchio_data_merged.tsv",
-             "unscaled_ratchet_data_cds.bed", 
-             #"phylofit_rescaled_ratchet_cds_merged.bed",
-             #"phylofit_rescaled_ratchet_utr_merged.bed",
-             #"phylofit_rescaled_ratchet_phastcons_merged.bed",
-             #*rescale_window_ratchet,
-
-             # the phylofit of features x gene_tx_ids_canonical
-             *feature_by_genes
-             
-]
-
-ALL_FILES += [f"filtered_mafs/chr{chrom}.maf" for chrom in range(1, 23)]
-#ALL_FILES += [f"phastcons_region_mafs/dummy_chr{chrom}.txt" for chrom in range(1, 2)]
-
+ALL_FILES = []
 for chrom_num in range(1, 23):
   chrom = f"chr{chrom_num}"
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.CDS.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.pseudogene.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.three_prime_UTR.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.five_prime_UTR.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.neutral.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.intron.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons.mod")
-  ALL_FILES.append(f"pfests_by_feature/{chrom}.phastcons_no_cds_utr.mod")
+  for feat in features:
+    ALL_FILES.append(f"pfests_by_feature/{chrom}.{feat}.mod")
 
 rule all:
-  input: ALL_FILES, 
+  input: ALL_FILES

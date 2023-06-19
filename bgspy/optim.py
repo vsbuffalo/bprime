@@ -274,6 +274,7 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
                            figsize=figsize, sharex=True, 
                            height_ratios=[1.2]*nf + [1]*(fixed_mu_offset+add_nll))
 
+
     norm = mpl.colors.Normalize(vmin=0, vmax=1)
     for i in range(nf):
         #ax[i].imshow(dfes[:, :, i].T, cmap='inferno')
@@ -293,6 +294,9 @@ def optim_diagnotics_plot(fit, top_n=100, figsize=None,
     line_lw = 1
 
     ax[i].set_ylabel(f"$\pi_0$ ($\\times^{{{int(-np.log10(pi_scale))}}}$)")
+
+    ax[i].yaxis.get_offset_text().set_size(4)
+    ax[i].get_yaxis().get_major_formatter().set_useOffset(False)
     ax[i].plot(np.arange(len(thetas))[:top_n], 
                [x[0]*pi_scale for x in thetas][:top_n],
                linewidth=line_lw, c='0.22')
