@@ -162,7 +162,7 @@ def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
     chroms = np.array(chroms)
 
     # predict the Vs, Vms, and Ts for all segments
-    Vs, Vms, Ts = segments._predict_segparts(fit, model.N, ncores=ncores)
+    Vs, Vms, Ts = segments._predict_segparts(fit, model.N, mu=mu, ncores=ncores)
 
     R = 1/Ts
     with np.errstate(under='ignore'):

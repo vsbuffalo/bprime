@@ -7,6 +7,7 @@ import pickle
 import tskit as tsk
 import numpy as np
 import pandas as pd
+from collections import defaultdict
 from bgspy.models import BGSModel
 from bgspy.utils import load_seqlens, load_pickle, save_pickle
 from bgspy.sim_utils import mutate_simulated_tree
@@ -21,6 +22,7 @@ def load_model(base_dir='./', jackwidth=20_000_000):
     initial = {}
     rescaled = {}
     initial_predict = {}
+    mu_predicts = defaultdict(dict)
     rescaled_predict = {}
     pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]
     for pop_dir in pop_dirs:
@@ -62,8 +64,15 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                             initial_predict[(pop, window, type_)] = d
                         else:
                             rescaled_predict[(pop, window, type_)] = d
+                    # load preds under different mus 
+                    all_files = os.listdir(dir_path)
+                    other_preds = [f for f in all_files if f.startswith('predicted_subrates_')]
+                    if len(other_preds):
+                        for pred in other_preds:
+                           mu = float(pred.replace('predicted_subrates_', '').replace('.tsv', ''))
+                        mu_predicts[(pop, window, type_)][mu] = pd.read_csv(join(dir_path, pred), sep='\t')
  
-    return initial, rescaled, initial_predict, rescaled_predict
+    return initial, rescaled, initial_predict, rescaled_predict, mu_predicts
 
 class ModelDir:
     """ 
@@ -78,7 +87,7 @@ class ModelDir:
 
     def _get_fits(self):
         tmp = load_model(self.dir, jackwidth=self.jackwidth)
-        self.fits, self.rescaled, self.predicts, self.predicts_rescaled = tmp
+        self.fits, self.rescaled, self.predicts, self.predicts_rescaled, self.mu_predicts  = tmp
 
     def save(self, output):
         save_pickle(self, output)

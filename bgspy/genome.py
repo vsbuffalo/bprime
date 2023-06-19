@@ -177,13 +177,14 @@ class Segments:
             self._segment_parts_sc16 = parts
             print("done.")
 
-    def _predict_segparts(self, fit, N, ncores=None):
+    def _predict_segparts(self, fit, N, mu=None, ncores=None):
         """
         Given a fit, predict the V, Vm, and T segment components
         for each segment
         """
         rescaling = self.rescaling
-        mu = fit.mle_mu
+        if mu is None:
+            mu = fit.mle_mu
         W = fit.mle_W
         L = self.lengths
         F = self.features
