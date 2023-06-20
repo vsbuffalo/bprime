@@ -659,11 +659,11 @@ class BGSLikelihood:
         """
         draw = np.random.normal(self.theta_, self.sigma_)
         # truncate the bounds of W
-        W = draw[2:]
+        W = draw[2:].reshape((self.nt, self.nf))
         W[W < 0] = 0
         W[W > 1] = 1
         W = W / W.sum(axis=0)
-        return draw[0], draw[1], W.reshape((self.nt, self.nf))
+        return draw[0], draw[1], W
 
          
     def W_df(self):
