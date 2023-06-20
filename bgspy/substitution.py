@@ -129,22 +129,17 @@ def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
     m = model
 
     if bootstrap:
-        mus, pi0, W = fit.normal_draw()
+        mux, pi0, W = fit.normal_draw()
         if mu is not None:
             # not fixed mu, use the sample
-            mus = mu
+            mux = mu
     else:
         # use the MLE
         if mu is None:
-            mus = fit.mle_mu
+            mu = fit.mle_mu
         else:
-            mus = mu
+            mu = mu
         W = fit.mle_W
-
-    from bgspy.likelihood import SimplexModel # to prevent circular import
-    if isinstance(fit, SimplexModel):
-        # repeat one for each feature (for simplex, these are all same)
-        mus = np.repeat(mus, fit.nf)
 
     F = m.genome.segments.F
     ns, nf = F.shape
@@ -163,7 +158,8 @@ def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
     chroms = np.array(chroms)
 
     # predict the Vs, Vms, and Ts for all segments
-    Vs, Vms, Ts = segments._predict_segparts(fit, model.N, W=W, mu=mu, ncores=ncores)
+    Vs, Vms, Ts = segments._predict_segparts(fit, model.N, W=W, mu=mu, 
+                                             ncores=ncores)
 
     R = 1/Ts
     with np.errstate(under='ignore'):

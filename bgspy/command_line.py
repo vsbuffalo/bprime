@@ -527,7 +527,8 @@ def subrate(bs_file, fit,
   
     # if boots, we load the jackknifes for SEs
     if boot:
-        bpfit.load_jackknives(fit.replace('mle.pkl', "jackknife"))
+        # TODO Hard coded...
+        bpfit.load_jackknives(os.path.join(fit.replace('mle.pkl', "jackknife"), "block_10000000"))
 
     rdf = m.ratchet_df(bpfit, mu=mu, ncores=ncores, bootstrap=boot)
     msg = "feature mismatch between BGSModel and fit!"
