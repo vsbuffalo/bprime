@@ -39,8 +39,8 @@ params:
 # the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: true, jackknife: [[10000000, 280]], predict: true, jackknife_rescaled: false}
-  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: true, jackknife: false, predict: false, jackknife_rescaled: false}
+  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife: [[10000000, 280]], predict: true, jackknife_rescaled: false, predict_mu: 1.5e-8, predict_jk: false}
+  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: 1.5e-8, predict_jk: false}
  
   # rescale with fixed mutation
   #- {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false, jackknife_rescaled: false}

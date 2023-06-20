@@ -296,13 +296,13 @@ class BGSModel(object):
         r = R/seglens
         return midpoints, r, segments.ranges, seglens
 
-    def ratchet_df(self, fit, mu=None, ncores=None):
+    def ratchet_df(self, fit, mu=None, boot=False, ncores=None):
         """
         Output a combined ratchet, for all segments.
         mu is optional mutation rate to predict under (otherwise 
         MLE will be used).
         """
-        return ratchet_df2(self, fit, mu=mu, ncores=ncores)
+        return ratchet_df2(self, fit, mu=mu, boot=boot, ncores=ncores)
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)

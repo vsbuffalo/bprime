@@ -652,6 +652,19 @@ class BGSLikelihood:
                 mean[feature].append(self.mle_W[j,i])
         return mean, se
 
+    def normal_draw(self):
+        """
+        For approximate parametric bootstrap. Out of bounds draws of W are 
+        set to 0, 1.
+        """
+        draw = np.random.normal(self.theta_, self.sigma_)
+        # truncate the bounds of W
+        W = draw[2:]
+        W[W < 0] = 0
+        W[W > 1] = 1
+        return draw[0], draw[1], W.reshape((self.nt, self.nf))
+
+         
     def W_df(self):
         mean, se = self.W_stderrs()
         t = self.t

@@ -7,6 +7,7 @@ from bgspy.utils import midpoint_linear_interp, signif
 
 def ratchet_df(model, fit, predict_under_feature=None):
     """
+    DEPRECATED
     Predict the ratchet given a model and fits.
 
     Note that this depends on *existing* rescaling in the
@@ -121,16 +122,23 @@ def ratchet_df(model, fit, predict_under_feature=None):
     return d
 
 
-def ratchet_df2(model, fit, mu=None, ncores=None):
+def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
     """
     A better version of the function above.
     """
     m = model
-    if mu is None:
-        mus = fit.mle_mu
+
+    if bootstrap:
+        mux, pi0, W = fit.normal_draw()
+        if mu is None:
+            # not fixed mu, use the sample
+            mu = mux
     else:
-        mus = mu
-    W = fit.mle_W
+        if mu is None:
+            mus = fit.mle_mu
+        else:
+            mus = mu
+        W = fit.mle_W
 
     from bgspy.likelihood import SimplexModel # to prevent circular import
     if isinstance(fit, SimplexModel):

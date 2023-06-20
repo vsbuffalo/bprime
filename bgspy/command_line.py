@@ -504,6 +504,7 @@ def fit(data, output, mu, mu_bounds, pi0_bounds, ncores, nstarts, chrom, only_bp
 @click.option('--ncores',
               help='number of cores to use for multi-start optimization',
               type=int, default=1)
+@click.option('--boot', is_flag=True, default=False, help="sample the MLE from a parametric normal bootstrap")
 @click.option('--mu', default=None, type=float, help="optional mutation rate to predict under (MLE used otherwise)")
 @click.option('--output', required=True,
               type=click.Path(dir_okay=False, writable=True),
@@ -514,6 +515,7 @@ def fit(data, output, mu, mu_bounds, pi0_bounds, ncores, nstarts, chrom, only_bp
 def subrate(bs_file, fit, 
             #force_feature,
             ncores,
+            boot,
             mu,
             output, split):
     """
@@ -523,7 +525,7 @@ def subrate(bs_file, fit,
     fits = pickle.load(open(fit, 'rb'))
     bpfit = fits['mbp']
 
-    rdf = m.ratchet_df(bpfit, mu=mu, ncores=ncores)
+    rdf = m.ratchet_df(bpfit, mu=mu, ncores=ncores, boot=boot)
     msg = "feature mismatch between BGSModel and fit!"
     assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
     rdf = rdf.sort_values(['chrom', 'start', 'end'])
