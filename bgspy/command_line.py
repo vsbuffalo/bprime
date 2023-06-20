@@ -529,7 +529,7 @@ def subrate(bs_file, fit,
     if boot:
         bpfit.load_jackknives(fit.replace('mle.pkl', "jackknife"))
 
-    rdf = m.ratchet_df(bpfit, mu=mu, ncores=ncores, boot=boot)
+    rdf = m.ratchet_df(bpfit, mu=mu, ncores=ncores, bootstrap=boot)
     msg = "feature mismatch between BGSModel and fit!"
     assert bpfit.features == list(m.genome.segments.feature_map.keys()), msg
     rdf = rdf.sort_values(['chrom', 'start', 'end'])

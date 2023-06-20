@@ -129,10 +129,10 @@ def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
     m = model
 
     if bootstrap:
-        mux, pi0, W = fit.normal_draw()
-        if mu is None:
+        mus, pi0, W = fit.normal_draw()
+        if mu is not None:
             # not fixed mu, use the sample
-            mu = mux
+            mus = mu
     else:
         if mu is None:
             mus = fit.mle_mu
