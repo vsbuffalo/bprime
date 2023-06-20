@@ -177,15 +177,19 @@ class Segments:
             self._segment_parts_sc16 = parts
             print("done.")
 
-    def _predict_segparts(self, fit, N, mu=None, ncores=None):
+    def _predict_segparts(self, fit, N, W=None, mu=None, ncores=None):
         """
         Given a fit, predict the V, Vm, and T segment components
         for each segment
+
+        TODO: fit could be factored out; should just depend on params
         """
         rescaling = self.rescaling
+        # if manual params given, use them
         if mu is None:
             mu = fit.mle_mu
-        W = fit.mle_W
+        if W is None:
+            W = fit.mle_W
         L = self.lengths
         F = self.features
         rbp = self.rates

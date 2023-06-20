@@ -662,6 +662,7 @@ class BGSLikelihood:
         W = draw[2:]
         W[W < 0] = 0
         W[W > 1] = 1
+        W = W / W.sum(axis=0)
         return draw[0], draw[1], W.reshape((self.nt, self.nf))
 
          
