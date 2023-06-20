@@ -524,6 +524,10 @@ def subrate(bs_file, fit,
     m = BGSModel.load(bs_file)
     fits = pickle.load(open(fit, 'rb'))
     bpfit = fits['mbp']
+  
+    # if boots, we load the jackknifes for SEs
+    if boot:
+        bpfit.load_jackknives(fit.replace('mle.pkl', "jackknife"))
 
     rdf = m.ratchet_df(bpfit, mu=mu, ncores=ncores, boot=boot)
     msg = "feature mismatch between BGSModel and fit!"

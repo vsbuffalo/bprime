@@ -102,7 +102,7 @@ for popl in pops:
         do_loo = fit_specs['loo']
         do_predict = fit_specs['predict']
         do_predict_mu = fit_specs.get('predict_mu', False)
-        predict_jk = fit_specs.get('predict_jk', False)
+        predict_boot = fit_specs.get('predict_boot', False)
         jackknife_windows = fit_specs['jackknife']
         tracktype = fit_specs['type']
 
@@ -151,8 +151,10 @@ for popl in pops:
                     jk_dir = join(this_fit_path, "jackknife", f"block_{jk_window}")
                     for frac in np.linspace(0, 1, njack+1)[:-1]:
                         jackknife_fits.append(join(jk_dir, f"jackknife_{frac}.pkl"))
-                        if do_predict_mu and predict_jk:
-                            jackknife_fits.append(join(jk_dir, "predicted_subrates", f"jackknife_{frac}__{do_predict_mu}.tsv"))
+            if do_predict_mu and predict_boot:
+                for boot in range(predict_boot):
+                    pred_dir = join(this_fit_path, "predict_boots")
+                    jackknife_fits.append(join(pred_dir, f"predicted_subrates_{do_predict_mu}__{boot}.tsv"))
 
 
 # for debuggin
@@ -416,10 +418,10 @@ rule subrate_predict:
       --ncores {resources.threads} --output {output}
     """
 
-rule subrate_predict_mu_jk:
-  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/jackknife/block_{blocksize}/jackknife_{frac}.pkl",
+rule subrate_predict_mu_boot:
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
          bs_file=Bs_file
-  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{type}/jackknife/block_{blocksize}/predicted_subrates/jackknife_{frac}__{mu}.tsv"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predict_boots/predicted_subrates_{mu}__{boot}.tsv"
   params: **settings
   resources:
     mem_mb=200000,
@@ -428,7 +430,7 @@ rule subrate_predict_mu_jk:
   shell:
     """
     bgspy subrate \
-      --fit {input.fit} --bs-file {input.bs_file} --mu {wildcards.mu} \
+      --fit {input.fit} --bs-file {input.bs_file} --mu {wildcards.mu} --boot \
       --ncores {resources.threads} --output {output}
     """
 
