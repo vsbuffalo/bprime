@@ -70,7 +70,7 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                     if len(other_preds):
                         for pred in other_preds:
                            mu = float(pred.replace('predicted_subrates_', '').replace('.tsv', ''))
-                        mu_predicts[(pop, window, type_)][mu] = pd.read_csv(join(dir_path, pred), sep='\t')
+                           mu_predicts[(pop, window, type_)][mu] = pd.read_csv(join(dir_path, pred), sep='\t')
  
     return initial, rescaled, initial_predict, rescaled_predict, mu_predicts
 
