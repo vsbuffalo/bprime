@@ -59,19 +59,20 @@ The continual influx of new mutations into populations is the ultimate source
 of all adaptations, but the vast majority of mutations either do not affect
 fitness or are deleterious. Negative selection works to eliminate such
 deleterious mutations from the population, which is essential to maintaining
-the integrity of information in the genome to maintain a lineage. Mutations
-under negative selection are kept at low frequencies (Haldane?), contributing
-to human traits (XXX) and diseases. As with most selection in the genome, this
-process perturbs the allele frequencies of neighboring linked variation. This
-reduces genetic variability around conserved segments and creates large-scale
-spatial patterns in genetic diversity. These patterns are mediated by the
-deleterious mutation rate, the strength of selection in conserved segments, and
-the spatial distribution of recombination rates and conserved segments. Since
-genome-wide recombination maps and putatively conserved segments are available
-for many species, researchers have combined these with population genetic
-theory to estimate the mutation rate and selection coefficients of deleterious
-mutations, as well as the overall reduction in genetic variability due to the
-negative selection process.
+the integrity of information in the genome needed to maintain a lineage.
+Mutations under negative selection are kept at low frequencies (Haldane?),
+contributing to human traits (XXX) and diseases. As with most selection in the
+genome, this process perturbs the allele frequencies of neighboring linked
+variation. This reduces genetic variability around conserved segments and
+creates large-scale spatial ``linked selection signal" in genetic diversity.
+Mutation and negative selection's contribution to this signal is mediated by
+the deleterious mutation rate, the strength of selection in conserved segments,
+and the spatial distribution of recombination rates and conserved segments.
+Since genome-wide recombination maps and putatively conserved segments are
+available for many species, researchers have combined these with population
+genetic theory to estimate the mutation rate and selection coefficients of
+deleterious mutations, as well as the overall reduction in genetic variability
+due to the negative selection process.
 
 Classic Background Selection (BGS) theory is the predominant model for the
 reduction in linked neutral diversity used by statistical approaches to
@@ -693,7 +694,13 @@ U-shaped relationship between $B'$ and the strength of selection suggests that
 a given reduction factor could be explained by two different selection
 coefficients.
 
-\subsection*{Predicted Diversity and $B'(x)$ maps}
+\subsection*{Predicted Diversity Substitution Rates}
+
+\begin{figure}[htbp] \centering
+    \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
+    \caption{}
+  \label{fig:figure-4}
+\end{figure}
 
 When we fit our negative selection model to genome-wide patterns of diversity,
 the parameter estimates generate three predicted quantities: (1) the $B(x)$
@@ -731,7 +738,13 @@ we must account for three major sources of uncertainty.
 
 First, the split time between humans and chimpanzees is unknown, with estimates
 ranging from 6Mya to 12Mya (XXX). Second, our predictions are in sites per
-generation, and the appropriate human generation time is unknown. Third, 
+generation, and the appropriate human generation time is unknown. Third, the
+appropriate mutation rate to use is debated, since there may have been a
+mutational slow down on the human lineage (XXX), which could explain why
+phylogenetic- and pedigree-based mutation rate estimates differ by roughly a
+factor of two (XXX). Finally, we are only considering modeling the deleterious
+substitution rate. In reality, some fraction of observed substitutions fixed
+because they were beneficial. 
 
 
 
