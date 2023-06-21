@@ -213,6 +213,7 @@ def predict_chrom_plot(model, chrom, ratio=True, center_scale=False,
                        label='prediction', lw=2,
                        pred_col='cornflowerblue', pi_col='0.22',
                        alpha_predict=1, alpha_pi=1,
+                       xlab='position',
                        add_r2=False, figax=None, predict_kwargs=None):
     m = model
     fig, ax = get_figax(figax)
@@ -252,7 +253,8 @@ def predict_chrom_plot(model, chrom, ratio=True, center_scale=False,
     if add_r2:
         ax.set_title(f"$R^2 = {np.round(model.R2(), 2)}$")
     ax.set_ylabel(ylab)
-    ax.set_xlabel("position")
+    if xlab is not None:
+        ax.set_xlabel(xlab)
     return fig, ax
 
 
