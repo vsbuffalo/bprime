@@ -46,6 +46,8 @@
 \begin{document}
 \maketitle
 
+\tableofcontents
+
 \section{Human Genomic Data}
 
 \subsection{YRI Samples}
@@ -462,28 +464,43 @@ the genome.
   \label{suppfig:drift_r2}
 \end{figure}
 
-\section*{Ratchet Rate Predictions}
+\section*{Predicted Rate of Fitness Change}
 
-\section*{Load Predictions}
+Each fixation of a mutant with fitness effect $-s$ reduces the population
+fitness to $1-2s$ since all individuals are homozygotes for the deleterious
+mutation and we assume additive effects at a site. For each segment $l$, the
+maximum likelihood parameter estimates of our model imply a prediction of the
+deleterious substitution rate per segment $\widehat{R}_{l,i}$ for each
+selection coefficient $s_i$ in the $m_s$-element DFE grid (according to which
+feature class it belongs to).
 
-Each fixation of a mutant with effect $-s$ decreases the population fitness by
-$(1-2s)$ since we assume additive effects throughout. For each feature's DFE
-vector $\mathbf{w}$ and grid of selection coefficients $\mathbf{s}$, we have a
-corresponding vector $\widehat{\mathbf{r}}$ of predicted ratchet rates. Each
-generation $\widehat{\mathbf{r}}$ substitutions are fixed each generation.
-Since we assume multiplicative fitness, the log load for selection coefficient
-$i$ in the vector is,
-
-\begin{align}
-    l_i = \log(1-2 s_i) \widehat{r_i}.
-\end{align}
-
-The total log load is,
+Since we assume multiplicative fitness effects, the log population fitness
+(considering only fixed sites) for segment $l$ in the next generation is,
 
 \begin{align}
-    \log(L) = \sum_{i} l_i.
+    \log(L_{l}) = \sum_{i=1}^{m_s} \log(1-2 s_i) \widehat{R}_{l,i}.
 \end{align}
+%
+Since we assume multiplicative fitness, the total genome-wide log population
+fitness in the next generation is
 
+\begin{align}
+    \log(L) = \sum_{l} \log{L_l}.
+\end{align}
+%
+This amounts to a predicted population fitness loss per generation of
+
+\begin{align}
+    \widehat{\Delta}_W &= 1 - L \\  \nonumber
+             &= 1 - \exp\left(\sum_{l} \sum_{i=1}^{m_s} \log(1-2s_i) \widehat{R}_{l,i} \right).
+\end{align}
+%
+We calculate this value for all segments within a feature class, and then sum
+over all features to arrive at our genome-wide estimate. We use a parametric
+bootstrap to carry forward the estimation uncertainty to the predicted fitness
+loss per generation. Briefly, we do this by sampling new estimates of the DFE
+per selection coefficient and feature from a normal distribution centered on
+the ML point estimate and with the jackknife standard deviation.
 
 \section*{Likelihood}
 
@@ -585,6 +602,15 @@ corresponds to an identity link function; one could alternatively use a
 two-alleles finite sites model link function of the form, $\pi/(1 + 2 \pi)$. We
 experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
+
+\section{Simulations}
+
+\subsection{Segment Simulations}
+
+
+\section{Additional Theory}
+
+\subsection{supp:weak-strong}
 
 
 \section{Background Selection Models}

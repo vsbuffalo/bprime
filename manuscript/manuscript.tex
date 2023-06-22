@@ -64,40 +64,40 @@ Mutations under negative selection are kept at low frequencies (Haldane?),
 contributing to human traits (XXX) and diseases. As with most selection in the
 genome, this process perturbs the allele frequencies of neighboring linked
 variation. This reduces genetic variability around conserved segments and
-creates large-scale spatial ``linked selection signal" in genetic diversity.
-Mutation and negative selection's contribution to this signal is mediated by
-the deleterious mutation rate, the strength of selection in conserved segments,
-and the spatial distribution of recombination rates and conserved segments.
-Since genome-wide recombination maps and putatively conserved segments are
-available for many species, researchers have combined these with population
-genetic theory to estimate the mutation rate and selection coefficients of
-deleterious mutations, as well as the overall reduction in genetic variability
-due to the negative selection process.
+creates a large-scale spatial ``linked selection signal" in diversity alone the
+genome. Mutation and negative selection's contribution to this signal is
+mediated by the deleterious mutation rate, the strength of selection in
+conserved segments, and the spatial distribution of recombination rates and
+conserved segments. Since genome-wide recombination maps and putatively
+conserved segments are available for many species, researchers have combined
+these with population genetic theory to estimate the mutation rate and
+selection coefficients of deleterious mutations, as well as the overall
+reduction in genetic variability due to the negative selection process.
 
-Classic Background Selection (BGS) theory is the predominant model for the
-reduction in linked neutral diversity used by statistical approaches to
-quantify the impacts of negative selection. However, this model makes some
-assumptions for mathematical tractability that could distort inferences about
-the negative selection process. First, since fixation probabilities ultimately
-depend on the product of the deleterious selection coefficient (s) and
-population size (N), the efficacy of negative selection should depend on
-demography. Unfortunately, accommodating demography into theoretic negative
-selection models remains an open, difficult problem (XXX). Second, building off
-classic models of mutation-selection balance (Crow 1970, Kimura and Maruyama
-196), the Background Selection (XXX) model assumes that new mutations are
-sufficiently deleterious that they are invariably driven to loss. Under this
-assumption, the effect of selection is well-approximated by simply rescaling
-the neutral coalescent by a reduction factor known as B (XXX). However, this is
-only appropriate in a limited domain of parameters relevant to the negative
-selection process (XXX). Because the BGS model cannot accommodate the
-possibility of fixation for mutations with $Ns \ll 1$, diversity is incorrectly
-predicted to fall to zero as the strength of selection diminishes. This weak
-selection problem is related to the wider problem of modeling the substitution
-rate of deleterious mutation (i.e. the “ratchet” rate). Third, the BGS model
-assumes segments under purifying selection are sufficiently far apart that
-there is no selective interference between them. This is a matter of degree,
-since under sufficiently high mutation rates or with little recombination,
-selective interference can occur with a segment. 
+Classic Background Selection (BGS) theory is the predominant theoretic model to
+predict the reduction in linked neutral diversity, and is used by statistical
+approaches that quantify the aspects of the negative selection. However, the
+BGS model makes some assumptions for mathematical tractability that could
+distort inferences about the negative selection process. First, since fixation
+probabilities ultimately depend on the product of the deleterious selection
+coefficient (s) and population size (N), the efficacy of negative selection
+should depend on demography. Unfortunately, accommodating demography into
+theoretic negative selection models remains an open, difficult problem (XXX).
+Second, building off classic models of mutation-selection balance (Crow 1970,
+Kimura and Maruyama 196), the Background Selection (XXX) model assumes that new
+mutations are sufficiently deleterious that they are invariably driven to loss.
+Under this assumption, the effect of selection is well-approximated by simply
+rescaling the neutral coalescent by a reduction factor known as B (XXX).
+However, this is only appropriate in a limited domain of parameters relevant to
+the negative selection process (XXX). Because the BGS model cannot accommodate
+the possibility of fixation for mutations with $Ns \ll 1$, diversity is
+incorrectly predicted to fall to zero as the strength of selection diminishes.
+This weak selection problem is related to the wider problem of modeling the
+substitution rate of deleterious mutation (i.e. the “ratchet” rate). Third, the
+BGS model assumes segments under purifying selection are sufficiently far apart
+that there is no selective interference between them. This is a matter of
+degree, since under sufficiently high mutation rates or with little
+recombination, selective interference can occur with a segment. 
 
 In this work, we extend another class of linked selection models that derive
 from quantitative genetics to address limitations of the classic BGS model.
@@ -121,13 +121,13 @@ population genomic data, we confirm earlier findings that strong negative
 selection at a small fraction of sites fits human data across populations best.
 Finally, we show that while this model solves some limitations of the classic
 BGS model, simulations reveal another mysterious defect: a poor fit around
-$Ns=1$. We show that this can be partially corrected by incorporating the effects
-of selective interference on genic variation, but the remaining discrepancy is
-due to the build up of negative linkage disequilibrium that cannot be
-adequately captured by this model. We find accounting for genic selective
-interference between segments fits human population genomic data slightly
-better, suggesting levels of negative selection in humans are sufficient to
-perturb the selection at other sites.
+$Ns=1$. We show that this can be partially corrected by incorporating the
+effects of selective interference on genic variation, but the remaining
+discrepancy is due to the build up of negative linkage disequilibrium that
+cannot be adequately captured by this model. We find accounting for genic
+selective interference between segments fits human population genomic data
+slightly better, suggesting levels of negative selection in humans are
+sufficient to perturb the selection at other sites.
 
 \section*{Theory}
 
@@ -237,12 +237,12 @@ same direction across generations as long as the linkage exists and the
 selective environment is constant. The additional heritable variation in
 offspring number is the additive fitness variation $V_A$, which is inflated by
 a factor $Q_t^2$ due to the build up of autocorrelation to generation $t$. We
-let $Q^2 = Q_t^2$ as $t \to \infty$. Intuitively, the product $V_A Q^2$
+let $Q^2 := Q_t^2$ as $t \to \infty$. Intuitively, the product $V_A Q^2$
 represents the expected total variance in reproductive success a neutral
-mutation experiences over its lifetime in a system with draft. Incorporating
-the impact of time-invariant autocorrelation created by draft as a rescaled
-rate of drift is analogous to using the Green--Kubo relation to find the
-transport coefficient in molecular dynamics with velocity autocorrelation
+mutation experiences over its lifetime in a system with weak selection draft.
+Incorporating the impact of time-invariant autocorrelation created by draft as
+a rescaled rate of drift is analogous to using the Green--Kubo relation to find
+the transport coefficient in molecular dynamics with velocity autocorrelation
 \parencite{Green1954-kl,Kubo1957-va}.
 
 Including the total asymptotic variance in reproductive success in Equation
@@ -274,10 +274,10 @@ its particular associated fitness background.
 
 Equation \eqref{eq:main_Ne} is general, since different modes of selection and
 linkage can be accommodated by different expressions for the inflation factor
-$Q^2$. When fitness variation has a multiplicative polygenic basis, as it does
-for genome-wide negative selection processes, the draft asymptotic effective
-population size experienced by an arbitrary neutral site under the influence of
-all linked regions is,
+$Q^2$ \parencite{Santiago1995-hx,Santiago1998-bs}. When fitness variation has a
+multiplicative polygenic basis, as it does for genome-wide negative selection
+processes, the draft asymptotic effective population size experienced by an
+arbitrary neutral site under the influence of all linked regions is,
 
 \begin{align}
     \label{eq:polygenic_Ne}
@@ -291,10 +291,10 @@ segments $i \in \{1, 2, \ldots, n\}$ each undergoing selection such that
 segment $i$ contributes additive fitness variance $V_{A,i}$ to the total
 additive genetic fitness variance. Under equilibrium levels of fitness
 variation, the autocorrelation function for a neutral allele associated with
-segment $i$ is the time-invariant function $C(t) = [(1-r_i)(1-\kappa_i)]^t$,
-where $r_i$ is the recombination fraction to the segment and $\kappa_i$ is the
-rate that the associated fitness variance decays due to selective dynamics.
-Then, the cumulative autocorrelation is,
+segment $i$ is $C(t) = [(1-r_i)(1-\kappa_i)]^t$, where $r_i$ is the
+recombination fraction to the segment and $\kappa_i$ is the rate that the
+associated fitness variance decays due to selective dynamics. Then, the
+cumulative autocorrelation is,
 
 \begin{align}
     Q_i &= 1 + \sum_{j=1}^\infty \left[(1-r_i)(1-\kappa_i)\right]^j \\
@@ -315,15 +315,15 @@ variance $V_A$ and the decay rate in associated fitness $1-\kappa$. At this
 point, we diverge from Santiago and Caballero (\citeyear{Santiago1998-bs},
 \citeyear{Santiago2016-mu}) to note that the additive fitness variation is the
 sum of additive \emph{genic} fitness variance $V_a$ (i.e. due to allele
-frequencies) and the total linkage disequilibria $\delta_{LD}$ between selected
-sites, $V_A = V_a + \delta_{LD}$. Considering only the genic variation, at
-equilibrium $\Delta V_{a,i} = 0$; thus, the loss in genic fitness each
-generation due to selective dynamics $-\kappa V_{A,i}$ must be equal to the
-increase in fitness variation to new mutations $V_m$ each generation and
-changes in the LD term \parencite{Bulmer1971-ae}. Note that the loss in genic
-fitness due to drift is not time-invariant due to the build up of
+frequencies) and the fitness covariance due to linkage disequilibria between
+selected sites ($\delta_{LD}$), $V_A = V_a + \delta_{LD}$. Considering only the
+genic variation, at equilibrium $\Delta V_{a,i} = 0$; thus, the loss in genic
+fitness each generation due to selective dynamics $-\kappa V_{A,i}$ must be
+equal to the increase in fitness variation due to new mutations each generation
+($V_m$) and changes in the LD term \parencite{Bulmer1971-ae}. Note that the
+loss in genic fitness due to drift is not time-invariant due to the build up of
 autocorrelation, and considered elsewhere in the derivation (see Supplementary
-Materials Equation \ref{eq:vardecay}). Then, $\kappa_i =
+Materials Equation \ref{eq:vardecay}). Then, at equilibrium $\kappa_i =
 \nicefrac{V_{m,i}}{V_{a,i}}$ (see Supplementary Materials Equation \ref{eq:Z}). 
 
 Under any selection model, the genic fitness variance created by a new mutation
@@ -347,7 +347,7 @@ general theory of Santiago and Caballero (\citeyear{Santiago2016-mu}), which
 they have shown previously (\citeyear{Santiago1998-bs}).
 
 When selection is weak, however, the additive fitness variance under the
-classic BGS model is no longer accurate. \parencite{Santiago2016-mu} suggested
+classic BGS model is no longer accurate. \textcite{Santiago2016-mu} suggested
 that this is due to the loss of fitness variation that occurs when a
 segregating site fixes and its heterozygosity becomes zero. If we let $R$
 represent the rate of the ratchet of deleterious mutations in fixations per
@@ -374,13 +374,13 @@ Theorem of Natural Selection, but we find an alternative proof
 (\cite{Higgs1995-xc}; see Supplementary Materials Section
 \ref{supp:weak-strong}). We find that the steady-state additive genic variance
 in Equation \eqref{eq:Va} also results from diffusion models with a flux of
-mutations into discrete sites (\cite{Kimura1969-jw}; see Supplementary
-Materials Section \ref{supp:kimura}). Our results differ from
-\parencite{Santiago2016-mu}, since we find from simulations their expression
-models the additive \emph{genic} fitness variation, not additive genetic
-fitness variation (see Section XXX). This is because Equation \eqref{eq:Va}
-does not capture the expected build-up of negative linkage disequilibria when
-selection is only mildly deleterious.
+mutations into discrete sites (\cite{Kimura1969-jw}). 
+
+%Our results differ from \parencite{Santiago2016-mu}, since we find from
+%simulations their expression models the additive \emph{genic} fitness
+%variation, not additive genetic fitness variation (see Section XXX). This is
+%because Equation \eqref{eq:Va} does not capture the expected build-up of
+%negative linkage disequilibria when selection is mildly deleterious.
 
 While using Equation \eqref{eq:Va} in Equation \eqref{eq:main_Ne} leads to a
 prediction for the draft-effective population size $N_d$, closed-form
@@ -389,7 +389,7 @@ expressions for the rate of the ratchet $R$ have generally been hard to find
 \textcite{Santiago2016-mu} is that the ratchet rate under draft is determined
 by the probability of fixation $p_f(N_d, s)$
 \parencite{Kimura1962-su,Malecot1948-zv} with the draft-rescaled effective
-population size, e.g. $R = N U p_f(N_d, s)$. Given this equation for the
+population size, i.e. $R = N U p_f(N_d, s)$. Given this equation for the
 ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
 system of two non-linear equations that can be solved numerically for $N_d$ and
 $R$ for each segment,
@@ -464,74 +464,75 @@ correspondence between the observed and predicted reduction in effective
 population size $B=\nicefrac{N_d}{N}$ over all selection and mutation
 parameters including weak selection (Figure \ref{fig:figure-1}A), in contrast
 to classic BGS theory. Furthermore, to investigate whether this accuracy was
-caused by the model capturing the equilibrium fitness variance and ratchet
-rate, we also measured these throughout the simulation. Again, we find the
-diploid SC16 theory accurately predicts both the ratchet rate (Figure
+caused by the model accurately predicting the equilibrium fitness variance and
+ratchet rate, we also measured these throughout the simulation. Again, we find
+the diploid SC16 theory accurately predicts both the ratchet rate (Figure
 1\ref{fig:figure-1}B) and the genic fitness variance (Figure
 1\ref{fig:figure-1}C).
 
-Additionally, these figures provide further intuition for the underlying
+Additionally, these figures provide further intuition about the underlying
 negative selection process. When selection is strong the ratchet rate is zero,
 as there is no probability that strongly deleterious can fix. However, around
-$2N_e s \approx 1$, the ratchet begins clicking as $p_F > 0$. Ultimately, the
-ratchet rate reaches the neutral mutation rate, as $V_a = 0$ and $N_d = N$
-(e.g. no draft). Likewise, the additive genic fitness variance matches the
-level predicted by BGS ($Us$), but begins to diverge when the ratchet begins
-clicking. This occurs when the level of variation diverges from the
-deterministic mutation-selection equilibrium $V_a = Us$ due to the stochastic
-clicking of the ratchet at rate $R$.
+$2N_e s \approx 1$, the ratchet begins clicking as $p_F > 0$. When this occurs,
+fitness variation is reduced from the strong-selection equilibrium by the
+amount of population fitness lost per generation due to the ratchet.
+Ultimately, the ratchet rate reaches the neutral mutation rate, as $V_a = 0$
+and $N_d = N$ (e.g. no draft, pure drift). Likewise, the additive genic fitness
+variance matches the level predicted by BGS ($Us$), but begins to diverge when
+the ratchet begins clicking. This occurs when the level of variation diverges
+from the deterministic mutation-selection equilibrium $V_a = Us$ due to the
+stochastic clicking of the ratchet at rate $R$.
 
 \subsection*{Chromosome-wide Simulations and Models of Negative Selection}
 
-Given the accuracy of the SC16 model in predicting the reduction in effective
-population size and ratchet rate when equilibrium negative selection processes
-were acting in single segment, we extended their model so that it could be
-applied to whole-genome data. Our method, implemented in the software
-\texttt{bgspy}, calculates the equilibrium additive genic fitness variance
-$V_a$ and ratchet rate $R$ for each specified segment in the genome for a range
-of mutation rates and selection coefficients and a fixed genome-wide
-drift-effective population size $N$ (see Methods XXX). Genomic regions
-putatively under negative selection (e.g. coding sequences or UTRs) and the
-recombination rate map are specified as arguments so that the predicted values
-accurately reflect local genomic details. Note that each equation is solved
-independently, since here we assume no selective interference between segments.
-We refer to the prediction reductions along the genome from our approach as B'
-maps (analogous to B maps from \cite{McVicker2009-ax}).
+Given the accuracy of the SC16 model in predicting the reduction factor $B$ and
+ratchet rate for a single segment under general equilibrium mutation negative
+selection processes, we extended their model so that it could be applied to
+whole-genome data. Our software method \texttt{bgspy} calculates the
+equilibrium additive genic fitness variance ($V_a$) and ratchet rate ($R$)
+across grids of mutation rates and selection coefficients for each
+pre-specified segment in the genome that may be under negative selection (e.g.
+coding sequences or UTRs). Then, our method computes a reduction map $B(x)$ for
+each position $x$ in the genome by combining the pre-computed $V_a$ for every
+segment and a user-supplied recombination map (see Methods XXX). To distinguish
+between McVicker's B maps based on classic BGS theory, we call our reduction
+map $B(x)$ a B' map.
 
-To assess our B' maps, we simulated negative selection for fixed mutation rates
-and selection coefficient on human chromosome 10 using realistic recombination
-and conserved feature maps. Averaging over $n=100$ simulation replicates, we
-estimated the simulation expected reduction map and compared this to the
-predicted B and B' maps for the same parameters. We find that our B' maps and
-the classic BGS theory B maps closely match simulations when selection is
-strong (top row of Figure \ref{fig:figure-1}E). This provides the first
-realistic forward-time simulation confirmation of classic background selection
-theory. However, we find slight discrepancies in regions with low recombination
-(Figure \ref{fig:figure-1}E). Second, we find our theory is vastly more
-accurate than the classic B maps when selection is very weak ($2N_e s \ll 1$;
-bottom row of Figure \ref{fig:figure-1}E), which is expected since BGS theory
-does not work in this domain. Across all mutation and selection parameters
-simulated, the relative error of the classic B maps is 14.6\% whereas the
-relative error in the new B' maps is 5\%. Additionally, we find that the mean
-squared error between simulations and B' maps is close to the theoretic lower
-bound set by the coalescence variance \parencite[see Methods
+To assess our predicted B' reduction maps, we simulated negative selection for
+fixed mutation rates and selection coefficient on human chromosome 10 using
+realistic recombination and conserved feature maps. Averaging over $n=100$
+replicates, we estimated the simulation expected reduction map and compared
+this to the predicted B and B' maps for the same parameters. We find that our
+B' maps and the classic BGS theory B maps closely match simulations when
+selection is strong (top row of Figure \ref{fig:figure-1}E). This provides the
+first realistic forward-time chromosome-scale simulation confirmation of
+classic BGS theory. However, we find slight discrepancies in regions with low
+recombination (Figure \ref{fig:figure-1}E). Second, we find our theory is
+vastly more accurate than the classic B maps when selection is very weak ($2N_e
+s \ll 1$; bottom row of Figure \ref{fig:figure-1}E), which is expected since
+BGS theory does not work in this domain. Across all mutation and selection
+parameters simulated, the relative error of the classic B maps is 14.6\%
+whereas the relative error in the new B' maps is 5\%. Additionally, we find
+that the mean squared error between simulations and B' maps is close to the
+theoretic lower bound set by the coalescence variance \parencite[see Methods
 XXX]{Tajima1983-gu}.
 
 Nearly all of the error between the new B' maps and chromosome-wide simulations
 occurs around the drift-barrier domain of $2Ns \approx 1$ (Figure
 \ref{fig:figure-1}D). The higher error in this domain occurs across all
-mutation rates. First, we hypothesized that the reason this occurred was the
-when we numerically solve Equations \eqref{eq:main_eqns} for each segment, this
-does does not consider the reduction due to selection at other linked segments.
-In particular, we use $N=1000$ corresponding to the number of diploids in the
-simulations rather than $B'(x) N$ at position $x$. To test this, we implemented
-a locally-rescaled version of the B' maps, which numerically solves Equations
-\eqref{eq:main_eqns} for each segment at position $x$ taking into account the
-reduction experienced due to selection at other segments by setting $B'(x)N$ as
-the population size (see Method XXX). We find the locally-rescaled B' maps
-reduce the relative error from 5\% to 0.4\% and mean squared error (Figure
-\ref{fig:figure-1}D, dashed colored lines), but does not entirely eliminate the
-error in the $2Ns \approx 1$ domain.
+mutation rates. We hypothesized that the higher error in this domain may be
+because when our method numerically solves Equations \eqref{eq:main_eqns} for
+each segment, it does not consider the experienced reduction due to selection
+at other linked segments. In particular, we use a fixed drift-effective
+$N=1000$ corresponding to the number of diploids in the simulations rather than
+$B(x) N$ at position $x$. To test this, we implemented a locally-rescaled
+version of the B' maps, which numerically solves Equations \eqref{eq:main_eqns}
+for each segment at position $x$ taking into account the reduction experienced
+due to selection at other segments by setting $B'(x)N$ as the population size
+(see Method XXX). We find the locally-rescaled B' maps reduce the relative
+error from 5\% to 0.4\% and mean squared error (Figure \ref{fig:figure-1}D,
+dashed colored lines), but does not entirely eliminate the error in the $2Ns
+\approx 1$ domain.
 
 Finally, we hypothesized that the remaining error is because of the build up of
 negative linkage disequilibria between selected sites due to Hill--Robertson
@@ -550,7 +551,13 @@ $j$). However, according to theory, the reductions in diversity should be
 determined by levels of additive genetic fitness variance that include the
 contribution of LD (Supplementary Materials Section XXX).
 
-\subsection*{Annotation Model Comparison}
+Overall, while we find evidence that local-recalling can reduce error rate in
+the $2Ns \approx 1$ domain, 
+
+it currently cannot be used during when fitting
+genome-wide models.
+
+\subsection*{Application to Humans and Model Comparison}
 
 
 Our method takes tracks of annotated features (an ``annotation model") that are
@@ -882,8 +889,23 @@ connects fitness variation to absolute changes in fitness.
 % (the method would support a new
 % ``interaction" type, but this greatly increases the number of parameters).
 
+\subsection*{Segment Simulations}
+
+To assess the accuracy of the SC16 theory, we conducted forward simulations
+across grids of mutation rates ($\log_{10}(\mu) = \{10^{-9.5}, 10^{-9}, \ldots,
+10^{-8}\}$) and selection coefficients ($\log_{10}(\mu) = \{-1, 1.5, 2, \ldots,
+4.5\}$) using SLiM \parencite{Haller2023-uk,Haller2019-vu}. Each simulation
+evolved a 100kb region with deleterious mutations entering at rate $\mu$
+per-basepair, per generation, each with an additive selection coefficient of
+$-s$. Total fitness was multiplicative across sites. Each simulation recorded
+the number of fixations and the fitness variance per generation. After $10N$
+generations, the ARG of the tree was recorded and downstream Python scripts
+calculated diversity in the center of the region. We averaged the results of
+$10,000$ replicate simulations to compare against theory.
 
 \subsection*{Chromosome-wide Simulations}
+
+
 
 , using the HapMap recombination map (XXX) and in coding regions, PhastCons
 regions, and UTRs as an approximate set of putatively conserved segments
