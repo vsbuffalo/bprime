@@ -153,7 +153,7 @@ for popl in pops:
                         jackknife_fits.append(join(jk_dir, f"jackknife_{frac}.pkl"))
             if do_predict_mu and predict_boot:
                 for boot in range(predict_boot):
-                    pred_dir = join(this_fit_path, "predict_boots")
+                    pred_dir = join(this_fit_path, f"predict_boots__{mu}")
                     jackknife_fits.append(join(pred_dir, f"predicted_subrates_{do_predict_mu}__{boot}.tsv"))
 
 
