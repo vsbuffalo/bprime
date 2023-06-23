@@ -90,37 +90,39 @@ Then, the allele frequency change is,
 
 where $K_1$ and $H_1$ are the random change in neutral allele frequency change
 due to offspring number (including heritable and non-heritable components), and
-Mendelian segregation.
+Mendelian segregation in generation 1.
 
 Now, let us look the variance of $\var(\Delta x_1)$ over evolutionary
-replicates. Since the Mendelian random process and the offspring random process
+replicates. Since the Mendelian segregation and the offspring random process
 are independent,
 
 \begin{align}
   \var(\Delta x_1) &= \var(K_1) + \var(H_1).
 \end{align}
-
+%
 Looking at each term,
 
 \begin{align}
   \var(K_1) &\approx \frac{1}{4N^2} \sum_{i=1}^N \var\left(x_{0,i} (k_{0,i} - 1) \right)
 \end{align}
-
+%
 where we ignore the covariance terms due to the sum, since these are on order
 $\nicefrac{1}{N^3}$. In the first generation from an arbitrary starting point,
 the neutral alleles assort independently into diploids with respect to their
-fitness, so
+fitness, so we can simply the variance as
 
 \begin{align}
   \var(K_1) &\approx \frac{1}{4N^2} \sum_{i=1}^N \var(x_{0,i}) \var(k_{0,i} - 1)  \\
             &\approx \frac{1}{4N} \var(x_{0,i}) \var(k_{0,i}).
 \end{align}
 
-Assuming that no correlation between parental gametes (e.g. no inbreeding),
+Assuming no correlation between parental gametes (e.g. no inbreeding),
 $\var(x_{0,i})$ is the binomial variance in individual allele frequency, or
 $p_0(1-p_0)/2$, and $\var(k) := \var(k_{0,i})$ is the offspring variance of an
 individual given by the reproduction process. For example, if the reproduction
-process is a neutral multinomial Wright--Fisher, $\var(k) \approx 2$.
+process is a neutral multinomial Wright--Fisher, $\var(k) \approx 2$. Then, the
+variance in allele frequency change due to non-heritable offspring number
+variation is,
 
 \begin{align}
   \var(K_1) &\approx \frac{p_0(1-p_0)}{2N} \frac{\var(k)}{4}.
@@ -770,35 +772,35 @@ steady-state genic variance for $p=\nicefrac{1}{2N_e}$ is
 
 which is approximately Equation \eqref{eq:Va}.
 
-\subsection{Misspecification of the Polygenic Selection Model}
+% \subsection{Misspecification of the Polygenic Selection Model}
 
-Thus far, we have developed the general model of equation \eqref{XXX} by
-assuming that the only source of $V_h$ is from the deleterious
-mutation-selection-draft-drift process. However, other polygenic evolutionary
-processes can also create, alter, and eliminate fitness variation. By assuming
-that the only fitness variation originates from deleterious
-mutation-selection-drift-draft processes, we introduce some model
-misspecification. There are two main types of misspecification under the
-selection model. First, non-polygenic positive selection processes, such as
-recurrent sweeps, may create small-scale distortions in local genealogies.
-These have been found to only impact diversity on small spatial scales
-\parencite{Murphy2022-sj} in humans, and explain little of the total variation
-in megabase-scale patterns of diversity. Second, there is model
-misspecification due to our model assuming that the only polygenic selection
-process happening is the flux of new deleterious mutations in, and their
-eventual loss or fixation. Other polygenic selection processes could be
-occurring, e.g. traits could be responding to directional selection. The
-Santiago and Caballero model our work extends is very general, and can account
-for multiple types of polygenic selection. The key input parameters are the
-equilibrium heritable fitness variation $V_h$, and the variation introduced by
-mutation each generation $V_m$. 
+% Thus far, we have developed the general model of equation \eqref{XXX} by
+% assuming that the only source of $V_h$ is from the deleterious
+% mutation-selection-draft-drift process. However, other polygenic evolutionary
+% processes can also create, alter, and eliminate fitness variation. By assuming
+% that the only fitness variation originates from deleterious
+% mutation-selection-drift-draft processes, we introduce some model
+% misspecification. There are two main types of misspecification under the
+% selection model. First, non-polygenic positive selection processes, such as
+% recurrent sweeps, may create small-scale distortions in local genealogies.
+% These have been found to only impact diversity on small spatial scales
+% \parencite{Murphy2022-sj} in humans, and explain little of the total variation
+% in megabase-scale patterns of diversity. Second, there is model
+% misspecification due to our model assuming that the only polygenic selection
+% process happening is the flux of new deleterious mutations in, and their
+% eventual loss or fixation. Other polygenic selection processes could be
+% occurring, e.g. traits could be responding to directional selection. The
+% Santiago and Caballero model our work extends is very general, and can account
+% for multiple types of polygenic selection. The key input parameters are the
+% equilibrium heritable fitness variation $V_h$, and the variation introduced by
+% mutation each generation $V_m$. 
 
-Let us assume for now that,
+% Let us assume for now that,
 
-\begin{align}
-  \label{eq:Ne_inf}
-  N_{e,\infty} \approx N \exp\left(-\frac{V_h + \varepsilon}{(1-Z) (2-(2-M) Z)} \right).
-\end{align}
+% \begin{align}
+%   \label{eq:Ne_inf}
+%   N_{e,\infty} \approx N \exp\left(-\frac{V_h + \varepsilon}{(1-Z) (2-(2-M) Z)} \right).
+% \end{align}
 
 \subsection{Heterozygosity and $B$ values Under Weak and Strong Selection}
 
