@@ -140,8 +140,9 @@ fitness effects and rate of deleterious mutations, it is important to
 characterize and remedy these shortcomings. However, extending background
 selection theory to model weak negative selection is challenging, and it is
 worthwhile to develop some intuition for why this is the case, how the classic
-background selection works, and how the model of \textcite{Santiago2016-mu}
-solves these problems and can be extended to genome-wide inference.
+background selection works, and how the quantitative genetic model of
+\textcite{Santiago2016-mu} solves these problems and can be extended to
+genome-wide inference.
 
 Both the classic background selection and SC16 models imagine a negative
 selection process where a continual influx of deleterious mutations flow into
@@ -149,8 +150,8 @@ the population at a rate of $\mu$ per basepair per generation in a conserved
 region of $L$ basepairs, such that the region-wide per generation mutation rate
 is $U = \mu L$. Each mutation imposes an additive selective cost of $s$ in
 heterozygotes and $2s$ in homozygotes. The classic background selection model
-considers when mutations are sufficiently deleterious that they are destined to
-extinction
+only consider mutations that are sufficiently deleterious that they are
+destined to extinction
 \parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1994-oh}. In
 this case, the genealogy is well-approximated by a neutral coalescence process
 with a rescaled effective population size of $N_0 = N \exp(-\nicefrac{U}{s})$.
@@ -159,8 +160,8 @@ This approximation works reasonably well for two reasons (though see
 is strong, the number of deleterious mutations per haplotype has a stationary
 Poisson distribution with an average equal to the equilibrium under the
 deterministic mutation-selection model \parencite{Haldane1927-ga}. Since
-lineages carrying any strongly deleterious mutations cannot contribute to the
-genealogy, coalescence events only occur in the fraction
+lineages carrying strongly deleterious mutations cannot contribute to the
+genealogy in the long run, coalescence events only occur in the fraction
 $\exp(-\nicefrac{U}{s})$ of the population free of mutations. Second, the time
 it takes for a present-day lineage to trace their ancestry back to a
 mutation-free ancestor (the ``delay phase") is negligible compared to the
@@ -190,10 +191,10 @@ This distorts genealogies away those expected under neutrality
 distribution of the number of deleterious mutations (and its corresponding
 fitness distribution) are no longer stationary and become a traveling wave
 \parencite{Rouzine2008-qz,Good2013-lp,Gessler1995-hz} towards reduced
-population fitness (since beneficial mutations are ignored). Consequently,
-individuals in the least-loaded class are stochastically lost, fixing those
-mutations with a click of ``Muller's ratchet" \parencite{Muller1964-ki}.
-Determining both the rate of Muller's ratchet
+population fitness (since beneficial and back mutations are ignored).
+Consequently, individuals in the least-loaded class are stochastically lost,
+fixing those mutations with a click of ``Muller's ratchet"
+\parencite{Muller1964-ki}. Determining both the rate of Muller's ratchet
 \parencite{Haigh1978-gt,Gordo2002-dr,Gessler1995-hz} and the shape of
 genealogies under weak selection have been stubborn open problems in
 evolutionary genetics.
@@ -213,11 +214,11 @@ selective environment does not change
 strong, draft can generate multiple-merger coalescences that create
 discontinuities in allele frequency trajectories, making diffusion
 approximations ill-suited \parencite{Gillespie2000-mh,Der2011-it,Neher2013-dz}.
-However, when selection is weak, draft can be approximated as an increase in
+However, when selection is weak, draft is well-approximated as an increase in
 the rate of drift (or equivalently, a reduction in effective population size).
 
 A key insight from Robertson (\citeyear{Robertson1961-ho}) is that in the
-long-run draft acts like an increase in the variance in offspring number.
+long-run weak draft acts like an increase in the variance in offspring number.
 \textcite{Wright1938-tv} showed that additional non-heritable variance in
 offspring number (e.g. due to mating strategy) rescales the population size
 according to,
@@ -387,9 +388,9 @@ prediction for the draft-effective population size $N_d$, closed-form
 expressions for the rate of the ratchet $R$ have generally been hard to find
 \parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key insight of
 \textcite{Santiago2016-mu} is that the ratchet rate under draft is determined
-by the probability of fixation $p_f(N_d, s)$
+by the probability of fixation $p_F(N_d, s)$
 \parencite{Kimura1962-su,Malecot1948-zv} with the draft-rescaled effective
-population size, i.e. $R = N U p_f(N_d, s)$. Given this equation for the
+population size, i.e. $R = N U p_F(N_d, s)$. Given this equation for the
 ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
 system of two non-linear equations that can be solved numerically for $N_d$ and
 $R$ for each segment,
@@ -400,7 +401,19 @@ $R$ for each segment,
   R &= \frac{4N_d U s}{\exp(4 N_d s)-1}  & \text{\emph{ratchet equation}}
 \end{align}
 
-where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}.
+where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}. The predicted $V_a$, $R$,
+and $N_d$ values represent the equilibria expected under a
+mutation-selection-drift-draft process for neutral to strongly deleterious
+additive mutations.
+
+With the equilibrium $V_a$ calculated at each segment for a particular $\mu$
+and $s$, we can estimate the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any
+genomic position $x$ (see Methods XXX). XXX
+
+Since it is too computationally-intensive to numerically solve this system of
+equations for all segments to estimate the reduction at every position 
+
+for every focal position $x$
 
 % where,
 
@@ -409,7 +422,6 @@ where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}.
 %   Q^2 &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage inflation factor}} \\
 %   Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
 % \end{align}
-
 
 
 \section*{Results}
@@ -459,53 +471,50 @@ haploid-model for a single region under equilibrium negative selection, we
 first sought to confirm it could accurately predict the reduction in realistic
 forward-time simulations of diploid populations with recombination. Using SLiM
 \parencite{Haller2019-vu,Haller2023-uk} we simulated a region of $10^5$
-basepairs under varying levels of mutation and selection. We find a close
-correspondence between the observed and predicted reduction in effective
-population size $B=\nicefrac{N_d}{N}$ over all selection and mutation
-parameters including weak selection (Figure \ref{fig:figure-1}A), in contrast
-to classic BGS theory. Furthermore, to investigate whether this accuracy was
-caused by the model accurately predicting the equilibrium fitness variance and
-ratchet rate, we also measured these throughout the simulation. Again, we find
-the diploid SC16 theory accurately predicts both the ratchet rate (Figure
-1\ref{fig:figure-1}B) and the genic fitness variance (Figure
-1\ref{fig:figure-1}C).
+basepairs under varying levels of mutation and selection (see Methods
+\ref{sec:methods-segsim}). We find a close correspondence between the observed
+and predicted reductions in effective population size $B=\nicefrac{N_d}{N}$
+over all selection and mutation parameters including weak selection (Figure
+\ref{fig:figure-1}A), in contrast to classic BGS theory. Furthermore, to
+investigate whether this accuracy was caused by the model correctly predicting
+the equilibrium fitness variance and ratchet rate, we also measured these
+throughout the simulation. Again, we find the diploid SC16 theory accurately
+predicts both the ratchet rate (Figure 1\ref{fig:figure-1}B) and the genic
+fitness variance (Figure 1\ref{fig:figure-1}C).
 
-Additionally, these figures provide further intuition about the underlying
-negative selection process. When selection is strong the ratchet rate is zero,
-as there is no probability that strongly deleterious can fix. However, around
-$2N_e s \approx 1$, the ratchet begins clicking as $p_F > 0$. When this occurs,
-fitness variation is reduced from the strong-selection equilibrium by the
-amount of population fitness lost per generation due to the ratchet.
-Ultimately, the ratchet rate reaches the neutral mutation rate, as $V_a = 0$
-and $N_d = N$ (e.g. no draft, pure drift). Likewise, the additive genic fitness
-variance matches the level predicted by BGS ($Us$), but begins to diverge when
-the ratchet begins clicking. This occurs when the level of variation diverges
-from the deterministic mutation-selection equilibrium $V_a = Us$ due to the
-stochastic clicking of the ratchet at rate $R$.
+Moreover, these simulations provide intuition about the underlying negative
+selection process. When mutations are strongly deleterious, there is no chance
+they can fix, and the ratchet rate is zero (Figure \ref{fig:figure-1}B for $2Ns
+> 1$). In this strong selection regime, the additive genic fitness variation
+closely matches the theoretic deterministic equilibrium of $V_a = Us$ (dashed
+gray line, Figure \ref{fig:figure-1}C) However, around $2N_e s \approx 1$, the
+ratchet begins clicking as $p_F > 0$. When this occurs, each click of the
+ratchet eliminates variation, and the equilibrium variation diverges from the
+deterministic mutation-selection equilibrium (Figure \ref{fig:figure-1}C).
 
 \subsection*{Chromosome-wide Simulations and Models of Negative Selection}
 
 Given the accuracy of the SC16 model in predicting the reduction factor $B$ and
-ratchet rate for a single segment under general equilibrium mutation negative
-selection processes, we extended their model so that it could be applied to
-whole-genome data. Our software method \texttt{bgspy} calculates the
-equilibrium additive genic fitness variance ($V_a$) and ratchet rate ($R$)
-across grids of mutation rates and selection coefficients for each
-pre-specified segment in the genome that may be under negative selection (e.g.
-coding sequences or UTRs). Then, our method computes a reduction map $B(x)$ for
-each position $x$ in the genome by combining the pre-computed $V_a$ for every
-segment and a user-supplied recombination map (see Methods XXX). To distinguish
+ratchet rate for a single segment under general mutation-selection processes,
+we extended their model so that it could be applied to whole-genome data. Our
+software method \texttt{bgspy} calculates the equilibrium additive genic
+fitness variance ($V_a$) and ratchet rate ($R$) across grids of mutation rates
+and selection coefficients for each pre-specified segment in the genome that
+may be under negative selection (e.g. coding sequences or UTRs). Then, our
+method computes a reduction map $B(x)$ for each position $x$ in the genome,
+which is determined by the fitness variation at each segment and their spacing
+along the user-supplied recombination map (see Methods XXX). To distinguish
 between McVicker's B maps based on classic BGS theory, we call our reduction
 map $B(x)$ a B' map.
 
 To assess our predicted B' reduction maps, we simulated negative selection for
 fixed mutation rates and selection coefficient on human chromosome 10 using
-realistic recombination and conserved feature maps. Averaging over $n=100$
-replicates, we estimated the simulation expected reduction map and compared
-this to the predicted B and B' maps for the same parameters. We find that our
-B' maps and the classic BGS theory B maps closely match simulations when
-selection is strong (top row of Figure \ref{fig:figure-1}E). This provides the
-first realistic forward-time chromosome-scale simulation confirmation of
+realistic recombination maps and conserved feature positions. Averaging over
+$100$ replicates, we estimated the simulation expected reduction map and
+compared this to the predicted B and B' maps for the same parameters. We find
+that our B' maps and the classic BGS theory B maps closely match simulations
+when selection is strong (top row of Figure \ref{fig:figure-1}E). This provides
+the first realistic forward-time chromosome-scale simulation confirmation of
 classic BGS theory. However, we find slight discrepancies in regions with low
 recombination (Figure \ref{fig:figure-1}E). Second, we find our theory is
 vastly more accurate than the classic B maps when selection is very weak ($2N_e
@@ -522,7 +531,7 @@ occurs around the drift-barrier domain of $2Ns \approx 1$ (Figure
 \ref{fig:figure-1}D). The higher error in this domain occurs across all
 mutation rates. We hypothesized that the higher error in this domain may be
 because when our method numerically solves Equations \eqref{eq:main_eqns} for
-each segment, it does not consider the experienced reduction due to selection
+each segment, it does not consider the reduction experienced due to selection
 at other linked segments. In particular, we use a fixed drift-effective
 $N=1000$ corresponding to the number of diploids in the simulations rather than
 $B(x) N$ at position $x$. To test this, we implemented a locally-rescaled
@@ -551,8 +560,11 @@ $j$). However, according to theory, the reductions in diversity should be
 determined by levels of additive genetic fitness variance that include the
 contribution of LD (Supplementary Materials Section XXX).
 
-Overall, while we find evidence that local-recalling can reduce error rate in
-the $2Ns \approx 1$ domain, 
+While we find evidence that local-recalling reduces error in the $2Ns \approx
+1$ domain, we do not employ it in our genome-wide inference method for a few
+reasons. First, the reduction map 
+
+numerically solving the system of equations 
 
 it currently cannot be used during when fitting
 genome-wide models.
@@ -775,7 +787,7 @@ We calculate the
 
 \begin{align}
     \label{eq:sub}
-    r_f = \mu \int_0^1 p_f(s) ds
+    r_f = \mu \int_0^1 p_F(s) ds
 \end{align}
 
 Solving the XXX equations, we end up with predictions $\widehat{r}_f$ for the
@@ -889,7 +901,78 @@ connects fitness variation to absolute changes in fitness.
 % (the method would support a new
 % ``interaction" type, but this greatly increases the number of parameters).
 
+\subsection*{Solving the B' Equations for each Segment}
+\label{sec:methods-bprime-eqns}
+
+In our implementation of the theory of \textcite{Santiago2016-mu}, we calculate
+the draft-effective population size $N_d = B N$ within a segment by solving a
+system of two non-linear equations, 
+
+\begin{align}
+  \label{eq:}
+  {N}_{d} &= N \exp \left( -V_a \frac{Q^2}{2} \right) & \text{\emph{effective population equation}} \\
+  R &= \frac{4N_eU s}{\exp(4 N_e s)-1}  & \text{\emph{substitution equation}} 
+\end{align}
+
+where,
+
+\begin{align}
+  %V(x) &= U s - 2 {R}(x) s & \text{\emph{fitness variance equation}} \\
+  V_a &= (U  - 2 R) s & \text{\emph{fitness variance equation}} \\
+  Q^2 &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage inflation factor}} \\
+  Z &= 1 - \frac{Us}{U-{R}} & \text{\emph{variance decay rate}}
+\end{align}
+
+and $U = \mu L$ and $M = r_\text{BP} L$ are the total mutation and
+recombination rates for a segment $L$ basepairs long. 
+
+% Each mutation has a
+% selection coefficient of $s$, for which we assume additive effects. Then, the
+% local reduction factor is $b(x) = \nicefrac{N_e(x)}{N}$, and the per-basepair
+% per-generation substitution rate is $\lambda_D = \nicefrac{R(x)}{L}$. Note that
+% in the variance equation, the long-run variance is the balance between mutation
+% and twice the loss due to substitution, $(U-2R)s$, since for selective balance
+% $V(x) = 0$ for $s>0$, the per-basepair substitution rate must be half the mutation rate,
+% since each substitution removes twice the variance introduced by a mutation in
+% a diploid species.
+
+Our software \texttt{bgspy} solves these two equations numerically for each
+pre-specified segment across grids of mutation rates and selection
+coefficients. The recombination rate in a segment is determined by a
+user-supplied recombination map; segments that bridge a change in recombination
+rate are split, and solved independently with the appropriate rate. This
+pre-calculation step is done in parallel, and determines the equilibrium
+additive genic fitness variation for each segment under a
+mutation-selection-drift-draft process across the grids of parameters.
+
+\subsection*{Calculating the Reduction Maps}
+\label{sec:methods-maps}
+
+The pre-computed equilibria are used to calculate the $B(x)$ maps across
+parameter grids, which use in our comparisons to chromosome-scale forward
+simulations and our composite-likelihood method. The reduction at a focal site
+$x$ can be calculated as the product of all segments' contributing reduction
+factors accounting for the recombination distances between the segment and
+focal site. Additionally, to accommodate the estimation of separate DFEs for
+different types of features, each $B(x)$ maps is 
+
+\begin{align}
+    \log(B(x)) = - \sum_{i=1} \sum_{j=1} 
+\end{align}
+
+where $b(x, v)$ is a modified version of $b(x)$ that accounts for the
+recombination between the segment $x$ and the neutral site $v$ (see XXX).
+
+In practice, we calculate B' using the variables determined by solving the B'
+equations for each mutation and selection coefficient in the grids. Since only
+the analog of $Q^2(x)$, $Q^2(x, v)$ changes, the pre-computed substitution rate
+(and thus local variance) can be re-used for each $v$. We calculate $B(v)$
+across a grid of focal points along the chromosome, spaced 10kb apart.
+
+
+
 \subsection*{Segment Simulations}
+\label{sec:methods-segsim}
 
 To assess the accuracy of the SC16 theory, we conducted forward simulations
 across grids of mutation rates ($\log_{10}(\mu) = \{10^{-9.5}, 10^{-9}, \ldots,
@@ -924,71 +1007,6 @@ lower bound assuming the maximum coalescence noise at $B=1$, $\var(\bar{B})
 \subsection*{Local-rescaled }
 We note that it is computationally intractable to solve this equation excluding
 the contribution of the focal segment 
-
-
-
-\subsection*{Solving the B' Equations for each Segment}
-
-In our implementation of the theory of \textcite{Santiago2016-mu}, we calculate
-the local effective population size $N_e(x) = b(x) N$ within a segment $x$ by
-solving a system of two non-linear equations, 
-
-\begin{align}
-  \label{eq:}
-  {N}_{e}(x) &= N \exp \left( -\frac{V(x)}{2} Q^2(x) \right) & \text{\emph{effective population equation}} \\
-  {R}(x) &= \frac{4N_e(x)U s}{\exp(4 N_e(x) s)-1}  & \text{\emph{substitution equation}} 
-\end{align}
-
-where,
-
-\begin{align}
-  %V(x) &= U s - 2 {R}(x) s & \text{\emph{fitness variance equation}} \\
-  V(x) &= (U  - 2 {R}(x)) s & \text{\emph{fitness variance equation}} \\
-  Q^2(x) &= \frac{2}{(1-Z)(2-(2-M)Z)} & \text{\emph{linkage inflation factor}} \\
-  Z &= 1 - \frac{Us}{U-{R(x)}} & \text{\emph{}} \text{\emph{variance decay rate}}
-\end{align}
-
-and $U = \mu L$ and $M = r_\text{BP} L$ are the total mutation and
-recombination rates for a segment $L$ basepairs long. Each mutation has a
-selection coefficient of $s$, for which we assume additive effects. Then, the
-local reduction factor is $b(x) = \nicefrac{N_e(x)}{N}$, and the per-basepair
-per-generation substitution rate is $\lambda_D = \nicefrac{R(x)}{L}$. Note that
-in the variance equation, the long-run variance is the balance between mutation
-and twice the loss due to substitution, $(U-2R)s$, since for selective balance
-$V(x) = 0$ for $s>0$, the per-basepair substitution rate must be half the mutation rate,
-since each substitution removes twice the variance introduced by a mutation in
-a diploid species.
-
-In our software \texttt{bgspy}, these two equations are solved for a grid of
-mutation rates and selection coefficients for each specified segment from a
-feature type (e.g. CDS, UTRs, etc.). This results in estimates of $N_e(x)$ and
-$R(x)$ per segment. In the first-round B' calculation, we use a single
-pre-specified drift-effective population size, $N$. The B' maps created here at
-this step reflect selection only in the segment, ignoring the impact of
-selection at other segments. By contrast, the locally-rescaled B' maps solve
-these equations, assuming the drift-effective population size is $B(x)N$. These
-reflect the segment's dynamics if they were effected by selection at other
-segments under selection in the genome. Consequently, we can compare and
-contrast models with local-recalling to test whether we achieve a better fit if
-we account selective interference from other segments.
-
-\subsection*{The B' Maps}
-
-The reduction at a focal site $x$ can be calculated as the product of all
-segments' contributing reduction factors, 
-
-\begin{align}
-  B(v) = \prod_x b(x,v)
-\end{align}
-
-where $b(x, v)$ is a modified version of $b(x)$ that accounts for the
-recombination between the segment $x$ and the neutral site $v$ (see XXX).
-
-In practice, we calculate B' using the variables determined by solving the B'
-equations for each mutation and selection coefficient in the grids. Since only
-the analog of $Q^2(x)$, $Q^2(x, v)$ changes, the pre-computed substitution rate
-(and thus local variance) can be re-used for each $v$. We calculate $B(v)$
-across a grid of focal points along the chromosome, spaced 10kb apart.
 
 \subsection*{Assessing the B' Maps}
 
@@ -1165,782 +1183,6 @@ and PhastCons. Second, there is region-specific variation
 TODO we need to make appoint about how Ben G's paper found the V(n)->VA connectoin -- this is their patching model
 
 TODO we need to give some intuition for what Vm and V are in humans, e.g. back of envelope type stuff
-
-\section*{Appendix}
-
-\subsection*{Overview of Quantitative Genetic Models of Effective Population Size}
-
-Here, we step through a quick derivation of \textcite{Santiago1995-hx}.
-Throughout, we assume random mating, hermaphroditic individuals, and a constant
-population size. The change in a neutral allele's frequency in one generation
-can be partitioned into the three sources of stochasticity: the random
-associations with fitness backgrounds (i.e. \emph{draft}), the non-heritable
-randomness in family size, and the Mendelian noise from heterozygotes
-segregating. If we let $x_{0,i} \in \{0, \nicefrac{1}{2}, 1\}$ be the frequency
-of neutral alleles individual $i$ in generation 0 carries, we can partition the
-random neutral allele frequency of the population ($x_t$ without the individual
-index) into the underlying stochastic causes,
-
-\begin{align}
-  x_1 = \frac{1}{2N} \sum_{i=1}^N \left( x_{0,i}k_{0,i} + \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \right)
-\end{align}
-
-where $k_{0,i}$ is the number of surviving gametes parent $i$ passes on, and
-$\delta_{0,i,j}$ is a random term that encapsulates the noise due to Mendelian
-segregation of heterozygotes. If parent $i$ is a homozygote ($x_{0,i} \in \{0,
-1\}$), then $\delta_{0,i,j} = 0$, whereas if $x_{0,i} = \nicefrac{1}{2}$ then
-$\delta_{0,i,j} = \pm \nicefrac{1}{2}$ with equal probability. This is because
-a heterozygous parent will transmit half a neutral allele in expectation, but
-each round of Mendelian segregation must pass on either 0 or 1 alleles, which
-the random $\pm \nicefrac{1}{2}$ term imposes. The factor of $\nicefrac{1}{2}$
-is due to the fact that we're summing over $N$ diploids, but considering the
-number of gametes they transmit. Since each diploid parent must have two
-offspring to maintain a constant population size, $\nicefrac{1}{N} \sum_i
-k_{0,i} = 2$. 
-
-The frequency in the initial generation is $x_0 = \nicefrac{1}{N} \sum_{i=1}^N
-x_{0,i}$, though to indicate that we treat this as fixed, we use $p_0 = x_0$.
-Then, the allele frequency change is,
-
-\begin{align}
-  \Delta x_1 = x_1 - p_0 &= \frac{1}{2N} \sum_{i=1}^N x_{0,i} (k_{0,i} - 1) + \frac{1}{2N} \sum_{i=1}^N \sum_{j=1}^{k_{0,i}} \delta_{0,i,j} \\
-  \Delta x_1 &= K_1 + H_1
-\end{align}
-
-where $K_1$ and $H_1$ are the random change in neutral allele frequency change
-due to offspring number (including heritable and non-heritable components), and
-Mendelian segregation.
-
-Now, let us look the variance of $\var(\Delta x_1)$ over evolutionary
-replicates. Since the Mendelian random process and the offspring random process
-are independent,
-
-\begin{align}
-  \var(\Delta x_1) &= \var(K_1) + \var(H_1).
-\end{align}
-
-Looking at each term,
-
-\begin{align}
-  \var(K_1) &\approx \frac{1}{4N^2} \sum_{i=1}^N \var\left(x_{0,i} (k_{0,i} - 1) \right)
-\end{align}
-
-where we ignore the covariance terms due to the sum, since these are on order
-$\nicefrac{1}{N^3}$. In the first generation from an arbitrary starting point,
-the neutral alleles assort independently into diploids with respect to their
-fitness, so
-
-\begin{align}
-  \var(K_1) &\approx \frac{1}{4N^2} \sum_{i=1}^N \var(x_{0,i}) \var(k_{0,i} - 1)  \\
-            &\approx \frac{1}{4N} \var(x_{0,i}) \var(k_{0,i}).
-\end{align}
-
-Assuming that no correlation between parental gametes (e.g. no inbreeding),
-$\var(x_{0,i})$ is the binomial variance in individual allele frequency, or
-$p_0(1-p_0)/2$, and $\var(k) := \var(k_{0,i})$ is the offspring variance of an
-individual given by the reproduction process. For example, if the reproduction
-process is a neutral multinomial Wright--Fisher, $\var(k) \approx 2$.
-
-\begin{align}
-  \var(K_1) &\approx \frac{p_0(1-p_0)}{2N} \frac{\var(k)}{4}.
-\end{align}
-
-The Mendelian noise variance term can be derived similarly. First, the sum over
-each parent's transmitted gametes can be simplified by noting that parents are
-exchangeable over evolutionary replicates with respect to their contribution to
-this term. In a constant population size, the double summation over parents and
-their offspring can be replaced by a summation over offspring, since both sum
-$N$ exchangeable terms. Then, note that $\var(\delta_{i,j}) = \nicefrac{1}{4}
-p_0(1-p_0)$, so
-
-\begin{align}
-  \var(H_1) &= \frac{p_0(1-p_0)}{2N} \frac{1}{2}.
-\end{align}
-
-Finally, we have
-
-\begin{align}
-  \var(\Delta x_1) &= \var(K_1) + \var(H_1) \\
-  &\approx \frac{p_0(1-p_0)}{2N} \frac{\var(k)}{4} + \frac{p_0(1-p_0)}{2N} \frac{1}{2} \\
-                   &\approx \frac{p_0(1-p_0)}{2N}\left(\frac{\var(k)}{4} + \frac{1}{2}\right)
-\end{align}
-
-(c.f. \cite{Santiago1995-hx} equation 2 and \cite{Buffalo2019-qs} equation 30).
-Note that if the reproduction process is a neutral multinomial Wright--Fisher,
-$\var(k) \approx 2$, and this simplifies to the expected Wright--Fisher
-variance. If we were to \emph{define} a variance effective population size by
-setting this variance in neutral allele frequency change to the expected
-variance under a Wright--Fisher model ($V_\text{WF}$), we'd have
-
-\begin{align}
-  V_\text{WF} &:= \frac{p_0(1-p_0)}{2N_e} \\
-  V_\text{WF} &= \var(\Delta p_1) \\
-  N_e &= \frac{4N}{\var(k) + 2} \\
-\end{align}
-
-(c.f. \cite{Wright1938-tv}).
-
-Now, we look at this variance equation behaves with $t > 1$. 
-
-\begin{align}
-  \V(x_1) = \E_1\left[(x_1 - x_0)^2\right]= \frac{x_0(1-x_0)}{2N},
-\end{align}
-
-and
-
-\begin{align}
-  \label{eq:var_wf}
-  \V(x_2) &= \E\left[(x_2 - x_0)^2\right] \\
-          &= \E_1\left[\E_2\left[((x_2-x_1) + (x_1 - x_0))^2 | x_1\right]\right] \\
-          &= \E_1\left[\E_2\left[(\Delta x_2 + \Delta x_1)^2 | x_1\right]\right] \\
-          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + 2\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] + \E_1\left[ {\Delta x_1}^2\right] \\
-          &= \E_1\left[\E_2\left[{\Delta x_2}^2|x_1\right]\right] + \E_1\left[ {\Delta x_1}^2\right] + \mathcal{C}_{1,2} \\
-          &= \frac{p_0(1-p_0)}{2N}\left(1 - \frac{1}{2N}\right) + \frac{p_0(1-p_0)}{2N} + \mathcal{C}_{1,2}
-\end{align}
-
-Consequently, the variance of the neutral allele frequency changes each
-generation according to the probability of failing to coalesce each generation
-and the pairwise covariance terms $\mathcal{C}_{i,j}$ that build up due to associations
-with heritable fitness backgrounds. Note that the covariance term $\mathcal{C}_{1,2} =
-\E_1\left[\E_2[\Delta x_2 \Delta x_1 | x_1]\right] = 0$ under neutral
-evolution, and this simplifies to the well-known equation for variance in a
-Wright--Fisher population.
-
-Now, we turn our attention to the case where there is heritable fitness
-variation, which leads to non-zero covariance terms $\mathcal{C}_{i,j}$. These
-terms emerge when $\var(k)$ has a heritable component of fitness that can be
-transmitted along with the neutral allele, thereby affecting the neutral
-allele's trajectory in later generations. If we partition the offspring number
-into heritable and non-heritable components, $k_i = 2f_i + \varepsilon_i$, then
-$\var(k_i) = 4 V_h + V_n$. When there is heritable fitness variation across
-individuals, $V_h > 0$. Because the population size is assumed to be constant,
-the mean heritable fitness across individuals is constrained to be $\E_i(f_i) =
-1$; this implies that the individual fitness values $f_i$ are relative
-fitnesses as is standard in population genetics, in this case to the population
-mean. Thus $V_h$ is the squared coefficient of heritable fitness variation
-(this is often denoted as $C^2 = \nicefrac{V_A}{\bar{w}^2}$, see
-\cite{Crow1958-pc,Charlesworth1987-ab,Houle1992-ur}).
-
-We can further decompose the $K_1$ term into $K_1 = S_1 + D_1$,
-
-\begin{align}
-  \var(\Delta x_1) &= \var(S_1) + \var(D_1) + \var(H_1) \\
-  &\approx \frac{p_0(1-p_0)}{2N} V_h + \frac{p_0(1-p_0)}{2N} \frac{V_n}{4} + \frac{p_0(1-p_0)}{2N} \frac{1}{2}. \\
-\end{align}
-
-(c.f. \cite{Santiago1995-hx} equation 11).
-
-To see how the covariance terms accumulate, consider $\var(x_3 - p_0)$. Note
-that $\E(S_t) = \E(D_t) = \E(H_3) = 0$, since which neutral allele we track is
-arbitrary, so by symmetry the expected change is zero. Then,
-
-\begin{align}
-  \label{eq:var_x}
-  \var(x_3 - p_0) &= \E\left[ \left(S_1 + D_1 + H_1 + S_2 + D_2 + H_2 + S_3 + D_3 + H_3 \right)^2 \right] \\
-                  &= \E({S_1}^2) + \E({S_2}^2) + \E({S_3}^2)  \\
-                  &+ \E(S_1 S_2) + \E(S_1 S_3) + \E(S_2 S_3) \\
-                  &+ \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) + \E({D_3}^2) + \E({H_3}^2)
-\end{align}
-
-The covariance terms $\E(S_i S_j)$ for $j > i$ represent the expected neutral
-allele frequency change from a neutral allele becoming associated with a
-fitness background in generation $i$ and that fitness association persisting
-until generation $j$. However, the covariances terms $\E(S_j S_i)$ for $j > i$
-are zero since associations in the future cannot affect the past (see p. 1041
-of \cite{Buffalo2019-qs}). Let us consider $S_1$ and $S_2$. We have,
-
-\begin{align}
-  S_1 = \frac{1}{2N} \sum_{i=1}^N x_{0,i}(f_{0,i} - 1) = \cov(x_{0,i}, f_{0,i}) \\
-  S_2 = \frac{1}{2N} \sum_{i=1}^N x_{1,i}(f_{1,i} - 1) = \cov(x_{1,i}, f_{0,i})
-\end{align}
-
-which are chance covariances (across the population, \emph{not} evolutionary
-replicates) created by the random sorting of neutral alleles and fitness into
-individuals, \emph{each generation}. These covariances are equivalent to the
-Robertson-Price equation \parencite{Robertson1966-fs,Price1970-si}, which
-predict the change in neutral frequency due to heritable fitness (and likewise
-with the change due to non-heritable factors).
-
-Considering the underlying haplotypes that lead to $x_{0,i}$ and $f_{0,i}$ can
-give us an equation for the dynamics of the $\E(S_i S_j)$ (for $j > i$) terms
-over evolutionary replicates. Let us partition the allele frequency and fitness
-by into the average of the paternal contributions. The neutral allele frequency
-per gamete is either 0 or 1, and we assume the fitnesses across gametes are
-additive. Then, as long as there is random mating, we can simplify the
-associations in a diploid by looking at a single gamete,
-
-\begin{align}
-  S_1 = \cov(x_{0,i}, f_{0,i}) &= \cov\left(\frac{x_{0,i}' + x_{0,i}''}{2}, f_{0,i}' + f_{0,i}''\right)  \\
-                               &= \frac{1}{2}\left(\cov(x_{0,i}', f_{0,i}' + f_{0,i}'') + \cov(x_{0,i}'', f_{0,i}' + f_{0,i}'')\right)  \\
-                               &= \cov(x_{0,i}', f_{0,i}' + f_{0,i}'')  \\
-                               &= \cov(x_{0,i}', f_{0,i}') + \cov(x_{0,i}', f_{0,i}'')  \\
-                               &= S_1' + S_1''
-\end{align}
-
-which follows from symmetry, since it does not matter which gamete carrying the
-neutral allele we track (c.f. \cite{Santiago1998-bs} p. 2107). The primes now
-indicate whether the selected locus is on the same gamete as the neutral
-allele (single prime), or the homologous gamete (double prime).
-
-After meiosis, a fraction $1-r$ of these associations between the tracked
-neutral neutral allele $x_{0,1}'$ and fitness background $f_{0,i}'$ persist,
-and a fraction $r$ disassociate its currently coupled background and create an
-association with the homologous fitness background, $f_{0,i}''$. When linkage
-is tight, this latter term can be ignored as we will do here, though it does
-impact background levels of neutral diversity \parencite{Santiago1995-hx}.
-Additionally, the fitness effects of the selected background may change in
-later generations, in complex ways \parencite{Barton1986-yh,Turelli1990-kd}.
-\textcite{Santiago1995-hx} assume an equilibrium level of fitness variation
-$V_h$, with the fitness variance associated with a particular background
-decaying at a simple geometric decay at rate $1-\kappa$ each generation, which
-is sufficient for background selection. An approximate rate of the decay can be
-worked out for the particular selective system. In general, this can be a much
-more complicated function; \textcite{Buffalo2019-qs} show that even fluctuating
-selection can be accommodated.
-
-Now, the associations created in generation 1 and that persist in future
-generations as (ignoring $S_i''$ terms) follow the pattern
-
-\begin{align}
-  S_{2}' &= S_1 (1-\kappa)(1-r) \\
-  S_{3}' &= S_1 (1-\kappa)^2(1-r)^2 \\
-  S_{4}' &= S_1 (1-\kappa)^3(1-r)^3.
-\end{align}
-
-Then, the cumulative effect of the fitness associations created in generation
-$1$ can be written as,
-
-\begin{align}
-  \label{eq:qterm}
-  S_1 Q_t &= S_1 + S_2' + S_3' + \ldots + S_t' \\
-  Q_t &= 1 + \sum_{i=1}^t (1-r)^i(1-\kappa)^i
-\end{align}
-
-or for continuous $t$, 
-
-\begin{align}
-  \label{eq:q_t}
-  Q_t &= 1+\frac{(1-\kappa) (1-r) \left(1-(1-\kappa)^t (1-r)^t\right)}{\kappa+(1-\kappa)r}
-\end{align}
-which as $t \to \infty$, converges to,
-
-\begin{align}
-  \label{eq:Qinf}
-  Q_\infty &= \frac{1}{\kappa + r(1-\kappa)}.
-\end{align}
-
-This shows the long reach of heritable fitness factors in altering allele
-frequency through the generations. In terms like $\E(S_1 S_2)$, a fraction
-$S_1'$ of the heritable allele frequency change $S_2$ were \emph{previously}
-built associations between the neutral allele and a fitness background from
-$S_1$. As long as the direction of selection is the same, the expected change
-of this fraction of associations formed in the first generation to later
-generations 2 and 3 would be,
-
-\begin{align}
-  \E(S_1 S_2) &= \E(S_1^2) (1-\kappa)(1-r) = \E(S_1^2) Q_2^2 \\
-  \E(S_1 S_3) &= \E(S_1^2) (1-\kappa)^2(1-r)^2 = \E(S_1^2) Q_3^2.
-\end{align}
-
-With these covariance terms, we now have a full model for $\var(p_t - p_0)$. We
-will look at the case for $t=2$. As shown in equation XXX, the second moment of
-every term is a function of the variance in neutral allele frequency in that
-generation, $x_t(1-x_t)$. This variance does not stay its initial value of
-$x_0(1-x_0)$; it decays each generation due to coalesce from the drift and
-selection processes modeled by this approach. The rate at which this decay
-happens is the effective population size each generation implied by this model. 
-We can write,
-
-\begin{align}
-    \label{eq:vardecay}
-  \var(x_2 - p_0) &= \E({S_1}^2) + \E(S_1 S_2) + \E({S_2}^2) \\
-                  & + \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) \\
-  \frac{\var(x_2 - p_0)}{p_0(1-p_0)} &= \frac{V_h}{2N_{e,1}} + \frac{V_h Q_2^2}{2N_{e,2}}\left(1-\frac{1}{2N_{e,1}}\right)  +  \frac{V_h}{2N_{e,2}}  \left(1-\frac{1}{2N_{e,1}}\right)  \\ 
-                                     &+ \frac{V_n}{8N_{e,1}} + \frac{1}{4N_{e,1}} + \frac{V_n}{8N_{e,2}}  \left(1 - \frac{1}{2N_{e,1}}\right) 
-+ \frac{1}{4N_{e,2}} \left(1 - \frac{1}{2N_{e,1}}\right).
-\end{align}
-
-In general, the evolution of the variance in allele frequency change in a
-system with heritable fitness due to a single locus $r$ recombination fraction
-away from the neutral site is given by,
-
-\begin{align}
-  \label{eqn:var_xt}
-  \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \sum_{i=1}^\infty \left(\frac{V_h Q_i^2}{2 N_{e,i}} + \frac{V_n}{8N_{e,i}} + \frac{1}{4N_{e,i}} \right)\prod_{t=1}^{i-1} \left(1-\frac{1}{2 N_{e,t}}\right). \\
-\end{align}
-
-Since the probability of coalesce (or, equivalently, identity by descent) is
-proportional to the variance in allele frequency change
-\parencite{Barton2000-zg}, this encodes the pairwise coalescent rate of the
-population through time under selection through the $N_{e,t}$ terms. Others
-have found that the genealogies under purifying selection can be characterized
-by such a time-dependent effective population size
-\parencite{Nicolaisen2013-gv}. In the original derivation of
-\textcite{Santiago1995-hx}, they set each $N_{e,t}$ term to a single $N$ and
-solve this summation in the limit to infinity giving,
-
-\begin{align}
-  \label{eq:var_asymp}
-  \frac{\var(x_t - p_0)}{p_0(1-p_0)} &= \frac{4 V_h Q_\infty^2 +V_n+2}{4 (2 N-1)}.
-\end{align}
-
-To relate this to an asymptotic effective population size, note that in an
-ideal Wright--Fisher population,
-
-\begin{align}
-  \V(x_t) &= p_0(1-p_0) \left[1 - \left(1 - \frac{1}{2N_e}\right)^t \right]
-\end{align}
-
-such that if we look at the change in the variance in allele frequency change
-between adjacent generations $t$ and $t-1$, we get an implied $N_{e,t}$
-
-\begin{align}
-  \label{eqn:ne_var}
-  N_{e,t} = \frac{p_0(1-p_0) - \var(x_{t-1})}{2(\var(x_t) - \var(x_{t-1}))}
-\end{align}
-%
-(cf. p. 1018, \cite{Santiago1995-hx}). 
-
-Solving this for equation \eqref{eq:var_asymp} gives the asymptotic effective
-population size,
-
-\begin{align}
-  %N_e &= \frac{2 (2 N-1)}{4 V_h Q_\infty^2 +V_n+2} \\
-  N_e &\approx \frac{4N}{4 V_h Q_\infty^2 +V_n+2}
-\end{align}
-
-(cf. equation 18, \cite{Santiago1995-hx}). Levels of pairwise diversity,
-however, depend on the full distribution of pairwise coalesce times, or the
-$N_{e,t}$. While this would require solving the recursion defined by equations
-\eqref{eqn:var_xt} and \eqref{eqn:ne_var}, \textcite{Santiago1998-bs} show that
-a reasonably good approximation follows from using a single effective
-population size for all timepoints, $N_{e,t} = N_e$, but use the time-indexed
-$Q_t$. This leads to,
-
-\begin{align}
-  \label{eq:ne_t}
-  N_{e,t} &\approx \frac{4N}{4 V_h Q_t^2 +V_n+2}
-\end{align}
-
-(c.f. equation 15 of \cite{Santiago1995-hx} and p. 1270 of \cite{Santiago2016-mu}).
-
-
-\subsection*{Effective Population Size Under Polygenic Selection}
-
-The results of the previous section assume only a single locus a recombination
-fraction $r$ apart from the neutral locus is determining the coalesce rate. The
-model of \textcite{Santiago1998-bs} extends this to the case where fitness is
-polygenic. As they show in their original paper, this system can accommodate a
-variety of different equilibrium selection systems as long as expressions for
-$V_h$ and $1-\kappa$ can be worked out. Other authors have extended similar models to
-more elaborate bbreeding structures \parencite{Wray1990-zf,Woolliams1993-qo}.
-
-First, we extend equation \eqref{eq:ne_t} to a polygenic system. Throughout, a
-multiplicative fitness model is assumed (i.e. independent effects, no
-epistasis), where the fitness of individual $i$ is the product of their fitness
-contributions from each locus $l$, $w_{i,l}$, giving $w_i = \prod_{l=1}^n
-w_{i,l}$. Then, assuming mean fitness is one and independence between sites,
-the total fitness variation is multiplicative across the locus-level fitnesses,
-
-\begin{align}
-  V_h %&= \E_i\left( w_i^2 \right) - 1 \\
-      %&= \prod_{l=1}^n (1 + \alpha_{l}^2 \V(g_l))  - 1  \\
-      &= \prod_{l=1}^n (1 + V_{h,l})  - 1
-\end{align}
-
-Similarly, the $Q_t^2 V_h$ term in the single-locus model is multiplicative
-under the polygenic model, as the change in site-specific fitness variances are
-assumed independent,
-
-\begin{align}
-  Q_t^2 V_h &= \prod_{l=1}^n \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)  - 1
-\end{align}
-
-where $Q_{t,l}$ is the cumulative impact of selection due to the selected site
-$l$ (c.f. equation 4 \cite{Santiago1998-bs}). The factor of $\nicefrac{1}{2}$
-is due to the fact that we are ignoring the chance that the fitness background
-on the homologous chromosome recombines onto the haplotype with the tracked
-neutral allele (i.e. due to the $Q_t''$ associations). In other words, only
-half the fitness variation in a diploid can stay associated with the neutral
-allele through the generations.
-
-To simplify the derivation, assume $V_n = 2$ as under a Wright--Fisher model.
-Then, the effective population size is,
-
-\begin{align}
-  N_{e,t} &\approx \frac{N}{V_h Q_t^2 + 1} \\
-          &\approx \frac{N}{\prod_{l=1}^n \left(1 + \frac{V_{h,l} Q_{t,l}^2}{2}\right)} \\
-          &\approx N \exp\left(- \sum_{l=1}^n \frac{V_{h,l} Q_{t,l}^2}{2}\right)
-\end{align}
-
-(c.f. \cite{Santiago1998-bs} equation 4b). If we write each site $l$'s
-contribution to the variance as a deviation from the average contribution,
-$V_{h,l}^2 = \nicefrac{1}{n} V_h + \varepsilon_l$, then 
-
-\begin{align}
-  N_{e,t} &\approx N \exp\left(- \frac{1}{2}\sum_{l=1}^n \left(\frac{1}{n}V_{h} + \varepsilon_l\right)  Q_{t,l}^2\right) \\
-          &\approx N \exp\left(- \frac{V_{h}}{2n} \sum_{l=1}^n Q_{t,l}^2+ \sum_{l=1}^n \varepsilon_l  Q_{t,l}^2\right)
-\end{align}
-
-Santiago and Caballero assume that over evolutionary replicates, as selected
-sites are randomly distributed, there is not systematic covariance between the
-fitness variation at a site and the decay of its association with the neutral
-site, e.g. $\E(\varepsilon_l Q_{t,l}^2) = 0$, and thus ignore the second sum
-term. 
-
-\begin{align}
-      N_{e,t} &\approx N \exp\left(- \frac{V_{h}}{2n} \sum_{l=1}^n Q_{t,l}^2\right) \\
-\end{align}
-
-\subsection*{Continuous Approximation to the Segment Under Selection}
-
-Our model differs from that of \textcite{Santiago1998-bs} in that we do not
-integrate over the entire genome. In their 1998 model, Santiago and Caballero
-consider the impact of both sites under selection on the same chromosome, as
-well as sites on independently assorting chromosomes. We only consider the
-contribution of a single segment under purifying selection, and the reduction
-from additional segments accumulate multiplicatively (similar to our
-implementation of the classic BGS model, XXX). Like their model, we imagine the
-reduction experienced by a focal neutral site in the middle of the segment.
-The implementation of our method differs slightly on though, see XXX.
-
-Since $Q_{t,l}$ terms depend on $l$ only through the recombination fraction
-between the neutral allele and the selected site, $r(l)$. Assuming a constant
-per-basepair recombination rate of $r_\text{BP}$, $r(l) = r_\text{BP} l$ we can
-approximate the sum with an integral for the asymptotic $Q_\infty$. The
-reduction experienced in the middle of a chromosome is twice the reduction
-experienced from each half, 
-
-\begin{align}
-      N_{e,\infty} &\approx N \exp\left(- \frac{V_{h}}{2L} \sum_{l=1}^L Q_{\infty,l}^2\right) \\
-              &\approx N \exp\left(- \frac{V_{h}}{M} \int_0^{\nicefrac{M}{2}} Q_{\infty}(r)^2 dr \right) \\
-\end{align}
-
-where $M = n r_\text{BP}$ is the total segment length in Morgans. Then, the
-total asymptotic effect of associations from all sites as $Q_\infty^2$.  Then,
-
-\begin{align}
-  Q_\infty^2 &= \frac{2}{M}\int_0^{\nicefrac{M}{2}} Q_{\infty}(r)^2 dr  \\
-  &=  \frac{2}{M} \int_0^{\nicefrac{M}{2}} \left(\frac{1}{1 - (1-r)Z}\right)^2 dr  \\
-  &= \frac{2}{(1-Z) (2-(2-M) Z)}
-\end{align}
-
-Santiago and Caballero further approximate this; we can derive their
-approximation by setting $Z = 1-\kappa$ and doing a first-order Taylor series
-expansion around $\kappa$ (since the loss in variance is presumed to be small).
-Then,
-
-\begin{align}
-  Q_\infty^2 = \frac{2}{M (1-Z)} + \frac{2 (M-2)}{M^2}+\frac{2 \left(M^2-4 M+4\right) (1-Z)}{M^3} + \mathcal{O}(\kappa^2)
-\end{align}
-
-Santiago and Caballero's approximation only keeps this first term, e.g. their
-$Q_\infty^2 \approx 2/(M(1-Z))$, which is only accurate in the domain $M >
-0.2$. 
-
-\begin{align}
-  N_{e,\infty}^{\text(SC98)} \approx N \exp\left(-\frac{V_h}{(1-Z)M}\right) 
-\end{align}
-
-(c.f. \cite{Santiago1998-bs} equation 8). For small $M$, the small $\kappa$
-approximation strongly deviates from the full equation; thus, throughout, we
-use the unapproximated version,
-
-\begin{align}
-  \label{eq:Ne_inf}
-  N_{e,\infty} \approx N \exp\left(-\frac{V_h}{(1-Z) (2-(2-M) Z)} \right).
-\end{align}
-
-For the reasons described earlier, a single asymptotic $N_{e,\infty}$ cannot
-fully characterize pairwise coalescent rates in all cases, and thus neutral
-diversity levels depend on the full $N_{e,t}$, for which we integrate equation
-\eqref{eq:q_t} to get,
-
-\begin{align}
-  \label{eq:net_integral}
-  N_{e,t} \approx N \exp\left(-\frac{V_h}{M} \int_0^{\nicefrac{M}{2}} \left(1+\frac{(1-k) (1-r) \left(1-(1-k)^t (1-r)^t\right)}{k+(1-k)r} \right) dr \right).
-\end{align}
-
-\subsection*{The Variance Dynamics}
-
-The heritable variance in fitness $V_h$ associated with the tracked neutral
-allele does not remain constant through the generations, but decays due to
-selection and drift, and is maintained by the input of new mutations. For an
-arbitrary polygenic selective system, the dynamics are extraordinarily
-complicated due to the complexity of multilocus selection, and the dynamics of
-the trait response to selection depend on the variance, which in turn depends
-on higher moments of the fitness distribution. We discuss the simplification of
-Santiago and Caballero's model here; hereafter, we assume that $V_h = V_A$, the
-genetic variance in additive fitness put on a relative scale such that
-$\E_i(f_i) = 1$. 
-
-Each generation, the genetic variance changes due to changes in the allele
-frequencies at selected sites and linkage disequilibria between these sites.
-These are typically expressed as recursions, but certain models permit these
-changes to be expressed as a proportional reduction (e.g. truncation selection
-and stabilizing selection models; \cite{Keightley1988-eq} p. 36, and
-\cite{Walsh2018-bt} p. 557). Santiago and Caballero's model follows this
-approach, assuming the variance decays due to selection and drift at a constant
-rate $Z := 1-\kappa$ through the generations, such that the variance in the next
-generation excluding mutation is $V_A' = (1-\kappa) V_A$ and $\Delta V_A =
--\kappa V_A$.
-
-With mutation, $\Delta V_A = V_m - \kappa V_A$. The model of Santiago and
-Caballero assumes that under the long-run equilibrium, $\Delta V_A = 0$, such
-that $\kappa V_A = V_m$, and thus the rate of loss is $\kappa =
-\nicefrac{V_m}{V_A}$. Then the variance for the dynamics simplify to,
-
-\begin{align}
-  \label{eq:Z}
-  V_A' &= \left(1 - \frac{V_m}{V_A}\right) V_A \\
-  Z &:= \frac{V_A'}{V_A} = 1 - \kappa = 1 - \frac{V_m}{V_A}
-\end{align}
-
-(c.f. \cite{Santiago1998-bs} equation 9). 
-
-% TODO this is a good description that could make its way to maintext
-
-\subsection*{Effective Population Size Under Strong Background Selection}
-
-Under strong background selection, multiple segregating deleterious sites
-contribute to fitness variation. BGS models assume a multiplicative fitness
-model, such that the fitness of an individual is
-
-\begin{align}
-  w = (1-s)^{n}
-\end{align}
-
-where $n$ is the number of deleterious mutations this individual carries.
-
-Classic background selection theory assumes an infinite population size, such
-that mutation frequencies are at their mutation-selection equilibrium and the
-expected number of mutations across individuals is $\E(n) = \nicefrac{\mu}{s}L$
-where $L$ is the total number of basepairs that can be mutated (the mutational
-target size).  Under a multiplicative fitness function in an infinite
-population, selection cannot generate linkage disequilibria
-\parencite{Turelli1990-kd}. Thus the classic strong background selection model
-assumes additive genetic fitness is equal to the additive genic fitness (which
-excludes the contribution of covariance between selected sites), 
-
-\begin{align}
-  \label{eq:va_bgs}
-  V_\text{BGS} &:= \V(w) = 2 s^2 \sum_{l=1}^L p_l(1-p_l)  \\
-            &= 2 L s^2 \frac{\mu}{s} \left( 1 - \frac{\mu}{s}\right) = U s + \mathcal{O}(\mu^2) \approx Us.
-\end{align}
-
-since under mutation-selection balance $p_l = \nicefrac{\mu}{s}$ and $U$ is
-defined $U := 2 L \mu$, the deleterious mutation rate per diploid genome, per
-generation. They then set $V_A = V_\text{BGS}$, and note that $V_m \approx
-Us^2$, since mutations have frequency of $\nicefrac{1}{2N}$ and each increase
-the variance by a factor of $s^2$. Note that because the classic BGS model
-assumes deterministic selection dynamics (i.e. an infinite population), the
-equilibrium $Z$ given by equation \eqref{eq:Z} excludes the reduction due to
-drift. The reduction factor under the strong BGS model is,
-
-\begin{align}
-  Z_\text{BGS} := 1 - \frac{Vm}{V_\text{BGS}} = 1 - \frac{Us^2}{Us} = 1 - s
-\end{align}
-
-(c.f. \cite{Santiago1998-bs} equation 10). An alternate derivation can be found
-by working out the deterministic reduction in variance from the single-locus
-dynamics. 
-
-Now, we can use these values for $Z_\text{BGS}$, $V_m$, and $V$ in equation
-\eqref{eq:Ne_inf}. Through this alternate quantitative genetics derivation, we
-arrive at the same equation as classic BGS theory,
-
-\begin{align}
-  N_{e,\infty}^\text{BGS} = N \exp\left( - \frac{U}{2s + M - Ms} \right).
-\end{align}
-
-This matches equation 8 of \textcite{Hudson1995-xc} except for the $Ms$ term
-and equation 10 of \textcite{Nordborg1996-nq} except for the $2s$ term.
-
-\subsection*{Effective Population Size Under Weak and Strong BGS} \label{supp:weak-strong}
-
-With the possibility of weak selection, deleterious alleles can drift up in
-frequency and fix. Consequently, the fitness distribution is no longer
-stationary, as the set of haplotypes without any deleterious mutations can be
-lost due to drift. This changes the shape of the fitness distribution, and thus
-the variance parameter that our model relies upon
-\parencite{Gessler1995-hz,OFallon2010-my,Good2013-lp,Haigh1978-gt,Higgs1995-xc}.
-So far, finding an explicit equation for the variance has been difficult due to
-the ``moment-closure problem": the variance depends on higher moments such as
-the skew, which in turn depends on higher moments. While the weak selection
-regime is composed of an interaction of mutation, selection, drift, and linkage
-processes and the dynamics that differ qualitatively based on parameter
-combinations. In their approximation, \textcite{Santiago2016-mu} consider the
-modified additive genic variance due to the fixation of weakly deleterious
-mutations. This fixation process is related to the Muller's Ratchet, the rate
-$R$ of fixation of deleterious mutations per generation per region, since each
-fixation directly reduces the additive genic variance of the fitness
-distribution. However, in general, the rate of this ratchet is unknown since it
-depends on the fitness variance (and thus higher moments of the fitness
-distribution).
-
-% NOTE: The S&C math using Fisher's FToNS argues fitness decreases
-% at a rate of -s/T each generation. However their model is haploid;
-% in a diploid model, fixation makes everyone  a homozygote with fitness
-% effect -2s; thus the rate must be -2s/T which agrees with sim
-
-In their 2016 paper, Santiago and Caballero derive a general equation for the
-fitness variance that accounts for the reduction due to the fixation of weakly
-deleterious alleles (i.e. the rate of Muller's ratchet). There derivation for
-the variance uses a heuristic approach based on Fisher's Fundamental Theorem of
-Natural Selection (equation 2, \cite{Santiago2016-mu}, equation 15A
-\cite{Garcia-Dorado2007-jj}). A more formal derivation follows from
-\textcite{Higgs1995-xc} (though they assume a haploid asexual system, the end
-result is the same up to a factor of two). In their work, they derive equations
-for the change per generation for the moments and cross-moments of the fitness
-distribution under multiplicative selection in a haploid model. They find, the
-haploid rate of the ratchet is $r = u - s v_n$ (equation 13.3,
-\cite{Higgs1995-xc}), where we use lowercase to distinguish between haploid and
-diploid models. Here, $v_n$ is the variance in the \emph{number} of deleterious
-mutations; as long as selection is not too strong, the haploid additive
-variance is $v_{A} \approx s^2 v_n$. Substituting this for $v_n$ and
-rearranging, the haploid fitness variance is related to the $v_A = us - rs$,
-which is identical to Santiago and Caballero's (\citeyear{Santiago2016-mu})
-equation 2, noting that the waiting time between fixations (i.e. ratchet
-clicks) is $T = \nicefrac{1}{r}$. Intuitively, the fitness variance $Us$ is
-reduced by the rate at which deleterious mutations fix and remove fitness
-variation from the population.
-
-Now, note that under a diploid model, the fitness variance is twice that as the
-haploid model, so $V_A = 2 v_A$. Then, the fitness variance is,
-
-\begin{align}
-  \label{supp-eq:Va}
-  V_{A} = Us - 2Rs. 
-\end{align}
-
-where $U = 2u$ and $R=r$ is the diploid rate of the ratchet, which depends on
-higher moments of the fitness distribution, but only differs from $r$ through a
-rescaling of the population size. Note that if selected sites are sufficiently
-deleterious that they cannot fix (or the population is infinite), $R=0$ and the
-additive fitness variance is identical to that under strong background
-selection, $V_A = Us = V_\text{BGS}$ (equation \eqref{eq:va_bgs}). Then, the
-fixation probability of a new deleterious mutation with additive effects ($1-s$
-in the heterozygote, $1-2s$ in the homozygote) in a diploid population is,
-
-\begin{align}
-  p_\text{fix} = \frac{1-\exp(\nicefrac{2 N_e s}{N})}{1-\exp(4 N_e s)} \approx
-  \frac{2 N_e s}{N \left(\exp(4 N_e s)-1\right)}
-\end{align}
-
-(c.f. \cite{Durrett2008-ql}, equation 7.21; \cite{Kimura1957-rk}, equation
-5.6). Then, Santiago and Caballero argue that the rate of the ratchet is the
-inverse of the averaging waiting time until a fixation, $T \approx 1/(UN
-p_\text{fix})$ (note that since $U$ is the \emph{diploid} mutation rate, the
-total population mutation rate is $UN$ per generation), so
-
-\begin{align}
-  T \approx \frac{\exp(4 N_e s)-1}{2 U s N_e}
-\end{align}
-
-Since the ratchet rate depends on $N_e$, which in turn depends on the rate of
-the ratchet, we write the ratchet, or substitution, rate per basepair per
-generation as,
-
-\begin{align}
-  R(N_e) := \frac{2 U s N_e}{\exp(4 N_e s)-1}.
-\end{align}
-
-Under weak and strong background selection the variance input of mutations
-$V_m$ is the same, and using the $V_A$ derived above, the decay in variance is
-
-\begin{align}
-  Z_\text{WS} = 1 - \frac{V_m}{V_A} = 1 - \frac{Us^2}{(U-R(N_e))s} = 1 - \frac{Us}{U-R(N_e)}.
-\end{align}
-
-At equilibrium, the $N_e$ that determines fixation probability is the
-asymptotic $N_{e,\infty}$. Consequently, Santiago and Caballero argue that the
-asymptotic reduction in effective population size uses the $Q_\infty^2$ and is
-given by the following system of non-linear equations,
-
-\begin{align}
-  R(N_{e,\infty}) &= \frac{4 U s N_{e,\infty}}{\exp(4 N_{e,\infty} s)-1}\\
-  N_{e,\infty} &\approx N \exp\left(-\frac{V_A}{(1-Z) (2-(2-M) Z)} \right)
-\end{align}
-
-The solution to these equations is the asymptotic equilibrium $\widetilde{N}_e$
-and equilibrium ratchet rate $\widetilde{R}$. This sets the equilibrium
-variance, $\widetilde{V} = Us - 2\widetilde{R}s$, or $\widetilde{V} = (U -
-2\widetilde{R})s$. Note that because $p_\text{fix} \le \nicefrac{1}{2N}$ for
-deleterious to neutral variation, $2R \le U$, or the diploid mutation rate must
-be greater than twice the per-basepair per-generation substitution rate for
-equilibrium variance $\widetilde{V} > 0$ for $s>0$. 
-
-\subsection*{Steady-state Equilibrium Genic Variance} \label{supp:genic-va}
-
-We also find that Equation \eqref{eq:Va} (and Supplementary Materials Equation
-\ref{supp-eq:Va} above) can also be found through Kimura's diffusion models
-with a flux of mutations into infinite, discrete sites
-(\citeyear{Kimura1969-jw}). This model integrates the Kolmogorov backwards
-equation over time and forward variable to find the expected value of a
-functional of the initial frequency. Using the functional $I(p) = s^2 p(1-p)$
-for genic variance given mutations start at frequency $p$, one finds that the
-steady-state genic variance for $p=\nicefrac{1}{2N_e}$ is
-
-\begin{align}
-    V_a^{SS} &= 2 U N s \left(\frac{1}{2N_e} - p_f(N_e, s)\right) \\
-             &= \left(\frac{UN}{N_e} - 2 U Np_f(N_e, s))\right)s \nonumber \\
-             &\approx \left(U - 2 R\right)s \nonumber
-\end{align}
-
-which is approximately Equation \eqref{eq:Va}.
-
-\subsection*{Misspecification of the Polygenic Selection Model}
-
-Thus far, we have developed the general model of equation \eqref{XXX} by
-assuming that the only source of $V_h$ is from the deleterious
-mutation-selection-draft-drift process. However, other polygenic evolutionary
-processes can also create, alter, and eliminate fitness variation. By assuming
-that the only fitness variation originates from deleterious
-mutation-selection-drift-draft processes, we introduce some model
-misspecification. There are two main types of misspecification under the
-selection model. First, non-polygenic positive selection processes, such as
-recurrent sweeps, may create small-scale distortions in local genealogies.
-These have been found to only impact diversity on small spatial scales
-\parencite{Murphy2022-sj} in humans, and explain little of the total variation
-in megabase-scale patterns of diversity. Second, there is model
-misspecification due to our model assuming that the only polygenic selection
-process happening is the flux of new deleterious mutations in, and their
-eventual loss or fixation. Other polygenic selection processes could be
-occurring, e.g. traits could be responding to directional selection. The
-Santiago and Caballero model our work extends is very general, and can account
-for multiple types of polygenic selection. The key input parameters are the
-equilibrium heritable fitness variation $V_h$, and the variation introduced by
-mutation each generation $V_m$. 
-
-Let us assume for now that,
-
-\begin{align}
-  \label{eq:Ne_inf}
-  N_{e,\infty} \approx N \exp\left(-\frac{V_h + \varepsilon}{(1-Z) (2-(2-M) Z)} \right).
-\end{align}
-
-\subsection*{Heterozygosity and $B$ values Under Weak and Strong Selection}
-
-While the selection dynamics are set by the asymptotic $Q_\infty^2$ that
-determines the equilibrium $\widetilde{N}_e$ and $\widetilde{R}$,
-heterozygosity is determined by the sequence $\widetilde{N}_{e,t}$, where each
-term is given by \eqref{eq:net_integral}. We experimented with calculating this
-full sum in our methods, but it seemed to make little difference in our
-application. Additionally, it was too costly to calculate computationally
-for genome-wide calculations of the B' map.
-
-
-\subsection*{Numeric methods for calculating $B$}
-
-Depending on the number of features, this can be incredibly memory intensive.
-
-\subsection*{Optimization}
-
-Optimization in non-linear regression is notoriously difficult both in general
-(Bates) and in the specific problem of estimating the effects of genome-wide
-selection \parencite{Murphy2022-sj}. We experimented with a variety of global
-and local optimization approaches and parameterizations, but found that 
-
 
 % The $N_{e,t}$ terms are analogous to an instantaneous coalesce rate at
 % generation $t$, which can be expressed in terms of the variance in allele
