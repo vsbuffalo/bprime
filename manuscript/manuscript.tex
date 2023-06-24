@@ -57,12 +57,15 @@
 
 The continual influx of new mutations into populations is the ultimate source
 of all adaptations, but the vast majority of mutations either do not affect
-fitness or are deleterious. Negative selection works to eliminate such
-deleterious mutations from the population, which is essential to maintaining
-the integrity of information in the genome needed to maintain a lineage.
-Mutations under negative selection are kept at low frequencies (Haldane?),
-contributing to human traits (XXX) and diseases. As with most selection in the
-genome, this process perturbs the allele frequencies of neighboring linked
+fitness or are deleterious. Negative selection (i.e. purifying selection) works
+to eliminate such deleterious mutations from the population, which is essential
+to maintaining the integrity of information in the genome needed to maintain a
+lineage. Mutations under negative selection are kept at low frequencies
+(Haldane?), contributing to human traits (XXX) and diseases. Moreover, the
+negative selection process determines sequence conservation across phylogenetic
+timescales, which is evident in genome-wide cross-species comparisons
+\parencite{Siepel2005-wh}. As with most selection in the genome, the negative
+selection process perturbs the allele frequencies of neighboring linked
 variation. This reduces genetic variability around conserved segments and
 creates a large-scale spatial ``linked selection signal" in diversity alone the
 genome. Mutation and negative selection's contribution to this signal is
@@ -579,22 +582,26 @@ of annotation models: (1) CADD score models, which assign a rank-order
 pathogenicity score to each basepair, and (2) and more interpretable gene
 feature-based models that includes protein coding regions, intron and UTRs, and
 PhastCons regions. We include PhastCons regions because there is abundant
-evidence of highly-conserved non-coding regions in humans that we would expect
-to be under negative selection and impact patterns of linked selection (XXX).
-Since our method fits a DFE for each feature type, PhastCons regions that
-overlap other gene annotations (e.g. coding sequences) must be assigned to
-either of the two feature types. Since this can impact estimates, we fit both
-alternatives: a PhastCons Priority model, where features that overlap PhastCons
-regions are classified as PhastCons, and a Feature Priority model, where gene
-structure features take priority and the PhastCons type catches all
-highly-conserved non-genic regions. In total, we fit four annotation models
-(CADD 6\%, CADD 8\%, PhastCons Priority, and Feature Priority) to high-coverage
-1000 Genome data for three populations: Yoruba (YRI), Han Chinese (CHB), and
-European (CEU) ancestries. We assessed and compared models according to how
-well they predict the genome-wide patterns of diversity they were fit on. We
-use $R_\text{LOO}^2$, which is the proportion of the observed variance in
-megabase-scale diversity that is predicted by our model in out-samples (i.e.
-whole chromosomes left out during the fitting process).
+evidence of highly-conserved non-coding regions in humans under negative
+selection
+\parencite{Meader2010-hm,Harmston2013-tt,Katzman2007-gq,Siepel2005-wh}, but
+would not be included in gene-based annotation. Since our method fits a DFE for
+each feature type, PhastCons regions that overlap other gene annotations (e.g.
+coding sequences) must be assigned to either of the two feature types. Since
+this can impact estimates, we fit both alternatives: a PhastCons Priority
+model, where genic features that overlap PhastCons regions are classified as
+PhastCons, and a Feature Priority model, where gene structure features take
+priority and the PhastCons type catches all highly-conserved non-genic regions.
+In total, we fit four annotation models (CADD 6\%, CADD 8\%, PhastCons
+Priority, and Feature Priority) to high-coverage 1000 Genome data for three
+populations: Yoruba (YRI), Han Chinese (CHB), and European (CEU) ancestries. We
+assess and compare our models according to how well they predict patterns of
+diversity on whole chromosomes left-out during the model fitting process. We
+use the metric $R_\text{LOO}^2$, which is the proportion of the observed
+variance in genomic diversity at the megabase scale predicted by our model. We
+experimented with a few smaller spatial scales, but our results were consistent
+with previous results suggesting the human linked selection signal fits best at
+the megabase scale \parencite{Murphy2022-sj}.
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
@@ -700,8 +707,9 @@ linked selection in humans and hitchhiking plays a limited role
 \parencite{McVicker2009-ax,Murphy2022-sj}, humans are a suitable organism to
 test our method. 
 
-\begin{figure}[htbp] \centering
-    \includegraphics{figures/figure_4_pop_mu_trimmed.pdf} 
+\begin{figure}[htbp] 
+    \centering
+    \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
     \caption{}
   \label{fig:figure-4}
 \end{figure}
@@ -716,7 +724,7 @@ coefficients.
 \subsection*{Predicted Diversity Substitution Rates}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_5.pdf} 
     \caption{}
   \label{fig:figure-4}
 \end{figure}
