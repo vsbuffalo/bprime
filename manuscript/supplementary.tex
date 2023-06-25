@@ -827,7 +827,8 @@ and local optimization approaches and parameterizations, but found that
 
 \section{Human Genomic Data}
 
-\subsection{YRI Samples}
+
+\subsection{}
 
 In order to try to ensure accurate estimation of pairwise diversity, which is a
 ratio estimator that is sensitivity to its denominator, we use the complete
@@ -881,7 +882,10 @@ following filters are applied based on masking regions:
       determined by Ensembl (XXX), which uses Repeat Masker (XXX) and Dust
       (XXX).
 
-  \item \textbf{Non-``putatively" neutral regions}: Additionally, for fitting our
+  \item \textbf{``Putatively" neutral regions}: 
+
+
+      Additionally, for fitting our
     likelihood and estimating observed pairwise diversity, we only consider .
     This masks out phastCons regions (from
     \path{phastConsElements100way.bed.gz}) and Ensembl gene regions (from
