@@ -36,7 +36,6 @@
 
 \renewcommand{\P}{\mathbb{P}}
 \newcommand{\E}{\mathbb{E}}
-\newcommand{\V}{\text{V}}
 \DeclareMathOperator{\var}{V}
 \newcommand{\V}{\text{V}}
 \DeclareMathOperator{\cov}{cov}
@@ -54,7 +53,7 @@
 
 \section{Quantitative Genetic Linked Selection Model Theory}
 
-\subsection{Sources of Neutral Allele Frequency Change}
+\subsection{Stochastic Sources of Neutral Allele Frequency Change}
 
 Here, we step through a quick derivation of \textcite{Santiago1995-hx}.
 Throughout, we assume random mating, hermaphroditic individuals, and a constant
@@ -356,7 +355,7 @@ implied by this model. We can write,
     \label{eq:vardecay}
   \V(x_2 - p_0) &= \E({S_1}^2) + \E(S_1 S_2) + \E({S_2}^2) \nonumber \\
                   & + \E({D_1}^2) + \E({H_1}^2) + \E({D_2}^2) + \E({H_2}^2) \nonumber \\
-  \frac{\V(x_2 - p_0)}{p_0(1-p_0)} &= \frac{V_A}{2N} + \frac{V_A Q_2^2}{2N}\left(1-\frac{1}{2N}\right)  +  \frac{V_A}{2N_}  \left(1-\frac{1}{2N}\right)  \nonumber \\ 
+  \frac{\V(x_2 - p_0)}{p_0(1-p_0)} &= \frac{V_A}{2N} + \frac{V_A Q_2^2}{2N}\left(1-\frac{1}{2N}\right)  +  \frac{V_A}{2N}  \left(1-\frac{1}{2N}\right)  \nonumber \\ 
                                      &+ \frac{V_n}{8N} + \frac{1}{4N} + \frac{V_n}{8N}  \left(1 - \frac{1}{2N}\right) 
 + \frac{1}{4N} \left(1 - \frac{1}{2N}\right).
 \end{align}
@@ -385,9 +384,9 @@ size \parencite{Nicolaisen2013-gv}.
 
 Now, we consider how to turn this expression for the variance in neutral allele
 frequency at time $t$ under weak draft into an expression for the
-\emph{draft-effective} population size analogous to Supplementary Equation
-\eqref{supp-eq:var-ne}. In an ideal Wright--Fisher population, the
-instantaneous variance is $\V(\Delta x_t) =
+\emph{draft-effective} population size analogous to drift-effective population
+size given in Supplementary Equation \eqref{supp-eq:var-ne}. In an ideal
+Wright--Fisher population, the instantaneous variance is $\V(\Delta x_t) =
 \nicefrac{p_{t-1}(1-p_{t-1})}{2N_{d,t-1}}$. Santiago and Caballero consider the
 allele frequency change at some $t$ to define their effective population size
 at time $t$ (which we here are calling draft-effective population size,
@@ -418,8 +417,9 @@ In many cases, we care about the asymptotic $N_d$,
 \begin{align}
     N_d := \lim_{t \to \infty} N_{d,t} \approx \frac{4N}{4 V_A Q_\infty^2 +V_n+2}.
 \end{align}
-
-We now turn to different expressions for $Q_t^2$ and $V_A$.
+%
+Now, we turn to different expressions for $Q_t^2$ and $V_A$ under different
+types of polygenic selection.
 
 \subsection{The Draft-Effective Population Size Under Polygenic Selection}
 \label{supp:ne-polygenic}
@@ -499,7 +499,7 @@ well as sites on independently assorting chromosomes. We only consider the
 contribution of a single segment under purifying selection, and the reduction
 from additional segments accumulate multiplicatively. Like their model, we
 imagine the reduction experienced by a focal neutral site in the middle of the
-segment. The implementation of our method differs slightly on though, see XXX.
+segment. 
 
 The $Q_{t,l}$ terms depend on $l$ only through the recombination fraction
 $r(l)$ between the neutral allele and the selected site. Assuming a constant
@@ -651,7 +651,7 @@ arrive at the same equation as classic BGS theory,
 This matches equation 8 of \textcite{Hudson1995-xc} except for the $Ms$ term
 and equation 10 of \textcite{Nordborg1996-nq} except for the $2s$ term.
 
-\subsection{The Draft-Effective Population Size Under Weak and Strong BGS}
+\subsection{The Draft-Effective Population Size Under Weak and Strong Negative Selection}
 \label{supp:weak-strong}
 
 With the possibility of weak selection, deleterious alleles can drift up in
@@ -706,7 +706,7 @@ haploid model, so $V_A = 2 v_A$. Then, the fitness variance is,
 where $U = 2u$ and $R=r$ is the diploid rate of the ratchet, which depends on
 higher moments of the fitness distribution, but only differs from $r$ through a
 rescaling of the population size. We also find that Equation \eqref{eq:Va} and
-Supplementary Materials Equation \ref{supp-eq:Va} above can also be found
+Supplementary Equation \ref{supp-eq:Va} above can also be found
 through Kimura's diffusion models with a flux of mutations into infinite,
 discrete sites (\citeyear{Kimura1969-jw}). Note that if selected sites are
 sufficiently deleterious that they cannot fix (or the population is infinite),
@@ -756,6 +756,7 @@ asymptotic reduction in draft-effective population size uses the $Q_\infty^2$ an
 given by the following system of non-linear equations,
 
 \begin{align}
+    \label{supp-eq:sc16-sys}
   R(N_{d,\infty}) &= \frac{4 U s N_{d,\infty}}{\exp(4 N_{d,\infty} s)-1}\\
   N_{d,\infty} &\approx N \exp\left(-\frac{V_A}{(1-Z) (2-(2-M) Z)} \right)
 \end{align}
@@ -770,21 +771,28 @@ equilibrium variance $\widetilde{V} > 0$ for $s>0$.
 
 \section{Statistical Methods}
 
+The previous section outlined the basis of quantitative genetic linked
+selection models that predict the draft-effective population size under
+polygenic selection and linkage. Our work here only considers the contribution
+of strongly and weakly deleterious mutations to fitness variation. In this
+section, we outline more details about the statistical models used to construct
+the genome-wide B and B' maps that are used in model fitting.
+
 \subsection{Parametric Forms of Negative Linked Selection Models}
 
-Both classic BGS and the B' method we build off the SC16 model have the same
-parametric form, since both (1) model the impact of linked selection as a
-rescaling of effective population size, and (2) both assume multiplicative
-fitness across segments. Thus, the total reduction experienced by a neutral
-site at position $x$ due to segments across the genome is the product of the
-individual reductions is
+Both the classic BGS and the SC16 model we extend have the same parametric
+form, since both (1) model the impact of linked selection as a rescaling of
+effective population size, and (2) both assume multiplicative fitness across
+segments. Thus, the total reduction experienced by a neutral site at position
+$x$ due to segments across the genome is the product of the individual
+reductions,
 
 \begin{align}
   \label{supp-eq:b}
-  B(x, \Psi) &= \prod_g^S \exp \left( \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right) \\
+  B(x, \Psi) &= \prod_g^S \exp \left( \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right) \nonumber  \\
              &= \exp \left( \sum_g^S \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right)
 \end{align}
-
+%
 where, $b(\mu(s, k(g)), s, L_g, r_g, d(x,g))$ is the log reduction due to
 segment $g$, and there are $S$ total segments. Here, $\mu(s, k(g))$ is the
 per-basepair per-genome rate that mutations with selection coefficient $s$
@@ -797,162 +805,79 @@ used (Supplementary Section \ref{supp:reduction-classic}), or our form of
 Santiago and Caballero's (\citeyear{Santiago2016-mu}) equations (see
 Supplementary Section \ref{supp:reduction-sc16}).
 
-Under both background selection models used in our likelihood, the diversity in
-window $v$ is $\bar{\pi}(v, \Psi) = \bar{B}(v, \Psi) \pi_0$. Here, $\bar{B}(v |
-\Psi)$ is the predicted reduction in diversity due to BGS in window $v$, given
-background selection parameters $\Psi$. In practice, we pre-calculate $B(x |
-\Psi)$ at fixed sites $x$ across the genome, and take the average of the fixed
-sites $B$ values within window $v$ for the average $\bar{B}(v | \Psi)$. 
-
-\subsubsection{Reductions Under the Classic BGS Model}
-\label{supp:reduction-classic}
-
-The classic BGS model, which assumes deleterious mutations cannot fix,
-expresses the reduction for a focal site in the middle of a segment
-\parencite{Hudson1995-xc,Hudson1994-oh,Nordborg1996-nq}; here we consider a
-focal site directly to an arbitrary side of a segment under a deleterious
-mutations, and extend the model to handle a focal segment arbitrarily far from
-the segment. To simplify notation, we will only consider a single feature class
-in this and the next section. Using our notation from equation
-\eqref{supp-eq:b}, the log reduction under the classic
-mutation-selection-balance BGS model is,
-
-\begin{align}
-  b(\mu, s, L, r, 0) &=  - \int_0^L \frac{2\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl 
-\end{align}
- 
-(c.f. \cite{Hudson1995-xc} equation 5), where $\mu(l)$ is the \emph{haploid}
-per-basepair mutation rate at $l$ and $r(l)$ is the recombination fraction
-between the focal site (at position 0) and basepair $l$. Assuming constant
-per-basepair recombination and mutation rates, $r(l) = r_\text{BP}l$ and
-$\mu(l) = \mu$, and
-
-\begin{align}
-  b(\mu, s, L, r_\text{BP}, 0) &= - \frac{2\mu L}{s + (1-s) r_\text{BP} L} 
-\end{align}
-
-(c.f. \cite{Hudson1995-xc} equation 8, where the factor of two difference is
-due to the position of the focal site). Often per-region rates are defined $U =
-2 \mu L$ and $M = r_\text{BP} L$ are the segment-wide mutation diploid mutation
-rates (mutations per diploid segment per generation) and recombination length
-(Morgans). 
-
-For computational efficiency, we adjust this model by setting $r(l) = d +
-r_\text{BP} l$, where $d$ is the recombination fraction between the focal site
-$x$ and the start of segment $g$. This allows us to pre-compute the local
-effects of the segment, and substitute in $b$ as the focal site changes. This
-integral substitution has a closed form,
-
-\begin{align}
-  b(\mu, s, L, r_\text{BP}, d) &= \frac{-2\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))}
-\end{align}
-
-and terms can be collected in powers of $d$ and pre-computed for all segments
-for the grid of $\mu$ and $s$. Our implementation pre-computes these segment
-components, and computes the final $b$ value for an $x$ and $g$ by calculating
-the distance $d(x,g) = |M(x) - M(g)|$, where $M(x)$ is the cumulative
-recombination map length at position $x$ in Morgans. Since $r(l)$ could vary by
-position, segments with differing recombination rates are split into segments
-of the same annotation class by their recombination rate. This has no effect on
-the calculation due to the multiplicative fitness, but ensures more accurate
-estimates of the reduction factor $B$.
-
-% Each B map is determined by the annotation track of putatively conserved
-% segments, which includes (1) the segment positions and lengths, (2) the type of
-% feature of each segment (e.g.  exons, UTRs, phastcons conserved elements,
-% etc.), as well as (3) the recombination map, and (3) the deleterious selection
-% coefficient $s(i)$ and mutation rate at which these deleterious enter the
-% population for feature type $i$.
-
-\subsubsection{Reduction Under the Modified Santiago and Caballero Model}
-\label{supp:reduction-sc16}
-
-Under Santiago and Caballero's model, the correct effective population size to
-gauge reduction in heterozygosity or coalescent times is given by their
-equation 4 \parencite{Santiago2016-mu}. This equation considers how the
-inflation factor $Q_t^2$ that sets the draft-effective population size varies
-over $t$ (c.f. Supplementary equation \ref{eq:net_integral}). This is because
-selective processes can lead to non-constant pairwise coalescent rates, which
-impact pairwise coalescent rates and thus the reduction factor. We experimented
-with calculating this full sum and integral approximations to it in our
-methods, but it seemed to make little difference in our application.
-Additionally, it was too costly to calculate computationally for genome-wide
-calculations of the B' map. Instead, we solve for the asymptotic
-$\widetilde{N}_{e,\infty}$ for each segment, and use that to calculate the log
-reduction factor under the SC16 model, $b'$.
-
-Note that the asymptotic model above determines the reduction in effective
-population size experienced by a focal site in the middle of a $L$-basepair
-segment, but B maps require the reduction $b'$ experienced by a focal site $x$
-at an arbitrary recombination distance apart. For each segment, we pre-compute
-the solution to the system of two equations, giving us $V$ and $Q_\infty^2$,
-and then use these values in the equation \eqref{eqn:Ne_VQ2},
-
-\begin{align} 
-    b'(\mu, s, L, r, d) = -\frac{V}{2} \left(\frac{1}{(1-(1-d)Z}\right)^2 
-\end{align}
-
-where $Z = 1 - Us / (U-\widetilde{R})$ and $V = Us - 2\widetilde{R}s$. TODO
-check d.
-
+Under both negative selection models implemented in our software, the diversity
+in window $v$ is $\bar{\pi}(v, \Psi) = \bar{B}(v, \Psi) \pi_0$. Here,
+$\bar{B}(v | \Psi)$ is the predicted reduction in diversity due to BGS in
+window $v$, given background selection parameters $\Psi$. In practice, we
+pre-calculate $B(x | \Psi)$ at fixed sites $x$ across the genome, and take the
+average of the fixed sites $B$ values within window $v$ for the average
+$\bar{B}(v | \Psi)$. 
 
 \subsection{Discretization of Parameters and Annotation Feature Classes}
 
-In practice, to fit such a model, we must discretize both $\mu(s, k(g))$ and
-$s$ in Equation \eqref{supp-eq:b}. We define $\mu_i$ to be the rate of
-mutations entering the population per basepair, per generation with selection
-coefficient $s_i$ (i.e. the product of the mutation rate and the distribution
-of deleterious fitness effects). Then, the reduction at position $x$ is,
+In practice, to fit negative selection models, we must discretize both $\mu(s,
+k(g))$ and $s$ in Supplementary Equation \eqref{supp-eq:b}. We define
+$\mu_{i,k(g)}$ to be the rate of mutations entering the population per basepair
+per generation with selection coefficient $s_i$ for the feature class $k(g)$ of
+segment $g$. This $\mu_{i, k(g)}$ term reflects the product of the mutation
+rate and the distribution of deleterious fitness effects for selection
+coefficient $s_i$ and feature class $k(g)$. Then, the reduction at position $x$
+is,
 
 \begin{align}
-  \label{supp-eq:b}
-  B(x, \Psi) = \exp \left( \sum_g^S \sum_{i} b\left( \mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g) \right)\right).
+  \label{supp-eq:b-disc}
+  B(x, \Psi) = \exp \left( \sum_g^S \sum_{i}^{m_s} b(\mu_{i, \;k(g)}, s_i, L_g, r_g, d(x, g))\right).
 \end{align}
-
-%TODO double check
-
+%
 Because it is computationally-intensive to numerically solve the system of two
 non-linear equations to calculate $b$ at each segment, these are pre-computed
 for an $m_s$-element grid of selection coefficients and an $m_\mu$-element grid
-of mutation rates--DFE products. The number of annotation features $K$ is
-variable and set by the annotation data specified. There are two ways to
-parameterize the mutation rates and DFE for all annotation classes in
-background selection models. First, for the \emph{free-mutation}
-parameterization, each annotation feature class has a free mutation rate
-parameter for each of these selection coefficients (as in equation
-\eqref{supp-eq:b}).
+of mutation rates--DFE products. Likewise, when we calculate $b$ under classic
+BGS models, we pre-calculate segment components across these same grids, and
+combine them for each $x$.
 
-In the free-mutation parameterization, there are $1 + K \times m_s$ for $\pi_0$
-and the free mutation rate parameters, where $K$ is the number of annotation
-features. The MLE optimization for this approach is unconstrained, though
-$\pi_0$ is bounded to be within $10^{-5} \le \pi_0 \le 10^{-1}$ and mutation
-rates are bounded within $10^{-11} \le \mu \le 10^{-7}$. The BGS model requires
-a mutation rate for each selection coefficient in the grid, for each annotation
-class (here, as an example, CDS, UTRs, and phastcons), which are stored in the
-$m_s \times K$ matrix $\mathbf{M}_\text{F}$,
+The number of annotation features $K$ is variable and set by the annotation
+data specified. There are two ways to parameterize the mutation rates and DFE
+for all annotation classes in background selection models. First, for the
+\emph{free-mutation} parameterization, each annotation feature class has a free
+mutation rate parameter for each of these selection coefficients (as in
+Supplementary Equation \ref{supp-eq:b}). We experimented with this approach,
+but ultimately found its results less intuitive and it has more degrees of
+freedom.
 
-\begin{align}
-  \mathbf{M}_\text{F} = \begin{bmatrix}
-    \mu_{10^{-6},\text{CDS}} & \mu_{10^{-6},\text{UTR}} & \mu_{10^{-6},\text{PC}} \\
-    \mu_{10^{-5},\text{CDS}} & \mu_{10^{-5},\text{UTR}} & \mu_{10^{-5},\text{PC}} \\
-    \vdots & \vdots & \vdots \\
-    \mu_{10^{-1},\text{CDS}} & \mu_{10^{-1},\text{UTR}} & \mu_{10^{-1},\text{PC}} \\
-  \end{bmatrix}
-\end{align}
+% In the free-mutation parameterization, there are $1 + K \times m_s$ for $\pi_0$
+% and the free mutation rate parameters, where $K$ is the number of annotation
+% features. The MLE optimization for this approach is unconstrained, though
+% $\pi_0$ is bounded to be within $10^{-5} \le \pi_0 \le 10^{-1}$ and mutation
+% rates are bounded within $10^{-11} \le \mu \le 10^{-7}$. The BGS model requires
+% a mutation rate for each selection coefficient in the grid, for each annotation
+% class (here, as an example, CDS, UTRs, and phastcons), which are stored in the
+% $m_s \times K$ matrix $\mathbf{M}_\text{F}$,
 
-That is, the distribution of fitness effect (DFE) is implied by
-the total mutation rate across selection coefficients for an annotation class.
-We can normalize by the total mutation rate estimate to get the estimated DFE,
-giving us the DFE weight for annotation class $k$ and selection coefficient
-with index $i$,
+% \begin{align}
+%   \mathbf{M}_\text{F} = \begin{bmatrix}
+%     \mu_{10^{-6},\text{CDS}} & \mu_{10^{-6},\text{UTR}} & \mu_{10^{-6},\text{PC}} \\
+%     \mu_{10^{-5},\text{CDS}} & \mu_{10^{-5},\text{UTR}} & \mu_{10^{-5},\text{PC}} \\
+%     \vdots & \vdots & \vdots \\
+%     \mu_{10^{-1},\text{CDS}} & \mu_{10^{-1},\text{UTR}} & \mu_{10^{-1},\text{PC}} \\
+%   \end{bmatrix}
+% \end{align}
 
-\begin{align}
-  \widehat{w}_{i,k} = \frac{\widehat{\mu}_{i,k}}{\sum_i \widehat{\mu}_{i,k}}.
-\end{align}
+% That is, the distribution of fitness effect (DFE) is implied by
+% the total mutation rate across selection coefficients for an annotation class.
+% We can normalize by the total mutation rate estimate to get the estimated DFE,
+% giving us the DFE weight for annotation class $k$ and selection coefficient
+% with index $i$,
 
-The second parametrization is the \emph{simplex} parametrization, which has a
-single mutation rate across all features, so it is a DFE weight matrix times
-the mutation rate $\mu$, 
+% \begin{align}
+%   \widehat{w}_{i,k} = \frac{\widehat{\mu}_{i,k}}{\sum_i \widehat{\mu}_{i,k}}.
+% \end{align}
+
+Instead, we opted for a \emph{simplex} parameterization, which has a single
+shared mutation rate across all features, so the mutation parameter $\mu_{i,
+\;k(g)}$ above is given by the product of the mutation rate and the DFE weight
+matrix. For example, for a $\log_{10}$ selection grid and three features, CDS,
+UTRs, and PhastCons (PC), we'd have a DFE matrix like,
 
 \begin{align}
   \mathbf{M}_\text{S} = \mu \begin{bmatrix}
@@ -962,10 +887,105 @@ the mutation rate $\mu$,
     w_{10^{-1},\text{CDS}} & w_{10^{-1},\text{UTR}} & w_{10^{-1},\text{PC}} \\
   \end{bmatrix}
 \end{align}
-
+%
 which has $2 + K \times (m_s-1)$ free parameters, since each column must sum to
 one. This imposes the constraint that $\sum_i w_{i,k} = 1$, requiring
-constrained MLE optimization. 
+constrained MLE optimization. We implement this using softmax, which describe 
+further in Supplementary Section \ref{supp:optim}.
+
+\subsection{Reductions Under the Classic BGS Model}
+\label{supp:reduction-classic}
+
+The classic BGS model, which assumes deleterious mutations cannot fix,
+expresses the reduction for a focal site in the middle of a segment
+\parencite{Hudson1995-xc,Hudson1994-oh,Nordborg1996-nq}; here we consider a
+focal site directly to an arbitrary side of a segment under a deleterious
+mutations, and extend the model to handle a focal segment arbitrarily far from
+the segment. To simplify notation, we will only consider a single feature class
+in this and the next section. The log reduction under the classic
+mutation-selection-balance BGS model is,
+
+\begin{align}
+    \label{supp-eq:classic-b-int}
+  b(\mu, s, L, r, 0) &=  - \int_0^L \frac{\mu(l)}{s (1 + (1-s) r(l)/s)^2} dl 
+\end{align}
+% 
+(c.f. \cite{McVicker2009-ax} p. 11, \cite{Hudson1995-xc} equation 5,), where
+$\mu(l)$ is the \emph{haploid} per-basepair mutation rate at $l$ and $r(l)$ is
+the recombination fraction between the focal site (at position 0) and basepair
+$l$. Assuming constant per-basepair recombination and mutation rates, $r(l) =
+r_\text{BP}l$ and $\mu(l) = \mu$, 
+
+\begin{align}
+  b(\mu, s, L, r_\text{BP}, 0) &= - \frac{\mu L}{s + (1-s) r_\text{BP} L} 
+\end{align}
+%
+(c.f. \cite{Hudson1995-xc} equation 8; their model considers a neutral site in
+the middle of the segment and drops small terms). Often per-region rates are
+defined $U = 2 \mu L$ and $M = r_\text{BP} L$ are the segment-wide mutation
+diploid mutation rates (mutations per diploid segment per generation) and
+recombination length (Morgans). 
+
+For computational efficiency, we adjust this model by setting $r(l) = d +
+r_\text{BP} l$ in Supplementary Equation \eqref{supp-eq:classic-b-int} and
+integrating, where $d$ is the recombination fraction between the focal site $x$
+and the start of segment $g$. This allows us to pre-compute the local effects
+of the segment, and substitute in $b$ as the focal site changes. This integral
+substitution has a closed form,
+
+\begin{align}
+  b(\mu, s, L, r_\text{BP}, d) &= - \frac{\mu L}{(d(1-s) + s)(s + (d + r_\text{BP}L)(1-s))}.
+\end{align}
+%
+Then, terms can be collected in powers of $d$ and pre-computed for all segments for
+the grid of $\mu$ and $s$. Our implementation of classic BGS in \texttt{bgspy}
+pre-computes these segment components, and then calculates the final $b$ value
+for an $x$ and $g$ by calculating the distance $d(x,g) = |M(x) - M(g)|$, where
+$M(x)$ is the cumulative recombination map length at position $x$ in Morgans.
+Since $r(l)$ could vary by position, segments with differing recombination
+rates are split in two of the same annotation class by their recombination
+rate. This has no effect on the calculation due to the multiplicative fitness,
+but ensures more accurate estimates of the reduction factor $B$.
+
+% Each B map is determined by the annotation track of putatively conserved
+% segments, which includes (1) the segment positions and lengths, (2) the type of
+% feature of each segment (e.g.  exons, UTRs, phastcons conserved elements,
+% etc.), as well as (3) the recombination map, and (3) the deleterious selection
+% coefficient $s(i)$ and mutation rate at which these deleterious enter the
+% population for feature type $i$.
+
+\subsection{Reduction Under the Modified Santiago and Caballero Model}
+\label{supp:reduction-sc16}
+
+Under Santiago and Caballero's model, the correct effective population size to
+gauge reduction in heterozygosity or coalescent times is given by their
+equation 4 \parencite{Santiago2016-mu}. This equation considers how the
+inflation factor $Q_t^2$ that sets the draft-effective population size varies
+over $t$. This is because selective processes can lead to non-constant pairwise
+coalescent rates, which impact pairwise coalescent rates and thus the reduction
+factor. We experimented with calculating this full sum and integral
+approximations to it in our methods, but it seemed to make little difference in
+our application. Additionally, it was too costly to calculate computationally
+for genome-wide calculations of the B' map. Instead, we solve for the
+asymptotic $\widetilde{N}_{e,\infty}$ for each segment, and use that to
+calculate the log reduction factor under the SC16 model, $b'$.
+
+Note that the asymptotic model above determines the reduction in effective
+population size experienced by a focal site in the middle of a $L$-basepair
+segment, but B maps require the reduction $b'$ experienced by a focal site $x$
+at an arbitrary recombination distance apart. For each segment, we pre-compute
+the solution to the system of two equations in Supplementary Equation
+\eqref{supp-eq:sc16-sys} for the mutation and selection coefficient grids,
+giving us $\widetilde{V}$ and $\widetilde{Q}_\infty^2$ for each set of
+parameters. Then, 
+
+\begin{align} 
+    b'(\mu, s, L, r, d) = -\frac{\widetilde{V}}{2} \left(\frac{1}{(1-(1-d)Z}\right)^2 
+\end{align}
+%
+where $Z = 1 - Us / (U-\widetilde{R})$ and $\widetilde{V} = Us - 2\widetilde{R}s$. As
+before, $d$ is the recombination fraction between the segment and the focal
+neutral site.
 
 \subsection{Data Summary Matrices}
 
@@ -1114,6 +1134,7 @@ The predicted ratchet rate for segment $g$ $\lambda_d(g)$ is based on these
 values.
  
 \subsection{Numeric Optimization}
+\label{supp:optim}
 
 
 mu bounds 
