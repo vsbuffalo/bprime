@@ -52,6 +52,7 @@
 \tableofcontents
 
 \section{Quantitative Genetic Linked Selection Model Theory}
+\label{suppsec:theory}
 
 \subsection{Stochastic Sources of Neutral Allele Frequency Change}
 
@@ -202,6 +203,7 @@ simplifies to the well-known equation for variance in a Wright--Fisher
 population.
 
 \subsection{Heritable Fitness and the Accumulation of Autocovariance}
+\label{suppsec:heritable-fitness}
 
 Next, we turn our attention to the case where there is heritable fitness
 variation, which leads to non-zero covariance terms $\mathcal{C}_{i,j}$. These
@@ -789,8 +791,8 @@ reductions,
 
 \begin{align}
   \label{supp-eq:b}
-  B(x, \Psi) &= \prod_g^S \exp \left( \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right) \nonumber  \\
-             &= \exp \left( \sum_g^S \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right)
+  B(x, \Psi) &= \prod_{g \in G} \exp \left( \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right) \nonumber  \\
+             &= \exp \left( \sum_{g \in G} \int_0^1 b(\mu(s, k(g)), s, L_g, r_g, d(x, g)) ds \right)
 \end{align}
 %
 where, $b(\mu(s, k(g)), s, L_g, r_g, d(x,g))$ is the log reduction due to
@@ -831,7 +833,7 @@ is,
 %
 Because it is computationally-intensive to numerically solve the system of two
 non-linear equations to calculate $b$ at each segment, these are pre-computed
-for an $m_s$-element grid of selection coefficients and an $m_\mu$-element grid
+for an $n_s$-element grid of selection coefficients and an $n_\mu$-element grid
 of mutation rates--DFE products. Likewise, when we calculate $b$ under classic
 BGS models, we pre-calculate segment components across these same grids, and
 combine them for each $x$.
@@ -888,7 +890,7 @@ UTRs, and PhastCons (PC), we'd have a DFE matrix like,
   \end{bmatrix}
 \end{align}
 %
-which has $2 + K \times (m_s-1)$ free parameters, since each column must sum to
+which has $2 + K \times (n_s-1)$ free parameters, since each column must sum to
 one. This imposes the constraint that $\sum_i w_{i,k} = 1$, requiring
 constrained MLE optimization. We implement this using softmax, which describe 
 further in Supplementary Section \ref{supp:optim}.
@@ -976,14 +978,15 @@ segment, but B maps require the reduction $b'$ experienced by a focal site $x$
 at an arbitrary recombination distance apart. For each segment, we pre-compute
 the solution to the system of two equations in Supplementary Equation
 \eqref{supp-eq:sc16-sys} for the mutation and selection coefficient grids,
-giving us $\widetilde{V}$ and $\widetilde{Q}_\infty^2$ for each set of
+giving us $\widetilde{V}_a$ and $\widetilde{Q}_\infty^2$ for each set of
 parameters. Then, 
 
 \begin{align} 
-    b'(\mu, s, L, r, d) = -\frac{\widetilde{V}}{2} \left(\frac{1}{(1-(1-d)Z}\right)^2 
+    b'(\mu, s, L, r, d) &= -\frac{\widetilde{V}_a(\mu, s, r)}{2} Q^2(\mu, s, r) \\
+                        Q^2(\mu, s, r)&= \left(\frac{1}{(1-(1-d)\widetilde{Z}}\right)^2 
 \end{align}
 %
-where $Z = 1 - Us / (U-\widetilde{R})$ and $\widetilde{V} = Us - 2\widetilde{R}s$. As
+where $\widetilde{Z} = 1 - Us / (U-\widetilde{R})$ and $\widetilde{V}_a = Us - 2\widetilde{R}s$. As
 before, $d$ is the recombination fraction between the segment and the focal
 neutral site.
 
@@ -1022,13 +1025,13 @@ calculated from row $l$ of the $\mathbf{Y}$ matrix as follows,
 \begin{align}
   \pi_l = \frac{n_D}{n_T}
 \end{align}
-
+%
 which is identical to the more common expression of this estimator, 
 
 \begin{align}
   \pi_l = \frac{2}{n(n-1)} \sum_{i < j}^n k_{i,j}
 \end{align}
-
+%
 where $k_{i,j}$ is 1 if the alleles at this site differ at site $l$, and 0
 otherwise.
 
@@ -1038,7 +1041,7 @@ There are three ways to aggregate $\pi_l$ across all sites. The first is,
   \label{eq:}
   \pi^{(1)} = \frac{1}{L} \sum_{i=1}^L \frac{n_{D,i}}{n_{T,i}}
 \end{align}
-
+%
 which if the number of samples across loci is constant, simplifies to an
 unweighted average across sites. Second, one can take a weighted average, with
 weights determined by the total number of samples present at a site,
@@ -1047,7 +1050,7 @@ weights determined by the total number of samples present at a site,
   \label{eq:}
   \pi^{(2)} = \frac{1}{\sum_{i=1}^L n_i} \sum_{i=1}^L n_i \frac{n_{D,i}}{n_{T,i}}
 \end{align}
-
+%
 Third, one can weight by the number of pairwise comparisons at a site,
 $n_{T,i}$, rather than total number of samples, $n_i$, which leads to a ratio
 of sums,
@@ -1059,7 +1062,7 @@ of sums,
 
 We predominantly use the estimator $\pi^{(3)}$, as it corresponds to how we
 summarize the matrix $\mathbf{Y}$ across windows for our likelihood. All
-methods have mean squared errors and biases very close to one another (TODO).
+methods have mean squared errors and biases very close to one another.
 
 Note, however, that estimates of pairwise diversity often condition on the
 accessible bases, and thus treat this as fixed. However, the number of
@@ -1069,56 +1072,12 @@ pairwise diversity is a ratio estimator, and is thus biased, since by Jensen's
 inequality $\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$ for random
 variables $x$ and $y$. 
 
-\subsection{Window-based Summaries and filtering}
-
-\begin{figure}[!htb]
-  \centering
-  \includegraphics{figures/supplementary/diversity_trimming_dist.pdf}
-
-  \caption{The distribution of diversity across the genome at the megabase
-  scale, with outliers trimmed. The blue line is the normal CDF, fit with MLE
-parameters XXX. The inset figure is the untrimmed data, with trimmed points
-shown in red.}
-
-  \label{suppfig:trimming}
-\end{figure}
-
-
-The likelihood method is fit to non-overlapping binned summaries of the allele
-counts matrix. 
-
-
-Based on exploratory data analyses, some bins were outliers and
-excluded (XXX). 
-
-
-
-\begin{enumerate}
-  \item \textbf{Fraction of inaccessible sites per window}.  \path{mask_inaccessible_bins_frac}
-  % \item \textbf{Edge truncation}
-
-  \item \textbf{Outliers}: Based on exploratory analysis, there were some
-    regions with very high diversity. The 0.05\% right tail was excluded.
-
-\end{enumerate}
-
-
-% supp data
-% - npy files
-% - edge trunation
-
-\subsection{Annotation Models}
-
-
-CADD 6\%: 6.49\% of autosomal sequence.
-CADD 8\%: 8.56\% of autosomal sequence.
-
 \subsection{Ratchet Rate Prediction}
 
 After rescaling each segment $N_e$ by the local predicted reduction
 $\hat{B}(x)$, the ratchet rates and $B'$ values are re-calculated. 
 
-The rescaled $B'$ calculation outputs a $m_\mu \times m_s \times S$
+The rescaled $B'$ calculation outputs a $n_\mu \times n_s \times S$
 multidimensional array $\mathbf{R}$ of ratchet rates per segment. These are
 rescaled by the segment lengths $\mathbf{l}$, giving the per-basepair mutation
 rate array. The per-basepair ratchet rate given maximum likelihood estimates of
@@ -1314,6 +1273,51 @@ chr22 &        25.5 &     50.9 &  17.1 \\
 \hline
 \end{tabular}
 \end{table}
+
+\subsection{Window-based Summaries and filtering}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics{figures/supplementary/diversity_trimming_dist.pdf}
+
+  \caption{The distribution of diversity across the genome at the megabase
+  scale, with outliers trimmed. The blue line is the normal CDF, fit with MLE
+parameters XXX. The inset figure is the untrimmed data, with trimmed points
+shown in red.}
+  \label{suppfig:trimming}
+\end{figure}
+
+
+The likelihood method is fit to non-overlapping binned summaries of the allele
+counts matrix. 
+
+
+Based on exploratory data analyses, some bins were outliers and
+excluded (XXX). 
+
+
+
+\begin{enumerate}
+  \item \textbf{Fraction of inaccessible sites per window}.  \path{mask_inaccessible_bins_frac}
+  % \item \textbf{Edge truncation}
+
+  \item \textbf{Outliers}: Based on exploratory analysis, there were some
+    regions with very high diversity. The 0.05\% right tail was excluded.
+
+\end{enumerate}
+
+
+% supp data
+% - npy files
+% - edge trunation
+
+\subsection{Annotation Models}
+
+
+CADD 6\%: 6.49\% of autosomal sequence.
+CADD 8\%: 8.56\% of autosomal sequence.
+
+
 
 \subsection{Model Comparisons}
 
