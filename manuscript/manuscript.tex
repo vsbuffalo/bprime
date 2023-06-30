@@ -887,6 +887,8 @@ predicted substitution rate is calculated as a byproduct of
 
 \section*{Discussion}
 
+Regularization / overfitting 
+
 It is worth considering why this model performs well for models of negative
 selection. The fitness variance equation, $V(x) = (U-2R)s$ tells us that under
 models, the long-run variance is set by the balance of mutation and fixation.
@@ -987,7 +989,10 @@ Supplementary Materials Section \ref{supp:data-summary}).
 We tested multiple different optimization routines, finding that BOBYQA
 outperformed alternatives \parencite{Powell_undated-ec}. We inspected and
 confirmed convergence with diagnostic plots finding stable optima across 10,000
-random starts (see Supplementary Materials Section \ref{suppsec:optima}).
+random starts (see Supplementary Materials Section \ref{suppsec:optima}). We
+assessed model fit using out-sample predictive accuracy, calculated by leaving
+out a whole chromosome during fitting and predicting its diversity. To
+calculate uncertainty, we used a block jackknife approach in 10 Mbp windows.
 
 \subsection*{Segment Simulations}
 \label{sec:methods-segsim}

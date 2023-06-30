@@ -1167,7 +1167,7 @@ following filters are applied based on masking regions:
 \begin{enumerate}
 
   \item \textbf{Non-accessible regions}: masks out centromeres (\texttt{acen} entries in
-    \texttt{cytoBand.txt}), with 5Mbp padding on either side. The file of
+    \texttt{cytoBand.txt}), with 5 Mbp padding on either side. The file of
     passing masks is \path{data/annotation/no_centro.bed}. 
 
   \item \textbf{Reference masking}: soft and hard-masked regions in the human
@@ -1643,13 +1643,70 @@ two-alleles finite sites model link function of the form, $\pi/(1 + 2 \pi)$. We
 experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
 
+\subsection{Out-Sample Error Estimation and $R_\text{LOO}^2$}
+
+We fit each of our B' model fits 22 times, excluding a whole chromosome each
+time to calculate out-sample prediction error. Each fit used 10,000 random
+starting positions as the main fits. The out-sample prediction error for all
+bins in chromosome $C$ left out is,
+
+\begin{align}
+    SSE(C) = \sum_{b \in C} (\widehat{\pi}_{b,Y\not \in C}  - \pi_b)^2
+\end{align}
+%
+
+where $\widehat{\pi}_{b,Y\not \in C}$ denotes the predictions for window $b$
+fit on data excluding chromosome $C$. The average out-sample error $SSE$ across
+chromosomes is then the average of $SSE(C)$ across chromosomes, weighted by the
+number of bins per chromosome. We then calculate the out-sample coefficient of
+determination $R_\text{LOO}^2$
+
+\begin{align}
+    R_\text{LOO}^2 = \frac{SSE}{}
+\end{align}
+
+XXX
+
+
+\subsection{Jackknife Procedures}
+
+\begin{figure}[htbp]
+  \label{suppfig:jackknife-iqr}
+  \centering
+  \includegraphics[width=0.7\textwidth]{figures/supplementary/iqr_jackknife_trim.pdf}
+
+  \caption{The distribution of block jackknife samples for the Feature Priority
+  model fit on YRI data. The ranges at the top of the figure indicate the
+untrimmed and the 2 IQR-trimmed jackknife intervals. for XXX fix fig }
+
+\end{figure}
+
+We use a block jackknife procedure to calculate the uncertainty of our
+estimates. This approach is unfortunately computationally intensive, since a
+10Mbp block width requires $\approx 280$ blocks to cover 2.8Gbp of autosomal
+sequence and each fit requires thousands of random starts to reliably find
+consistent optima. We use a parallelization strategy where a set number of
+evenly-spaced positions along the genome that are chosen to approximately cover
+all 2.8Gbps of autosomal sequence. Each of these positions is sent out across a
+computing cluster, which excludes the 10Mbp block there and fits on the
+remaining data. Then, using these jackknife samples we calculated the jackknife
+standard error for each of parameters \parencite{Wasserman2004-ip}. In some
+cases, our jackknife standard error estimates were very large. Upon inspection
+of optimization diagnostic plots (see Supplementary Materials Section
+\ref{suppfig:diag-plot}) and histograms of jackknife fits (Supplementary Figure
+\ref{suppfig:jackknife-iqr}), these were due to rare aberrant optima. We
+removed these using a trimmed-interquartile range, which removes points that
+are 2 interquartile ranges below the first quartile or above the third quartile
+(1.5 is standard, but we chose to be more conservative to not underestimate
+uncertainty).
+
 \section{Simulations}
 
 \subsection{Segment Simulations}
 
 \section{Additional Results and Figures}
 
-\subsection{Optimization Diagnostics}
+\subsection{Optimization and Diagnostics}
 \label{suppsec:optim}
 
 We only show one optimization diagnostic plot here (Supplementary Figure
@@ -1670,8 +1727,8 @@ other top 100 optima.
   colors indicate probability mass for the DFE parameters (top four rows).
 Estimates of $\pi_0$ and $\mu$ are shown in the bottom two rows. This is the
 optimization plot for YRI Feature Priority model.}
-
 \end{figure}
+
 \clearpage
 
 \subsection{Chromosome Fit Figures}
