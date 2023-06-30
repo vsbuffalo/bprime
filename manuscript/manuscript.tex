@@ -309,6 +309,7 @@ the segment and $\kappa_i$ is the rate that the associated fitness variance
 decays due to selective dynamics. Then, the cumulative autocorrelation is,
 
 \begin{align}
+    \label{eq:Q}
     Q_i &= 1 + \sum_{j=1}^\infty \left[(1-r_i)(1-\kappa_i)\right]^j \nonumber \\
         &= \frac{1}{\kappa_i + r_i(1-\kappa_i)}.
 \end{align}
@@ -411,12 +412,12 @@ $R$ for each segment,
   R &= \frac{4N_d U s}{\exp(4 N_d s)-1}  & \text{\emph{ratchet equation}}
 \end{align}
 
-where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}. The predicted $V_a$, $R$,
-and $N_d$ values represent the equilibria expected under a
-mutation-selection-drift-draft process for neutral to strongly deleterious
-additive mutations. The collection of these $V_a$ and $R$ equilibria can then
-be used to calculate the reduction at an arbitrary position in the genome (see
-Methods 
+where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}. We denote the solutions to
+these equation, which represent equilibria under mutation-selection-drift-draft
+process, as $\widetilde{N}_d$ and $\widetilde{R}$. These equilibria also imply
+an equilibrium level of additive fitness variation $\widetilde{V}_a$ in the
+segment, are used to calculate the reduction at an arbitrary position in the
+genome (see Methods 
 
 With the equilibrium $V_a$ calculated at each segment for a particular $\mu$
 and $s$, we can estimate the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any
@@ -938,28 +939,55 @@ rate in a segment is determined by a user-supplied recombination map.
 \subsection*{Calculating the Reduction Maps}
 \label{sec:methods-maps}
 
-We use these pre-computed equilibria to calculate the reduction map $B(x; m_i,
-s_j)$ at positions $x$ across the mutation grids described above. Since we
-assume multiplicative fitness, the reduction is the product of each segment's
-contribution accounting for the recombination is,
+Our method uses the pre-computed equilibria $\widetilde{V}_{a,g}$ for each
+segment $g$ to calculate the reduction map $B(x; m_i, s_j)$ at positions $x$
+across the parameter grids described above. Since we assume multiplicative
+fitness, the reduction is the product of each segment's contribution accounting
+for the recombination is,
 
 \begin{align}
-    B(x; m_i, s_j) = \exp\left(- \frac{1}{2}\sum_{g \in G} \sum_{i=1}^{n_s} V_g(m_i, s_j) Q_g^2(m_i, s_j, r_{x, g})\right)
+    B(x; m_i, s_j) = \exp\left(- \frac{1}{2}\sum_{g \in G} \sum_{i=1}^{n_s} \widetilde{V}_{a,g}(m_i, s_j) Q_g^2(m_i, s_j, r_{x, g})\right)
 \end{align}
-
+%
 where $r_{x, g}$ is the recombination fraction between the focal site and
-segment $g$. A separate reduction map is calculated for all features $G$ within
-a specific feature type. Our B' maps are calculated for $\log_{10}$-spaced
-grids over $10^{-1} \le s \le 10^{-8}$ and $10^{-11} \le m \le 10^{-7}$, in
-10kb increments across the genome.
+segment $g$. Here, $Q^2(m_i, s_j, r_{x,g})$ is given by Equation \eqref{eq:Q}
+squared. A separate reduction map is calculated for all features $G$ within a
+specific feature type. We calculate B' calculate for $\log_{10}$-spaced grids
+over $10^{-1} \le s \le 10^{-8}$ and $10^{-11} \le m \le 10^{-7}$, in 10kb
+increments across the genome.
 
-\subsection*{Composite Likelihood}
+\subsection*{Composite Likelihood and Optimization}
 \label{sec:methods-likelihood}
 
+Following previous approaches
+\parencite{McVicker2009-ax,Elyashiv2016-vt,Murphy2022-sj}, we use a composite
+likelihood approach to fit our negative selection model. Per-basepair allele
+count data (described below) is summarized into the number of same and
+different pairwise differences per window. All of our primary models were fit
+with megabase windows, since previous work has found the strongest selection
+signal at this scale (we confirm this with one XXX fit at the $10^5$bp scale).
+
+We use a binomial likelihood with probability $\bar{\pi}(b; \Psi) = \pi_0
+\bar{B}(b; \mu, \mathbf{W})$, where bars indicate averages over some bin width.
+With multiple features classes and a map $k(g)$ between a segment $g$ to its
+class, the reduction map is,
+
 \begin{align}
-    \log\left(B(x; W, s_j) \right) = - \frac{1}{2} \sum_{g \in G} \sum_{i=1}^{n_s} V_g(\mu W_{j, k(g)}, s_j) Q_g^2(m_i, s_j, r_{x, g})
+    \log\left(B(x; W, s_j) \right) = - \frac{1}{2} \sum_{g \in G} \sum_{i=1}^{n_s} V_g(\mu W_{j, k(g)}, s_j) Q_g^2(m_i, s_j, r_{x, g}).
 \end{align}
 
+Here, $\mu$ is the mutation rate and $\mathbf{W}$ is the $n_s \times K$ DFE
+matrix over the selection grid and features. Since each column of the DFE
+$\mathbf{W}$ must sum to one, numeric optimization was done in unconstrained
+$n_s-1$ dimensional softmax space. Our binomial likelihood modeled the number
+of different pairwise comparisons observed per window given the predicted
+pairwise diversity and total number of comparisons implied per window (see
+Supplementary Materials Section \ref{supp:data-summary}).
+
+We tested multiple different optimization routines, finding that BOBYQA
+outperformed alternatives \parencite{Powell_undated-ec}. We inspected and
+confirmed convergence with diagnostic plots finding stable optima across 10,000
+random starts (see Supplementary Materials Section XXX).
 
 \subsection*{Segment Simulations}
 \label{sec:methods-segsim}

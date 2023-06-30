@@ -882,7 +882,7 @@ matrix. For example, for a $\log_{10}$ selection grid and three features, CDS,
 UTRs, and PhastCons (PC), we'd have a DFE matrix like,
 
 \begin{align}
-  \mathbf{M}_\text{S} = \mu \begin{bmatrix}
+    \mathbf{M} = \mu \mathbf{W} &= \begin{bmatrix} 
     w_{10^{-6},\text{CDS}} & w_{10^{-6},\text{UTR}} & w_{10^{-6},\text{PC}} \\
     w_{10^{-5},\text{CDS}} & w_{10^{-5},\text{UTR}} & w_{10^{-5},\text{PC}} \\
     \vdots & \vdots & \vdots \\
@@ -991,6 +991,7 @@ before, $d$ is the recombination fraction between the segment and the focal
 neutral site.
 
 \subsection{Data Summary Matrices}
+\label{supp:data-summary}
 
 Our underlying data for all likelihood and pairwise diversity estimates is the
 allele count matrix $\mathbf{C}$ with dimensions $L \times 2$, where $L$ is the
@@ -1238,38 +1239,43 @@ future work calibrating the neutral track is needed.
 
 These neutral tracks are all produced by the Snakemake file
 \path{data/fit_annotation/Snakefile} in this study's GitHub repository
-(\url{http://github.com/vsbuffalo/bprime}).
+(\url{http://github.com/vsbuffalo/bprime}). We summarize the percentage of
+basepairs after masking per chromosome in Supplementary Table
+\ref{supp-table:masks}.
 
 \begin{table}
+    \label{supp-table:masks}
 \centering
-\caption{Percent of basepairs remaining that are accessible and 
-         putatively neutral.}
-\begin{tabular}{|l|rrr|}
+\caption{Accessible and putatively neutral sequence mask statistics, for the criteria used in 
+         the main model fits.}
+\begin{tabular}{|c|cccc|}
 \hline
-Chromosome & Accessible & Neutral & Intersection \\
+Chromosome & Accessible (\%) & Neutral (\%) & Intersection (\%) & Total Basepairs ($\times 10^6$) \\
+\hline 
+1 &        39.7 &     62.0 &  15.7 &     39.09 \\
+2 &        45.3 &     60.1 &  18.9 &     45.77 \\
+3 &        43.2 &     59.6 &  16.9 &     33.51 \\
+4 &        42.7 &     65.9 &  20.2 &     38.42 \\
+5 &        42.4 &     62.2 &  18.1 &     32.86 \\
+6 &        43.8 &     61.4 &  18.4 &     31.43 \\
+7 &        41.9 &     64.0 &  18.6 &     29.64 \\
+8 &        42.3 &     66.1 &  20.2 &     29.32 \\
+9 &        36.2 &     65.4 &  14.6 &     20.21 \\
+10 &        42.9 &     62.2 &  18.8 &     25.15 \\
+11 &        41.3 &     61.5 &  17.0 &     22.96 \\
+12 &        40.6 &     60.4 &  15.9 &     21.19 \\
+13 &        38.8 &     70.7 &  18.8 &     21.50 \\
+14 &        36.5 &     64.6 &  13.8 &     14.77 \\
+15 &        34.4 &     66.3 &  13.5 &     13.77 \\
+16 &        36.0 &     66.0 &  15.5 &     14.00 \\
+17 &        37.2 &     58.8 &  14.2 &     11.82 \\
+18 &        40.3 &     66.1 &  19.6 &     15.75 \\
+19 &        28.1 &     67.5 &  11.5 &      6.74 \\
+20 &        36.1 &     62.5 &  15.4 &      9.92 \\
+21 &        29.8 &     76.9 &  17.3 &      8.08 \\
+22 &        25.5 &     75.5 &  12.6 &      6.40 \\
 \hline
- chr1 &        39.7 &     61.2 &  23.4 \\
- chr2 &        45.3 &     67.3 &  27.5 \\
- chr3 &        43.2 &     67.3 &  25.7 \\
- chr4 &        42.7 &     70.5 &  27.4 \\
- chr5 &        42.4 &     67.5 &  26.0 \\
- chr6 &        43.8 &     67.9 &  26.7 \\
- chr7 &        41.9 &     67.8 &  26.2 \\
- chr8 &        42.3 &     70.9 &  27.5 \\
- chr9 &        36.2 &     58.1 &  22.0 \\
-chr10 &        42.9 &     68.2 &  26.8 \\
-chr11 &        41.3 &     67.0 &  25.0 \\
-chr12 &        40.6 &     67.2 &  24.1 \\
-chr13 &        38.8 &     59.8 &  25.2 \\
-chr14 &        36.5 &     54.9 &  21.5 \\
-chr15 &        34.4 &     53.7 &  20.6 \\
-chr16 &        36.0 &     62.5 &  23.1 \\
-chr17 &        37.2 &     63.3 &  21.6 \\
-chr18 &        40.3 &     65.7 &  26.3 \\
-chr19 &        28.1 &     66.1 &  17.0 \\
-chr20 &        36.1 &     65.1 &  22.4 \\
-chr21 &        29.8 &     55.9 &  20.9 \\
-chr22 &        25.5 &     50.9 &  17.1 \\
+weighted average & 40.1 & 63.6 & 17.1 & - \\
 \hline
 \end{tabular}
 \end{table}
@@ -1550,8 +1556,8 @@ diversity at position $x$, $B(x)$, and genome-wide neutral diversity $\pi_0$,
   \pi(x) = B(x, \Phi) \pi_0
 \end{align}
 
-$\Phi$ is the set of BGS parameters (i.e. the DFE for each feature type and
-mutation rate), and $\pi_0 = 4 N_e \mu$ is determined by the genome-wide
+$\Phi$ is the set of BGS parameters (i.e. the DFE matrix $\mathbf{W}$ and
+mutation rate $\mu$), and $\pi_0 = 4 N_e \mu$ is determined by the genome-wide
 drift-effective population size $N_e$, set by only reproductive and demographic
 processes. Regional mutation rate heterogeneity can be accounted for with a
 regional mutation rate scaling function $m(x)$, $\pi(x) = B(x, \Phi) m(x)
@@ -1642,6 +1648,19 @@ functions, so we opted for the simpler identity link function.
 \subsection{Segment Simulations}
 
 \section{Additional Results and Figures}
+
+\subsection{Optimization Diagnostics}
+
+\begin{figure}[!htb]
+  \label{suppfig:diag-plot}
+  \centering
+  \includegraphics[width=\textwidth]{figures/supplementary/figure_feature_priority_yri_full_diag.pdf}
+  \caption{
+      An optimization diagnostic plot showing the }
+\end{figure}
+
+
+
 
 \subsection{Chromosome Fit Figures}
 \clearpage
