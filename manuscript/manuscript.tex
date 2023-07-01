@@ -497,13 +497,12 @@ deterministic mutation-selection equilibrium (Figure \ref{fig:figure-1}C).
 Given the accuracy of the SC16 model in predicting the reduction factor $B$ and
 ratchet rate for a single segment under general mutation-selection processes,
 we extended their model so that it could be applied to whole-genome data. Our
-software method \texttt{bgspy} calculates the equilibrium additive genic
-fitness variance ($V_a$) and ratchet rate ($R$) across grids of mutation rates
-and selection coefficients for each pre-specified segment in the genome that
-may be under negative selection (e.g. coding sequences or UTRs). Then, our
-method computes a reduction map $B(x)$ for each position $x$ in the genome,
-which is determined by the fitness variation at each segment and their spacing
-along the user-supplied recombination map (see Methods XXX). To distinguish
+software method \texttt{bgspy} numerically solves Equations XXX to compute the
+equilibrium additive genic fitness variance ($V_a$) and ratchet rate ($R$)
+across grids of mutation rates and selection coefficients. This is done for
+each pre-specified segment in the genome that may be under negative selection
+(e.g. coding sequences or UTRs). Then, these equilibrium can be used to
+calculate a reduction map $B(x)$ across genomic positions $x$. To distinguish
 between McVicker's B maps based on classic BGS theory, we call our reduction
 map $B(x)$ a B' map.
 
@@ -887,6 +886,10 @@ prediction process. First, when the initial B' maps are calculated, the
 predicted substitution rate is calculated as a byproduct of 
 
 \section*{Discussion}
+
+Ipsita Agarwal article 
+
+what time scale is the average mutation being lost at?
 
 Regularization / overfitting 
 
