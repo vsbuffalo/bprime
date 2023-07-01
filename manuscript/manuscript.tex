@@ -268,7 +268,7 @@ is
 \end{align}
 
 (c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see Supplementary Section
-\ref{suppsec:theory} for a proof). In general, however, statistics such as
+\ref{supp:theory} for a proof). In general, however, statistics such as
 heterozygosity depend on the cumulative autocorrelation factor up to some time
 $t$, $Q_t^2$ \parencite[p. 2111]{Santiago1998-bs}. This reflects the fact that
 effective population size experienced by a mutation newly associated with a
@@ -298,7 +298,7 @@ by an arbitrary neutral site under the influence of all linked regions is,
 
 where the factor of one-half comes from ignoring weak associations from
 unlinked regions and chromosomes (see Supplementary Section
-\ref{suppsec:heritable-fitness}). In our genome-wide model, we consider the
+\ref{supp:heritable-fitness}). In our genome-wide model, we consider the
 summation in Equation \eqref{eq:polygenic_Ne} over non-overlapping segments $i
 \in \{1, 2, \ldots, S\}$ each undergoing selection such that segment $i$
 contributes additive fitness variance $V_{A,i}$ to the total additive genetic
@@ -426,17 +426,18 @@ genomic position $x$ (see Methods XXX).
 \section*{Results}
 
 Similar to previous work, our method characterizes the negative selection
-process through the signal left on pairwise diversity at linked sites. Although
-pairwise diversity is a less-informative statistic than the full site frequency
-spectrum, it is much easier to derive models of how selection alters expected
-pairwise coalescence times at linked sites than to describe the entire
-genealogy. Spatial patterns of pairwise diversity are highly variable across
-eukaryotic genomes, as linked selection leads diversity to become correlated
-with spatial heterogeneity in recombination rates and the density of conserved
-sites. Statistical methods then fit observed diversity to the expected level
-under a particular theoretic model of linked selection processes. Consequently,
-statistical inferences about selection may be incorrect when the underlying
-theory inaccurately predicts average pairwise coalescence times.
+process through the signal left on nucleotide diversity at linked sites.
+Although nucleotide diversity is a less-informative statistic than the full
+site frequency spectrum, it is much easier to derive models of how selection
+alters expected pairwise coalescence times at linked sites than to describe the
+entire genealogy. Spatial patterns of pairwise diversity are highly variable
+across eukaryotic genomes, as linked selection leads diversity to become
+correlated with spatial heterogeneity in recombination rates and the density of
+conserved sites. Statistical methods then fit observed diversity to the
+expected level under a particular theoretic model of linked selection
+processes. Consequently, statistical inferences about selection may be
+incorrect when the underlying theory inaccurately predicts average pairwise
+coalescence times.
 
 \subsection*{Simulations of a Segment under Negative Selection}
 
@@ -471,7 +472,7 @@ first sought to confirm it could accurately predict the reduction in realistic
 forward-time simulations of diploid populations with recombination. Using SLiM
 \parencite{Haller2019-vu,Haller2023-uk} we simulated a region of $10^5$
 basepairs under varying levels of mutation and selection (see Methods
-\ref{sec:methods-segsim}). We find a close correspondence between the observed
+\ref{sec:methods-sim}). We find a close correspondence between the observed
 and predicted reductions in effective population size $B=\nicefrac{N_d}{N}$
 over all selection and mutation parameters including weak selection (Figure
 \ref{fig:figure-1}A), in contrast to classic BGS theory. Furthermore, to
@@ -590,14 +591,14 @@ PhastCons, and a Feature Priority model, where gene structure features take
 priority and the PhastCons type catches all highly-conserved non-genic regions.
 In total, we fit four annotation models (CADD 6\%, CADD 8\%, PhastCons
 Priority, and Feature Priority) to high-coverage 1000 Genome data for three
-populations: Yoruba (YRI), Han Chinese (CHB), and European (CEU) ancestries. We
-assess and compare our models according to how well they predict patterns of
-diversity on whole chromosomes left-out during the model fitting process. We
-use the metric $R_\text{LOO}^2$, which is the proportion of the observed
-variance in genomic diversity at the megabase scale predicted by our model. We
-experimented with a few smaller spatial scales, but our results were consistent
-with previous results suggesting the human linked selection signal fits best at
-the megabase scale \parencite{Murphy2022-sj}.
+populations: Yoruba (YRI), Han Chinese (CHB), and European (CEU) reference
+samples. We assess and compare our models according to how well they predict
+patterns of diversity on whole chromosomes left-out during the model fitting
+process. We use the metric $R_\text{LOO}^2$, which is the proportion of the
+observed variance in genomic diversity at the megabase scale predicted by our
+model. We experimented with a few smaller spatial scales, but our results were
+consistent with previous results suggesting the human linked selection signal
+fits best at the megabase scale \parencite{Murphy2022-sj}.
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
@@ -692,14 +693,14 @@ is not coalescence noise).
 
 
 
-Next, we developed a composite-likelihood method to estimate pairwise diversity
-in the absence of linked selection $\pi_0$, the deleterious mutation rate
-($\mu_D$), and distribution of fitness effects ($\mathbf{W}$) under negative
-selection. Because the focus of our work is to fix deficiencies in the classic
-BGS model, our current implementation does not consider reductions in diversity
-due to recurrent hitchhiking or other positive selection processes. Since
-previous work has established that purifying selection is the dominant mode of
-linked selection in humans and hitchhiking plays a limited role
+Next, we developed a composite-likelihood method to estimate expected diversity
+without linked selection $\pi_0$, the deleterious mutation rate ($\mu_D$), and
+distribution of fitness effects ($\mathbf{W}$) under negative selection.
+Because the focus of our work is to fix deficiencies in the classic BGS model,
+our current implementation does not consider reductions in diversity due to
+recurrent hitchhiking or other positive selection processes. Since previous
+work has established that purifying selection is the dominant mode of linked
+selection in humans and hitchhiking plays a limited role
 \parencite{McVicker2009-ax,Murphy2022-sj}, humans are a suitable organism to
 test our method. 
 
@@ -971,85 +972,90 @@ signal at this scale (we confirm this with one XXX fit at the $10^5$bp scale).
 
 We use a binomial likelihood with probability $\bar{\pi}(b; \Psi) = \pi_0
 \bar{B}(b; \mu, \mathbf{W})$, where bars indicate averages over some bin width.
-With multiple features classes and a map $k(g)$ between a segment $g$ to its
+With multiple features classes and a map $k(g)$ between segments $g$ to their
 class, the reduction map is,
 
 \begin{align}
     \log\left(B(x; W, s_j) \right) = - \frac{1}{2} \sum_{g \in G} \sum_{i=1}^{n_s} V_g(\mu W_{j, k(g)}, s_j) Q_g^2(m_i, s_j, r_{x, g}).
 \end{align}
 
-Here, $\mu$ is the mutation rate and $\mathbf{W}$ is the $n_s \times K$ DFE
-matrix over the selection grid and features. Since each column of the DFE
-$\mathbf{W}$ must sum to one, numeric optimization was done in unconstrained
-$n_s-1$ dimensional softmax space. Our binomial likelihood modeled the number
-of different pairwise comparisons observed per window given the predicted
-pairwise diversity and total number of comparisons implied per window (see
-Supplementary Materials Section \ref{supp:data-summary}).
+Here, $\mu$ is the mutation rate and $W_{j,k(g)}$ is a DFE entry in the
+$\mathbf{W}$ is the $n_s \times K$ DFE matrix over the selection grid and
+features. Since each column of the DFE $\mathbf{W}$ must sum to one, numeric
+optimization was done in unconstrained $n_s-1$ dimensional softmax space. Our
+binomial likelihood modeled the number of different pairwise comparisons
+observed per window given the predicted pairwise diversity and total number of
+comparisons implied per window (see Supplementary Materials Sections
+\ref{supp:data-summary} and \ref{supp:likelihood}).
 
 We tested multiple different optimization routines, finding that BOBYQA
 outperformed alternatives \parencite{Powell_undated-ec}. We inspected and
 confirmed convergence with diagnostic plots finding stable optima across 10,000
 random starts (see Supplementary Materials Section \ref{suppsec:optima}). We
-assessed model fit using out-sample predictive accuracy, calculated by leaving
-out a whole chromosome during fitting and predicting its diversity. To
-calculate uncertainty, we used a block jackknife approach in 10 Mbp windows.
+assessed model fit using out-sample predictive error, calculated by leaving out
+a whole chromosome during fitting and predicting its diversity. To calculate
+uncertainty, we used a block jackknife approach in 10 Mbp windows
+(Supplementary Section \ref{supp:jackknife}).
 
-\subsection*{Segment Simulations}
-\label{sec:methods-segsim}
+\subsection*{Human Population Genomic Data}
+\label{sec:methods-data}
 
-To assess the accuracy of the SC16 theory, we conducted forward simulations
-across grids of mutation rates ($\log_{10}(\mu) = \{10^{-9.5}, 10^{-9}, \ldots,
-10^{-8}\}$) and selection coefficients ($\log_{10}(\mu) = \{-1, 1.5, 2, \ldots,
-4.5\}$) using SLiM \parencite{Haller2023-uk,Haller2019-vu}. Each simulation
-evolved a 100kb region with deleterious mutations entering at rate $\mu$
-per-basepair, per generation, each with an additive selection coefficient of
-$-s$. Total fitness was multiplicative across sites. Each simulation recorded
-the number of fixations and the fitness variance per generation. After $10N$
-generations, the ARG of the tree was recorded and downstream Python scripts
-calculated diversity in the center of the region. We averaged the results of
-$10,000$ replicate simulations to compare against theory.
+Our analyses was conducted on the Yoruba (YRI), European (CEU), and Han Chinese
+(CHB) reference samples individuals from the high-coverage 1000 Human Genomes
+data aligned to GRCh38/hg38 \parencite{Byrska-Bishop2022-tn}. Since nucleotide
+diversity is a ratio estimator, it can be biased when subtly different
+filtering criteria are applied to variant and invariant sites. To prevent this,
+we conducted our analyses on Genomic VCF (gVCF) files that contain genotype
+calls for both variant and invariant sites \parencite{Illumina_Inc2020-dk}.
+Then, we apply the same genotype filtering criteria to all called sites
+(Supplementary Materials Section \ref{supp:filter}). We also applied sequence
+accessibility masks that containing only non-repeat, non-centromeric sequence
+that passed the 1000 Genomes strict filter
+(\cite{1000_Genomes_Project_Consortium2015-mi}; Supplementary Material Section
+\ref{supp:accessible}). Since our theory only considers the indirect effects of
+linked selection on a site, we additionally masked sites that are likely under
+direct selective constraint (see Supplementary Materials Section
+\ref{supp:neutral}). Finally, for every basepair passing these filtering and
+masking criteria, we counted the number of reference and alternative allele
+counts (excluding all multiallelic, indel, and CNV variants).
 
-\subsection*{Chromosome-wide Simulations}
+For all of our main analyses, we used the recombination map from
+\textcite{Halldorsson2019-ey} estimated from a trio-based design to avoid
+circularity that could occur by using LD-based maps. We use Ensembl gene
+annotation \parencite{Cunningham2022-vk}, a special CADD Score dataset with
+McVicker B scores removed (to avoid circularity;
+\cite{Kircher2014-bv,Rentzsch2019-lr}), and PhastCons regions
+\parencite{Siepel2005-wh}.
 
+\subsection*{Forward Simulations}
+\label{sec:methods-sim}
 
+We use two types of forward simulations in this paper; both use SLiM version
+4.0.1 \parencite{Haller2023-uk,Haller2019-vu}. First, we simulated a 100 kbp
+segment in a population of $N=1000$ diploids across grids of mutation and
+selection parameters to assess the accuracy of the SC16 theory. Each simulation
+recorded the number of fixations and the fitness variance per generation, and
+at the end $10N$ generations, the ancestral recombination graph was recorded so
+downstream Python scripts could calculate diversity. Each of these segment
+simulations was replicated $10,000$ times and averaged to compare against
+theoretic expectations.
 
-, using the HapMap recombination map (XXX) and in coding regions, PhastCons
-regions, and UTRs as an approximate set of putatively conserved segments
-
-We calculate the mean squared error (MSE) and relative error between
-whole-chromosome simulations and the predicted B and B' maps by averaging
-branch diversity in 10 kilobase windows (tskit, XXX) and dividing by the
-neutral expectation of $4N$. The theoretic lower bound of the MSE is due the
-noise in estimating the expected reduction map from simulations. For $n=100$
-replicates, the sampling noise is minimal relative to the evolutionary noise in
-the coalescence process \parencite{Tajima1983-gu}. We use this as the theoretic
-lower bound assuming the maximum coalescence noise at $B=1$, $\var(\bar{B})
-\approx \nicefrac{2}{9n}$.
-
-\subsection*{Human Population Genomic Diversity Estimates}
-
-We estimate pairwise diversity for Yoruba (YRI), European (CEU), and Han
-Chinese (CHB) ancestry individuals in the high-coverage 1000 Human Genomes
-dataset (XXX). We 
-
-\subsection*{Local-rescaled }
-We note that it is computationally intractable to solve this equation excluding
-the contribution of the focal segment 
-
-\subsection*{Assessing the B' Maps}
-
-We first assessed the B' maps against the observed average reduction across
-$XXX$ forward-simulations, $\bar{B}_\text{sim}(x)$. The mean-squared error has
-two sources, (1) bias from a breakdown in our theory $B(x)$ for the average
-reduction, and (2) variance from the simulations. We show that for most of the
-parameter space, the measured mean-squared error between simulation averages
-and our B' maps is at the theoretic minimum. This minimum variance is entirely
-from the coalescent noise when estimating $\bar{B}\text{sim}(x)$, which 
-
-\subsection*{Maximum Likelihood Estimation}
-
-\subsection*{Local Rescaling and Substitution Rate Prediction}
-
+Second, we conducted forward simulations of negative selection on whole human
+chromosomes. These simulations used the HapMap recombination map
+\parencite{International_HapMap_Consortium2007-nu} and treated coding,
+PhastCons, and UTR regions as an approximate set of conserved regions. We used
+these whole-chromosome simulations for three purposes. First, we simulated
+negative selection on chromosome 10 to confirm our method to estimate classic B
+and new B' maps matched the average empirical reduction map across a grid of
+mutation and selection parameters. Second, we evaluated our composite
+likelihood method by simulating negative selection on the first five human
+chromosomes, across grids of mutation and selection parameters. Multiple
+independently-evolved chromosomes were combined into a synthetic genome in
+order to have enough data for our procedure. Third, we conducted additional
+simulations like these, but varying the dominance coefficient and expanding the
+population by a factor of 1.004 each generation, starting $9.3$ generations in
+to mimic the human expansion out-of-Africa (XXX). More details about these
+simulations can be found in Supplementary Section \ref{supp:simulation}.
 
 \subsection*{Substitution Rate Predictions}
 

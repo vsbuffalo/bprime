@@ -1650,6 +1650,40 @@
   language = "en"
 }
 
+@ARTICLE{Kircher2014-bv,
+  title    = "A general framework for estimating the relative pathogenicity of
+              human genetic variants",
+  author   = "Kircher, Martin and Witten, Daniela M and Jain, Preti and O'Roak,
+              Brian J and Cooper, Gregory M and Shendure, Jay",
+  abstract = "Current methods for annotating and interpreting human genetic
+              variation tend to exploit a single information type (for example,
+              conservation) and/or are restricted in scope (for example, to
+              missense changes). Here we describe Combined Annotation-Dependent
+              Depletion (CADD), a method for objectively integrating many
+              diverse annotations into a single measure (C score) for each
+              variant. We implement CADD as a support vector machine trained to
+              differentiate 14.7 million high-frequency human-derived alleles
+              from 14.7 million simulated variants. We precompute C scores for
+              all 8.6 billion possible human single-nucleotide variants and
+              enable scoring of short insertions-deletions. C scores correlate
+              with allelic diversity, annotations of functionality,
+              pathogenicity, disease severity, experimentally measured
+              regulatory effects and complex trait associations, and they
+              highly rank known pathogenic variants within individual genomes.
+              The ability of CADD to prioritize functional, deleterious and
+              pathogenic variants across many functional categories, effect
+              sizes and genetic architectures is unmatched by any current
+              single-annotation method.",
+  journal  = "Nat. Genet.",
+  volume   =  46,
+  number   =  3,
+  pages    = "310--315",
+  month    =  mar,
+  year     =  2014,
+  keywords = "BGS",
+  language = "en"
+}
+
 @ARTICLE{Kim2007-or,
   title    = "Adaptive evolution of conserved noncoding elements in mammals",
   author   = "Kim, Su Yeon and Pritchard, Jonathan K",
@@ -1683,6 +1717,75 @@
   year     =  2007,
   keywords = "BGS",
   language = "en"
+}
+
+@ARTICLE{1000_Genomes_Project_Consortium2015-mi,
+  title    = "A global reference for human genetic variation",
+  author   = "{1000 Genomes Project Consortium} and Auton, Adam and Brooks,
+              Lisa D and Durbin, Richard M and Garrison, Erik P and Kang, Hyun
+              Min and Korbel, Jan O and Marchini, Jonathan L and McCarthy,
+              Shane and McVean, Gil A and Abecasis, Gon{\c c}alo R",
+  abstract = "The 1000 Genomes Project set out to provide a comprehensive
+              description of common human genetic variation by applying
+              whole-genome sequencing to a diverse set of individuals from
+              multiple populations. Here we report completion of the project,
+              having reconstructed the genomes of 2,504 individuals from 26
+              populations using a combination of low-coverage whole-genome
+              sequencing, deep exome sequencing, and dense microarray
+              genotyping. We characterized a broad spectrum of genetic
+              variation, in total over 88 million variants (84.7 million single
+              nucleotide polymorphisms (SNPs), 3.6 million short
+              insertions/deletions (indels), and 60,000 structural variants),
+              all phased onto high-quality haplotypes. This resource includes
+              >99\% of SNP variants with a frequency of >1\% for a variety of
+              ancestries. We describe the distribution of genetic variation
+              across the global sample, and discuss the implications for common
+              disease studies.",
+  journal  = "Nature",
+  volume   =  526,
+  number   =  7571,
+  pages    = "68--74",
+  month    =  oct,
+  year     =  2015,
+  keywords = "F32\_2020;BGS",
+  language = "en"
+}
+
+@ARTICLE{Morgulis2006-uo,
+  title     = "A fast and symmetric {DUST} implementation to mask
+               low-complexity {DNA} sequences",
+  author    = "Morgulis, Aleksandr and Gertz, E Michael and Sch{\"a}ffer,
+               Alejandro A and Agarwala, Richa",
+  abstract  = "The DUST module has been used within BLAST for many years to
+               mask low-complexity sequences. In this paper, we present a new
+               implementation of the DUST module that uses the same function to
+               assign a complexity score to a sequence, but uses a different
+               rule by which high-scoring sequences are masked. The new rule
+               masks every nucleotide masked by the old rule and occasionally
+               masks more. The new masking rule corrects two related
+               deficiencies with the old rule. First, the new rule is symmetric
+               with respect to reversing the sequence. Second, the new rule is
+               not context sensitive; the decision to mask a subsequence does
+               not depend on what sequences flank it. The new implementation is
+               at least four times faster than the old on the human genome. We
+               show that both the percentage of additional bases masked and the
+               effect on MegaBLAST outputs are very small.",
+  journal   = "J. Comput. Biol.",
+  publisher = "Mary Ann Liebert Inc",
+  volume    =  13,
+  number    =  5,
+  pages     = "1028--1040",
+  month     =  jun,
+  year      =  2006,
+  keywords  = "BGS",
+  language  = "en"
+}
+
+@MISC{Smit2015-nm,
+  title    = "{RepeatMasker} Open-4.0. 2013--2015",
+  author   = "Smit, A F A and Hubley, R and Green, P",
+  year     =  2015,
+  keywords = "BGS"
 }
 
 @ARTICLE{Houle1992-fx,
@@ -1898,6 +2001,43 @@
   pages    = "529--545",
   month    =  feb,
   year     =  2010,
+  keywords = "BGS",
+  language = "en"
+}
+
+@ARTICLE{Rentzsch2019-lr,
+  title    = "{CADD}: predicting the deleteriousness of variants throughout the
+              human genome",
+  author   = "Rentzsch, Philipp and Witten, Daniela and Cooper, Gregory M and
+              Shendure, Jay and Kircher, Martin",
+  abstract = "Combined Annotation-Dependent Depletion (CADD) is a widely used
+              measure of variant deleteriousness that can effectively
+              prioritize causal variants in genetic analyses, particularly
+              highly penetrant contributors to severe Mendelian disorders. CADD
+              is an integrative annotation built from more than 60 genomic
+              features, and can score human single nucleotide variants and
+              short insertion and deletions anywhere in the reference assembly.
+              CADD uses a machine learning model trained on a binary
+              distinction between simulated de novo variants and variants that
+              have arisen and become fixed in human populations since the split
+              between humans and chimpanzees; the former are free of selective
+              pressure and may thus include both neutral and deleterious
+              alleles, while the latter are overwhelmingly neutral (or, at
+              most, weakly deleterious) by virtue of having survived millions
+              of years of purifying selection. Here we review the latest
+              updates to CADD, including the most recent version, 1.4, which
+              supports the human genome build GRCh38. We also present updates
+              to our website that include simplified variant lookup, extended
+              documentation, an Application Program Interface and improved
+              mechanisms for integrating CADD scores into other tools or
+              applications. CADD scores, software and documentation are
+              available at https://cadd.gs.washington.edu.",
+  journal  = "Nucleic Acids Res.",
+  volume   =  47,
+  number   = "D1",
+  pages    = "D886--D894",
+  month    =  jan,
+  year     =  2019,
   keywords = "BGS",
   language = "en"
 }
@@ -2592,6 +2732,154 @@
   publisher = "Springer New York",
   year      =  2004,
   keywords  = "BGS"
+}
+
+@ARTICLE{Halldorsson2019-ey,
+  title    = "Characterizing mutagenic effects of recombination through a
+              sequence-level genetic map",
+  author   = "Halldorsson, Bjarni V and Palsson, Gunnar and Stefansson, Olafur
+              A and Jonsson, Hakon and Hardarson, Marteinn T and Eggertsson,
+              Hannes P and Gunnarsson, Bjarni and Oddsson, Asmundur and
+              Halldorsson, Gisli H and Zink, Florian and Gudjonsson, Sigurjon A
+              and Frigge, Michael L and Thorleifsson, Gudmar and Sigurdsson,
+              Asgeir and Stacey, Simon N and Sulem, Patrick and Masson, Gisli
+              and Helgason, Agnar and Gudbjartsson, Daniel F and
+              Thorsteinsdottir, Unnur and Stefansson, Kari",
+  abstract = "Genetic diversity arises from recombination and de novo mutation
+              (DNM). Using a combination of microarray genotype and
+              whole-genome sequence data on parent-child pairs, we identified
+              4,531,535 crossover recombinations and 200,435 DNMs. The
+              resulting genetic map has a resolution of 682 base pairs.
+              Crossovers exhibit a mutagenic effect, with overrepresentation of
+              DNMs within 1 kilobase of crossovers in males and females. In
+              females, a higher mutation rate is observed up to 40 kilobases
+              from crossovers, particularly for complex crossovers, which
+              increase with maternal age. We identified 35 loci associated with
+              the recombination rate or the location of crossovers,
+              demonstrating extensive genetic control of meiotic recombination,
+              and our results highlight genes linked to the formation of the
+              synaptonemal complex as determinants of crossovers.",
+  journal  = "Science",
+  volume   =  363,
+  number   =  6425,
+  month    =  jan,
+  year     =  2019,
+  keywords = "BGS",
+  language = "en"
+}
+
+@ARTICLE{International_HapMap_Consortium2007-nu,
+  title    = "A second generation human haplotype map of over 3.1 million
+              {SNPs}",
+  author   = "{International HapMap Consortium} and Frazer, Kelly A and
+              Ballinger, Dennis G and Cox, David R and Hinds, David A and
+              Stuve, Laura L and Gibbs, Richard A and Belmont, John W and
+              Boudreau, Andrew and Hardenbol, Paul and Leal, Suzanne M and
+              Pasternak, Shiran and Wheeler, David A and Willis, Thomas D and
+              Yu, Fuli and Yang, Huanming and Zeng, Changqing and Gao, Yang and
+              Hu, Haoran and Hu, Weitao and Li, Chaohua and Lin, Wei and Liu,
+              Siqi and Pan, Hao and Tang, Xiaoli and Wang, Jian and Wang, Wei
+              and Yu, Jun and Zhang, Bo and Zhang, Qingrun and Zhao, Hongbin
+              and Zhao, Hui and Zhou, Jun and Gabriel, Stacey B and Barry,
+              Rachel and Blumenstiel, Brendan and Camargo, Amy and Defelice,
+              Matthew and Faggart, Maura and Goyette, Mary and Gupta, Supriya
+              and Moore, Jamie and Nguyen, Huy and Onofrio, Robert C and
+              Parkin, Melissa and Roy, Jessica and Stahl, Erich and Winchester,
+              Ellen and Ziaugra, Liuda and Altshuler, David and Shen, Yan and
+              Yao, Zhijian and Huang, Wei and Chu, Xun and He, Yungang and Jin,
+              Li and Liu, Yangfan and Shen, Yayun and Sun, Weiwei and Wang,
+              Haifeng and Wang, Yi and Wang, Ying and Xiong, Xiaoyan and Xu,
+              Liang and Waye, Mary M Y and Tsui, Stephen K W and Xue, Hong and
+              Wong, J Tze-Fei and Galver, Luana M and Fan, Jian-Bing and
+              Gunderson, Kevin and Murray, Sarah S and Oliphant, Arnold R and
+              Chee, Mark S and Montpetit, Alexandre and Chagnon, Fanny and
+              Ferretti, Vincent and Leboeuf, Martin and Olivier, Jean-Fran{\c
+              c}ois and Phillips, Michael S and Roumy, St{\'e}phanie and
+              Sall{\'e}e, Cl{\'e}mentine and Verner, Andrei and Hudson, Thomas
+              J and Kwok, Pui-Yan and Cai, Dongmei and Koboldt, Daniel C and
+              Miller, Raymond D and Pawlikowska, Ludmila and Taillon-Miller,
+              Patricia and Xiao, Ming and Tsui, Lap-Chee and Mak, William and
+              Song, You Qiang and Tam, Paul K H and Nakamura, Yusuke and
+              Kawaguchi, Takahisa and Kitamoto, Takuya and Morizono, Takashi
+              and Nagashima, Atsushi and Ohnishi, Yozo and Sekine, Akihiro and
+              Tanaka, Toshihiro and Tsunoda, Tatsuhiko and Deloukas, Panos and
+              Bird, Christine P and Delgado, Marcos and Dermitzakis, Emmanouil
+              T and Gwilliam, Rhian and Hunt, Sarah and Morrison, Jonathan and
+              Powell, Don and Stranger, Barbara E and Whittaker, Pamela and
+              Bentley, David R and Daly, Mark J and de Bakker, Paul I W and
+              Barrett, Jeff and Chretien, Yves R and Maller, Julian and
+              McCarroll, Steve and Patterson, Nick and Pe'er, Itsik and Price,
+              Alkes and Purcell, Shaun and Richter, Daniel J and Sabeti, Pardis
+              and Saxena, Richa and Schaffner, Stephen F and Sham, Pak C and
+              Varilly, Patrick and Altshuler, David and Stein, Lincoln D and
+              Krishnan, Lalitha and Smith, Albert Vernon and Tello-Ruiz,
+              Marcela K and Thorisson, Gudmundur A and Chakravarti, Aravinda
+              and Chen, Peter E and Cutler, David J and Kashuk, Carl S and Lin,
+              Shin and Abecasis, Gon{\c c}alo R and Guan, Weihua and Li, Yun
+              and Munro, Heather M and Qin, Zhaohui Steve and Thomas, Daryl J
+              and McVean, Gilean and Auton, Adam and Bottolo, Leonardo and
+              Cardin, Niall and Eyheramendy, Susana and Freeman, Colin and
+              Marchini, Jonathan and Myers, Simon and Spencer, Chris and
+              Stephens, Matthew and Donnelly, Peter and Cardon, Lon R and
+              Clarke, Geraldine and Evans, David M and Morris, Andrew P and
+              Weir, Bruce S and Tsunoda, Tatsuhiko and Mullikin, James C and
+              Sherry, Stephen T and Feolo, Michael and Skol, Andrew and Zhang,
+              Houcan and Zeng, Changqing and Zhao, Hui and Matsuda, Ichiro and
+              Fukushima, Yoshimitsu and Macer, Darryl R and Suda, Eiko and
+              Rotimi, Charles N and Adebamowo, Clement A and Ajayi, Ike and
+              Aniagwu, Toyin and Marshall, Patricia A and Nkwodimmah, Chibuzor
+              and Royal, Charmaine D M and Leppert, Mark F and Dixon, Missy and
+              Peiffer, Andy and Qiu, Renzong and Kent, Alastair and Kato,
+              Kazuto and Niikawa, Norio and Adewole, Isaac F and Knoppers,
+              Bartha M and Foster, Morris W and Clayton, Ellen Wright and
+              Watkin, Jessica and Gibbs, Richard A and Belmont, John W and
+              Muzny, Donna and Nazareth, Lynne and Sodergren, Erica and
+              Weinstock, George M and Wheeler, David A and Yakub, Imtaz and
+              Gabriel, Stacey B and Onofrio, Robert C and Richter, Daniel J and
+              Ziaugra, Liuda and Birren, Bruce W and Daly, Mark J and
+              Altshuler, David and Wilson, Richard K and Fulton, Lucinda L and
+              Rogers, Jane and Burton, John and Carter, Nigel P and Clee,
+              Christopher M and Griffiths, Mark and Jones, Matthew C and McLay,
+              Kirsten and Plumb, Robert W and Ross, Mark T and Sims, Sarah K
+              and Willey, David L and Chen, Zhu and Han, Hua and Kang, Le and
+              Godbout, Martin and Wallenburg, John C and L'Archev{\^e}que, Paul
+              and Bellemare, Guy and Saeki, Koji and Wang, Hongguang and An,
+              Daochang and Fu, Hongbo and Li, Qing and Wang, Zhen and Wang,
+              Renwu and Holden, Arthur L and Brooks, Lisa D and McEwen, Jean E
+              and Guyer, Mark S and Wang, Vivian Ota and Peterson, Jane L and
+              Shi, Michael and Spiegel, Jack and Sung, Lawrence M and Zacharia,
+              Lynn F and Collins, Francis S and Kennedy, Karen and Jamieson,
+              Ruth and Stewart, John",
+  abstract = "We describe the Phase II HapMap, which characterizes over 3.1
+              million human single nucleotide polymorphisms (SNPs) genotyped in
+              270 individuals from four geographically diverse populations and
+              includes 25-35\% of common SNP variation in the populations
+              surveyed. The map is estimated to capture untyped common
+              variation with an average maximum r2 of between 0.9 and 0.96
+              depending on population. We demonstrate that the current
+              generation of commercial genome-wide genotyping products captures
+              common Phase II SNPs with an average maximum r2 of up to 0.8 in
+              African and up to 0.95 in non-African populations, and that
+              potential gains in power in association studies can be obtained
+              through imputation. These data also reveal novel aspects of the
+              structure of linkage disequilibrium. We show that 10-30\% of
+              pairs of individuals within a population share at least one
+              region of extended genetic identity arising from recent ancestry
+              and that up to 1\% of all common variants are untaggable,
+              primarily because they lie within recombination hotspots. We show
+              that recombination rates vary systematically around genes and
+              between genes of different function. Finally, we demonstrate
+              increased differentiation at non-synonymous, compared to
+              synonymous, SNPs, resulting from systematic differences in the
+              strength or efficacy of natural selection between populations.",
+  journal  = "Nature",
+  volume   =  449,
+  number   =  7164,
+  pages    = "851--861",
+  month    =  oct,
+  year     =  2007,
+  keywords = "BGS",
+  language = "en"
 }
 
 @ARTICLE{Tajima1983-gu,

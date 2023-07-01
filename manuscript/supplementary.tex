@@ -52,7 +52,7 @@
 \tableofcontents
 
 \section{Quantitative Genetic Linked Selection Model Theory}
-\label{suppsec:theory}
+\label{supp:theory}
 
 \subsection{Stochastic Sources of Neutral Allele Frequency Change}
 
@@ -203,7 +203,7 @@ simplifies to the well-known equation for variance in a Wright--Fisher
 population.
 
 \subsection{Heritable Fitness and the Accumulation of Autocovariance}
-\label{suppsec:heritable-fitness}
+\label{supp:heritable-fitness}
 
 Next, we turn our attention to the case where there is heritable fitness
 variation, which leads to non-zero covariance terms $\mathcal{C}_{i,j}$. These
@@ -1018,7 +1018,7 @@ Non-polymorphic sites have $n_S = {n \choose 2}$ and $n_D = 0$, and missing
 data has $n_S = n_D = 0$.
 
 \subsection{Pairwise Diversity Estimates}
-\label{suppsec:diversity}
+\label{supp:diversity}
 
 The pairwise diversity at site $l$ across the $n$ sampled chromosomes can be
 calculated from row $l$ of the $\mathbf{Y}$ matrix as follows,
@@ -1119,21 +1119,21 @@ and local optimization approaches and parameterizations, but found that
 
 \section{Human Genomic Data}
 
-\subsection{}
-
 In order to try to ensure accurate estimation of pairwise diversity, which is a
 ratio estimator that is sensitivity to its denominator, we use the complete
 per-basepair genotype calls (gVCF) produced by Illumina's DRAGEN pipeline
-\parencite{Illumina_Inc2020-dk}. The original samples were from 178 Yoruban
-individuals sequenced to 30x by the New York Genome Center
-\parencite{Byrska-Bishop2022-tn}. This allows for filtering to be applied to
-the entire genome at once, rather than just variants, so the denominator does
-not need to be estimated separately.
+\parencite{Illumina_Inc2020-dk}. The original samples were sequenced to 30x by
+the New York Genome Center \parencite{Byrska-Bishop2022-tn}. This allows for
+filtering to be applied to the entire genome at once, rather than just
+variants, so the denominator does not need to be estimated separately.
 
 The full list of samples is available in TSV format in the GitHub repository
 (\path{data/h1kg/yri_samples.tsv}).
 
+XXX
+
 \subsection{Filtering gVCFs}
+\label{supp:filter}
 
 gVCFs were filtered using a custom Python tool, \texttt{gvcf2counts.py} (in
 \path{tools/gvcf2counts.py}), which reads the gVCFs, filters them according to
@@ -1172,12 +1172,15 @@ following filters are applied based on masking regions:
 
   \item \textbf{Reference masking}: soft and hard-masked regions in the human
       GRCh38 reference genome are also masked. Soft-masked regions were
-      determined by Ensembl (XXX), which uses Repeat Masker (XXX) and Dust
-      (XXX). Additionally, we used the 1000 Genomes strict filter (XXX).
+      determined by Ensembl \parencite{Cunningham2022-vk}, which uses Repeat
+      Masker \parencite{Smit2015-nm} and Dust \parencite{Morgulis2006-uo}. We
+      also only used sites that pass the 1000 Genomes strict filter
+      \parencite{1000_Genomes_Project_Consortium2015-mi}.
 
 \end{enumerate}
 
 \subsection{Putatively Neutral Tracks}
+\label{supp:neutral}
 
 \begin{figure}[!htb]
   \centering
@@ -1416,7 +1419,7 @@ In general, $R^2$ is calculated for a model fit across windows as,
 \end{align}
 
 where $V_\text{res}$ is the mean squared error across windows and
-$V_\text{tot}$ is the total variance in the predicator. Suppose we have
+$V_\text{tot}$ is the total variance in the observed values. Suppose we have
 estimates $\widehat{\pi}_0 \widehat{B}_i$ for $\pi_0 B_i$ from our model. Then,
 
 \begin{align}
@@ -1424,7 +1427,7 @@ estimates $\widehat{\pi}_0 \widehat{B}_i$ for $\pi_0 B_i$ from our model. Then,
                  &= \underbrace{\frac{1}{n} \sum_{i=1}^n \varepsilon_i^2}_\text{irreducible error} + \underbrace{\left(\frac{1}{n} \sum_{i=1}^n (\pi_0 B_i - \widehat{\pi}_0 \widehat{B}_i)\right)^2}_\text{bias squared}.
 \end{align}
 
-The total variance in the predictor is,
+The total variance among the observed diversity values is,
 
 \begin{align}
     V_\text{tot} = V_\text{res} + V_\text{model} + 2\widehat{\pi}_0\cov_i(\varepsilon_i, \widehat{B}_i)
@@ -1543,6 +1546,7 @@ per selection coefficient and feature from a normal distribution centered on
 the ML point estimate and with the jackknife standard deviation.
 
 \subsection{Likelihood}
+\label{supp:likelihood}
 
 Our model is essentially a generalized nonlinear model with a binomial link
 function. This is the form used by \textcite{Elyashiv2016-vt} and
@@ -1590,7 +1594,7 @@ probability, so we can write
 
 (c.f. \cite{Elyashiv2016-vt}). 
 
-As in Section \ref{suppsec:diversity}, the number of pairwise differences and
+As in Section \ref{supp:diversity}, the number of pairwise differences and
 the total number of pairwise comparison at a site are sufficient statistics for
 the likelihood. Then, the binomial log-likelihood for the data at site $v$ is,
 
@@ -1643,32 +1647,40 @@ two-alleles finite sites model link function of the form, $\pi/(1 + 2 \pi)$. We
 experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
 
-\subsection{Out-Sample Error Estimation and $R_\text{LOO}^2$}
+\subsection{Out-Sample Error Estimation and $\widehat{R}_\text{LOCO}^2$}
 
-We fit each of our B' model fits 22 times, excluding a whole chromosome each
-time to calculate out-sample prediction error. Each fit used 10,000 random
-starting positions as the main fits. The out-sample prediction error for all
-bins in chromosome $C$ left out is,
+To estimate out-sample prediction error, we fit each model leaving one
+chromosome out (LOCO) and calculating the out-sample prediction error on
+these excluded chromosomes. Each fit used 10,000 random starting positions as
+the main fits. The out-sample prediction error (i.e. sum of residuals
+squared, $\widehat{\mathrm{SSR}}_\text{LOCO}$) for all bins in chromosome $C$
+left out is,
 
 \begin{align}
-    SSE(C) = \sum_{b \in C} (\widehat{\pi}_{b,Y\not \in C}  - \pi_b)^2
+    \widehat{\mathrm{SSR}}_\text{LOCO}(C) = \sum_{b \in C} (\widehat{\pi}_{b, (C)}  - \pi_b)^2
 \end{align}
 %
-
-where $\widehat{\pi}_{b,Y\not \in C}$ denotes the predictions for window $b$
-fit on data excluding chromosome $C$. The average out-sample error $SSE$ across
-chromosomes is then the average of $SSE(C)$ across chromosomes, weighted by the
+where $\widehat{\pi}_{b,(C)}$ denotes the predictions for window $b$ fit on
+data excluding chromosome $C$. The average out-sample error
+$\widehat{\mathrm{SSR}}_\text{LOCO}$ across chromosomes is then the average of
+$\widehat{\mathrm{SSR}}_\text{LOCO}(C)$ across chromosomes, weighted by the
 number of bins per chromosome. We then calculate the out-sample coefficient of
-determination $R_\text{LOO}^2$
+determination $\widehat{R}_\text{LOCO}^2$
 
 \begin{align}
-    R_\text{LOO}^2 = \frac{SSE}{}
+    \widehat{R}_\text{LOCO}^2 = 1-\frac{\widehat{\mathrm{SSR}}_\text{LOCO}}{\widehat{\mathrm{SST}}_\text{LOCO}}
 \end{align}
+%
+where, 
 
-XXX
-
+\begin{align}
+    \widehat{\mathrm{SST}}_\text{LOCO}(C) = \sum_{b \in C} (\widehat{\pi}_{b, (C)}  - \bar{\pi})^2
+\end{align}
+%
+and $\bar{\pi}$ is the average diversity across all windows.
 
 \subsection{Jackknife Procedures}
+\label{supp:jackknife}
 
 \begin{figure}[htbp]
   \label{suppfig:jackknife-iqr}
@@ -1702,12 +1714,31 @@ uncertainty).
 
 \section{Simulations}
 
+
+
 \subsection{Segment Simulations}
+
+\subsection{Chromosome 10 Simulations}
+
+XXX
+, using the HapMap recombination map (XXX) and in coding regions, PhastCons
+regions, and UTRs as an approximate set of putatively conserved segments
+
+We calculate the mean squared error (MSE) and relative error between
+whole-chromosome simulations and the predicted B and B' maps by averaging
+branch diversity in 10 kilobase windows (tskit, XXX) and dividing by the
+neutral expectation of $4N$. The theoretic lower bound of the MSE is due the
+noise in estimating the expected reduction map from simulations. For $n=100$
+replicates, the sampling noise is minimal relative to the evolutionary noise in
+the coalescence process \parencite{Tajima1983-gu}. We use this as the theoretic
+lower bound assuming the maximum coalescence noise at $B=1$, $\var(\bar{B})
+\approx \nicefrac{2}{9n}$.
+
 
 \section{Additional Results and Figures}
 
 \subsection{Optimization and Diagnostics}
-\label{suppsec:optim}
+\label{supp:optim}
 
 We only show one optimization diagnostic plot here (Supplementary Figure
 \ref{suppfig:diag-plot}), but the can be easily calculated from the model
