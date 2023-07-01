@@ -715,6 +715,38 @@ class BGSLikelihood:
             return R2(pred_pi, pi)
         return R2(pred_pi[_indices], pi[_indices])
 
+    def ave_sel(self, as_dict=False, boot_se=None, digits=None):
+        t = self.t
+        W = self.mle_W
+        avesel = (t[:, None] * W).sum(axis=0)
+        if boot_se is not None:
+            ses = self.ave_sel_boot_se(b=boot_se)
+        if not as_dict:
+            if boot_se is None:
+                return avesel
+            else:
+                return avesel, ses
+        def rounder(x):
+            if digits is None:
+                return x 
+            return np.round(x, decimals=digits)
+        if boot_se:
+            return {k: (rounder(avesel[i]), rounder(avesel[i]-2*ses[i]), rounder(avesel[i]+2*ses[i])) for i, k in enumerate(self.features)}
+        else:
+            return {k: rounder(avesel[i]) for i, k in enumerate(self.features)}
+
+    def ave_sel_boot_se(self, b=1000):
+        t = self.t
+        aves = []
+        for i in range(b):
+            _, _, W = self.normal_draw()
+            aves.append(t @ W)
+        return np.stack(aves).std(axis=0)
+
+
+    def ave_B(self):
+        return self.predict(B=True).mean()
+
     def jackknife_stderr(self, use_loo_chrom=False, trim=None, iqr_factor=2):
         """
         Calculate the jackknife standard errors.
