@@ -939,7 +939,7 @@ where,
 %
 and $U = m_i L$ and $M = r_\text{BP} L$ are the total mutation and
 recombination rates in the segment. A detailed derivation of these equations
-can be found in Supplementary Section \ref{suppsec:theory}. The recombination
+can be found in Supplementary Section \ref{supp:theory}. The recombination
 rate in a segment is determined by a user-supplied recombination map.
 
 \subsection*{Calculating the Reduction Maps}
@@ -973,32 +973,34 @@ different pairwise differences per window. All of our primary models were fit
 with megabase windows, since previous work has found the strongest selection
 signal at this scale (we confirm this with one XXX fit at the $10^5$bp scale).
 
-We use a binomial likelihood with probability $\bar{\pi}(b; \Psi) = \pi_0
-\bar{B}(b; \mu, \mathbf{W})$, where bars indicate averages over some bin width.
-With multiple features classes and a map $k(g)$ between segments $g$ to their
-class, the reduction map is,
+Our binomial likelihood models the number of different pairwise comparisons
+observed per window given the total number of pairwise comparisons. The
+probability is given by $\bar{\pi}(b; \Psi) = \pi_0 \bar{B}(b; \mu,
+\mathbf{W})$, where bars indicate averages over some bin width, and the
+reduction is
 
 \begin{align}
-    \log\left(B(x; W, s_j) \right) = - \frac{1}{2} \sum_{g \in G} \sum_{i=1}^{n_s} V_g(\mu W_{j, k(g)}, s_j) Q_g^2(m_i, s_j, r_{x, g}).
+    \log\left(B(x; \mu, \mathbf{W}) \right) = - \frac{1}{2} \sum_{g \in G} \sum_{j=1}^{n_s} V_g(\mu W_{j, k(g)}, s_j) Q_g^2(m_i, s_j, r_{x, g}).
 \end{align}
-
+%
 Here, $\mu$ is the mutation rate and $W_{j,k(g)}$ is a DFE entry in the
 $\mathbf{W}$ is the $n_s \times K$ DFE matrix over the selection grid and
-features. Since each column of the DFE $\mathbf{W}$ must sum to one, numeric
-optimization was done in unconstrained $n_s-1$ dimensional softmax space. Our
-binomial likelihood modeled the number of different pairwise comparisons
-observed per window given the predicted pairwise diversity and total number of
-comparisons implied per window (see Supplementary Materials Sections
-\ref{supp:data-summary} and \ref{supp:likelihood}).
+features. See Supplementary Materials Sections \ref{supp:data-summary} and
+\ref{supp:likelihood} for more details.
 
-We tested multiple different optimization routines, finding that BOBYQA
-outperformed alternatives \parencite{Powell_undated-ec}. We inspected and
-confirmed convergence with diagnostic plots finding stable optima across 10,000
-random starts (see Supplementary Materials Section \ref{suppsec:optima}). We
-assessed model fit using out-sample predictive error, calculated by leaving out
-a whole chromosome during fitting and predicting its diversity. To calculate
-uncertainty, we used a block jackknife approach in 10 Mbp windows
-(Supplementary Section \ref{supp:jackknife}).
+Our method uses two tricks to improve optimization over the mutation and DFE
+parameters. First, we find $B(x; \mu, \mathbf{W})$ is exponential over columns
+of $\mu \mathbf{W}$, which allows for optimization over this smooth function
+rather than the grid. Second, we use softmax to convert constrained
+optimization over the DFE columns (which must sum to one) to unconstrained. We
+tested multiple different optimization routines, finding that BOBYQA
+outperformed alternatives \parencite{Powell2009-jm,Johnson2007-tl}. We
+inspected and confirmed convergence with diagnostic plots finding stable optima
+across 10,000 random starts (see Supplementary Materials Section
+\ref{supp:optima}). We assessed model fit using out-sample predictive error,
+calculated by leaving out a whole chromosome during fitting and predicting its
+diversity. To calculate uncertainty, we used a block jackknife approach in 10
+Mbp windows (Supplementary Section \ref{supp:jackknife}).
 
 \subsection*{Human Population Genomic Data}
 \label{sec:methods-data}
@@ -1033,32 +1035,25 @@ McVicker B scores removed (to avoid circularity;
 \subsection*{Forward Simulations}
 \label{sec:methods-sim}
 
-We use two types of forward simulations in this paper; both use SLiM version
-4.0.1 \parencite{Haller2023-uk,Haller2019-vu}. First, we simulated a 100 kbp
-segment in a population of $N=1000$ diploids across grids of mutation and
-selection parameters to assess the accuracy of the SC16 theory. Each simulation
-recorded the number of fixations and the fitness variance per generation, and
-at the end $10N$ generations, the ancestral recombination graph was recorded so
-downstream Python scripts could calculate diversity. Each of these segment
-simulations was replicated $10,000$ times and averaged to compare against
-theoretic expectations.
-
-Second, we conducted forward simulations of negative selection on whole human
-chromosomes. These simulations used the HapMap recombination map
-\parencite{International_HapMap_Consortium2007-nu} and treated coding,
-PhastCons, and UTR regions as an approximate set of conserved regions. We used
-these whole-chromosome simulations for three purposes. First, we simulated
-negative selection on chromosome 10 to confirm our method to estimate classic B
-and new B' maps matched the average empirical reduction map across a grid of
-mutation and selection parameters. Second, we evaluated our composite
-likelihood method by simulating negative selection on the first five human
-chromosomes, across grids of mutation and selection parameters. Multiple
-independently-evolved chromosomes were combined into a synthetic genome in
-order to have enough data for our procedure. Third, we conducted additional
-simulations like these, but varying the dominance coefficient and expanding the
-population by a factor of 1.004 each generation, starting $9.3$ generations in
-to mimic the human expansion out-of-Africa (XXX). More details about these
-simulations can be found in Supplementary Section \ref{supp:simulation}.
+We conducted forward simulations of negative selection on whole human
+chromosomes to validate our method at two stages. First, we simulated negative
+selection on chromosome 10 using a realistic recombination map and putatively
+conserved features to confirm that our classic B and new B' maps matched the
+average simulation reduction map across mutation and selection parameters.
+Second, we evaluated our composite likelihood method by simulating negative
+selection on the first five human chromosomes, across grids of fixed mutation
+and selection parameters. We then combined these into a synthetic genome, and
+overlaid mutations on the ARG. Then, we ran our likelihood methods on the
+resulting allele count data to assess model accuracy. We ran additional
+synthetic genome simulations like these to evaluate the impact of two model
+violations: recessivity of deleterious mutations and expanding populations. For
+the latter, after $9.3$ generations, we grew the population by factor of 1.004
+each generation to mimic the human expansion out-of-Africa
+\parencite{Gutenkunst2009-pg}. We did not simulate population bottlenecks since
+our analyses showed little difference between bottlenecked out-of-Africa
+samples (CEU and CHB) and YRI samples. More details about these and the segment
+simulations shown in Figure \ref{fig:figure-1}A-C can be found Supplementary
+Section \ref{supp:simulation}.
 
 \subsection*{Substitution Rate Predictions}
 

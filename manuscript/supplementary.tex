@@ -1395,7 +1395,8 @@ CDS$>$genes$>$phastcons &              full &          CHB &                    
 \end{table}
 
 
-\subsection{Derivation of Approximate Drift $R^2$}
+\subsection{Derivation of Approximate Coalescence $R^2$}
+\label{supp:r2-coal}
 
 Our approach models the observed megabase-scale diversity $y_i$ in window $i$
 as the predicted level under our negative selection model, $\pi_0 B_i$, plus
@@ -1713,27 +1714,72 @@ are 2 interquartile ranges below the first quartile or above the third quartile
 uncertainty).
 
 \section{Simulations}
+\label{supp:simulation}
 
-
+All of our forward simulations used SLiM version 4.0.1
+\parencite{Haller2019-vu,Haller2023-uk} and all Eidos scripts are available in
+the \path{slim_sims/} directory in the GitHub repository
+(\url{https://github.com/vsbuffalo/bprime}). These Eidos scripts take command
+line arguments for the parameters. Our simulation pipelines use YAML
+configuration files that specify the parameter grids and other settings, which
+are read and dispatched across a cluster using Snakemake
+\parencite{Koster2012-iv}.
 
 \subsection{Segment Simulations}
 
-\subsection{Chromosome 10 Simulations}
+To confirm the SC16 theory, we simulated a 100 kbp segment in a population of
+$N=1000$ diploids across grids of mutation and selection parameters. The Eidos
+script for these simulations can be found at
+\path{slim_sims/region/region.slim} and the analysis notebook at
+\path{notebooks/region_simulations.ipynb} in the GitHub repository
+(\url{https://github.com/vsbuffalo/bprime}). We simulated over grids of
+mutation rates ($\mu \in \{10^{-9.5}, 10^{-9}, 10^{-8.5}, 10^{-8}\}$) and
+selection coefficients ($s \in \{10^{-1}, 10^{-1.5}, 10^{-2}, \ldots,
+10^{-4.5}\}$). Selection was additive within a site and multiplicative across
+sites, and recombination was fixed at $10^{-8}$ per basepair.
 
-XXX
-, using the HapMap recombination map (XXX) and in coding regions, PhastCons
-regions, and UTRs as an approximate set of putatively conserved segments
 
-We calculate the mean squared error (MSE) and relative error between
-whole-chromosome simulations and the predicted B and B' maps by averaging
-branch diversity in 10 kilobase windows (tskit, XXX) and dividing by the
-neutral expectation of $4N$. The theoretic lower bound of the MSE is due the
-noise in estimating the expected reduction map from simulations. For $n=100$
-replicates, the sampling noise is minimal relative to the evolutionary noise in
-the coalescence process \parencite{Tajima1983-gu}. We use this as the theoretic
-lower bound assuming the maximum coalescence noise at $B=1$, $\var(\bar{B})
-\approx \nicefrac{2}{9n}$.
+We replicated $10,000$ simulations for each parameter combination to average
+and compare against theory. Each simulation recorded the number of fixations
+and the fitness variance per generation. At the end $10N$ generations, the
+ancestral recombination graph was recorded. Then, downstream Python scripts
+calculate branch-length diversity using \texttt{tskit}
+\parencite{Kelleher2018-qu}, and we estimate the reduction factor in a window
+centered in the region with $B = \nicefrac{\pi}{4N}$ (since branch length
+diversity implies $\mu=1$).
 
+\subsection{Whole-chromosome Simulations}
+
+Our whole-chromosome simulations use realistic human recombination maps and
+putatively conserved segments. These annotation differ slightly from our
+primary model fits, since these simulations were written before the method was
+finalized. We use the HapMap recombination map
+\parencite{International_HapMap_Consortium2007-nu}, PhastCons regions, and UTRs
+as an approximate set of putatively conserved segments. 
+
+Our first set of simulations were used to validate that our methods were
+producing accurate classic B and B' maps. We replicated $100$ whole-chromosome
+simulations over grids of mutation rates ($\mu \in \{10^{-10}, 10^{-9.5},
+\ldots, 10^{-8}, 10^{-7.5}\}$) and selection coefficients ($s \in \{10^{-1},
+10^{-1.5}, 10^{-2}, \ldots, 10^{-6}\}$). For each parameter combination, we
+calculate mean branch diversity in 10 kbp windows across the 100 replicates to
+create the average simulation reduction map. 
+
+We then compare this average simulation map to our method's theoretic B' maps
+(see Figure \ref{fig:figure-1} D and E). We calculate the MSE per 10 kbp window
+to estimate the total rate across the chromosome. We can assess the accuracy
+relative to a theoretic lower bound of the MSE if the noise were due to
+coalescence noise. We approximate this by noting that the MSE can be decomposed
+into a squared bias term and a variance term. If our methods are unbiased in
+estimating the true reduction at a position, the MSE is just the stochastic
+variance due to the $n=100$ replicates we simulate and the coalescence noise in
+each one. \textcite{Tajima1983-gu} showed that variance in diversity due to
+coalescence noise is much larger than sampling noise, and is given by
+$\var(\pi) \approx \nicefrac{2\theta^2}{9}$ in an infinite sample. One can
+derive an analogous equation for the variance of average simulation $\bar{B}$
+across $n$ replicate simulations as, $\var(\bar{B}) \approx
+\nicefrac{2B^2}{9n}$. We note that this assumes no recombination but this
+approximation is fine over short scales (such as the 10 kbp scale used here).
 
 \section{Additional Results and Figures}
 
