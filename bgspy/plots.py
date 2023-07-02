@@ -313,7 +313,7 @@ def predicted_observed(fit, n_bins=40, smooth_col = 'orange',
 def binned_means_plot(df, min_n=None, gen=None,
                       stat='mean', s=5,
                       c='0.22', linewidth=0.5,
-                      thin=None,
+                      thin=None, zorder=None,
                       label=None, figax=None):
     fig, ax = get_figax(figax)
 
@@ -328,7 +328,7 @@ def binned_means_plot(df, min_n=None, gen=None,
         points = ax.scatter(x, mean, c=c, s=s, alpha=1, zorder=10, label=label)
         ax.errorbar(x, mean, 2*sd/np.sqrt(n), fmt='none',
                     c=points.get_edgecolor(),
-                    elinewidth=linewidth)
+                    elinewidth=linewidth, zorder=zorder)
     else:
         x, mean = x, mean
         se = (2*sd/np.sqrt(n))
@@ -337,7 +337,7 @@ def binned_means_plot(df, min_n=None, gen=None,
         points = ax.scatter(x, mean, c=c, s=s, alpha=1,
                             zorder=10, label=label)
         ax.errorbar(x, mean, se,
-                    fmt='none', c=points.get_edgecolor(), elinewidth=linewidth)
+                    fmt='none', c=points.get_edgecolor(), elinewidth=linewidth, zorder=zorder)
     return fig, ax
 
 

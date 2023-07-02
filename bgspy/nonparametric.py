@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.utils.validation import check_X_y
 import warnings
+from scipy import stats
 from sklearn.model_selection import KFold, LeaveOneOut
 from sklearn.model_selection import cross_validate
 from sklearn.base import BaseEstimator
@@ -142,3 +143,25 @@ def lowess_bootstrap(x, y, frac, nboot=200, alpha=0.05):
     lb = np.percentile(res, 100 * alpha/2, axis=0)
     ub = np.percentile(res, 100 * (1-alpha/2), axis=0)
     return np.array(res), lb, ub
+
+
+def linregress_bootstrap(x, y, nboot=200, alpha=0.05):
+    n = len(x)
+    res = []
+    for i in range(nboot):
+        idx = np.random.choice(range(n), size=n, replace=True)
+        x_rs = x[idx]
+        y_rs = y[idx]
+        xs = np.sort(x_rs)
+        slope, yint, *lrres = stats.linregress(x_rs, y_rs)
+        pred = xs * slope + yint 
+        res.append(pred)
+    res = np.array(res)
+    lb = np.percentile(res, 100 * alpha/2, axis=0)
+    ub = np.percentile(res, 100 * (1-alpha/2), axis=0)
+    lb = np.percentile(res, 100 * alpha/2, axis=0)
+    ub = np.percentile(res, 100 * (1-alpha/2), axis=0)
+    return np.array(res), lb, ub
+
+
+
