@@ -45,7 +45,8 @@
 \addbibresource{biblio.bib}
 
 %\title{Towards a Complete Model of the Negative Selection Process in Humans}
-\title{An Evolutionary Quantitative Genetic Model of the Negative Selection Process in Humans}
+%\title{An Evolutionary Quantitative Genetic Model of the Negative Selection Process in Humans}
+\title{A Quantitative Genetic Linked Selection Model fit to the Negative Selection Process in Humans}
 
 \author{Vince Buffalo and Andrew Kern}
 
@@ -71,17 +72,17 @@ lineage. Mutations under negative selection are kept at low frequencies
 negative selection process determines sequence conservation across phylogenetic
 timescales, which is evident in genome-wide cross-species comparisons
 \parencite{Siepel2005-wh}. As with most selection in the genome, the negative
-selection process perturbs the allele frequencies of neighboring linked
-variation. This reduces genetic variability around conserved segments and
-creates a large-scale spatial ``linked selection signal" in diversity alone the
-genome. Mutation and negative selection's contribution to this signal is
-mediated by the deleterious mutation rate, the strength of selection in
-conserved segments, and the spatial distribution of recombination rates and
-conserved segments. Since genome-wide recombination maps and putatively
-conserved segments are available for many species, researchers have combined
-these with population genetic theory to estimate the mutation rate and
-selection coefficients of deleterious mutations, as well as the overall
-reduction in genetic variability due to the negative selection process.
+selection process stochastically perturbs the allele frequencies of neighboring
+linked variation. This reduces genetic variability to create a large-scale
+spatial linked selection ``reduction signal" in genome-wide diversity. Mutation
+and negative selection's contribution to this signal is mediated by the
+deleterious mutation rate, the strength of selection in conserved segments, and
+the spatial distribution of recombination rates and conserved segments. Since
+genome-wide recombination maps and putatively conserved segments are available
+for many species, researchers have combined these with population genetic
+theory to estimate the mutation rate and selection coefficients of deleterious
+mutations, as well as the overall reduction in genetic variability due to the
+negative selection process.
 
 Classic Background Selection (BGS) theory is the predominant theoretic model to
 predict the reduction in linked neutral diversity, and is used by statistical
@@ -109,34 +110,37 @@ degree, since under sufficiently high mutation rates or with little
 recombination, selective interference can occur with a segment. 
 
 In this work, we extend another class of linked selection models that derive
-from quantitative genetics to address limitations of the classic BGS model.
-These models consider how polygenic fitness variation increases the rate of
-stochastic allele frequency change as alleles become randomly linked to fitness
-backgrounds. While these models can theoretically accommodate polygenic fitness
-variation from any source as long as its rate of change is not too rapid, we
-focus specifically on a deleterious-mutations-only model from Santiago and
-Caballero (2016). This model is identical to the classic BGS model when
-selection against deleterious mutations is strong, but it also correctly
-predicts the reduction in diversity and substitutions rates of weakly
-deleterious mutations by accurately modeling levels of genic fitness variation.
-We extend Santiago and Caballero’s (hereafter the SC16) model so that it can be
-used to model genome-wide patterns of diversity under negative selection
-processes, and develop Python software to use this theoretic approach to fit
-genome-wide models of negative selection. Using forward simulations, we show
-this model leads to more accurate DFE estimates under weak selection. While
-this new model accommodates the possibility that a given reduction B could be
-due to weaker selection, in applying our composite-likelihood method to human
-population genomic data, we confirm earlier findings that strong negative
-selection at a small fraction of sites fits human data across populations best.
-Finally, we show that while this model solves some limitations of the classic
-BGS model, simulations reveal another mysterious defect: a poor fit around
-$Ns=1$. We show that this can be partially corrected by incorporating the
-effects of selective interference on genic variation, but the remaining
-discrepancy is due to the build up of negative linkage disequilibrium that
-cannot be adequately captured by this model. We find accounting for genic
-selective interference between segments fits human population genomic data
-slightly better, suggesting levels of negative selection in humans are
-sufficient to perturb the selection at other sites.
+from quantitative genetics to address limitations of classic background
+selection theory. These models suggest that the reduction in pairwise
+coalescence times at a position in the genome is determined by the
+recombination map and distribution of polygenic additive fitness variance along
+the chromosome \parencite{Santiago1998-bs}. This reduction is due to cumulative
+effect of stochastic perturbations from selection at other sites. While these
+models can theoretically accommodate polygenic fitness variation from any
+source as long as its rate of change is not too rapid, we focus specifically on
+a deleterious-mutations-only model from Santiago and Caballero (2016). This
+model is identical to the classic BGS model when selection against deleterious
+mutations is strong, but it also correctly predicts the reduction in diversity
+and substitutions rates of weakly deleterious mutations by accurately modeling
+levels of genic fitness variation. We extend Santiago and Caballero’s
+(hereafter the SC16) model so that it can be used to model genome-wide patterns
+of diversity under negative selection processes, and develop Python software to
+use this theoretic approach to fit genome-wide models of negative selection.
+Using forward simulations, we show this model leads to more accurate DFE
+estimates under weak selection. While this new model accommodates the
+possibility that a given reduction B could be due to weaker selection, in
+applying our composite-likelihood method to human population genomic data, we
+confirm earlier findings that strong negative selection at a small fraction of
+sites fits human data across populations best. Finally, we show that while this
+model solves some limitations of the classic BGS model, simulations reveal
+another mysterious defect: a poor fit around $Ns=1$. We show that this can be
+partially corrected by incorporating the effects of selective interference on
+genic variation, but the remaining discrepancy is due to the build up of
+negative linkage disequilibrium that cannot be adequately captured by this
+model. We find accounting for genic selective interference between segments
+fits human population genomic data slightly better, suggesting levels of
+negative selection in humans are sufficient to perturb the selection at other
+sites.
 
 \section*{Theory}
 
@@ -540,7 +544,12 @@ due to selection at other segments by setting $B'(x)N$ as the population size
 (see Method XXX). We find the locally-rescaled B' maps reduce the relative
 error from 5\% to 0.4\% and mean squared error (Figure \ref{fig:figure-1}D,
 dashed colored lines), but does not entirely eliminate the error in the $2Ns
-\approx 1$ domain.
+\approx 1$ domain. Overall, while we find evidence that local-rescaling
+slightly reduces error in the $2Ns \approx 1$ domain, we do not use it during
+in our genome-wide inference method. This is because to avoid circularity and
+possible overfitting, the method would need to solve the equilibria equations
+for all segments simultaneously, but this is currently computational
+unfeasible.
 
 Finally, we hypothesized that the remaining error is because of the build up of
 negative linkage disequilibria between selected sites due to Hill--Robertson
@@ -548,38 +557,29 @@ interference \parencite{Hill1966-kd,McVean2000-bt,Comeron2007-wq}. To assess
 this possibility, we calculated the sum of all linkage disequilibria in our
 chromosome-wide simulations. We find negative linkage disequilibria build ups
 around $2Ns \approx 1$ (Figure \ref{fig:figure-1}D, top row) and is stronger
-when mutation rates are higher (Supplementary Figure XXX). As $Ns \to 0$, the
-variance in LD inflates as expected \parencite{Ohta1969-ae,Hill1968-ue}.
-Overall, the build up of negative LD is consistent our view that the
-equilibrium fitness variance modeled by the SC16 theory is the additive
-\emph{genic} fitness variance, which differs from the additive genetic variance
-by the sum of linkage disequilibria between selected sites (i.e. $\delta_{LD} =
-s^2 \sum_{i\ne j} D_{i,j}$ where $D_{i,j}$ is the LD between sites $i$ and
-$j$). However, according to theory, the reductions in diversity should be
-determined by levels of additive genetic fitness variance that include the
-contribution of LD (Supplementary Materials Section XXX).
+when mutation rates are higher. As $Ns \to 0$, the variance in LD inflates as
+expected \parencite{Ohta1969-ae,Hill1968-ue}. Overall, the build up of negative
+LD is consistent our view that the equilibrium fitness variance modeled by the
+SC16 theory is the additive \emph{genic} fitness variance, which differs from
+the additive genetic variance by the sum of linkage disequilibria between
+selected sites (i.e. $\delta_{LD} = s^2 \sum_{i\ne j} D_{i,j}$ where $D_{i,j}$
+is the LD between sites $i$ and $j$). However, according to theory, the
+reductions in diversity should be determined by levels of additive genetic
+fitness variance that include the contribution of LD (Supplementary Materials
+Section \ref{supp:theory}).
 
-While we find evidence that local-recalling reduces error in the $2Ns \approx
-1$ domain, we do not employ it in our genome-wide inference method for a few
-reasons. First, the reduction map 
-
-numerically solving the system of equations 
-
-it currently cannot be used during when fitting
-genome-wide models.
 
 \subsection*{Application to Humans and Model Comparison}
 
-
-Our method takes tracks of annotated features (an ``annotation model") that are
-\emph{a priori} expected to have similar fitness effects, and estimates the
-distribution of fitness effects for each feature type. We consider two classes
-of annotation models: (1) CADD score models, which assign a rank-order
-pathogenicity score to each basepair, and (2) and more interpretable gene
-feature-based models that includes protein coding regions, intron and UTRs, and
-PhastCons regions. We include PhastCons regions because there is abundant
-evidence of highly-conserved non-coding regions in humans under negative
-selection
+Our composite likelihood method takes tracks of annotated features (an
+``annotation model") that are \emph{a priori} expected to have similar fitness
+effects, and estimates the overall mutation rate and distribution of fitness
+effects for each feature type. We consider two classes of annotation models:
+(1) CADD score models, which assign a rank-order pathogenicity score to each
+basepair, and (2) and more interpretable gene feature-based models that
+includes protein coding regions, intron and UTRs, and PhastCons regions. We
+include PhastCons regions because there is abundant evidence of
+highly-conserved non-coding regions in humans under negative selection
 \parencite{Meader2010-hm,Harmston2013-tt,Katzman2007-gq,Siepel2005-wh}, but
 would not be included in gene-based annotation. Since our method fits a DFE for
 each feature type, PhastCons regions that overlap other gene annotations (e.g.
@@ -593,19 +593,20 @@ Priority, and Feature Priority) to high-coverage 1000 Genome data for three
 populations: Yoruba (YRI), Han Chinese (CHB), and European (CEU) reference
 samples. We assess and compare our models according to how well they predict
 patterns of diversity on whole chromosomes left-out during the model fitting
-process. We use the metric $R_\text{LOO}^2$, which is the proportion of the
-observed variance in genomic diversity at the megabase scale predicted by our
-model. We experimented with a few smaller spatial scales, but our results were
-consistent with previous results suggesting the human linked selection signal
-fits best at the megabase scale \parencite{Murphy2022-sj}.
+process (e.g. leave-one-chromosome-out, LOCO). We use the metric
+$R_\text{LOCO}^2$, which is the proportion of the observed variance in genomic
+diversity at the megabase scale predicted by our model. We experimented with a
+few smaller spatial scales, but our results were consistent with previous
+results suggesting the human linked selection signal fits best at the megabase
+scale \parencite{Murphy2022-sj}.
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
     \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all 
     populations (colors) fit at the megabase-scale. Round points are our B' 
     method and diamonds are the classic B. Lighter color round points are
-    the out-sample $R_\text{LOO}^2$ estimates for our B' method, and arrows show the decline
-    in goodness-of-fit due to in-sample overfitting (out-sample $R_\text{LOO}^2$ 
+    the out-sample $R_\text{LOCO}^2$ estimates for our B' method, and arrows show the decline
+    in goodness-of-fit due to in-sample overfitting (out-sample $R_\text{LOCO}^2$ 
     were not calculated for classic B values due to computational costs). The 
     horizontal dashed lines are the $R_\text{drift}^2$ expected when the residual
     variance is given by the theoretic variance in coalescence times due to drift alone.}
@@ -621,8 +622,8 @@ bottleneck, the goodness-of-fit was lower across all models (e.g. 62.98\% and
 6\% model was previously found by \textcite{Murphy2022-sj} to be the
 best-fitting model using classic BGS. Our PhastCons Priority model fits
 marginally better than the CADD 6\% model consistently across all three
-populations (Supplementary Table XXX). This is likely because the PhastCons
-Priority model has more DFE parameters, and thus can fit finer-scale
+populations (Supplementary Table \ref{supp:tbl-r2}). This is likely because the
+PhastCons Priority model has more DFE parameters, and thus can fit finer-scale
 differences in the DFE across its four feature types. By contrast, the CADD 6\%
 track must fit patterns of diversity to conserved sites under a single DFE. The
 CADD 8\% model fit slightly worse than the CADD 6\% across all populations, and
@@ -630,15 +631,16 @@ the Feature Priority model had the poorest-fit.
 
 Since our method is built upon theory that fixes the weak selection problem of
 classic BGS theory, it should in principle fit equally well when an annotation
-model includes regions that are likely neutrally evolution. To test this, for
-each annotation model (which are ``sparse") we fit a ``full" model that assigns
-the remaining complement of the genome as a feature called ``other". This other
-category is likely to predominantly neutrally evolving. Ideally, the
+model includes regions that are under no selective constrain and neutrally
+evolving. To test this, for each annotation model (which are ``sparse") we fit
+a corresponding ``full" model that assigns the remaining complement of the
+genome as a feature called ``other". This category contains most of the genome,
+and is likely to be predominantly neutrally evolving. Ideally, the
 goodness-of-fit of model using our B' method should be invariant to whether an
 annotation model is sparse or full. Indeed, we find this to be the case: both
-in-sample $R^2$ and out-sample $R_\text{LOO}^2$ values are nearly identical
-across full and sparse-track models (Figures \ref{fig:figure-2} A and B, round
-points). 
+in-sample $R^2$ and out-sample $R_\text{LOCO}^2$ values are nearly identical
+across full and sparse-track models (Figures \ref{fig:figure-2}A and
+\ref{fig:figure-2}B, round points). 
 
 By contrast, full annotation models fit poorly when using classic BGS theory
 (Figure \ref{fig:figure-2}B, diamond-shaped points) and lead to unreasonable
@@ -648,10 +650,10 @@ introns and UTRs), models fit worse under classic BGS theory than our B' method
 (Figure \ref{fig:figure-2}A). However, among the CADD annotation models, the
 goodness-of-fit is nearly identical between B' and classic BGS methods. This
 behavior is what we would expect given that the CADD annotation models contain
-only the most pathogenic sites, which are \emph{a prior} very likely under the
+only the most pathogenic sites, which are \emph{a priori} very likely under the
 strong selection domain under which B' and classic BGS theory agree.
 
-Since our $R_\text{LOO}^2$ estimates suggest our models fit left-out
+Since our $R_\text{LOCO}^2$ estimates suggest our models fit left-out
 chromosomes well even though our method assumes constant demography and
 homogeneous mutation rates along the genome, we wondered what $R^2$ we could
 expect under a simple theoretic model where $\cov_i(B_i', \varepsilon_i) = 0$
@@ -665,13 +667,13 @@ this calculation assumes constant demography and that the variance in
 coalescence times under negative selection is likely lower than expected under
 drift alone. 
 
-Still, we find that our out-sample $R_\text{LOO}^2$ for Yoruba individuals
-($R_\text{LOO}^2 \approx 68$\%) is close to the theoretic $R_\text{coal}^2
+Still, we find that our out-sample $R_\text{LOCO}^2$ for the Yoruba samples
+($R_\text{LOCO}^2 \approx 68$\%) is close to the theoretic $R_\text{coal}^2
 \approx 67$\%. For bottlenecked out-of-Africa populations, $R_\text{coal}^2
-\approx 64$\% compared to the observed $R_\text{LOO}^2 \approx 62$\% for CEU
-and $R_\text{LOO}^2 \approx 59$\% for CHB. We note that because bottlenecks
+\approx 64$\% compared to the observed $R_\text{LOCO}^2 \approx 62$\% for CEU
+and $R_\text{LOCO}^2 \approx 59$\% for CHB. We note that because bottlenecks
 increase the variance in coalescence times beyond the level implied by the
-effective population size, the disagreement between observed $R_\text{LOO}^2$
+effective population size, the disagreement between observed $R_\text{LOCO}^2$
 and the theoretic $R_\text{coal}^2$ is likely to shrink. Overall, this suggests
 that negative selection models explain the vast majority coalescence time
 variation at the megabase-scale that is capable of being explained (i.e. that
@@ -690,7 +692,9 @@ is not coalescence noise).
   \label{fig:figure-3}
 \end{figure}
 
-
+Linked selection theory suggests the reduction signal is proportional to the
+spatial distributions of recombination and fitness variance along the
+chromosome. 
 
 Next, we developed a composite-likelihood method to estimate expected diversity
 without linked selection $\pi_0$, the deleterious mutation rate ($\mu_D$), and
@@ -738,6 +742,11 @@ to obtain a prediction of diversity $\widehat{\pi}_i = \widehat{\pi}_0
 \widehat{B}_i$. 
 
 \subsection*{Model Predictions and the Substitution Process}
+
+Each of our maximum likelihood estimates $\widehat{\Psi}$ imply other
+corresponding 
+
+
 
 Our method accommodates weak selection by modeling the fitness variance in each
 segment under an equilibrium negative selection process. This fitness variance
@@ -975,17 +984,18 @@ signal at this scale (we confirm this with one XXX fit at the $10^5$bp scale).
 
 Our binomial likelihood models the number of different pairwise comparisons
 observed per window given the total number of pairwise comparisons. The
-probability is given by $\bar{\pi}(b; \Psi) = \pi_0 \bar{B}(b; \mu,
-\mathbf{W})$, where bars indicate averages over some bin width, and the
-reduction is
+binomial probability for window $b$ is $\bar{\pi}(b; \Psi) = \pi_0 \bar{B}(b;
+\mu, \mathbf{W})$, where bars indicate averages over some bin width. The free
+parameters $\Psi = \{\pi_0, \mu, \mathbf{W}\}$ are the expected diversity in
+the absence of selection ($\pi_0$), the mutation rate ($\mu$), and the
+distribution of fitness effects for the discretized selection grid and $K$
+features ($\mathbf{W}$). The reduction at position $x$ is then,
 
 \begin{align}
     \log\left(B(x; \mu, \mathbf{W}) \right) = - \frac{1}{2} \sum_{g \in G} \sum_{j=1}^{n_s} V_g(\mu W_{j, k(g)}, s_j) Q_g^2(m_i, s_j, r_{x, g}).
 \end{align}
 %
-Here, $\mu$ is the mutation rate and $W_{j,k(g)}$ is a DFE entry in the
-$\mathbf{W}$ is the $n_s \times K$ DFE matrix over the selection grid and
-features. See Supplementary Materials Sections \ref{supp:data-summary} and
+See Supplementary Materials Sections \ref{supp:data-summary} and
 \ref{supp:likelihood} for more details.
 
 Our method uses two tricks to improve optimization over the mutation and DFE
@@ -1055,14 +1065,19 @@ samples (CEU and CHB) and YRI samples. More details about these and the segment
 simulations shown in Figure \ref{fig:figure-1}A-C can be found Supplementary
 Section \ref{supp:simulation}.
 
-\subsection*{Substitution Rate Predictions}
+\subsection*{Substitution Rate and Total Genic Fitness Variance Predictions}
 
-Our MLE fit $\hat{\Phi}$ also implies a set of corresponding substitution rate
-predictions for each segment under mutation-selection-draft process. There are
-two sources of variation in these predictions in this model. First, there is
-the variation across the pre-specified functional categories, e.g. CDS, UTRs,
-and PhastCons. Second, there is region-specific variation 
 
+a set of corresponding substitution rate predictions for each segment under
+mutation-selection-draft process. There are two sources of variation in these
+predictions in this model. First, there is the variation across the
+pre-specified functional categories, e.g. CDS, UTRs, and PhastCons. Second,
+there is region-specific variation 
+
+
+
+The SC16 theory models linked selection in quantitative genetics terms and
+relies on simultaneously predicting the deleterious substitution rate.
 
 
 

@@ -1290,35 +1290,21 @@ weighted average & 40.1 & 63.6 & 17.1 & - \\
   \includegraphics{figures/supplementary/diversity_trimming_dist.pdf}
 
   \caption{The distribution of diversity across the genome at the megabase
-  scale, with outliers trimmed. The blue line is the normal CDF, fit with MLE
-parameters XXX. The inset figure is the untrimmed data, with trimmed points
-shown in red.}
+  scale, with outliers trimmed. The blue line is the best-fitting normal CDF.
+  We note that this implies the distribution of megabase-scale diversity 
+  is slightly fat-tailed compared to a normal distribution.
+  The inset figure is the untrimmed data, with trimmed points shown in red. }
   \label{suppfig:trimming}
 \end{figure}
 
-
-The likelihood method is fit to non-overlapping binned summaries of the allele
-counts matrix. 
-
-
-Based on exploratory data analyses, some bins were outliers and
-excluded (XXX). 
-
-
-
-\begin{enumerate}
-  \item \textbf{Fraction of inaccessible sites per window}.  \path{mask_inaccessible_bins_frac}
-  % \item \textbf{Edge truncation}
-
-  \item \textbf{Outliers}: Based on exploratory analysis, there were some
-    regions with very high diversity. The 0.05\% right tail was excluded.
-
-\end{enumerate}
-
-
-% supp data
-% - npy files
-% - edge trunation
+Based on exploratory data analyses, we noticed some rare windows that were
+outliers. Given that maximum likelihood estimation can be easily biased by
+outliers, we took a conservative approach and removed the top 0.5\% of
+high-diversity windows. The results of this can be seen in Supplementary
+Figure \ref{suppfig:trimming}. We also remove 1cM from each end of the
+recombination map. These window-based filters are in addition to the
+accessible and neutral sequence masked described in Supplementary Sections
+\ref{supp:filter} and \ref{supp:accessible}.
 
 \subsection{Annotation Models}
 
@@ -1360,8 +1346,11 @@ CADD 8\%: 8.56\% of autosomal sequence.
 \subsection{Table of $R^2$ Values}
 
 \begin{table}
+    \label{supp:tbl-r2}
 \centering
-\caption{$R^2$ and mutation rate estimates for all models. XXX note about repeats}
+\caption{$R^2$ and mutation rate estimates for all models. Note that the repeated values in the last 
+rows are correct and due to rounding; see \path{notebooks/main_fits.ipnb} in the GitHub repository for 
+more information.}
 \begin{tabular}{lll|crr|cc}
     \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
 \hline
@@ -1395,7 +1384,7 @@ CDS$>$genes$>$phastcons &              full &          CHB &                    
 \end{table}
 
 
-\subsection{Derivation of Approximate Coalescence $R^2$}
+\subsection{Derivation of Approximate Coalescence $R_\text{coal}^2$}
 \label{supp:r2-coal}
 
 Our approach models the observed megabase-scale diversity $y_i$ in window $i$
