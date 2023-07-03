@@ -1352,7 +1352,7 @@ CADD 8\%: 8.56\% of autosomal sequence.
 rows are correct and due to rounding; see \path{notebooks/main_fits.ipnb} in the GitHub repository for 
 more information.}
 \begin{tabular}{lll|crr|cc}
-    \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
+    \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
 \hline
 \hline
     \textbf{phastcons$>$CDS$>$genes} &            sparse &          YRI &                        \textbf{68.45} &             68.16 &            65.23 &                                 1.8636 &                                0.2975 \\
@@ -1397,7 +1397,7 @@ some random residual error $\varepsilon_i$,
 
 where each $B_i = f(X_i | \Psi)$ for some data $X_i$ (i.e. the recombinaton map
 and annotation model) and parameters $\Psi$. To compare our models and assess
-model goodness-of-fit, we use the out-sample $R_\text{LOO}^2$ which is
+model goodness-of-fit, we use the out-sample $R_\text{LOCO}^2$ which is
 calculated by fitting the genome-wide model leaving one chromosome out, and
 calculating the residual variance between predictions and observed values for
 this out-sample chromosome. 
@@ -1481,7 +1481,7 @@ bottlenecked populations (CEU and CHB) compared to Yoruba, which we confirm
 with simple simulations using the \texttt{OutOfAfrica\_3G09} model from
 \texttt{stdpopsim} \parencite{Gutenkunst2009-pg,Adrion2020-cf}. This higher
 than expected variance would inflate $SS_\text{res}$, which would decrease
-$R_\text{drift}^2$, bringing it closer to the observed $R_\text{LOO}^2$. A more
+$R_\text{drift}^2$, bringing it closer to the observed $R_\text{LOCO}^2$. A more
 accurate approximation of the $R_\text{drift}^2$ could be found with
 simulations with more realistic demography and varying coalescence rates along
 the genome.
@@ -1835,6 +1835,13 @@ selection signal is not dependent on the model used (PhastCons Priority versus C
   DFE for YRI samples in Figure \ref{fig:figure-3}.}
 \end{figure}
 
+\begin{figure}[htbp]
+    \label{suppfig:dfe-pop-smallgrid}
+  \centering
+  \includegraphics[width=0.6\textwidth]{figures/supplementary/phastcons_priority_pop_dfe_smallselgrid.pdf}
+  \caption{The DFE for the PhastCons Priority model, fit with a smaller DFE grid from 
+  $\mu \in \{10^{-8}, 10^{-7}, \ldots, 10^{-2}\}$.}
+\end{figure}
 
 \clearpage
 
