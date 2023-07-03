@@ -129,7 +129,7 @@ use this theoretic approach to fit genome-wide models of negative selection.
 Using forward simulations, we show this model leads to more accurate DFE
 estimates under weak selection. While this new model accommodates the
 possibility that a given reduction B could be due to weaker selection, in
-applying our composite-likelihood method to human population genomic data, we
+applying our composite likelihood method to human population genomic data, we
 confirm earlier findings that strong negative selection at a small fraction of
 sites fits human data across populations best. Finally, we show that while this
 model solves some limitations of the classic BGS model, simulations reveal
@@ -616,18 +616,21 @@ scale \parencite{Murphy2022-sj}.
 Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
 as well (Figure \ref{fig:figure-2}A), explaining $R^2=68.45$\% and
 $R^2=68.04$\% of the out-sample variance in Yoruba pairwise diversity at the
-megabase-scale, respectively. In populations impacted by the out-of-Africa
-bottleneck, the goodness-of-fit was lower across all models (e.g. 62.98\% and
-59.98\% for CEU and CHB respectively in the PhastCons Priority model). The CADD
-6\% model was previously found by \textcite{Murphy2022-sj} to be the
-best-fitting model using classic BGS. Our PhastCons Priority model fits
-marginally better than the CADD 6\% model consistently across all three
+megabase-scale, respectively. Generally, our models predict out-sample
+diversity levels slightly better than previous methods; the best-fitting CADD
+6\% model from \textcite{Murphy2022-sj} explained 60\% of diversity in left-out
+2 Mbp windows across YRI samples.
+
+In populations impacted by the out-of-Africa bottleneck, the goodness-of-fit
+was lower across all models (e.g. 62.98\% and 59.98\% for CEU and CHB
+respectively in the PhastCons Priority model). Our PhastCons Priority model
+fits marginally better than the CADD 6\% model consistently across all three
 populations (Supplementary Table \ref{supp:tbl-r2}). This is likely because the
 PhastCons Priority model has more DFE parameters, and thus can fit finer-scale
-differences in the DFE across its four feature types. By contrast, the CADD 6\%
-track must fit patterns of diversity to conserved sites under a single DFE. The
-CADD 8\% model fit slightly worse than the CADD 6\% across all populations, and
-the Feature Priority model had the poorest-fit.
+differences with the four feature types. By contrast, the CADD 6\% track must
+fit patterns of diversity to conserved sites under a single DFE. The CADD 8\%
+model fit slightly worse than the CADD 6\% across all populations, and the
+Feature Priority model had the poorest-fit.
 
 Since our method is built upon theory that fixes the weak selection problem of
 classic BGS theory, it should in principle fit equally well when an annotation
@@ -653,28 +656,37 @@ behavior is what we would expect given that the CADD annotation models contain
 only the most pathogenic sites, which are \emph{a priori} very likely under the
 strong selection domain under which B' and classic BGS theory agree.
 
-Since our $R_\text{LOCO}^2$ estimates suggest our models fit left-out
-chromosomes well even though our method assumes constant demography and
-homogeneous mutation rates along the genome, we wondered what $R^2$ we could
-expect under a simple theoretic model where $\cov_i(B_i', \varepsilon_i) = 0$
-and $\var_i(\varepsilon_i)$ was determined by the variance in neutral
-coalescence times alone with an effective population size rescaled by $B_i'$.
-We calculate this ``coalescence $R^2$" by calculating the theoretic coalescence
-time variance in a megabase window with recombination and an effective
-population size of $B_i' N_e$ where we use our best-fitting model's as a
-plug-in estimator of $B_i'$. We note that this is a rough approximation, since
-this calculation assumes constant demography and that the variance in
-coalescence times under negative selection is likely lower than expected under
-drift alone. 
+Overall, our $R_\text{LOCO}^2$ estimates suggest our negative selection model
+explains up to 68\% of out-sample variance in diversity of the megabase scale,
+even though our method assumes constant demography and homogeneous mutation
+rates along the genome. A worthwhile question is: how much variation
+\emph{could} we expect to fit at this scale? Given that selection alters
+genealogies in ways beyond just decreasing mean pairwise coalescence time and
+populations have non-constant demography, an exact analytic answer is
+intractable. However, we can get an approximate idea if we assume that the
+residual variance $\sum_b (\pi_b - \widehat{\pi}_b)^2$ is determined entirely
+by the expected neutral coalescence noise around the expected coalescence time
+$2B(b)N$ (see Method XXX). Thus, we define $R_\text{coal}^2$ as the theoretic
+proportion of variance explainable under this model to ballpark the variance
+capable of being explained.
 
-Still, we find that our out-sample $R_\text{LOCO}^2$ for the Yoruba samples
-($R_\text{LOCO}^2 \approx 68$\%) is close to the theoretic $R_\text{coal}^2
-\approx 67$\%. For bottlenecked out-of-Africa populations, $R_\text{coal}^2
-\approx 64$\% compared to the observed $R_\text{LOCO}^2 \approx 62$\% for CEU
-and $R_\text{LOCO}^2 \approx 59$\% for CHB. We note that because bottlenecks
-increase the variance in coalescence times beyond the level implied by the
-effective population size, the disagreement between observed $R_\text{LOCO}^2$
-and the theoretic $R_\text{coal}^2$ is likely to shrink. Overall, this suggests
+We find that our out-sample $R_\text{LOCO}^2$ for the Yoruba samples
+($R_\text{LOCO}^2 \approx 68$\%) is slightly above the theoretic
+$R_\text{coal}^2 \approx 67$\%. This suggests our model is in the vicinity of
+fitting all possible signal possible under these simplifying assumption. It
+should be noted that selection is expected to \emph{decrease} the variance in
+coalescence times beyond simply rescaling effective population size implies;
+better future models for $R_\text{coal}^2$ could show there is more linked
+selection signal to explain.
+
+For bottlenecked out-of-Africa populations, we find a larger discrepancy
+between $R_\text{coal}^2$ and observed out-sample $R_\text{LOCO}^2$. The
+theoretic $R_\text{coal}^2 \approx 64$\% for both populations, compared to the
+observed $R_\text{LOCO}^2 \approx 62$\% for CEU and $R_\text{LOCO}^2 \approx
+59$\% for CHB. Given that bottlenecks would act to increase the residual
+variance in coalescence times beyond the level implied by the effective
+population size, the gap would likely shrink under more realistic models or
+simulation-based approximations for $R_\text{coal}^2$. Overall, this suggests
 that negative selection models explain the vast majority coalescence time
 variation at the megabase-scale that is capable of being explained (i.e. that
 is not coalescence noise).
@@ -692,9 +704,44 @@ is not coalescence noise).
   \label{fig:figure-3}
 \end{figure}
 
-Linked selection theory suggests the reduction signal is proportional to the
+Our composite likelihood method has three sets of parameters: expected
+diversity in the absence of linked selection diversity $\pi_0$, the mutation
+rate $\mu$, and the distribution of fitness effects $\mathbf{W}$ across the
+selection grid for each of the $K$ feature types. Given that the relationship
+between $\pi$ and the strength selection is U-shaped, we wondered whether the
+observed genome-wide patterns of diversity could fit under weaker selection
+than found in previous methods based on classic BGS theory. 
+
+However, across all of our annotation models, new deleterious mutations in
+putatively conserved features are consistently estimated to have strongly
+deleterious effects (Figure \ref{fig:figure-3}A). This includes features such
+as coding sequences, PhastCons regions, or the top 6\% of basepairs with the
+most pathogenic CADD scores. Thus, even with a model that can better
+distinguish weak versus strong selection, our DFE estimates suggest 
+
+
+qualitatively
+agree with recent work \parencite{Murphy2022-sj}.
+
+
+
+Moreover, the estimated mutation rates are close
+to pedigree-based estimates for most of these annotation models (XXX). 
+
+Second, we find evidence that our method will indeed estimate weak selection
+across features 
+
+
+
+
+Given that the B' method more
+accurately predicts diversity across weaker selection coefficients, we wondered
+whether our inferred DFEs could 
+
+Linked selection theory suggests the reduction signal is determined by the
 spatial distributions of recombination and fitness variance along the
-chromosome. 
+chromosome. When fitness variation is determined mostly by negative selection,
+the 
 
 Where does the information for the DFE come from?
 
@@ -702,7 +749,7 @@ Where does the information for the DFE come from?
 All of our models show a general trade off in fitting the linked selection
 signal. 
 
-Next, we developed a composite-likelihood method to estimate expected diversity
+Next, we developed a composite likelihood method to estimate expected diversity
 without linked selection $\pi_0$, the deleterious mutation rate ($\mu_D$), and
 distribution of fitness effects ($\mathbf{W}$) under negative selection.
 Because the focus of our work is to fix deficiencies in the classic BGS model,
