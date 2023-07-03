@@ -36,13 +36,18 @@ LogLiks = namedtuple('LogLiks', ('pi0', 'pi0_ll', 'w', 't', 'll'))
 # sorry non-human researchers, I like other organisms too, just for
 # my sims :)
 # midpooint between 1e-7 and 1e-8 on a log10 scale
-MIN_W = np.sqrt(1e-8 * 1e-7)
+#MIN_W = np.sqrt(1e-8 * 1e-7)
 #HUMAN_W = (-10, np.log10(MIN_W))
 HUMAN_W = (-11, -7)
 HUMAN_T = (-8, -1)
+#HUMAN_T = (-8, -2)
 
 HUMAN_W_STR = f"{HUMAN_W[0]}:{HUMAN_W[1]}:6"
-HUMAN_T_STR = f"{HUMAN_T[0]}:{HUMAN_T[1]}:8"
+# use in all main fits:
+#HUMAN_T_STR = f"{HUMAN_T[0]}:{HUMAN_T[1]}:8"
+
+# new test:
+HUMAN_T_STR = f"{HUMAN_T[0]}:{HUMAN_T[1]}:7"
 
 
 def sterialize_mu(mu):
@@ -52,15 +57,19 @@ def sterialize_mu(mu):
         raise ValueError("mu must be 'free'/None, or a float")
     return mu
 
-
-def grid_maker(nw, nt, w_range=HUMAN_W, t_range=HUMAN_T):
-    return Grid(w=np.logspace(*w_range, nw), t=np.logspace(*t_range, nt))
-
-
 def grid_maker_from_str(x):
-    nw, nt = tuple(map(int, x.split('x')))
-    return grid_maker(nw, nt)
-
+    """
+    Pre-set grids, for humans. 
+    """
+    if x == '6x8':
+        # the default fits, from log10(s) -1 to -8 
+        return Grid(w=np.logspace(*HUMAN_W, 6), t=np.logspace(*HUMAN_T, 8)) 
+    elif x == '6x7':
+        # the grid from log10(s) -2 to -8
+        return Grid(w=np.logspace(*HUMAN_W, 6), t=np.logspace(*(-8, -2), 7)) 
+    else:
+        raise ValueError("x must be '6x8' (log10(s) from -1 to -8) or '6x7' (log10(s) from -2 to -8)")
+        
 
 def make_bgs_model(seqlens, annot, recmap, conv_factor, w, t, g=None,
                    chroms=None, name=None, genome_only=False,

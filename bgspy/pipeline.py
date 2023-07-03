@@ -17,12 +17,26 @@ from bgspy.likelihood import SimplexModel
 
 AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 
+def calc_pred_stats(df):
+    """
+    Calc the stats from a predictions dataframe (of all segments)
+    """
+    V = df['V'].values.sum()
+    Vm = df['Vm'].values.sum()
+    load = df['load'].values.sum()
+    ave_r = np.average(df['r'].values, weights=df['seglen'])
+    # feature-level average sub rates
+    dfg = df.groupby('feature').mean().reset_index()
+    r = dict(zip(dfg['feature'], dfg['r']))
+    return dict(V=V, Vm=Vm, load=load, ave_r=ave_r, r=r)
+
 
 def load_model(base_dir='./', jackwidth=20_000_000):
     initial = {}
     rescaled = {}
     initial_predict = {}
     mu_predicts = defaultdict(dict)
+    mu_predicts_boot = defaultdict(dict)
     rescaled_predict = {}
     pop_dirs = [d for d in os.listdir(base_dir) if isdir(join(base_dir, d)) and "pop_" in d]
     for pop_dir in pop_dirs:
@@ -39,6 +53,8 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                 dir_paths = [fit_dir_path, rescale_dir_path]
                 runs = 'initial', 'rescaled'
                 for i, dir_path in enumerate(dir_paths):
+                    if not os.path.exists(dir_path):
+                        continue
                     # load the main results if mle.pkl exists
                     mle_file_path = join(dir_path, 'mle.pkl')
                     pred_file_path = join(dir_path, 'predicted_subrates.tsv')
@@ -71,8 +87,18 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                         for pred in other_preds:
                            mu = float(pred.replace('predicted_subrates_', '').replace('.tsv', ''))
                            mu_predicts[(pop, window, type_)][mu] = pd.read_csv(join(dir_path, pred), sep='\t')
+                           # check if bootstraps exist
+                           boot_dir = join(dir_path, f"predict_boots__{mu}")
+                           if os.path.exists(boot_dir):
+                               boots = os.listdir(boot_dir)
+                               if len(boots):
+                                   mu_predicts_boot[(pop, window, type_)][mu] = []
+                                   for boot in boots:
+                                       db = pd.read_csv(join(dir_path, f"predict_boots__{mu}", boot), sep='\t')
+                                       stats = calc_pred_stats(db)
+                                       mu_predicts_boot[(pop, window, type_)][mu].append(stats)
  
-    return initial, rescaled, initial_predict, rescaled_predict, mu_predicts
+    return initial, rescaled, initial_predict, rescaled_predict, mu_predicts, mu_predicts_boot
 
 class ModelDir:
     """ 
@@ -87,7 +113,7 @@ class ModelDir:
 
     def _get_fits(self):
         tmp = load_model(self.dir, jackwidth=self.jackwidth)
-        self.fits, self.rescaled, self.predicts, self.predicts_rescaled, self.mu_predicts  = tmp
+        self.fits, self.rescaled, self.predicts, self.predicts_rescaled, self.mu_predicts, self.mu_predicts_boot  = tmp
 
     def save(self, output):
         save_pickle(self, output)

@@ -662,6 +662,8 @@ class BGSLikelihood:
         draw = np.random.normal(self.theta_, self.sigma_)
         # truncate the bounds of W
         W = draw[2:].reshape((self.nt, self.nf))
+        # small number; if zero, the mutation rate = 0 and downstream stuff
+        # fails
         W[W < 0] = 1e-100
         W[W > 1] = 1
         W = W / W.sum(axis=0)
