@@ -66,6 +66,7 @@ step = params['step']
 if 'grid' in params:
     grid_str = params['grid']
     Bs_file = f"bmaps/bmap_{grid_str}grid_{step}step_{N}N__{name}_{{tracktype}}.pkl"
+    Bps_file = f"bmaps/bmap_Bp_{grid_str}grid_{step}step_{N}N__{name}_{{tracktype}}.pkl"
 
     # Note: the locally-rescaled B/B' maps are **fit specific**
     # so in the fit subdirectory
@@ -153,7 +154,7 @@ for popl in pops:
                         jackknife_fits.append(join(jk_dir, f"jackknife_{frac}.pkl"))
             if do_predict_mu and predict_boot:
                 for boot in range(predict_boot):
-                    pred_dir = join(this_fit_path, f"predict_boots__{mu}")
+                    pred_dir = join(this_fit_path, f"predict_boots__{do_predict_mu}")
                     jackknife_fits.append(join(pred_dir, f"predicted_subrates_{do_predict_mu}__{boot}.tsv"))
 
 
@@ -360,6 +361,10 @@ rule combine_bmaps:
 
 
 # ---- save the fit data
+bp_only = settings.get('bp_only', False)
+if bp_only:
+   Bs_file = Bps_file
+
 rule save_data:
   # only get the data, e.g. for testing, for this model
   input: seqlens=files['seqlens'], recmap=files['recmap'],
@@ -382,10 +387,11 @@ rule save_data:
     """
 
 # ---- fit the MLE
+bp_only_str = '' if not bp_only else '--only-Bp'
 rule fit:
   input: "fits/pop_{popl}/window_{window}/type_{tracktype}/model_data.pkl"
   output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl"
-  params: **settings
+  params: **settings, bp_only_str=bp_only_str
   resources:
     mem_mb=80000,
     time_min=1980,
@@ -396,7 +402,7 @@ rule fit:
     bgspy fit \
       --pi0-bounds {params.pi0_bounds} --mu-bounds {params.mu_bounds} \
       --mu {wildcards.mutrate} \
-      --data {input} \
+      --data {input} {params.bp_only_str} \
       --ncores {resources.threads} --nstarts {params.nstarts} \
       --output {output}
     """
@@ -421,12 +427,12 @@ rule subrate_predict:
 rule subrate_predict_mu_boot:
   input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl",
          bs_file=Bs_file
-  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predict_boots/predicted_subrates_{mu}__{boot}.tsv"
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predict_boots__{mu}/predicted_subrates_{mu}__{boot}.tsv"
   params: **settings
   resources:
-    mem_mb=200000,
+    mem_mb=500000,
     time_min=980,
-    threads=40
+    threads=20
   shell:
     """
     bgspy subrate \

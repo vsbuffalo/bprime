@@ -413,6 +413,8 @@ class BGSLikelihood:
         kwargs = {**defaults, **kwargs}
         mids = self.bins.midpoints()
         idx = self.bins.chrom_indices(chrom)
+        if not len(idx):
+            return np.nan
         y = self.predict(B=True)
         func = interpolate.interp1d(mids[chrom], y[idx],
                                     fill_value=(y[0], y[-1]),
