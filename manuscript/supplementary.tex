@@ -1348,9 +1348,11 @@ CADD 8\%: 8.56\% of autosomal sequence.
 \begin{table}
     \label{supp:tbl-r2}
 \centering
-\caption{$R^2$ and mutation rate estimates for all models. Note that the repeated values in the last 
-rows are correct and due to rounding; see \path{notebooks/main_fits.ipnb} in the GitHub repository for 
-more information.}
+\caption{$R^2$ and mutation rate estimates for all primary models (top table)
+    and models fit on a smaller DFE grid (excluding the possibility of strong
+    selection $s=10^{-1}$). Note that the repeated values in the last rows are
+    correct and due to rounding; see \path{notebooks/main_fits.ipynb} in the
+    GitHub repository for more information.}
 \begin{tabular}{lll|crr|cc}
     \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
 \hline
@@ -1380,6 +1382,21 @@ CDS$>$genes$>$phastcons &              full &          CEU &                    
 CDS$>$genes$>$phastcons &            sparse &          CHB &                        56.48 &             58.73 &            56.60 &                                 3.7195 &                                0.3136 \\
 CDS$>$genes$>$phastcons &              full &          CHB &                        56.48 &             58.73 &            54.95 &                                 3.7552 &                                0.1654 \\
 \hline
+\hline
+\emph{smaller DFE grid} & & & & & & \\
+\hline
+\textbf{phastcons$>$CDS$>$genes}  &              full &          YRI &               \textbf{67.27} &             67.36 &             &                                 2.0333 &                                \\
+               CADD 6\%  &            sparse &          YRI &                        66.66 &             66.81 &             &                                 1.6565 &                                \\
+               CADD 6\%  &              full &          YRI &                        66.50 &             66.68 &             &                                 1.5556 &                                \\
+CDS$>$genes$>$phastcons  &              full &          YRI &                        63.61 &             64.28 &             &                                 3.3493 &                                \\
+\textbf{phastcons$>$CDS$>$genes}  &              full &          CEU &               \textbf{61.04} &             62.25 &             &                                 1.9128 &                                \\
+               CADD 6\%  &            sparse &          CEU &                        60.37 &             61.80 &             &                                 1.6797 &                                \\
+               CADD 6\%  &              full &          CEU &                        60.24 &             61.77 &             &                                 1.6347 &                                \\
+               \textbf{phastcons$>$CDS$>$genes}  &     full &          CHB &                        \textbf{58.76} &             60.45 &             &                                 1.8691 &                                \\
+               CADD 6\%  &            sparse &          CHB &                        58.67 &             60.49 &             &                                 1.7454 &                                \\
+               CADD 6\%  &              full &          CHB &                        58.48 &             60.40 &             &                                 1.5981 &                                \\
+CDS$>$genes$>$phastcons  &              full &          CEU &                        57.24 &             59.11 &             &                                 3.0461 &                                \\
+CDS$>$genes$>$phastcons  &              full &          CHB &                        55.63 &             57.88 &             &                                 3.1723 &                                \\
 \end{tabular}
 \end{table}
 
@@ -1471,6 +1488,17 @@ mutation rates, $\nicefrac{r}{\mu}$. In humans, $\gamma \approx 1$, but we
 explore different ratios to assess sensitivity of this calculation
 (Supplementary Figure \ref{suppfig:r2_upper}). 
 
+\begin{figure}[htbp] \centering
+    \includegraphics[width=\textwidth]{figures/supplementary/suppfigure_drift_R2.pdf}
+    \caption{(A) the theoretic $R_\text{drift}^2$ using different plugin
+        estimators for $B_i$ under different models. This shows that among the
+        best-fitting models, the predicted $R_\text{drift}^2$ varies little;
+        most variation is among populations due to differing $\pi_0$. (B) The 
+        $R_\text{drift}^2$ across different populations, for varying ratio of recombination
+        to mutation rates (x-axis).}
+  \label{suppfig:drift_r2}
+\end{figure}
+
 This back-of-the-envelope calculation finds that the upper bound of $R^2$ would
 be around 67\% for Yoruba, and 64\% for European and Han Chinese models (Figure
 \ref{suppfig:drift_r2} This rough approximation assumes constant demography,
@@ -1487,14 +1515,9 @@ simulations with more realistic demography and varying coalescence rates along
 the genome.
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/supplementary/suppfigure_drift_R2.pdf}
-    \caption{(A) the theoretic $R_\text{drift}^2$ using different plugin
-        estimators for $B_i$ under different models. This shows that among the
-        best-fitting models, the predicted $R_\text{drift}^2$ varies little;
-        most variation is among populations due to differing $\pi_0$. (B) The 
-        $R_\text{drift}^2$ across different populations, for varying ratio of recombination
-        to mutation rates (x-axis).}
-  \label{suppfig:drift_r2}
+    \includegraphics[width=0.5\textwidth]{figures/supplementary/subfigure_R2_scale.pdf}
+    \caption{XXX}
+  \label{suppfig:coal_r2_scale}
 \end{figure}
 
 \subsection{Predicted Rate of Fitness Change}
@@ -1792,7 +1815,7 @@ other top 100 optima.
 
   \caption{ An optimization diagnostic plot showing the 100 top optima. Heatmap
   colors indicate probability mass for the DFE parameters (top four rows).
-Estimates of $\pi_0$ and $\mu$ are shown in the bottom two rows. This is the
+  Estimates of $\pi_0$ and $\mu$ are shown in the bottom two rows. This is the
 optimization plot for YRI Feature Priority model.}
 \end{figure}
 
