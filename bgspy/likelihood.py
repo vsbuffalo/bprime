@@ -1151,7 +1151,7 @@ class SimplexModel(BGSLikelihood):
         i = 1 + int(self._fixed_mu is None)
         return self.theta_[i:].reshape(self.nt, self.nf)
 
-    def summary(self, index=None):
+    def summary(self, no_unicode=False, index=None):
         if self.theta_ is None:
             return "\n[not fit yet]\n"  # not fit yet
         if index is None:
@@ -1198,16 +1198,25 @@ class SimplexModel(BGSLikelihood):
         nstarts = self.optim.thetas.shape[0]
         frac = np.round(self.optim.frac_success, 2)*100
         base_rows += f"number of successful starts: {nstarts} ({frac}% total)\n"
-        base_rows += f"π0 = {pi0:0.6g}"
+        if not no_unicode:
+            base_rows += f"π0 = {pi0:0.6g}"
+        else:
+            base_rows += f"pi_0 = {pi0:0.6g}"
         if cis is not None:
             l, u = cis[0][0], cis[1][0]
             base_rows += f" ({l:.5f}, {u:.5f})\n"
         else:
             base_rows += "\n"
         pi = pi_from_pairwise_summaries(self.Y.sum(axis=0))
-        base_rows += f"π  = {pi:0.6g}\n"
+        if not no_unicode:
+            base_rows += f"π  = {pi:0.6g}\n"
+        else:
+            base_rows += f"pi  = {pi:0.6g}\n"
         fixed_str = "(FIXED)" if self._fixed_mu is not None else ""
-        base_rows += f"μ_del  = {mu:0.4g} {fixed_str}"
+        if not no_unicode:
+            base_rows += f"μ_del  = {mu:0.4g} {fixed_str}"
+        else:
+            base_rows += f"mut. rate = {mu:0.4g} {fixed_str}"
         if cis:
             l, u = cis[0][1], cis[1][1]
             base_rows += f" ({l:.3g}, {u:.3g})\n"
@@ -1215,9 +1224,14 @@ class SimplexModel(BGSLikelihood):
             base_rows += "\n"
 
         #base_rows += f"Ne (del) = {int(Ne):,} (implied from π0 and μ)\n"
-        base_rows += f"Ne = {int(pi0 / (4 * 1e-8)):,} (if μ=1e-8), "
-        base_rows += f"Ne = {int(pi0 / (4 * 2e-8)):,} (if μ=2e-8)\n"
-        base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
+        if not no_unicode:
+            base_rows += f"Ne = {int(pi0 / (4 * 1e-8)):,} (if μ=1e-8), "
+            base_rows += f"Ne = {int(pi0 / (4 * 2e-8)):,} (if μ=2e-8)\n"
+            base_rows += f"R² = {np.round(100*R2, 4)}% (in-sample)"
+        else:
+            base_rows += f"Ne = {int(pi0 / (4 * 1e-8)):,} (if mu=1e-8), "
+            base_rows += f"Ne = {int(pi0 / (4 * 2e-8)):,} (if mu=2e-8)\n"
+            base_rows += f"R2 = {np.round(100*R2, 4)}% (in-sample)"
         if hasattr(self, 'loo_thetas_') and self.loo_thetas_ is not None:
             loo_R2 = self.loo_R2()
             base_rows += f"  {np.round(100*loo_R2, 4)}% (out-sample)"
