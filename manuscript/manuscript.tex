@@ -569,6 +569,9 @@ fitness variance that include the contribution of LD (Supplementary Materials
 Section \ref{supp:theory}).
 
 
+
+
+
 \subsection*{Application to Humans and Model Comparison}
 
 Our composite likelihood method takes tracks of annotated features (an
@@ -713,11 +716,50 @@ observed genome-wide patterns of diversity could be explained by weaker
 selection than found in previous methods based on classic BGS theory. 
 
 However, across all of our annotation models, new deleterious mutations in
-putatively conserved features are consistently estimated to have strongly
-deleterious effects (Figure \ref{fig:figure-3}A). This includes features such
-as coding sequences, PhastCons regions, or the top 6\% of basepairs with the
-most pathogenic CADD scores. Thus, even with a model that can better
-distinguish weak versus strong selection, our DFE estimates suggest 
+likely conserved features are consistently estimated to have strongly
+deleterious effects (Figure \ref{fig:figure-3}A) consistent with previous work
+\parencite{McVicker2009-ax,Murphy2022-sj}. This includes features such as
+coding sequences, PhastCons regions, or the top 6\% of basepairs with the most
+pathogenic CADD scores. However, we find that there is considerable uncertainty
+in how strong selection is against the most deleterious mutations. For example,
+in the CADD 6\% full-track model, new mutations are estimated to have a
+selection coefficients of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with
+7.8\% chance, and $s=10^{3}$ with 41\% chance. These estimates suggest a
+bimodal DFE (Figure \ref{fig:figure-3}A, second row, left column), and are
+mirrored across the other CADD models. 
+
+Given that previous methods have typically not estimated the DFE up to
+selection coefficients of $s=10^{-1}$, we ran additional models using a DFE
+constrained to $s=10^{-2}$. Each of these constrained-DFE models across all
+populations fit the data less well than models run with the grid up to
+$s=10^{-1}$, explaining 1\% less of the leave-one-chromosome-out variation on
+average. As expected, the constrained-DFE models put more mass on $s=10^{-2}$
+(see Supplementary Table \ref{supp:tbl-r2}). 
+
+Our method's estimates for the DFE rely on a
+pre-specified logarithmic grid; we use a fairly fine-scale grid from $10^{-8}$
+to $10^{-1}$. 
+
+Across the CADD models, we note a discontinuity in DFE estimates,
+where the largest mass is placed on the strongest selection coefficient ($s =
+10^{-1}$), very little on the next coefficient ($s=10^{-2}$), and mo($\approx
+41\%-67\%$)
+
+These DFE estimates also suggest that our method
+can accurately estimate when regions are under weak or no constraint. 
+
+Across our full-coverage models, the estimated DFE for the ``other" feature
+containing the rest of the genome is estimated to nearly 100\% neutral
+($s=10^{-8}$). In some cases (e.g. the CADD 6\% and 8\% models) the ``other"
+estimates a small fraction ($\approx 3\%-5\%$) of mutations in the ``other"
+region have a strongly deleterious impact ($s=10^{-1}$). This is likely due to
+non-identifiability between $\pi_0$ and a small chance of deleterious mutations
+occurring on the unannotated remainder of the genome.
+
+Our DFE estimates 
+
+Thus, even though our model can better distinguish
+weak versus strong selection, our DFE estimates suggest 
 
 
 qualitatively
