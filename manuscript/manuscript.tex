@@ -752,10 +752,12 @@ correlation between estimates of $\pi_0$ and average selection $\bar{s}$.
 Looking at the CADD 6\% models fit across the default and constrained DFE
 grids, we find this is the case. Across every population, average selection was
 about 7 times larger using the default grid, and $\pi_0$ was $5.6\%$ larger.
-However, there was no similar consistent change in mutation rate estimates
-among populations. Overall, this suggests that the linked selection signal
-alone carries little information that can differentiate very strong selection
-from a slightly smaller drift-effective population size.
+There was no similar consistent change in mutation rate estimates among
+populations. In the CADD 6\% model, genome-wide average reduction factor
+$\bar{B}$ was $\approx 6.1\%$ lower in the default versus constrained grid.
+Overall, this suggests that the linked selection signal alone carries little
+information that can differentiate very strong selection from a slightly
+smaller drift-effective population size.
 
 Despite the strong-selection non-identifiability issue, we still were curious
 how stable these estimates are across samples from reference populations. In
@@ -767,22 +769,63 @@ procedure (Figure \ref{figure-3}B). Coding sequences show the strong-selection
 non-identifiability issue, and an uncertain signal of a neutral mode in the
 DFE. This would be expected given the very different levels of selective
 constraint synonymous and non-synonymous sites in coding sequences are under.
-The PhastCons class of this Feature Priority model, which contains non-coding
-highly conserved elements (XXX), is under strong selective constraint as
-expected. 
-
+The PhastCons class of this Feature Priority model, which contains highly
+conserved non-coding elements (XXX), is under strong selective constraint as
+expected. Interestingly, in our PhastCons Priority annotation model (Figure
+\ref{fig:figure-3}A bottom row), the DFE estimate for coding sequences
+excluding PhastCons regions is neutral. This is expected; the selection signal
+in coding regions is absorbed by the PhastCons feature.
 
 \subsection*{Estimates of the Deleterious Mutation Rate in Humans}
 
 \begin{figure}[htbp] 
     \centering
     \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
-    \caption{}
+    \caption{(A) }
   \label{fig:figure-4}
 \end{figure}
 
+Early genome-wide models of background selection closely fit megabase-scale
+patterns in sequence divergence among five primates
+\parencite{McVicker2009-ax}. However, the mutation rate estimates from this
+model were unreasonably high compared to pedigree-based estimates (XXX). This
+mutation rate discordance has led to the hypotheses that positive selection
+could explain some fraction of the genome-wide linked selection signal (e.g.
+\cite{Enard2014-kz}); however, evidence suggests that the role of classic
+sweeps in humans is minuscule
+\parencite{Pickrell2009-tt,Hernandez2011-gs,Murphy2022-sj}. Furthermore, Murphy
+et al. find the classic BGS model fit using the CADD 6\% track leads to
+mutation rate estimates that are consistent with pedigree-based rates. Given
+that our method is based on a different theoretic approach, we curious whether
+it would lead to estimates consistent with pedigree-based mutation rates.
+
+Overall, across our CADD-based models and all populations, our mutation rate
+estimates are roughly concordant with pedigree-based estimates (Figure
+\ref{fig:figure-4}A). Our full-track CADD 6\% model estimates a mutation rate
+of $\mu = 1.46 \times 10^{-8}$ for YRI, $1.53 \times 10^{-8}$ for CEU, and $1.5
+\times 10^{-8}$ for CHB reference samples (Supplementary Table
+\ref{supp:tbl-r2}). Mutation rate estimates for our feature-based annotation
+models are unrealistically higher. We believe this could be caused by
+per-basepair heterogeneity in selective effects within each of these features.
+For example, mutations in coding sequences are known to have highly
+heterogeneous effects depending on whether the result is synonymous,
+non-synonymous, or mis-sense. If some fraction of the impact of negative
+selection is due to strong selection at a few sites, sparser annotation models
+like these cannot isolate these effects like CADD-based models. Instead, XXXHERE 
+
+reflects a general problem
+with these more interpretable, but sparser feature-based tracks: heterogeneity
+in selective effects 
 
 
+However, we noticed that estimates of mutation rate is very sensitive to the
+choice of annotation model. Between CADD 6\% and 6\% models, the 
+
+
+
+\subsection*{Tests of Parameter Inference using Forward Simulations}
+
+Given 
 
 \subsection*{Predicted Diversity, Substitution Rates, and Fitness Variance}
 
@@ -803,8 +846,6 @@ We also obtain a prediction $\widehat{B}_i$ for the reduction factor $B_i$ in
 each window $i$, which can be multiplied by our estimate of $\widehat{\pi}_0$
 to obtain a prediction of diversity $\widehat{\pi}_i = \widehat{\pi}_0
 \widehat{B}_i$. 
-
-\subsection*{Model Predictions and the Substitution Process}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_6.pdf} 
