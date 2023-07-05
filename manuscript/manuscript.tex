@@ -694,7 +694,7 @@ that negative selection models explain the vast majority coalescence time
 variation at the megabase-scale that is capable of being explained (i.e. that
 is not coalescence noise).
 
-\subsection*{Estimates of Negative Selection Parameters in Humans}
+\subsection*{Estimates of the Distribution of Fitness Effects in Humans}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_3.pdf} 
@@ -724,7 +724,7 @@ pathogenic CADD scores. However, we find that there is considerable uncertainty
 in how strong selection is against the most deleterious mutations. For example,
 in the CADD 6\% full-track model, new mutations are estimated to have a
 selection coefficients of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with
-7.8\% chance, and $s=10^{3}$ with 41\% chance. These estimates suggest a
+7.8\% chance, and $s=10^{-3}$ with 41\% chance. These estimates suggest a
 bimodal DFE (Figure \ref{fig:figure-3}A, second row, left column), and are
 mirrored across the other CADD models. 
 
@@ -734,73 +734,45 @@ constrained to $s=10^{-2}$. Each of these constrained-DFE models across all
 populations fit the data less well than models run with the grid up to
 $s=10^{-1}$, explaining 1\% less of the leave-one-chromosome-out variation on
 average. As expected, the constrained-DFE models put more mass on $s=10^{-2}$
-(see Supplementary Table \ref{supp:tbl-r2}). 
+(see Supplementary Table \ref{supp:tbl-r2}). Overall, this common behavior
+across models seems likely to reflect a non-identifiability issue between
+selective effects of $s=10^{-1}$ and $s=10^{-2}$, which we refer to as the
+\emph{strong-selection non-identifiability} issue.
 
-Our method's estimates for the DFE rely on a
-pre-specified logarithmic grid; we use a fairly fine-scale grid from $10^{-8}$
-to $10^{-1}$. 
+We propose that one mechanism for this non-identifiability is that mutations
+extremely harmful to fitness are difficult to distinguish from a smaller
+effective population. Intuitively, as $s$ increases, the average persistence
+time (in generations) of the mutation in the population goes below one
+generation, i.e. death of the carrier of the \emph{de novo} mutation. In this
+hypothetical limit, each occurrence of a very harmful mutation is like an
+instantaneous death and thus acts like a genome-wide reduced effective
+population size. In our model, this genome-wide effective population size is
+parameterized by $\pi_0$; thus, one line of evidence for this effect is a
+correlation between estimates of $\pi_0$ and average selection $\bar{s}$.
+Looking at the CADD 6\% models fit across the default and constrained DFE
+grids, we find this is the case. Across every population, average selection was
+about 7 times larger using the default grid, and $\pi_0$ was $5.6\%$ larger.
+However, there was no similar consistent change in mutation rate estimates
+among populations. Overall, this suggests that the linked selection signal
+alone carries little information that can differentiate very strong selection
+from a slightly smaller drift-effective population size.
 
-Across the CADD models, we note a discontinuity in DFE estimates,
-where the largest mass is placed on the strongest selection coefficient ($s =
-10^{-1}$), very little on the next coefficient ($s=10^{-2}$), and mo($\approx
-41\%-67\%$)
-
-These DFE estimates also suggest that our method
-can accurately estimate when regions are under weak or no constraint. 
-
-Across our full-coverage models, the estimated DFE for the ``other" feature
-containing the rest of the genome is estimated to nearly 100\% neutral
-($s=10^{-8}$). In some cases (e.g. the CADD 6\% and 8\% models) the ``other"
-estimates a small fraction ($\approx 3\%-5\%$) of mutations in the ``other"
-region have a strongly deleterious impact ($s=10^{-1}$). This is likely due to
-non-identifiability between $\pi_0$ and a small chance of deleterious mutations
-occurring on the unannotated remainder of the genome.
-
-Our DFE estimates 
-
-Thus, even though our model can better distinguish
-weak versus strong selection, our DFE estimates suggest 
-
-
-qualitatively
-agree with recent work \parencite{Murphy2022-sj}.
-
-
-
-Moreover, the estimated mutation rates are close
-to pedigree-based estimates for most of these annotation models (XXX). 
-
-Second, we find evidence that our method will indeed estimate weak selection
-across features 
+Despite the strong-selection non-identifiability issue, we still were curious
+how stable these estimates are across samples from reference populations. In
+particular, we focused on the Feature Priority model, which fits the data less
+well but is more interpretable since its annotation is based on gene features.
+Overall, estimates of the distribution of selection coefficients are stable
+across populations and had narrow uncertainty as estimated by a block jackknife
+procedure (Figure \ref{figure-3}B). Coding sequences show the strong-selection
+non-identifiability issue, and an uncertain signal of a neutral mode in the
+DFE. This would be expected given the very different levels of selective
+constraint synonymous and non-synonymous sites in coding sequences are under.
+The PhastCons class of this Feature Priority model, which contains non-coding
+highly conserved elements (XXX), is under strong selective constraint as
+expected. 
 
 
-
-
-Given that the B' method more
-accurately predicts diversity across weaker selection coefficients, we wondered
-whether our inferred DFEs could 
-
-Linked selection theory suggests the reduction signal is determined by the
-spatial distributions of recombination and fitness variance along the
-chromosome. When fitness variation is determined mostly by negative selection,
-the 
-
-Where does the information for the DFE come from?
-
-
-All of our models show a general trade off in fitting the linked selection
-signal. 
-
-Next, we developed a composite likelihood method to estimate expected diversity
-without linked selection $\pi_0$, the deleterious mutation rate ($\mu_D$), and
-distribution of fitness effects ($\mathbf{W}$) under negative selection.
-Because the focus of our work is to fix deficiencies in the classic BGS model,
-our current implementation does not consider reductions in diversity due to
-recurrent hitchhiking or other positive selection processes. Since previous
-work has established that purifying selection is the dominant mode of linked
-selection in humans and hitchhiking plays a limited role
-\parencite{McVicker2009-ax,Murphy2022-sj}, humans are a suitable organism to
-test our method. 
+\subsection*{Estimates of the Deleterious Mutation Rate in Humans}
 
 \begin{figure}[htbp] 
     \centering
@@ -809,12 +781,8 @@ test our method.
   \label{fig:figure-4}
 \end{figure}
 
-Given that previous methods used classic BGS theory to fit genome-wide patterns
-of human diversity, we were curious whether their qualitative findings would
-change once weak selection was more accurately predicted. In particular, the
-U-shaped relationship between $B'$ and the strength of selection suggests that
-a given reduction factor could be explained by two different selection
-coefficients.
+
+
 
 \subsection*{Predicted Diversity, Substitution Rates, and Fitness Variance}
 
@@ -1011,6 +979,8 @@ prediction process. First, when the initial B' maps are calculated, the
 predicted substitution rate is calculated as a byproduct of 
 
 \section*{Discussion}
+
+- the $pi_0$ problem
 
 Ipsita Agarwal article 
 
