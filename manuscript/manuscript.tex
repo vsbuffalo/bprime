@@ -736,19 +736,20 @@ selection coefficients of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with
 7.8\% chance, and $s=10^{-3}$ with 41\% chance. This creates a bimodal DFE
 (Figure \ref{fig:figure-3}A, second row, left column), which is mirrored across
 the other CADD models. Moreover, these DFE estimates suggest a very high
-average selection coefficient across CADD 6\% regions of $\wisehat{\bar{s}}
-\approx 0.038$.
+average selection coefficient across CADD 6\% regions of $\widehat{\bar{s}}
+\approx 0.043$ for YRI.
 
 Given that previous methods have typically not estimated the DFE up to
 selection coefficients of $s=10^{-1}$, we ran additional ``constrained grid"
 models using a DFE only up to $s=10^{-2}$. Across all populations, these
-constrained grid models fit the data less well than the default grid. On
-average, the constrained grid fits had $R_\text{LOCO}^2$ one percentage point
-lower (see Supplementary Table \ref{supp:tbl-r2}). As expected, the constrained
-grid models distributed mass onto the next strongest selection coefficient,
-$s=10^{-2}$. While the DFE could be truly bimodal for highly-conserved regions
-with a very high average selection coefficient, a likely alternative is that
-these results reflect a non-identifiability issue between selective effects of
+constrained grid models fit the data less well than the default grid by about
+one percentage point less in $R_\text{LOCO}^2$ (see Supplementary Table
+\ref{supp:tbl-r2}). As expected, the constrained grid models distributed mass
+onto the next strongest selection coefficient, $s=10^{-2}$, and the average
+selection was reduced about six-fold to $\widehat{\bar{s}} \approx 0.0079$ for
+YRI. While the DFE may truly be bimodal for highly-conserved regions and have a
+very high average selection coefficient, a likely alternative is that these
+results reflect a non-identifiability issue between selective effects of
 $s=10^{-1}$ and $s=10^{-2}$. We will refer to this as the
 \emph{strong-selection non-identifiability} issue.
 
@@ -850,37 +851,39 @@ could occur. We gain some insight from comparing the estimated mutation rates
 between our Feature and PhastCons Priority annotation models, which both
 contain the exact same number of basepairs, but these are assigned to different
 feature classes based on the priority of overlapping features. That one of
-these models is our best-fitting model, and the other our worst indicates a
-large role in per-basepair heterogeneity in selective effects in determining
-the genome-wide linked selection signal. CADD-based models fit well in part due
-to their fine-scale resolution of selective effects across the genome.
+these models is our best-fitting model, and the other our worst indicates the
+sensitivity these models have when features classes have heterogeneous DFEs.
+CADD-based models fit better in part due to their fine-scale resolution of
+selective effects across the genome. While ideally we would fit a CADD model
+with different features corresponding to the different percentiles of
+pathogenicity, these features are on the basepair scale and thus too
+memory-intensive for our method to currently accommodate.
 
 \subsection*{Tests of Parameter Inference using Forward Simulations}
 
 Given these the sensitivity of mutation rate estimates and the strong-selection
-non-identifiability issue, we next sought to assess the estimation accuracy of
-our composite likelihood method using forward simulations. In order to have
-enough megabase-scale data to apply our method, we independently evolved the
-first five human chromosomes. Due to the immense computational expense of
-conducting forward simulations at this scale over numerous parameter
-combinations, we used fixed mutation and selection parameters in putatively
-conserved regions (see Methods XXX). We note three important findings from
-these simulations.
+non-identifiability issue, we next sought to assess the estimation overall
+accuracy of our composite likelihood method using forward simulations. In order
+to have enough megabase-scale data to apply our method, we independently
+evolved the first five human chromosomes and combined them into a ``synthetic"
+genome. Due to the immense computational expense of conducting forward
+simulations at this scale over numerous parameter combinations, we used fixed
+mutation and selection parameters in putatively conserved regions (see Methods
+XXX). We note three important findings from these simulations.
 
 First, the linked selection signal, as measured by the $R^2$ between predicted
 and simulated megabase-scale diversity, increases with the intensity of
 selection against new deleterious mutations and mutation rate (Figure
-\ref{fig:figure-4}B, top row). This is consistent across both classic BGS and
-our B' method; the only exception is the classic BGS model run with a
-full-coverage track for the reasons described above. However, if new mutations
-are highly deleterious ($s=0.05$), $R^2$ is reduced. This is consistent with
-very strong selection having less localized effects and acting more like a
-genome-wide faster rate of drift.
+\ref{fig:figure-4}B, top row). This shows the ``strength" of the linked
+selection signal varies as expected with these key parameters. However, if new
+mutations are highly deleterious ($s=0.05$), $R^2$ is reduced. This is
+consistent with very strong selection having less localized effects and acting
+more like a genome-wide faster rate of drift.
 
 Second, both classic BGS theory and our B' method accurately infer the average
 selection coefficient under strong selection (Figure \ref{fig:figure-4}B,
 middle row). However, when selection was weak, the classic BGS model
-erroneously estimated strong selection and a very low mutation rate. By
+erroneously estimates strong selection and a very low mutation rate. By
 contrast, our B' method estimated selection coefficients much closer to their
 true value. A minor discrepancy occurs around $2Ns = 1$, for reasons discussed
 in Section XXX. Because we only simulated fixed selection coefficients and five
@@ -891,29 +894,33 @@ Third, with both our B' and the classic BGS models, we find mutation rate
 estimates show slight biases in the strong-selection regime (Figure
 \ref{fig:figure-3}B, bottom row). Still, our B' method leads to more accurate
 mutation rate estimates than classic BGS theory across a variety of selection
-coefficients. When BGS is not acting, either due to weak selection or a low
+coefficients. These biases in mutation rate estimates suggest that benchmarking
+genome-wide models via their concordance with pedigree-based rate estimates may
+not be suitable. When BGS is not acting, either due to weak selection or a low
 rate of deleterious mutations (Figure \ref{fig:figure-4}B right column), all
-estimates are worse. However, we note that this is an unlikely region of
-parameter space and this issue is readily diagnosable from the poor model fit 
-as evident by low $R^2$ values.
+estimates are worse. This makes intuitive sense; the overall linked selection
+signal is weaker relative to drift-based noise. However, we note that this is
+an unlikely region of parameter space and this issue is readily diagnosable
+from the low $R^2$ values.
 
 Finally, we also used simulations to test the sensitivity of our method to
 violations of two assumptions: constant population size and recessivity of
 selective effects. Since we find little difference in parameter estimates among
 YRI and bottlenecked out-of-Africa (CEU and CHB) samples, we tested whether a
-population expansion would bias our method. We expansion rates like those
-estimated for Europeans by \textcite{Gutenkunst2009-pg} had little effect on
-parameter estimates (Supplementary Section \ref{supp:sim-assum}). By contrast,
-we find our estimates are downwardly biased when mutational effects are weak
-and recessive, but are accurate under recessive strong selection. This occurs
-since the fixation probabilities of recessive mutations are in reality much
-lower than they are under our model assuming additivity.
+population expansion would bias our method. We use an expansion rate and timing
+based on those estimated for Europeans by \textcite{Gutenkunst2009-pg}, finding
+they had little effect on parameter estimates (Supplementary Section
+\ref{supp:sim-assum}). By contrast, we find our estimates are downwardly biased
+when mutational effects are weak and recessive, but are accurate under
+recessive strong selection. This occurs because the fixation probabilities of
+recessive mutations are in reality much lower than under our model that assumes
+additivity.
 
 \subsection*{Predicted Diversity and Residual Signal}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_5.pdf} 
-    \caption{}
+    \caption{(A) CADD 6\% full-track }
   \label{fig:figure-5}
 \end{figure}
 
@@ -928,7 +935,7 @@ Figure \ref{supp:spatial-residuals}). In Figure \ref{fig:figure-5}A we see one
 such region from XXX to XXX. Interestingly, predicted diversity closely follows
 the peaks and troughs of this region. We note that a smaller segment within
 this region has been found by a genome-wide scan for associative overdominance
-\parencite{Gilbert2020-aw}.  For model XXX 
+\parencite{Gilbert2020-aw}.  
 
 Another model diagnostic is to inspect whether observations are systematically
 different from predictions. We confirm the finding of \textcite{Murphy2022-sj}
@@ -939,7 +946,6 @@ ancient introgression between archaic humans and ancestors of contemporary
 humans. Finally, the variance around observed and predicted diversity levels
 falls very close to what we would expect under the theoretic
 coalescence-noise-only expectation ($R_\text{coal}^2$).
-
 
 \subsection*{Predicted Substitution Rates, and Fitness Variance}
 
