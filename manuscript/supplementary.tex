@@ -1822,19 +1822,41 @@ optimization plot for YRI Feature Priority model.}
 
 
 \subsection{Demographic Expansion and Recessive Simulation Tests}
+\label{supp:sim-assum}
+
 
 \begin{figure}[htbp]
     \label{suppfig:sim-exp}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/subfigure_sim_mle_expansion.pdf}
-  \caption{}
+
+  \caption{Simulations to diagnose the effect of population exponential
+      expansion on our composite likelihood estimates. The simulated population
+      expansion occurs at a rate of 0.4\% a generation, starting $9.3N$ (out of
+      $10N$) generations in. These parameters were meant to approximate the
+  European expansion parameters estimated by \textcite{Gutenkunst2009-pg}.
+Overall, we see little impact on estimated parameters.}
+
 \end{figure}
 
 \begin{figure}[htbp]
   \label{suppfig:sim-rec}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/subfigure_sim_mle_recessive.pdf}
-  \caption{}
+
+  \caption{Simulations to diagnose the effect of non-additive mutations. These
+      simulations use a dominance coefficient of $h=0.3$, i.e. the selective
+      effects are $1$ ancestral state, $1+hs$ for heterozygotes, and $1+s$ for
+      homozygotes. We find that slightly recessive mutations have little effect
+      on the estimated selection coefficient when selection is strong,
+      consistent with the fact that only the selective effect in heterozygotes
+      matters when mutations are kept at low frequency by strong selection.
+      However, our B' method underestimates weak selection coefficients when
+      mutation effects are recessive. This is because recessive mutations are
+      removed far more efficiently once they reach appreciable frequencies and
+      are found in heterozygotes. Since our theory assumes additive effects, it
+      accommodates by estimating weaker selection coefficients.}
+
 \end{figure}
 
 
@@ -1892,9 +1914,21 @@ selection signal is not dependent on the model used (PhastCons Priority versus C
   $\mu \in \{10^{-8}, 10^{-7}, \ldots, 10^{-2}\}$.}
 \end{figure}
 
+
+\subsection{Spatial Residuals}
+\label{supp:spatial-residuals}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/supplementary/spatial_residual.pdf}
+  \label{suppfig:spatial-residuals}
+\end{figure}
+
+
 \clearpage
 
 \subsection{Chromosome Fit Figures}
+\label{supp:chrom-fit}
 
 \begin{figure}[!htb]
   \centering
