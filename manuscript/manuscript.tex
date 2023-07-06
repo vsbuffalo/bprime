@@ -799,33 +799,91 @@ mutation rate estimates that are consistent with pedigree-based rates. Given
 that our method is based on a different theoretic approach, we curious whether
 it would lead to estimates consistent with pedigree-based mutation rates.
 
-Overall, across our CADD-based models and all populations, our mutation rate
-estimates are roughly concordant with pedigree-based estimates (Figure
-\ref{fig:figure-4}A). Our full-track CADD 6\% model estimates a mutation rate
-of $\mu = 1.46 \times 10^{-8}$ for YRI, $1.53 \times 10^{-8}$ for CEU, and $1.5
-\times 10^{-8}$ for CHB reference samples (Supplementary Table
-\ref{supp:tbl-r2}). Mutation rate estimates for our feature-based annotation
-models are unrealistically higher. We believe this could be caused by
-per-basepair heterogeneity in selective effects within each of these features.
-For example, mutations in coding sequences are known to have highly
-heterogeneous effects depending on whether the result is synonymous,
-non-synonymous, or mis-sense. If some fraction of the impact of negative
-selection is due to strong selection at a few sites, sparser annotation models
-like these cannot isolate these effects like CADD-based models. Instead, XXXHERE 
+Across all populations, our mutation rate estimates from CADD-based models are
+roughly concordant with pedigree-based estimates (Figure \ref{fig:figure-4}A).
+Our full-track CADD 6\% model estimates the mutation rate as $\widehat{\mu} =
+1.46 \times 10^{-8}$ for YRI, $1.53 \times 10^{-8}$ for CEU, and $1.5 \times
+10^{-8}$ for CHB reference samples (Supplementary Table \ref{supp:tbl-r2}). As
+expected, the sparse-track CADD model mutation rate estimates are identical
+between the B' and classic BGS methods (Figure \ref{fig:figure-4}A top row).
 
-reflects a general problem
-with these more interpretable, but sparser feature-based tracks: heterogeneity
-in selective effects 
+However, mutation rate estimates for feature-based annotation models show
+several issues. First, mutation rate estimates under using our implementation
+of classic BGS theory are an order of magnitude below the expected range
+(Figure \ref{fig:figure-4}A top row). We observe similar behavior when we use
+the classic BGS model to fit full-coverage annotation models (Figure
+\ref{fig:figure-4}A bottom row). This behavior is consistent with the fact that
+classic BGS theory cannot fit weak selection, and to accommodate features under
+weak constrain (e.g. introns, UTRs, and the ``other" feature) it must severally
+underestimate the mutation rate. 
 
+Second, we noticed that across all populations and sparse/full tracks, the CADD
+6\% model consistently led to slightly higher mutation rates than the CADD 8\%
+model (Figure \ref{fig:figure-4}A bottom row; Supplementary Table
+\ref{supp:tbl-r2}). This pattern was observed in Murphy et al. too (2023;
+Appendix 1, Figure 16). This behavior is consistent with a non-identifiability
+issue between a slightly higher per-basepair mutation rate and annotation
+tracks that contain more conserved sequence. This is expected from theory,
+since both classic BGS and SC16 models only depend on mutation rate through the
+compound parameter $\mu L$ where $L$ is the length of the conserved segment.
+Even though our method is much more robust to including non-conserved regions
+like introns, we still observe this non-identifiability issue.
 
-However, we noticed that estimates of mutation rate is very sensitive to the
-choice of annotation model. Between CADD 6\% and 6\% models, the 
-
-
+Finally, we note that mutation rate estimates in the Feature Priority model are
+unreasonably high ($\widehat{\mu} \approx 4.2 \times 10^{-8}$), reminiscent of
+the high mutation rate estimates found under McVicker et al.'s
+(\citeyear{McVicker2009-ax}) model. While both our and Murphy et al.'s CADD and
+PhastCons-based models alleviate this issue, it is worth discussing why this
+could occur. We gain some insight from comparing the estimated mutation rates
+between our Feature and PhastCons Priority annotation models, which both
+contain the exact same number of basepairs, but these are assigned to different
+feature classes based on the priority of overlapping features. That one of
+these models is our best-fitting model, and the other our worst indicates a
+large role in per-basepair heterogeneity in selective effects in determining
+the genome-wide linked selection signal. CADD-based models fit well in part due
+to their fine-scale resolution of selective effects across the genome.
 
 \subsection*{Tests of Parameter Inference using Forward Simulations}
 
-Given 
+Given these the sensitivity of mutation rate estimates and the strong-selection
+non-identifiability issue, we next sought to assess the estimation accuracy of
+our composite likelihood method using forward simulations. In order to have
+enough megabase-scale data to apply our method, we independently evolved the
+first five human chromosomes. Due to the immense computational expense of
+conducting forward simulations at this scale over numerous parameter
+combinations, we used fixed mutation and selection parameters in putatively
+conserved regions (see Methods XXX). We note three important findings from
+these simulations.
+
+First, the linked selection signal, as measured by the $R^2$ between predicted
+and simulated megabase-scale diversity, increases with the intensity of
+selection against new deleterious mutations and mutation rate (Figure
+\ref{fig:figure-4}B, top row). This is consistent across both classic BGS and
+our B' method; the only exception is the classic BGS model run with a
+full-coverage track for the reasons described above. However, if new mutations
+are highly deleterious ($s=0.05$), $R^2$ is reduced. This is consistent with
+very strong selection having less localized effects and acting more like a
+genome-wide faster rate of drift.
+
+Second, both classic BGS theory and our B' method accurately infer the average
+selection coefficient under strong selection (Figure \ref{fig:figure-4}B,
+middle row). However, when selection was weak, the classic BGS model
+erroneously estimated strong selection and a very low mutation rate. By
+contrast, our B' method estimated selection coefficients much closer to their
+true value. A minor discrepancy occurs around $2Ns = 1$, for reasons discussed
+in Section XXX. Because we only simulated fixed selection coefficients and five
+chromosomes, we only assessed the accuracy of average selection coefficients
+and not the DFE probabilities.
+
+Third, with both our B' and the classic BGS models, we find mutation rate
+estimates show slight biases in the strong-selection regime (Figure
+\ref{fig:figure-3}B, bottom row). Still, our B' method leads to more accurate
+mutation rate estimates than classic BGS theory across a variety of selection
+coefficients. When BGS is not acting, either due to weak selection or a low
+rate of deleterious mutations (Figure \ref{fig:figure-4}B right column), all
+estimates are worse. However, we note that this is an unlikely region of
+parameter space and this issue is readily diagnosable from the poor model fit 
+as evident by low $R^2$ values.
 
 \subsection*{Predicted Diversity, Substitution Rates, and Fitness Variance}
 
