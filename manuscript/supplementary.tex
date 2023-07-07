@@ -1128,15 +1128,10 @@ the New York Genome Center \parencite{Byrska-Bishop2022-tn}. This allows for
 filtering to be applied to the entire genome at once, rather than just
 variants, so the denominator does not need to be estimated separately.
 
-The full list of samples is available in TSV format in the GitHub repository
-(\path{data/h1kg/yri_samples.tsv}).
-
-XXX
-
 \subsection{Filtering gVCFs}
 \label{supp:filter}
 
-gVCFs were filtered using a custom Python tool, \texttt{gvcf2counts.py} (in
+The gVCFs were filtered using a custom Python tool, \texttt{gvcf2counts.py} (in
 \path{tools/gvcf2counts.py}), which reads the gVCFs, filters them according to
 the criteria below, and outputs a Numpy \path{.npy} file of reference and
 alternative allele counts for each chromosome (hereafter, ``allele counts
@@ -1445,10 +1440,6 @@ where
     V_\text{model} = \frac{\widehat{\pi}_0^2}{n} \sum_{i=1}^n \left(\widehat{B}_i - \frac{1}{n}\sum_{i=1}^n\widehat{B}_i\right)^2.
 \end{align}
 
-Generally, fitting procedures act to minimize the squared deviation between
-predictors and observed values, which drives $\cov_i(\varepsilon_i,
-\widehat{B}_i)$ to zero XXX. \textcite{Murphy2022-sj} suggest  XXX 
-
 Thus, our $R^2$ depends on (1) the bias of our predictors, (2) the covariance
 between residuals and predictors, and (3) the irreducible error due to variance
 in diversity within windows. However, it is of interest to approximate the
@@ -1515,11 +1506,20 @@ accurate approximation of the $R_\text{drift}^2$ could be found with
 simulations with more realistic demography and varying coalescence rates along
 the genome.
 
-\begin{figure}[htbp] \centering
-    \includegraphics[width=0.5\textwidth]{figures/supplementary/subfigure_R2_scale.pdf}
-    \caption{XXX}
-  \label{suppfig:coal_r2_scale}
-\end{figure}
+% \begin{figure}[htbp] \centering
+%     \includegraphics[width=0.5\textwidth]{figures/supplementary/subfigure_R2_scale.pdf}
+
+%     \caption{How the window size effects our theoretic $R_\text{coal}^2$ versus
+%         our CADD 6\% models classic BGS (B) and new B' methods at two scales (1
+%         Mbp and 100 kbp). Additionally, we have overlaid the CADD 6\%
+%         out-sample $R_{OS}^2$ estimates across many window sizes from
+%     \textcite{Murphy2022-sj}. We note that the theoretic $R_\text{coal}^2$
+% quickly declines to zero since the coalescence and mutational noise quickly
+% begins the linked selection signal.}
+
+
+%   \label{suppfig:coal_r2_scale}
+% \end{figure}
 
 \subsection{Predicted Rate of Fitness Change}
 
@@ -1907,6 +1907,14 @@ Annotation Model &  Population &    Feature &   ${\bar{s}}$ (default grid) & ${\
 \end{tabular}
 
 \subsection{Residual Covariate Diagnostics}
+
+\begin{figure}[htbp]
+  \label{suppfig:resid-cadd}
+  \centering
+  \includegraphics[width=0.6\textwidth]{figures/supplementary/cadd_residual.pdf}
+  \caption{Residuals from the CADD 6\% sparse track plotted against the fraction of
+  basepairs in a window annotated by a CADD region.}
+\end{figure}
 
 \begin{figure}[htbp]
   \label{suppfig:resid-b}

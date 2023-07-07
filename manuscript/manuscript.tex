@@ -27,9 +27,10 @@
                 sorting=nyt,
                 % sorting=,
                 hyperref=true]{biblatex}
-\usepackage{color}
-\usepackage{nicefrac}
+\RequirePackage{color}
+\RequirePackage{nicefrac}
 
+\addbibresource{biblio.bib}
 
 % line numbers:
 \RequirePackage{lineno}
@@ -42,11 +43,10 @@
 \DeclareMathOperator{\var}{var}
 \DeclareMathOperator{\cov}{cov}
 
-\addbibresource{biblio.bib}
 
 %\title{Towards a Complete Model of the Negative Selection Process in Humans}
 %\title{An Evolutionary Quantitative Genetic Model of the Negative Selection Process in Humans}
-\title{A Quantitative Genetic Linked Selection Model fit to the Negative Selection Process in Humans}
+\title{A Quantitative Genetic Linked Selection Model of the Negative Selection Process in Humans}
 
 \author{Vince Buffalo and Andrew Kern}
 
@@ -57,6 +57,10 @@
 
 \begin{abstract} 
 % TODO: emphasize connection to nearly neutral theory
+
+    % uniting quant gen/fitness variation, linked selection, and substitution
+    % The interesting thing about connecting all these models is that we might
+    % have hope of calibrating these models to the true process.
 \end{abstract}
 
 
@@ -736,22 +740,25 @@ selection coefficients of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with
 7.8\% chance, and $s=10^{-3}$ with 41\% chance. This creates a bimodal DFE
 (Figure \ref{fig:figure-3}A, second row, left column), which is mirrored across
 the other CADD models. Moreover, these DFE estimates suggest a very high
-average selection coefficient across CADD 6\% regions of $\widehat{\bar{s}}
+average selection coefficient across CADD 6\% regions of ${\bar{s}}
 \approx 0.043$ for YRI.
 
 Given that previous methods have typically not estimated the DFE up to
 selection coefficients of $s=10^{-1}$, we ran additional ``constrained grid"
 models using a DFE only up to $s=10^{-2}$. Across all populations, these
-constrained grid models fit the data less well than the default grid by about
-one percentage point less in $R_\text{LOCO}^2$ (see Supplementary Table
-\ref{supp:tbl-r2}). As expected, the constrained grid models distributed mass
-onto the next strongest selection coefficient, $s=10^{-2}$, and the average
-selection was reduced about six-fold to $\widehat{\bar{s}} \approx 0.0079$ for
-YRI. While the DFE may truly be bimodal for highly-conserved regions and have a
-very high average selection coefficient, a likely alternative is that these
-results reflect a non-identifiability issue between selective effects of
-$s=10^{-1}$ and $s=10^{-2}$. We will refer to this as the
-\emph{strong-selection non-identifiability} issue.
+constrained grid models fit the data slightly less well than the default grid
+by about one percentage point less in $R_\text{LOCO}^2$ (see Supplementary
+Table \ref{supp:tbl-r2}). As expected, the constrained grid models distributed
+mass onto the next strongest selection coefficient, $s=10^{-2}$, and the
+average selection was reduced about six-fold to ${\bar{s}} \approx 0.0079$ for
+YRI. Our constrained-grid DFE estimates for the Feature Priority model are
+qualitatively consistent with the U-shaped DFEs found for amino acids through
+Poisson Random Field method \parencite{Boyko2008-tj}. While the DFE may truly
+be bimodal for highly-conserved regions and have a very high average selection
+coefficient, a likely alternative is that these results reflect a
+non-identifiability issue between selective effects of $s=10^{-1}$ and
+$s=10^{-2}$. We will refer to this as the \emph{strong-selection
+non-identifiability} issue.
 
 We propose that one mechanism for this non-identifiability is that mutations
 extremely harmful to fitness are difficult to distinguish from a smaller
@@ -920,7 +927,18 @@ additivity.
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_5.pdf} 
-    \caption{(A) CADD 6\% full-track }
+
+    \caption{(A) Observed and predicted diversity under the CADD 6\% full-track
+        model. Once scaled by average diversity, populations differ little in
+        their predicted diversity levels (colors). Additionally, we show
+        summaries of CADD density and recombination rate along the chromosome
+        below. (B) Predicted $B$ and observed $\pi$ for each window. The
+        residual variance is in the vicinity of the levels expected from the
+        $R_\text{LOCO}^2$ calculation. (C) Evidence that negative selection
+    signal remains in CADD 6\% residuals (YRI shown). Residuals are plotted
+against the average LoF selection coefficient across genes in a megabase window
+(estimated from \cite{Agarwal2023-un}).}
+
   \label{fig:figure-5}
 \end{figure}
 
@@ -928,14 +946,14 @@ While we have previously shown that out-sample predicted diversity matches
 observed diversity (Section XXX), we also investigated whether there were
 regions of the genome that were particularly poor-fitting. Comparing predicted
 against observed diversity along chromosomes (see Supplementary Materials
-Section \ref{supp:chrom-fit}) we overall find close correspondence consistent
-with the high $R_\text{LOCO}^2$. However, we find a few large (tens of
-megabases) regions with systematically poorer fit (Supplementary Materials
-Figure \ref{supp:spatial-residuals}). In Figure \ref{fig:figure-5}A we see one
-such region from XXX to XXX. Interestingly, predicted diversity closely follows
-the peaks and troughs of this region. We note that a smaller segment within
-this region has been found by a genome-wide scan for associative overdominance
-\parencite{Gilbert2020-aw}.  
+Section \ref{supp:chrom-fit}) we find a close correspondence consistent with
+the high $R_\text{LOCO}^2$. However, we find a few large (tens of megabases)
+regions with systematically poorer fit (Supplementary Materials Figure
+\ref{supp:spatial-residuals}). In Figure \ref{fig:figure-5}A we see one such
+region on the short arm of chromosome 2, from 30 Mbp to 60Mbp. Interestingly,
+predicted diversity closely follows the peaks and troughs of this region. We
+note that a small region within this stretch had been found by a genome-wide
+scan for associative overdominance \parencite{Gilbert2020-aw}.  
 
 Another model diagnostic is to inspect whether observations are systematically
 different from predictions. We confirm the finding of \textcite{Murphy2022-sj}
@@ -947,157 +965,128 @@ humans. Finally, the variance around observed and predicted diversity levels
 falls very close to what we would expect under the theoretic
 coalescence-noise-only expectation ($R_\text{coal}^2$).
 
-\subsection*{Predicted Substitution Rates, and Fitness Variance}
+Earlier, we found that the goodness-of-fit and DFE estimates of our
+feature-based annotation models are sensitive to how basepairs are grouped into
+feature classes. Our models are in essence fitting a single distribution across
+sites within a feature class, yet there may be local heterogeneity among sites
+that is poorly captured by this approach. We investigated this possibility by
+looking for lingering selection signal in our model residuals. First, we
+inspected whether there was a relationship between the fraction of CADD 2\% and
+6\% basepairs and the residual across megabase windows (Supplementary Figure
+\label{suppfig:resid-cadd}), finding a negative significant relationship in
+both cases. Moreover, our model over-predicted diversity in windows containing
+more CADD 2\% basepairs moreso than CADD 6\%, consistent with heterogeneity in
+site pathogenicity being poorly fit by our model. However, the total residual
+variance explained is $R^2 = 0.4\%$ and $R^2 = 0.8\%$ for the CADD 2\% and 6\%
+tracks respectively, suggesting only modest amount of selection signal remains.
+
+We further tested for remaining selection signal in our CADD 6\% model
+residuals by using gene-specific estimates of the fitness cost of
+loss-of-function (LoF) mutations from \textcite{Agarwal2023-un}. These
+estimates are based on an Approximate Bayesian Computation approach that
+estimates the posterior distribution over LoF fitness costs from the observed
+dearth of LoF mutations per gene, and thus is an independent methodological
+approach than ours. We averaged the estimated LoF fitness costs across genes
+for each of our megabase windows, and plotted our residuals against these
+average LoF fitness costs. Contrary to the weak CADD residual signal described
+above, we find evidence of a fairly strong relationship between our residuals
+and average LoF fitness cost (Figure \ref{fig:figure-5}C; $R^2 = 2.1\%$,
+p-value $1.27 \times 10^{-10}$). In other words, roughly 2\% of the variance in
+these residuals is explained by the average fitness costs of LoF mutations in
+the window. Consequently, our model over-predicts diversity by about
+$\nicefrac{\sigma}{2}$ or more in windows harboring the top 1.7\% most
+LoF-intolerant genes.
+
+\subsection*{Predicted Substitution Rate and Additive Fitness Variance}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_6.pdf} 
 
-    \caption{Evidence that negative selection signal remains. (A) Residuals
-        from the YRI CADD 6\% model plotted against the average LoF selection
-        coefficient across genes in a megabase window (estimated from
-        \cite{Agarwal2023-un}). Our model is systematically over predicting
-        diversity in regions estimated to be sensitive to LoF variants. The
-        ordinary least squares (OLS) estimate suggests that 2.1\% of the
-        variance in residuals can be explained by reductions caused by the
-        local sensitivity to LoF mutations. (B) Residuals from the YRI CADD 6\%
-        model plotted against the fraction of CADD 6\% basepairs in the
-        megabase window. Here, only 0.8\% of the variance is explained by
-        remaining spatial variance in CADD 6\% regions (blue). Overlaid is the CADD
-        2\% OLS curve (orange). }
+    \caption{}
 
   \label{fig:figure-6}
 \end{figure}
 
 Since our B' method is based upon quantitative genetic models of linked
 selection that explicitly incorporates the substitution process, fitting our
-model to genomic data leads to predictions that can be explicitly tested. In
-particular, there are two key predicted quantities: (1) the substitution rates
-per segment, and (3) the fitness variance per segment. 
+model to genomic data leads to predictions: (1) the substitution rates per
+segment, (2) the fitness variance per segment, and (3) the total number of
+strongly deleterious mutations per diploid genome per generation. Given
+predicted substitution rates for each feature can be compared to estimated
+sequence divergence between species, this offers a qualitative check our model
+is producing sensible results. 
 
+To compare our models' predicted substitution rates against observed
+divergence, we estimated sequence divergence on the human lineage using a
+multiple alignment of five primates for each feature in our feature-based
+models (Methods XXX). Since we have observed that mutation rate estimates from
+our method can be unreliable (and simulation results confirm this), we
+predicted substitution rates under a fixed mutation rate of $\mu = 1.5 \times
+10^{-8}$, rather than the maximum likelihood estimates. Unfortunately, a
+careful comparison between our predictions and observed divergence rates is
+hindered by considerable uncertainty in the rate of the molecular clock,
+generation times, and the human-chimpanzee divergence time. We assume a
+generation time of 29 years, and calculate the sequence divergence implied by
+our predicted substitution rates over a range of divergence times, from 6 Mya
+to 12 Mya \parencite{Moorjani2016-tb,Nachman2000-te,Yi2002-pw,Steiper2006-xx}.
 
-Each of our maximum likelihood estimates $\widehat{\Psi}$ imply other
-corresponding 
+Our predictions are qualitatively consistent with the observed divergence along
+the human lineage (Figure \ref{fig:figure-6}). As expected, the predicted
+substitution rate in features unlikely to be under selective constraint is very
+close to the mutation rate. Throughout, we report our substitution rates as a
+percent relative to the total mutation rate, $\mu$ (here fixed to $1.5 \times
+10^{-8}$). In our PhastCons Priority model, introns and UTRs are estimated to
+have have substitution rates that are $93.6\%$ of the mutation rate, and the
+``other" feature is estimated at $97.8\%$. When we use the constrained grid,
+these change to $97.85\%$ and $99.98\%$ respectively. By contrast, our
+predicted substitution rates for PhastCons regions are much lower: $0.48\%$ for
+the default grid, and $1.65\%$ for the constrained grid. This is likely due to
+the constrained grid placing more of the DFE mass on weaker selection
+coefficients, which in turn have a higher chance of drifting up to fixation. 
 
+Finally, we entertain two more speculative predictions. First, the equilibrium
+additive genic fitness variance. Our PhastCons Priority model DFE estimates and
+negative selection model imply a $\widehat{V}_a = 0.45$ for the default grid,
+and $\widehat{V}_a = 0.040$ for the constrained grid. This is a considerable
+level of uncertainty---over an order of magnitude---due to a difference in the
+selection grid. There are no other known direct estimates in humans of this
+quantity for comparison. When $2N \gg 1$, theory suggests $V_a \approx
+U_D\bar{s}$ where $U_D$ is the diploid rate of strongly deleterious mutations.
+Thus, the uncertainty is a byproduct of the different average estimates of
+$\bar{s}$ across the alternate grids. Since both this work and
+\textcite{Murphy2022-sj} find the single-feature CADD 6\% track fits well, we
+can use this to gain intuition through some rough calculations. In this case,
+$U_D \approx 6\% \times 2 \times 3 \times 10^{9} \mu \approx 3.6 \times 10^{8}
+\mu$. For $\mu \approx 1.5 \times 10^{-8}$, $U_D \approx 5.2$. Under the
+constrained grid, ${\bar{s}} \approx 0.0079$ and thus $V_a \approx 0.043$; with
+the default grid $\bar{s} \approx 0.043$, and $V_a \approx 0.23$. Often fitness
+reductions of $\approx 1\%$ are assumed for the most highly-conserved regions
+(XXX, Keightly, Lynch); for comparison, this leads to $V_a \approx 0.054$.
 
+XXX HERE  USE CADD PREDICTIONS
 
-Our method accommodates weak selection by modeling the fitness variance in each
-segment under an equilibrium negative selection process. This fitness variance
-is found by simultaneously solving for the per-generation substitution rate $R$
-and the draft-effective population size $N_d$ for each segment. When our model
-is fit to genome-wide diversity data, the parameter estimates imply predictions
-of the deleterious substitution rate per basepair, per generation, for each
-feature. Our method only considers within-species pairwise diversity, so these
-predicted substitution rates constitute a test that our model is making
-reasonable out-sample predictions of the substitution rates across features.
+By theory, this relative fitness (scaled by the mean squared) is
+bounded from above by the Index of Selection, defined as the theoretic relative
+fitness variance if fitness were perfectly heritable \parencite{Crow1958-pc}.
+Based on rough calculation by Crow, this could range between 0.982-3.286 in
+humans. However, this is based on modern-day mortality figures that may not
+extrapolate to the timescales that determine genome-wide patterns of diversity. 
 
-We focus specifically on the predictions from our feature-based annotation
-models, since we can readily estimate human substitution distances for each
-feature to compare to our predictions.
+Second, we can calculate the reduction in relative fitness per generation due
+to deleterious substitutions. Since \textcite{Muller1950-ta}, there has been
+considerable interest in whether mildly deleterious mutations, perhaps due to
+the relaxation of selection pressures, could accumulate and fix at a faster
+pace in humans.
 
-The estimated substitution distance should in theory equal the product of the
-substitution rate per site, per year and the branch length in years.
-
-When comparing our predicted mutation rates to observed substitution distances,
-we must account for three major sources of uncertainty.
-
-First, the split time between humans and chimpanzees is unknown, with estimates
-ranging from 6Mya to 12Mya (XXX). Second, our predictions are in sites per
-generation, and the appropriate human generation time is unknown. Third, the
-appropriate mutation rate to use is debated, since there may have been a
-mutational slow down on the human lineage (XXX), which could explain why
-phylogenetic- and pedigree-based mutation rate estimates differ by roughly a
-factor of two (XXX). Finally, we are only considering modeling the deleterious
-substitution rate. In reality, some fraction of observed substitutions fixed
-because they were beneficial. 
-
-
-
-
-
-For a particular feature $f$, the estimated per-site substitution distance
-$S_f$ along a branch (which accounts for back mutations) should correspond to
-$S_f = T_g r_f$, where $T_g$ is the time in generations and $r_f$ is the
-substitution rate per basepair, per generation of that feature. 
-
-Each feature is
-composed of basepairs with varying selection coefficients distributed according
-to the feature-specific DFE vector $\mathbf{w}_f$ and corresponding vector of
-substitution rates per selection coefficient, $\mathbf{r}_f$.
-
-Our estimate of a feature's DFE
-is $\widehat{\mathbf{w}}_f$.
-
-We calculate the 
-
-
-\begin{align}
-    \label{eq:sub}
-    r_f = \mu \int_0^1 p_F(s) ds
-\end{align}
-
-Solving the XXX equations, we end up with predictions $\widehat{r}_f$ for the
-per-basepair, per-generation substitution rate for each feature. These are
-calibrated to the MLE mutation rate estimate $\widehat{\mu}_\text{del}$, which
-as mentioned, excludes the contribution of lethal mutations which act purely to
-reduce $N_e$ and thus only impact $\pi_0$. Using Equation \eqref{eq:sub} we can
-re-calibrate these estimates against other mutation rates. 
-
-Because of it's greater interpretabilty, we initially focus on the substitution
-rate estimates from the Feature Priority model even though it had a poorer-fit
-and high mutation rate estimate. 
-
-We can also re-calibrate this model to an alternate mutation rate.
-
-% - Table s5 https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/genetics/206/1/10.1534_genetics.116.197145/8/files1.pdf?Expires=1686357613&Signature=cp9qoI2ChCb6GFZ74HI4eWcA~MQ4sHlWyeI3Zp49-5xEORzMfYlSRxzVvZlo8ZoGWDi0G3PnL00ZplM-~or4YIVm2uhkmqjf61AmC7RdZ1QTak4j0kFMQ0wAbM9pusiV3gIepTQHq2HKRKwgS~ypmv~0oqO5dDxaq9nhOWIBBmLAA49oHWuxUtnRe3sEYATwCwjIFEomhgJpg7vKGCF~87GdCV4JETW4PN2VvD4hsu2AVRd8yA~vUJvsXfhWwcElDeY4fsgpprl1lC3XGjJCnqdwbzRGPV5LNx5XEKLptcZtLeLcOmFJCvmVLe0bewJ7Vta0TSQM7T9AuklompjPPw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA
-
-Like other methods, our method divides the putatively conserved basepairs up
-
-Generally, when the putatively conserved region is larger, there is a tradeoff
-in two dimensions. First, more bases are conserved according to the same DFE,
-so the total mutational load increases. This causes the tradeoff between
-mutation rate estimate and CADD fraction we observe across both our B' model
-and the classic B when using sparse tracks (Figure 2XXX). 
-
-
-We find that mutation rate estimates are fairly sensitive to model choice
-(Figure 2XXX). 
-
-Since B' has a U-shaped relationship with the selection coefficient, we
-hypothesized that our model may reveal true identifiability issues in
-estimating the DFE that do not occur under the classic B model. We find that
-this is not the case for our models fit at the megabase-scale. The DFE
-estimates for our CADD6 and CADD8 models are consistent (Figure XXX), and both
-produce similar mutation rates.
-
-While we do not comprehensively fit all of our model to other spatial scales,
-we 
-
-However, while a given reduction level may be explained by either a weak or
-strong selection coefficient, the spatial extent of these reductions caused by
-weak selection is much narrower than under strong selection. 
-
-We see evidence this is the case in several of our models, where
-genome-wide diversity fits equally well between models with mutation rates 
-
-Indeed, we see this by comparing parameter estimates of the CADD6
-sparse-track model using classic BGS B and our B' method. 
-
-
-(which mimics the best-fitting model of
-\cite{Murphy2022-sj}) 
-
-(see also
-Appendix 1, Figure 26A of \cite{Murphy2022-sj})
-
-correlation between s and feature
-
-Overall, we find evidence that negative selection models are very sensitive to
-the input track. Because inference based on our B' method accommodates weaker
-selection, the primary models we fit here more robust to misspecification of
-the regions
+Here, the selection grid choice has little impact
+on the estimates: we calculate that across the genome, the loss in relative
+fitness per generation is 0.00160\% for the default grid, and 0.00119\% for the
+constrained grid.
 
 
 \section*{Discussion}
+
+- parametric DFEs are trash
 
 - the $pi_0$ problem
 
