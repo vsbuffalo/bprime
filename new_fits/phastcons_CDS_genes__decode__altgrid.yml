@@ -1,14 +1,15 @@
 ---
-name: phastcons_CDS_genes__decode
+name: phastcons_CDS_genes__decode__altgrid
 
 # fit settings
 settings:
   pi0_bounds: 0.0005,0.008
-  mu_bounds: 0.5e-8,8e-8
+  mu_bounds: 1e-8,5e-8
   mu_bounds_rescale: 0.5e-8,8e-8
   nstarts: 10000
   nstarts_loo: 10000
   nstarts_jackknife: 5000
+  bp_only: false
   #chrom_splits: 5
 
 # pops
@@ -32,16 +33,17 @@ features:
     CDS: ../../data/fit_annotation/hg38.CDS_refseq_autos.bed.gz
     gene: ../../data/fit_annotation/hg38.gene_refseq_autos.bed.gz
 
-# parameters for B and B' maps
+# parameters for B and B' maps -- NOTE code defaults changed too
+# for this test since we haven't connect params to CLI!
 params: 
   N: 10000
-  grid: 6x8
+  grid: 6x7
   step: 100000
 
 #  the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife:  [[10000000, 280]], predict: true, predict_mu: 1.5e-8, predict_boot: 100}
+  - {window: 1000000, mu: free, type: full, loo: true, rescaled: false, jackknife: false, predict: true, predict_mu: 1.5e-8, predict_boot: false}
   - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: true, predict_mu: 1.5e-8, predict_boot: false}
 
   # 1Mb mu=1.3e-8, full and sparse

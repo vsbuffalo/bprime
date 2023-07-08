@@ -1,15 +1,16 @@
 ---
-name: cadd6__decode
+name: cadd8__decode__altgrid
 
 # fit settings
 settings:
   pi0_bounds: 0.0005,0.008
   mu_bounds: 0.5e-8,8e-8
   mu_bounds_rescale: 0.5e-8,8e-8
-  nstarts: 20000
-  nstarts_loo: 1000
+  nstarts: 10000
+  nstarts_loo: 10000
   nstarts_jackknife: 5000
-  chrom_splits: 3
+  bmap_only: false
+  chrom_splits: 5
 
 # pops
 data: 
@@ -28,19 +29,19 @@ files:
 # features
 features:
   features: 
-    cadd6: ../../data/fit_annotation/cadd_top6_percent.bed.gz
+    cadd8: ../../data/fit_annotation/cadd_top8_percent.bed.gz
 
 # parameters for B and B' maps
 params: 
   N: 10000
-  grid: 6x8
+  grid: 6x7
   step: 100000
 
 # the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife: [[10000000, 280]], predict: true, jackknife_rescaled: false, predict_mu: 1.5e-8, predict_boot: false}
-  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: 1.5e-8, predict_boot: false}
+  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
+  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
  
   # rescale with fixed mutation
   #- {window: 1000000, mu: 1.3e-8, type: sparse, loo: false, rescaled: true, jackknife: false, predict: false, jackknife_rescaled: false}
