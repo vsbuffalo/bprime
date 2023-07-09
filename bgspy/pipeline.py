@@ -33,7 +33,10 @@ def calc_pred_stats(df):
 
 def summarize_preds(df, mu):
     # feature means and totals (as dict)
+    df['length'] = df['end'] - df['start']
     means = df.groupby('feature').mean().reset_index()
+    wm = lambda x: np.average(x, weights=df.loc[x.index, "length"])
+    means['r_weighted'] = df.groupby(['feature']).agg(r=('r', wm)).reset_index()['r']
     means['r_mu']  = means['r'] / mu  * 100
     means = means[['feature', 'r', 'r_mu']]
     sums = df.groupby('feature').sum().reset_index()[['feature', 'V', 'Vm', 'R', 'load']]
