@@ -806,7 +806,10 @@ class BGSLikelihood:
         """
         Leave-one-out chromosome R2.
         """
-        assert hasattr(self, 'loo_thetas_') and self.loo_thetas_ is not None
+        try:
+            assert hasattr(self, 'loo_thetas_') and self.loo_thetas_ is not None
+        except AssertionError:
+            return None
         loo_thetas = self.loo_thetas_
         n = loo_thetas.shape[0]
         pi = pi_from_pairwise_summaries(self.Y)

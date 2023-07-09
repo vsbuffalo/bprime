@@ -240,7 +240,7 @@ def optim_plot(only_success=True, logy=False, tail=0.5, x_percent=False, downsam
 def optim_diagnotics_plot(fit, top_n=100, figsize=None,
                           pi_scale=1e3, mu_scale=1e8,
                           add_nll=False, filter_success=True,
-                          cmap='viridis'):
+                          cmap='plasma'):
     """
     Thanks to Nate Pope for this visualization suggestion!
     """
