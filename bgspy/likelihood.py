@@ -36,6 +36,8 @@ from bgspy.plots import resid_fitted_plot, get_figax
 from bgspy.plots import chrom_resid_plot
 from bgspy.bootstrap import moving_block_bins, jackknife_stderr
 
+np.seterr(under='ignore')
+
 
 # load the library (relative to this file in src/)
 LIBRARY_PATH = os.path.join(os.path.dirname(__file__), '..', 'src')

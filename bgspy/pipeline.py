@@ -20,6 +20,7 @@ AVOID_CHRS = set(('M', 'chrM', 'chrX', 'chrY', 'Y', 'X'))
 def calc_pred_stats(df):
     """
     Calc the stats from a predictions dataframe (of all segments)
+    DEPRECATED FOR BELOW
     """
     V = df['V'].values.sum()
     Vm = df['Vm'].values.sum()
@@ -29,6 +30,16 @@ def calc_pred_stats(df):
     dfg = df.groupby('feature').mean().reset_index()
     r = dict(zip(dfg['feature'], dfg['r']))
     return dict(V=V, Vm=Vm, load=load, ave_r=ave_r, r=r)
+
+def summarize_preds(df, mu):
+    # feature means and totals (as dict)
+    means = df.groupby('feature').mean().reset_index()
+    means['r_mu']  = means['r'] / mu  * 100
+    means = means[['feature', 'r', 'r_mu']]
+    sums = df.groupby('feature').sum().reset_index()[['feature', 'V', 'Vm', 'R', 'load']]
+    # sum across feats
+    #tots = {'V':sums['V'].sum(), 'Vm': sums['Vm'].sum(), 'R': sums['R'].sum(), 'load':sums['load'].sum()}
+    return pd.merge(means, sums, on=('feature'))
 
 
 def load_model(base_dir='./', jackwidth=20_000_000):
@@ -86,7 +97,8 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                     if len(other_preds):
                         for pred in other_preds:
                            mu = float(pred.replace('predicted_subrates_', '').replace('.tsv', ''))
-                           mu_predicts[(pop, window, type_)][mu] = pd.read_csv(join(dir_path, pred), sep='\t')
+                           pred_df = pd.read_csv(join(dir_path, pred), sep='\t')
+                           mu_predicts[(pop, window, type_)][mu] = summarize_preds(pred_df, mu)
                            # check if bootstraps exist
                            boot_dir = join(dir_path, f"predict_boots__{mu}")
                            if os.path.exists(boot_dir):
@@ -95,7 +107,7 @@ def load_model(base_dir='./', jackwidth=20_000_000):
                                    mu_predicts_boot[(pop, window, type_)][mu] = []
                                    for boot in boots:
                                        db = pd.read_csv(join(dir_path, f"predict_boots__{mu}", boot), sep='\t')
-                                       stats = calc_pred_stats(db)
+                                       stats = summarize_preds(db, mu)
                                        mu_predicts_boot[(pop, window, type_)][mu].append(stats)
  
     return initial, rescaled, initial_predict, rescaled_predict, mu_predicts, mu_predicts_boot
