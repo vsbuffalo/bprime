@@ -55,8 +55,17 @@
 
 
 
-\begin{abstract} 
-% TODO: emphasize connection to nearly neutral theory
+\begin{abstract}
+
+    Previous work has shown that negative selection against the steady influx
+    of deleterious mutations is the predominant process shaping genome-wide
+    patterns of genetic diversity in humans. This process leaves a ``linked
+    selection signal" 
+
+    The classic population genetic
+    model of this process, background selection, considers 
+
+    % TODO: emphasize connection to nearly neutral theory
 
     % uniting quant gen/fitness variation, linked selection, and substitution
     % The interesting thing about connecting all these models is that we might
@@ -431,7 +440,7 @@ With the equilibrium $V_a$ calculated at each segment for a particular $\mu$
 and $s$, we can estimate the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any
 genomic position $x$ (see Methods XXX).
 
-\section*{Results: Confirmation of Theory}
+\section*{Results: Validation of Theory}
 
 Similar to previous work, our method characterizes the negative selection
 process through the signal left on nucleotide diversity at linked sites.
@@ -1037,12 +1046,20 @@ close to the mutation rate. Throughout, we report our substitution rates as a
 percent relative to the total mutation rate, $\mu$ (here fixed to $1.5 \times
 10^{-8}$). In our PhastCons Priority model, introns and UTRs are estimated to
 have have substitution rates that are $93.6\%$ of the mutation rate, and the
-``other" feature is estimated at $97.8\%$. When we use the constrained grid,
-these change to $97.85\%$ and $99.98\%$ respectively. By contrast, our
-predicted substitution rates for PhastCons regions are much lower: $0.48\%$ for
-the default grid, and $1.65\%$ for the constrained grid. This is likely due to
-the constrained grid placing more of the DFE mass on weaker selection
-coefficients, which in turn have a higher chance of drifting up to fixation. 
+``other" feature is estimated at $97.8\%$.  When we use the constrained grid,
+these change to $97.85\%$ and $99.98\%$ respectively. In our PhyloFit
+estimates, the divergence rate in introns is $92.44\%$, 5' UTRs $75.5\%$, and
+3' UTRs $72.65\%$. By contrast, our predicted substitution rates for PhastCons
+regions are much lower: $0.48\%$ for the default grid, and $1.65\%$ for the
+constrained grid. For comparison, the PhyloFit estimates for PhastCons regions
+is much higher, at $51.23\%$. Since this would include beneficial substitutions
+that would not be predicted by our model, this suggests a very high proportion
+of beneficial substitutions XXX check
+
+
+% This is likely due to the constrained grid placing more of the DFE mass on
+% weaker selection coefficients, which in turn have a higher chance of drifting
+% up to fixation. 
 
 Finally, we entertain two more speculative predictions. First, the equilibrium
 additive genic fitness variance. Our PhastCons Priority model DFE estimates and
@@ -1085,6 +1102,13 @@ constrained grid.
 
 
 \section*{Discussion}
+
+the PhastCons Priority Model is very close to CADD 6\%, and interpretable,
+similiar mutation rates. This 
+
+weak selection remains elusive
+
+UTR rates 
 
 - parametric DFEs are trash
 
