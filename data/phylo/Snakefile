@@ -49,6 +49,33 @@ rule intron_gff:
     zcat {input.bed} | awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "intron", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
     """
 
+rule phastcons_gff:
+  input: bed="../fit_annotation/hg38.phastcons_autos.bed.gz"
+  output: "hg38.phastcons.gff"
+  shell:
+    """
+    zcat {input.bed} | \
+      awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "phastcons", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
+    """
+
+rule phastcons_no_gene_all:
+   # subtract out the genomic annotation features to mimic what B is calc'd on
+   input: pc="../fit_annotation/hg38.phastcons_autos.bed.gz", gff="../fit_annotation/hg38.gene_autos.bed.gz"
+   output: "hg38.phastcons_no_gene.bed.gz"
+   shell:
+     """
+     bedtools subtract -a {input.pc} -b {input.gff} | gzip > {output[0]}
+     """
+
+rule phastcons_no_gene_gff:
+  input: bed="hg38.phastcons_no_gene.bed.gz"
+  output: "hg38.phastcons_no_gene.gff"
+  shell:
+    """
+    zcat {input.bed} | \
+      awk 'BEGIN{{OFS="\t"}} {{print $1, ".", "phastcons_no_gene", $2+1, $3, ".", "+", ".", "ID="NR}}' > {output}
+    """
+
 rule neutral_gff:
   input: bed="../fit_annotation/putatively_neutral.bed.gz"
   output: "hg38.putatively_neutral.gff"
@@ -59,11 +86,12 @@ rule neutral_gff:
     """
 
 rule gff_with_introns_neutral:
-  input: gff="../annotation/hg38.ensembl.gff3.gz", introns="hg38.ensembl_introns.gff", neutral="hg38.putatively_neutral.gff"
+  input: gff="../annotation/hg38.ensembl.gff3.gz", introns="hg38.ensembl_introns.gff", neutral="hg38.putatively_neutral.gff",
+         pc="hg38.phastcons.gff", pcng="hg38.phastcons_no_gene.gff"
   output: "hg38.ensembl_with_introns_neutral.gff"
   shell:
     """
-    (zcat {input.gff}; cat {input.introns} {input.neutral}) | sort -k1,1 -k4,4n > {output}
+    (zcat {input.gff}; cat {input.introns} {input.neutral} {input.pc} {input.pcng}) | sort -k1,1 -k4,4n > {output}
     """
 
 # This is tedious, but we need to give phylofit the cleanest GFF possible, 
@@ -82,7 +110,7 @@ rule merge_features:
     """
 
 all_features = ['CDS', 'three_prime_UTR', 'five_prime_UTR',
-                'intron', 'neutral', 'pseudogene']
+                'intron', 'neutral', 'pseudogene', 'phastcons', 'phastcons_no_gene']
 
 # now, we need to merge all features again
 rule merged_gff:
@@ -100,36 +128,46 @@ rule split_gff:
   output: "gff_by_chrom/hg38.ensembl_{chrom}.gff"
   shell: 
     """
-    cat {input} | bioawk -cgff '$seqname~/{wildcards.chrom}/ {{ print $0 }}' | bioawk -cgff '$feature~/intron|neutral|CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
+    cat {input} | bioawk -cgff '$seqname~/{wildcards.chrom}/ {{ print $0 }}' | bioawk -cgff '$feature~/intron|phastcons|phastcons_no_gene|neutral|CDS|five_prime_UTR|three_prime_UTR|pseudogene/ {{ print $0 }}' > {output[0]}
     """
 
 # we also do phastcons regions, but separately
-rule phastcons_no_cds_utr:
-   # subtract out the genomic annotation features to mimic what B is calc'd on
-   input: pc="../annotation/conserved_phastcons/{chrom}.bed", gff="gff_by_chrom/hg38.ensembl_{chrom}.gff"
-   output: "../annotation/conserved_phastcons_no_cds/{chrom}.bed"
-   shell:
-     """
-     bedtools subtract -a {input.pc} -b {input.gff} > {output[0]}
-     """
+#rule phastcons_no_cds_utr:
+#   # subtract out the genomic annotation features to mimic what B is calc'd on
+#   input: pc="../annotation/conserved_phastcons/{chrom}.bed", gff="gff_by_chrom/hg38.ensembl_{chrom}.gff"
+#   output: "../annotation/conserved_phastcons_no_cds/{chrom}.bed"
+#   shell:
+#     """
+#     bedtools subtract -a {input.pc} -b {input.gff} > {output[0]}
+#     """
 
-rule maf_for_phastcons_no_cds_utrs:
-   input: bed="../annotation/conserved_phastcons_no_cds/{chrom}.bed", maf="multiz17_filtered/{chrom}.maf"
-   output: "mafs_by_feature/{chrom}.phastcons_no_cds_utr.maf"
-   shell:
-     """
-     # the echo BS is because maf_parse is dropping the header for BEDs(!)
-     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
-     """
-
-rule maf_for_phastcons:
-   input: bed="../annotation/conserved_phastcons/{chrom}.bed", maf="multiz17_filtered/{chrom}.maf"
-   output: "mafs_by_feature/{chrom}.phastcons.maf"
-   shell:
-     """
-     # the echo BS is because maf_parse is dropping the header for BEDs(!)
-     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
-     """
+#rule phastcons_no_cds_utr_all:
+#   # subtract out the genomic annotation features to mimic what B is calc'd on
+#   input: pc="../annotation/conserved_phastcons.bed.gz", gff=""
+#   output: "conserved_phastcons_no_cds.bed.gz"
+#   shell:
+#     """
+#     bedtools subtract -a {input.pc} -b {input.gff} > {output[0]}
+#     """
+#
+#
+#rule maf_for_phastcons_no_cds_utrs:
+#   input: bed="../annotation/conserved_phastcons_no_cds/{chrom}.bed", maf="multiz17_filtered/{chrom}.maf"
+#   output: "mafs_by_feature/{chrom}.phastcons_no_cds_utr.maf"
+#   shell:
+#     """
+#     # the echo BS is because maf_parse is dropping the header for BEDs(!)
+#     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
+#     """
+#
+#rule maf_for_phastcons:
+#   input: bed="../annotation/conserved_phastcons/{chrom}.bed", maf="multiz17_filtered/{chrom}.maf"
+#   output: "mafs_by_feature/{chrom}.phastcons.maf"
+#   shell:
+#     """
+#     # the echo BS is because maf_parse is dropping the header for BEDs(!)
+#     (echo "##maf version=1"; maf_parse --features {input.bed} {input.maf}) > {output[0]}
+#     """
 
 # *Main* GFF->MAF (minus phastcons) use maf_parse to split out the MAFs per chrom also by feature
 rule maf_by_feature:
@@ -137,6 +175,8 @@ rule maf_by_feature:
    output: "mafs_by_feature/{chrom}.CDS.maf", "mafs_by_feature/{chrom}.three_prime_UTR.maf", 
            "mafs_by_feature/{chrom}.intron.maf", 
            "mafs_by_feature/{chrom}.neutral.maf", 
+           "mafs_by_feature/{chrom}.phastcons.maf", 
+           "mafs_by_feature/{chrom}.phastcons_no_gene.maf", 
            "mafs_by_feature/{chrom}.five_prime_UTR.maf", "mafs_by_feature/{chrom}.pseudogene.maf",
    shell:
      """
@@ -149,12 +189,12 @@ rule phylofit_by_feature:
    shell:
      """
      TREE="(ponAbe2,((hg38,(panTro4,panPan1)),gorGor3))"
-     phyloFit --tree $TREE --subst-mod UNREST --EM --precision MED --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
+     phyloFit --tree $TREE  --subst-mod HKY85 --EM --precision HIGH --out-root pfests_by_feature/{wildcards.chrom_feature} {input}
      """
 
 features = ['intron', 'neutral', 'five_prime_UTR', 
             'three_prime_UTR', 'CDS', 
-            'phastcons', 'phastcons_no_cds_utr']
+            'phastcons', 'phastcons_no_gene']
 
 ALL_FILES = []
 for chrom_num in range(1, 23):
