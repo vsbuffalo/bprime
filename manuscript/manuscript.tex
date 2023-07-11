@@ -56,6 +56,7 @@
 
 
 \begin{abstract}
+
     Across the human genome, there are large-scale fluctuations in genetic
     diversity caused by the indirect effects of selection. This can be thought
     of as a ``linked selection signal" that reflects selection's effects
@@ -67,22 +68,24 @@
     theory, is only applicable when new mutations are so deleterious that they
     cannot drift up in frequency and ultimately fix in the population. Here, we
     develop an alternate theoretic basis for genome-wide linked selection based
-    on a quantitative genetics view, which considers the distribution of
-    additive fitness variance along the genome. Using a recent model that
-    jointly predicts the equilibrium fitness variance and substitution rates
-    due to deleterious mutations, we estimate the distribution of selection
-    coefficients and mutation rate across three human populations. While our
-    model can accommodate weaker selection, we find consistent evidence across
-    all populations of very strong selection against deleterious mutations. We
-    also find that our model's predicted substitution rates are qualitatively
-    consistent with observed divergences in features under weak selective
-    constraint like introns and UTRs, but less so in regions under strong
-    selective constraint. While our model explains up to 67\% of the out-sample
-    variance in diversity at the megabase scale, we find evidence of residual
-    strong selection against loss-of-function variants unfit by our model,
-    indicating the dominant role negative selection plays in the human genome.
-    Altogether, our genome-wide model of the linked selection is a step towards
-    uniting evolutionary quantitative genetics with substitution processes.
+    on a quantitative genetics view, which considers how diversity is reduced
+    according to the arrangement of additive fitness variance along the genome.
+    Using a recent model that jointly predicts the equilibrium fitness variance
+    and substitution rates due to deleterious mutations, we estimate the
+    distribution of selection coefficients and mutation rate across three human
+    populations. While our model can accommodate weaker selection, we find
+    consistent evidence across all populations of very strong selection against
+    deleterious mutations. We also find that our model's predicted substitution
+    rates are qualitatively consistent with observed divergences in features
+    under weak selective constraint like introns and UTRs, but less so in
+    regions under strong selective constraint. While our model explains up to
+    67\% of the out-sample variance in diversity at the megabase scale, we find
+    evidence of residual strong selection against loss-of-function variants
+    unfit by our model, indicating the dominant role negative selection plays
+    in the human genome. Altogether, our genome-wide model of the linked
+    selection is a step towards uniting evolutionary quantitative genetics with
+    substitution processes.
+
 \end{abstract}
 
 
@@ -90,124 +93,101 @@
 
 The continual influx of new mutations into populations is the ultimate source
 of all adaptations, but the vast majority of mutations either do not affect
-fitness or are deleterious. The best predictor of whether a mutation will be
-harmful to fitness is if it lands in a functional region, which are often
-conserved over deep phylogenetic timescales \parencite{Siepel2005-wh}. Since
-such high conservation reflects the product of millions or even billions of
-years of evolutionary optimization, it follows that deleterious variants should
-be the overwhelming majority of segregating variation in functional regions,
-and be responsible for a significant portion of phenotypic variation and
-disease \parencite{Zeng2018-ci} (XXX).
+fitness or are deleterious. Negative selection (i.e. purifying selection) works
+to eliminate these deleterious mutations from the population, thus we expect
+them to appear at low frequencies within populations
+\parencite{Haldane1927-ga}, and less likely to fix between lineages. The best
+predictor of whether a new mutation will reduce fitness is if it occurs in a
+functional region of the genome, which are often conserved over deep
+phylogenetic timescales \parencite{Siepel2005-wh,Margulies2003-sn}. Since these
+conserved regions reflect the product of millions of years of evolutionary
+optimization, it follows that deleterious variants should be the overwhelming
+majority of segregating variation in these regions. Furthermore, rare variation
+in these regions is responsible for a significant portion of phenotypic
+variation and disease in humans
+\parencite{Zeng2018-ci,Lek2016-cb,Karczewski2020-ky,Tennessen2012-ge}.
 
-Both positive and negative selection stochastically perturb the allele
-frequencies of neighboring linked variation in a phenomenon known as linked
-selection \parencite{Nordborg1996-nq,Maynard_Smith1974-zr,Barton1998-aj}. While
-linked selection processes like sweeps can leave signals on small spatial
-scales (XXX), the precise arrangement of functional regions and recombination
-rates across the genome leads to a large-scale linked selection signal.
+Selection on both beneficial and deleterious variants perturbs the allele
+frequencies of neighboring linked sites, a phenomenon known as linked selection
+\parencite{Nordborg1996-nq,Maynard_Smith1974-zr,Barton1998-aj,Charlesworth1993-gb}.
+Since deleterious variation is clustered in functional portions of the genome,
+we expect linked selection to reduce levels of diversity around conserved
+segments (e.g. genes, regulatory elements, etc.). The genomic arrangement of
+these evolutionarily conserved regions and recombination rates create a
+large-scale spatial signal of the linked selection process in genetic diversity
+along the genome. Since genome-wide recombination maps and putatively conserved
+segments are available for many species, there has been consistent effort to
+fit models to this linked selection signal to estimate population genetic
+parameters such as the strength of selection and the deleterious mutation rate
+\parencite{Hudson1995-pt,McVicker2009-ax}, as well as distinguish and quantify
+the roles of positive and negative selection and estimate the rate of
+beneficial mutations \parencite{Elyashiv2016-vt,Murphy2022-sj}. In humans,
+previous work has shown that negative selection plays the dominant role in
+shaping megabase-scale patterns of diversity, with positive selection playing a
+nearly negligible role \parencite{Murphy2022-sj}.
 
-
-
-Mutation and negative selection's contribution to this signal is mediated by
-the deleterious mutation rate, the strength of selection in conserved segments,
-and the spatial distribution of recombination rates and conserved segments.
-Since genome-wide recombination maps and putatively conserved segments are
-available for many species, researchers have combined these with population
-genetic theory to estimate the mutation rate and selection coefficients of
-deleterious mutations, as well as the overall reduction in genetic variability
-due to the negative selection process.
-
-HERE
-
-As deleterious variation is clustered in functional portions of the genome,
-we expect linked selection to reduce levels of diversity surrounding evolutionarily
-conserved segments (e.g. genes, regulatory elements, etc.) 
-and to shape large-scale spatial patterns in genetic diversity. 
-This landscape of diversity is the product of a complex interplay between the
-deleterious mutation rate, the local recombination rate, the strength of selection, and
-the spatial distribution of conserved segments along a chromosome. 
-Since genome-wide recombination maps and putatively conserved segments are available
-for many species, there has been consistent effort to fit models of
-linked selection to patterns of diversity to estimate population genetic
-parameters such as the strength of selection and the deleterious mutation rate 
-\parencite{Hudson1995-pt,McVicker2009-ax},
-the overall reduction in genetic variability due to the
-selection on deleterious variants \parencite{Elyashiv2016-vt,Murphy2022-sj},
-and in some cases the rate of beneficial mutations \parencite{corbett2015natural,Elyashiv2016-vt}.
-
-
-Classic Background Selection (BGS) theory is the predominant theoretic model to
-predict the reduction in linked neutral diversity, and is used by statistical
-approaches that quantify the aspects of the negative selection. However, the
-BGS model makes some assumptions for mathematical tractability that could
-distort inferences about the negative selection process. First, since fixation
-probabilities ultimately depend on the product of the deleterious selection
-coefficient (s) and population size (N), the efficacy of negative selection
-should depend on demography. Unfortunately, accommodating demography into
-theoretic negative selection models remains an open, difficult problem (XXX).
-Second, building off classic models of mutation-selection balance (Crow 1970,
-Kimura and Maruyama 196), the Background Selection (XXX) model assumes that new
-mutations are sufficiently deleterious that they are invariably driven to loss.
-Under this assumption, the effect of selection is well-approximated by simply
-rescaling the neutral coalescent by a reduction factor known as B (XXX).
-However, this is only appropriate in a limited domain of parameters relevant to
-the negative selection process (XXX). Because the BGS model cannot accommodate
-the possibility of fixation for mutations with $Ns \ll 1$, diversity is
-incorrectly predicted to fall to zero as the strength of selection diminishes.
-This weak selection problem is related to the wider problem of modeling the
-substitution rate of deleterious mutation (i.e. the “ratchet” rate). Third, the
-BGS model assumes segments under purifying selection are sufficiently far apart
-that there is no selective interference between them. This is a matter of
-degree, since under sufficiently high mutation rates or with little
-recombination, selective interference can occur with a segment. 
+Prior work to model the reduction in linked diversity due to deleterious
+mutations has largely relied on the classic Background Selection (BGS) model
+\parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1995-xc}.
+While this model has been successful in explaining many patterns of diversity,
+some its simplifying assumptions may distort inferences about the negative
+selection process. First, since fixation probabilities ultimately depend on the
+product of the deleterious selection coefficient (s) and population size (N),
+the efficacy of negative selection should depend on demography. Unfortunately,
+accommodating demography into theoretic negative selection models remains an
+open, difficult problem \parencite{Zeng2013-ep,Johri2020-oj}. Second, building
+off classic models of mutation-selection balance
+\parencite{Crow1970-wm,Kimura1966-bk}, the BGS model assumes that new mutations
+are sufficiently deleterious that they are invariably driven to loss. Under
+this assumption, the effect of selection is well-approximated by simply
+rescaling the neutral coalescent by a reduction factor known as $B =
+\nicefrac{N}{N_e}$ \parencite{Charlesworth2013-kl}. However, this simple
+rescaling approach is not appropriate across parts of parameter space that are
+relevant to natural populations \parencite{McVean2000-bt,Good2014-yz}. In
+particular, the BGS model cannot accommodate the possibility of fixation for
+mutations with $Ns \ll 1$, diversity is incorrectly predicted to fall to zero
+as the strength of selection diminishes. This weak selection problem is related
+to the wider problem of modeling the substitution rate of deleterious mutation
+(i.e. the “ratchet” rate) and incorporating the impact of perturbations from
+selective interference.
 
 In this work, we extend another class of linked selection models that derive
-from quantitative genetics to address limitations of classic background
-selection theory. These models suggest that the reduction in pairwise
-coalescence times at a position in the genome is determined by the
-recombination map and distribution of polygenic additive fitness variance along
-the chromosome \parencite{Santiago1998-bs}. This reduction is due to cumulative
-effect of stochastic perturbations from selection at other sites. While these
-models can theoretically accommodate polygenic fitness variation from any
-source as long as its rate of change is not too rapid, we focus specifically on
-a deleterious-mutations-only model from Santiago and Caballero (2016). This
-model is identical to the classic BGS model when selection against deleterious
-mutations is strong, but it also correctly predicts the reduction in diversity
-and substitutions rates of weakly deleterious mutations by accurately modeling
-levels of genic fitness variation. We extend Santiago and Caballero’s
-(hereafter the SC16) model so that it can be used to model genome-wide patterns
-of diversity under negative selection processes, and develop Python software to
-use this theoretic approach to fit genome-wide models of negative selection.
-Using forward simulations, we show this model leads to more accurate DFE
-estimates under weak selection. While this new model accommodates the
-possibility that a given reduction B could be due to weaker selection, in
-applying our composite likelihood method to human population genomic data, we
-confirm earlier findings that strong negative selection at a small fraction of
-sites fits human data across populations best. Finally, we show that while this
-model solves some limitations of the classic BGS model, simulations reveal
-another mysterious defect: a poor fit around $Ns=1$. We show that this can be
-partially corrected by incorporating the effects of selective interference on
-genic variation, but the remaining discrepancy is due to the build up of
-negative linkage disequilibrium that cannot be adequately captured by this
-model. We find accounting for genic selective interference between segments
-fits human population genomic data slightly better, suggesting levels of
-negative selection in humans are sufficient to perturb the selection at other
-sites.
+from quantitative genetics to address limitations of the classic BGS model.
+These models express linked selection in terms of how polygenic fitness
+variance creates weak genetic draft, and which increases pairwise coalescence
+rates. While these models can theoretically accommodate additive fitness
+variance from any source as long as its rate of change is not too rapid, we
+focus specifically on a deleterious-mutations-only model of fitness variance
+from \textcite{Santiago2016-mu}. This model is identical to BGS when selection
+against deleterious mutations is strong, but it also correctly predicts the
+reduction in diversity when selection is weak by jointly predicting the
+deleterious substitution rate. We extend the Santiago and Caballero (hereafter
+the SC16) model of the negative selection process so that it can be fit to
+patterns of genome-wide diversity, according to the spatial distribution of
+genomic features that could harbor deleterious fitness variation. Using forward
+simulations, we show this model leads to more accurate estimates of the
+distribution of fitness effects under weak selection. Finally, we apply our
+composite-likelihood method to human population genomic data and provide new
+estimates of the negative selection process in humans.
 
 \section*{Theory}
 
-Our work is motivated by a well-known limitation of classic background
-selection theory: it is only accurate for strongly deleterious mutations
-\parencite{Charlesworth1993-gb,McVean2000-bt,Good2013-lp,Gordo2002-dr}. Given
-statistical methods that fit linked selection processes to genome-wide
-diversity data rely on the classic BGS model to estimate the distribution of
-fitness effects and rate of deleterious mutations, it is important to
-characterize and remedy these shortcomings. However, extending background
-selection theory to model weak negative selection is challenging, and it is
-worthwhile to develop some intuition for why this is the case, how the classic
-background selection works, and how the quantitative genetic model of
-\textcite{Santiago2016-mu} solves these problems and can be extended to
-genome-wide inference.
+Similar to previous work, we aim to characterize the negative selection process
+through the signal left on nucleotide diversity at linked sites. Although
+nucleotide diversity is a less-informative statistic than the full site
+frequency spectrum, it is much easier to derive theoretic models of how
+selection alters expected pairwise coalescence times at linked sites than to
+describe the entire genealogy. Still, inferences drawn from the linked
+selection signal about selective processes are only as accurate as the
+underlying theoretic model. Our work is motivated by a well-known limitation of
+classic background selection theory: it only accurately predicts levels of
+linked diversity when new mutations are strongly deleterious
+\parencite{Charlesworth1993-gb,McVean2000-bt,Good2013-lp,Gordo2002-dr}.
+However, developing linked selection theory that accommodates weak selection
+has been challenging problem \parencite{Good2014-yz,Haigh1978-gt,Higgs1995-xc},
+and it is worthwhile to develop in intuition for how the classic BGS model
+works, and how quantitative genetic models of linked selection can alleviate
+these problems and be extended to genome-wide inference.
 
 Both the classic background selection and SC16 models imagine a negative
 selection process where a continual influx of deleterious mutations flow into
@@ -215,7 +195,7 @@ the population at a rate of $\mu$ per basepair per generation in a conserved
 region of $L$ basepairs, such that the region-wide per generation mutation rate
 is $U = \mu L$. Each mutation imposes an additive selective cost of $s$ in
 heterozygotes and $2s$ in homozygotes. The classic background selection model
-only consider mutations that are sufficiently deleterious that they are
+only considers mutations that are sufficiently deleterious that they are
 destined to extinction
 \parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1994-oh}. In
 this case, the genealogy is well-approximated by a neutral coalescence process
@@ -234,111 +214,84 @@ coalescence timescale of $N_0$ among these ancestors (the ``coalescence
 phase"), and can be ignored (\cite{Durrett2008-ql}, p. 213;
 \cite{Good2014-yz}).
 
-When mutations are only weakly deleterious, their allele frequencies are
-strongly influenced by stochastic perturbations and their frequency
-trajectories are no longer well-approximated by deterministic models. When
-genetic drift is the only source of randomness in allele frequency change, the
-relevant scale of stochastic perturbations is determined by the drift-effective
-population size $N_e$ (e.g. due to only non-selective process). The insight of
-nearly neutral theory \parencite{Ohta1971-gq,Ohta1992-yi} is determined by the
-compound parameter $2N_e s$. When $2N_e s \gg 1$, the stochastic component of
-allele frequency change is minuscule relative to selection and can be ignored;
-this is why the factor that rescales the drift-effective population size under
-the BGS model does not depend on $N_e$. However, when $2N_e s \le 1$, the
+By contrast, the frequency trajectories of weakly deleterious mutations are
+strongly impacted by stochastic perturbations, so deterministic models no
+longer provide a good approximation. When genetic drift is the only source of
+these randomness in allele frequency change, the relevant scale of stochastic
+perturbations is determined by the drift-effective population size $N_e$
+\parencite{Ohta1971-gq,Ohta1992-yi}. Under weak selection ($2N_e s \le 1$), the
 stochastic perturbations are on a scale equal to or greater than the changes
-due to selection. In this regime, weakly deleterious alleles can drift up to
-intermediate frequencies before their eventual loss or fixation. When this
-occurs, classic BGS theory breaks down for several reasons. First, the ``delay
-phase" is no longer negligible as lineages carrying weakly deleterious
-mutations can persist on coalescent timescales. This distorts genealogies away
-those expected under neutrality
-\parencite{Przeworski1999-mb,OFallon2010-my,Higgs1995-xc}. Second, the
-distribution of the number of deleterious mutations (and its corresponding
+due to selection. Then, weakly deleterious alleles can by chance drift up to
+intermediate frequencies before their eventual loss or fixation. Classic BGS
+breaks down in this domain, since the ``delay phase" is no longer negligible
+and genealogies are no longer well-approximated by a neutral coalescence
+process \parencite{Przeworski1999-mb,OFallon2010-my,Higgs1995-xc}. Moreover,
+the distribution of the number of deleterious mutations (and its corresponding
 fitness distribution) are no longer stationary and become a traveling wave
 \parencite{Rouzine2008-qz,Good2013-lp,Gessler1995-hz} towards reduced
-population fitness (since beneficial and back mutations are ignored).
-Consequently, individuals in the least-loaded class are stochastically lost,
-fixing those mutations with a click of ``Muller's ratchet"
-\parencite{Muller1964-ki}. Determining both the rate of Muller's ratchet
+population fitness (since beneficial and back mutations are ignored). When this
+occurs, individuals in the least-loaded class are stochastically lost, fixing
+those mutations with a click of ``Muller's ratchet" \parencite{Muller1964-ki}.
+Determining both the rate of Muller's ratchet
 \parencite{Haigh1978-gt,Gordo2002-dr,Gessler1995-hz} and the shape of
 genealogies under weak selection have been stubborn open problems in
-evolutionary genetics.
+evolutionary genetics. 
 
-To further complicate matters, both strong and weakly deleterious mutations
-create \emph{heritable} fitness variation. In turn, the presence of heritable
-fitness variation generates another source of randomness in allele frequency
-change known as genetic \emph{draft} \parencite{Neher2013-dz}. An allele
-experiences genetic draft when it becomes randomly associated with a fitness
-background, which stochastically perturbs its trajectory across generations.
-Like genetic drift, perturbations due to draft are directionless but overall
-increase the variance in allele frequency change. Unlike drift, stochastic
-perturbations caused by draft are autocorrelated across generations for as long
-an allele does not recombine or segregate off its fitness background and the
-selective environment does not change
-\parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. When selection is
-strong, draft can generate multiple-merger coalescences that create
-discontinuities in allele frequency trajectories, making diffusion
+To further complicate matters, when selection is weak, the stochastic
+perturbations from selection at neighboring sites generates another source of
+randomness in allele frequency change known as genetic \emph{draft}
+\parencite{Neher2013-dz}. An allele experiences genetic draft when it becomes
+randomly associated with a fitness background, which stochastically perturbs
+its trajectory across generations. Like genetic drift, perturbations due to
+draft are directionless but overall increase the variance in allele frequency
+change. Unlike drift, stochastic perturbations caused by draft are
+autocorrelated across generations for as long an allele does not recombine or
+segregate off its fitness background and the selective environment does not
+change \parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. When
+selection is strong, draft can generate multiple-merger coalescences that
+create discontinuities in allele frequency trajectories, making diffusion
 approximations ill-suited \parencite{Gillespie2000-mh,Der2011-it,Neher2013-dz}.
 However, when selection is weak, draft is well-approximated as an increase in
 the rate of drift (or equivalently, a reduction in effective population size).
 
-A key insight from Robertson (\citeyear{Robertson1961-ho}) is that in the
-long-run weak draft acts like an increase in the variance in offspring number.
-\textcite{Wright1938-tv} showed that additional non-heritable variance in
-offspring number (e.g. due to mating strategy) rescales the population size
-according to,
+Quantitative genetics models of linked selection formulate the impact of weak
+draft in terms of additive genetic fitness variance, which can more readily
+accommodate weak selection. This idea derives from a key insight from Robertson
+(\citeyear{Robertson1961-ho}): in the long-run, the effect of weak draft on
+neutral allele frequencies acts like an increase in the variance in offspring
+number. However, unlike non-heritable variation in offspring number, the
+heritable variation that generates draft is autocorrelated across generations.
+At the individual level Robertson considered, this is because offspring from
+large families tend to beget many descendents themselves (and likewise with
+small families). The same autocorrelation occurs at the genomic level, as the
+perturbations to a neutral allele's trajectory from its particular fitness
+background tend to occur in the same direction across generations as long as
+the linkage exists and the selective environment is constant. Thus, the total
+additional heritable variation in offspring number is the product of the
+equilibrium additive fitness variation $V_A$ in a generation and an inflation
+factor $Q_t^2$ due to the build up of autocorrelation to generation $t$. We let
+$Q^2 := Q_t^2$ as $t \to \infty$. Intuitively, the product $V_A Q^2$ represents
+the expected total variance in reproductive success a neutral mutation
+experiences over its lifetime in a system with weak selection draft. 
 
-\begin{align}
-    \label{eq:simple_Ne}
-    N_e = \frac{2N}{V + 2}
-\end{align}
-%
-where $V$ is the extra variance in offspring number.
-
-However, unlike non-heritable variation in offspring number, the heritable
-variation is autocorrelated across generations. At the individual level
-Robertson considered, this is because offspring from large families tend to
-beget many descendents themselves (and likewise with small families). The same
-autocorrelation occurs at the genomic level, as the perturbations to a neutral
-allele's trajectory from its particular fitness background tend to occur in the
-same direction across generations as long as the linkage exists and the
-selective environment is constant. Thus, the total additional heritable
-variation in offspring number is the product of the equilibrium additive
-fitness variation $V_A$ and an inflation factor $Q_t^2$ due to the build up of
-autocorrelation to generation $t$. We let $Q^2 := Q_t^2$ as $t \to \infty$.
-Intuitively, the product $V_A Q^2$ represents the expected total variance in
-reproductive success a neutral mutation experiences over its lifetime in a
-system with weak selection draft. Incorporating the impact of time-invariant
-autocorrelation created by draft as a rescaled rate of drift is analogous to
-using the Green--Kubo relation to find the transport coefficient in molecular
-dynamics with velocity autocorrelation \parencite{Green1954-kl,Kubo1957-va}.
-
-Including the total asymptotic variance in reproductive success in Equation
-\eqref{eq:simple_Ne} and assuming Wright--Fisher levels of non-heritable
-variation (i.e. $V = 2 + 4 Q^2 V_A$), the draft-effective population size $N_d$
-is
+We can include this total additional variance into expressions for effective
+population size as we would larger variance in family sizes due to
+non-heritable causes \parencite{Wright1938-tv}. We define the draft-effective
+population size $N_d$ as
 
 \begin{align}
     \label{eq:main_Ne}
     N_d = \frac{N}{Q^2 V_A + 1}
 \end{align}
-
+%
 (c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see Supplementary Section
-\ref{supp:theory} for a proof). In general, however, statistics such as
-heterozygosity depend on the cumulative autocorrelation factor up to some time
-$t$, $Q_t^2$ \parencite[p. 2111]{Santiago1998-bs}. This reflects the fact that
-effective population size experienced by a mutation newly associated with a
-fitness background is larger than the asymptotic effective population size,
-since not much autocorrelation has accumulated in the stochastic perturbations
-caused by drift yet. From a backwards-time perspective, this reflects the fact
-that pairwise diversity (which is approximately heterozygosity when $2N\mu \ll
-1$) depends on the pairwise coalescence rate per generation, which is not
-constant under draft. The benefit of using Robertson's forward-time model of
-draft is that the inflation factor is invariant with respect to the particular
-fitness background the neutral allele becomes stochastically associated with.
-By contrast, the difficulty with modeling draft backwards in time is that the
-coalescence rates experienced by a lineage are not invariant to which lineage
-was sampled due to its particular associated fitness background.
+\ref{supp:theory} for a proof). The benefit of modeling draft with Robertson's
+forward-time model is that the inflation factor is invariant with respect to
+the particular fitness background the neutral allele becomes stochastically
+associated with. By contrast, the difficulty with modeling draft backwards in
+time is that the coalescence rates experienced by a lineage are not invariant
+to which lineage was sampled due to its particular associated fitness
+background.
 
 Equation \eqref{eq:main_Ne} is general, since different modes of selection and
 linkage can be accommodated by different expressions for the inflation factor
@@ -456,7 +409,7 @@ expressions for the rate of the ratchet $R$ have generally been hard to find
 \parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key insight of
 \textcite{Santiago2016-mu} is that the ratchet rate under draft is determined
 by the probability of fixation $p_F(N_d, s)$
-\parencite{Kimura1962-su,Malecot1948-zv} using the draft-rescaled effective
+\parencite{Kimura1962-su,Malecot1952-qh} using the draft-rescaled effective
 population size, i.e. $R = N U p_F(N_d, s)$. Given this equation for the
 ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
 system of two non-linear equations that can be solved numerically for $N_d$ and

@@ -343,7 +343,11 @@ generations 2 and 3 would be,
 \end{align}
 %
 The $Q_t^2$ terms represent the inflation of variance due to autocovariance in
-frequency change across generations due to weak draft.
+frequency change across generations due to weak draft. Incorporating the impact
+of time-invariant autocorrelation created by draft as a rescaled rate of drift
+is analogous to using the Green--Kubo relation to find the transport
+coefficient in molecular dynamics with velocity autocorrelation
+\parencite{Green1954-kl,Kubo1957-va}.
 
 With these covariance terms, we now have a full model for $\V(p_t - p_0)$. We
 will look at the case for $t=2$. As shown in Supplementary Equation \eqref{supp-eq:varterms},
@@ -964,14 +968,22 @@ Under Santiago and Caballero's model, the correct effective population size to
 gauge reduction in heterozygosity or coalescent times is given by their
 equation 4 \parencite{Santiago2016-mu}. This equation considers how the
 inflation factor $Q_t^2$ that sets the draft-effective population size varies
-over $t$. This is because selective processes can lead to non-constant pairwise
-coalescent rates, which impact pairwise coalescent rates and thus the reduction
-factor. We experimented with calculating this full sum and integral
-approximations to it in our methods, but it seemed to make little difference in
-our application. Additionally, it was too costly to calculate computationally
-for genome-wide calculations of the B' map. Instead, we solve for the
-asymptotic $\widetilde{N}_{e,\infty}$ for each segment, and use that to
-calculate the log reduction factor under the SC16 model, $b'$.
+over $t$. This is because statistics such as heterozygosity depend on the
+cumulative autocorrelation factor up to some time $t$, $Q_t^2$ \parencite[p.
+2111]{Santiago1998-bs}. This reflects the fact that effective population size
+experienced by a mutation newly associated with a fitness background is larger
+than the asymptotic effective population size, since not much autocorrelation
+has accumulated in the stochastic perturbations caused by drift yet. From a
+backwards-time perspective, this reflects the fact that pairwise diversity
+(which is approximately heterozygosity when $2N\mu \ll 1$) depends on the
+pairwise coalescence rate per generation, which is not constant under draft. 
+
+We experimented with calculating this full sum and integral approximations to
+it in our methods, but it seemed to make little difference in our application.
+Additionally, it was too costly to calculate computationally for genome-wide
+calculations of the B' map. Instead, we solve for the asymptotic
+$\widetilde{N}_{e,\infty}$ for each segment, and use that to calculate the log
+reduction factor under the SC16 model, $b'$.
 
 Note that the asymptotic model above determines the reduction in effective
 population size experienced by a focal site in the middle of a $L$-basepair
