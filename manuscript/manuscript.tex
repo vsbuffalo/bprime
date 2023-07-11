@@ -56,37 +56,33 @@
 
 
 \begin{abstract}
-
     Across the human genome, there are large-scale fluctuations in genetic
     diversity caused by the indirect effects of selection. This can be thought
-    of as a ``linked selection signal" that is shaped by selection acting on
-    the placement of functional regions and recombination rates along the
-    genome. Previous work has shown that negative selection against the steady
-    influx of new deleterious mutations into conserved regions is the
-    predominant mode of selection generating this signal in humans. However,
-    the theoretic model that underpins these results, classic Background
-    Selection theory, is only applicable when new mutations are so deleterious
-    that they cannot drift up in frequency and ultimately fix in the
-    population. Here, we develop an alternate theoretic basis for genome-wide
-    linked selection based on a quantitative genetics view, which considers the
-    distribution of additive fitness variance along the genome. Using a recent
-    model that jointly predicts the equilibrium fitness variance and
-    substitution rate due to deleterious mutations, we fit this model to
-    samples from three human populations to estimate the distribution of
-    selection coefficients and mutation rate. While our model can accommodate
-    weaker selection, we find consistent evidence across all populations of
-    very strong selection against deleterious mutations. We also find that our
-    model's predicted substitution rates are qualitatively consistent with
-    observed divergences in features under weak selective constraint like
-    introns and UTRs, but we observe vastly more substitutions in regions under
-    strong selective constrain, consistent with positive selection. While our
-    model explains up to 67\% of the out-sample variance in diversity at the
-    megabase scale, we find evidence of residual strong selection against
-    loss-of-function variants, indicating the dominant role negative selection
-    plays in the human genome. Altogether, our genome-wide model of the linked
-    selection is a step towards uniting evolutionary quantitative genetics with
-    the molecular evolutionary processes.
-
+    of as a ``linked selection signal" that reflects selection's effects
+    varying according to the placement of functional regions and recombination
+    rates along the genome. Previous work has shown that negative selection
+    against the steady influx of new deleterious mutations into conserved
+    regions is the predominant mode of selection in humans. However, the
+    theoretic model that underpins these results, classic Background Selection
+    theory, is only applicable when new mutations are so deleterious that they
+    cannot drift up in frequency and ultimately fix in the population. Here, we
+    develop an alternate theoretic basis for genome-wide linked selection based
+    on a quantitative genetics view, which considers the distribution of
+    additive fitness variance along the genome. Using a recent model that
+    jointly predicts the equilibrium fitness variance and substitution rates
+    due to deleterious mutations, we estimate the distribution of selection
+    coefficients and mutation rate across three human populations. While our
+    model can accommodate weaker selection, we find consistent evidence across
+    all populations of very strong selection against deleterious mutations. We
+    also find that our model's predicted substitution rates are qualitatively
+    consistent with observed divergences in features under weak selective
+    constraint like introns and UTRs, but less so in regions under strong
+    selective constraint. While our model explains up to 67\% of the out-sample
+    variance in diversity at the megabase scale, we find evidence of residual
+    strong selection against loss-of-function variants unfit by our model,
+    indicating the dominant role negative selection plays in the human genome.
+    Altogether, our genome-wide model of the linked selection is a step towards
+    uniting evolutionary quantitative genetics with substitution processes.
 \end{abstract}
 
 
@@ -94,25 +90,51 @@
 
 The continual influx of new mutations into populations is the ultimate source
 of all adaptations, but the vast majority of mutations either do not affect
-fitness or are deleterious. Negative selection (i.e. purifying selection) works
-to eliminate such deleterious mutations from the population, which is essential
-to maintaining the integrity of information in the genome needed to maintain a
-lineage. Mutations under negative selection are kept at low frequencies
-(Haldane?), contributing to human traits (XXX) and diseases. Moreover, the
-negative selection process determines sequence conservation across phylogenetic
-timescales, which is evident in genome-wide cross-species comparisons
-\parencite{Siepel2005-wh}. As with most selection in the genome, the negative
-selection process stochastically perturbs the allele frequencies of neighboring
-linked variation. This reduces genetic variability to create a large-scale
-spatial linked selection ``reduction signal" in genome-wide diversity. Mutation
-and negative selection's contribution to this signal is mediated by the
-deleterious mutation rate, the strength of selection in conserved segments, and
-the spatial distribution of recombination rates and conserved segments. Since
-genome-wide recombination maps and putatively conserved segments are available
-for many species, researchers have combined these with population genetic
-theory to estimate the mutation rate and selection coefficients of deleterious
-mutations, as well as the overall reduction in genetic variability due to the
-negative selection process.
+fitness or are deleterious. The best predictor of whether a mutation will be
+harmful to fitness is if it lands in a functional region, which are often
+conserved over deep phylogenetic timescales \parencite{Siepel2005-wh}. Since
+such high conservation reflects the product of millions or even billions of
+years of evolutionary optimization, it follows that deleterious variants should
+be the overwhelming majority of segregating variation in functional regions,
+and be responsible for a significant portion of phenotypic variation and
+disease \parencite{Zeng2018-ci} (XXX).
+
+Both positive and negative selection stochastically perturb the allele
+frequencies of neighboring linked variation in a phenomenon known as linked
+selection \parencite{Nordborg1996-nq,Maynard_Smith1974-zr,Barton1998-aj}. While
+linked selection processes like sweeps can leave signals on small spatial
+scales (XXX), the precise arrangement of functional regions and recombination
+rates across the genome leads to a large-scale linked selection signal.
+
+
+
+Mutation and negative selection's contribution to this signal is mediated by
+the deleterious mutation rate, the strength of selection in conserved segments,
+and the spatial distribution of recombination rates and conserved segments.
+Since genome-wide recombination maps and putatively conserved segments are
+available for many species, researchers have combined these with population
+genetic theory to estimate the mutation rate and selection coefficients of
+deleterious mutations, as well as the overall reduction in genetic variability
+due to the negative selection process.
+
+HERE
+
+As deleterious variation is clustered in functional portions of the genome,
+we expect linked selection to reduce levels of diversity surrounding evolutionarily
+conserved segments (e.g. genes, regulatory elements, etc.) 
+and to shape large-scale spatial patterns in genetic diversity. 
+This landscape of diversity is the product of a complex interplay between the
+deleterious mutation rate, the local recombination rate, the strength of selection, and
+the spatial distribution of conserved segments along a chromosome. 
+Since genome-wide recombination maps and putatively conserved segments are available
+for many species, there has been consistent effort to fit models of
+linked selection to patterns of diversity to estimate population genetic
+parameters such as the strength of selection and the deleterious mutation rate 
+\parencite{Hudson1995-pt,McVicker2009-ax},
+the overall reduction in genetic variability due to the
+selection on deleterious variants \parencite{Elyashiv2016-vt,Murphy2022-sj},
+and in some cases the rate of beneficial mutations \parencite{corbett2015natural,Elyashiv2016-vt}.
+
 
 Classic Background Selection (BGS) theory is the predominant theoretic model to
 predict the reduction in linked neutral diversity, and is used by statistical
