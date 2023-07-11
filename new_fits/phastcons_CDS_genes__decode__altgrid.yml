@@ -43,7 +43,8 @@ params:
 #  the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full, loo: true, rescaled: false, jackknife: false, predict: true, predict_mu: 1.5e-8, predict_boot: false}
+  - {window: 1000000, mu: free, type: full, loo: true, rescaled: false, jackknife: [[10000000, 280]], predict: true, predict_mu: 1.5e-8, predict_boot: false}
+  #- {window: 1000000, mu: free, type: full, loo: true, rescaled: false, jackknife: false, predict: true, predict_mu: 1.5e-8, predict_boot: false}
   - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: true, predict_mu: 1.5e-8, predict_boot: false}
 
   # 1Mb mu=1.3e-8, full and sparse

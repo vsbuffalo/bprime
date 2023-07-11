@@ -40,8 +40,8 @@ params:
 # the mles, etc to fit
 fits: 
   # 1Mb free mutation, full and sparse
-  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
-  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
+  - {window: 1000000, mu: free, type: full,  loo: true, rescaled: false, jackknife: [[10000000, 280]], predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
+  - {window: 1000000, mu: free, type: sparse, loo: true, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: 1.5e-8, predict_boot: false}
 
   - {window: 100000, mu: free, type: full,  loo: false, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
   - {window: 100000, mu: free, type: sparse, loo: false, rescaled: false, jackknife: false, predict: false, jackknife_rescaled: false, predict_mu: false, predict_boot: false}
