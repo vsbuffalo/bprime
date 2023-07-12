@@ -287,7 +287,7 @@ additional variance created by heritable fitness in Wright's
     N_d = \frac{N}{Q^2 V_A + 1}
 \end{align}
 %
-(c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see Supplementary Section
+(c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see Supplementary Materials Section
 \ref{supp:theory} for a proof). The benefit of modeling draft with Robertson's
 forward-time model is that the inflation factor is invariant with respect to
 the particular fitness background the neutral allele becomes stochastically
@@ -305,11 +305,11 @@ by an arbitrary neutral site under the influence of all linked regions is,
 
 \begin{align}
     \label{eq:polygenic_Ne}
-    N_d \approx N \exp\left(-\sum_{i=1}^n V_{A,i} \frac{Q_i^2}{2}\right)
+    N_d \approx N \exp\left(-\sum_{i=1}^S V_{A,i} \frac{Q_i^2}{2}\right)
 \end{align}
 
 where the factor of one-half comes from ignoring weak associations from
-unlinked regions and chromosomes (see Supplementary Section
+unlinked regions and chromosomes (see Supplementary Materials Section
 \ref{supp:heritable-fitness}). In our genome-wide model, we consider the
 summation in Equation \eqref{eq:polygenic_Ne} over non-overlapping segments $i
 \in \{1, 2, \ldots, S\}$ each undergoing selection such that segment $i$
@@ -362,7 +362,7 @@ variance $V_{a,i}^{BGS} \approx U_i s$ (see Supplementary Materials Equation
 and $\kappa_i^{BGS}$ in Equation \eqref{eq:simple_Ne} and simplifying, we have
 
 \begin{align}
-    N_d = N \exp \left( - \sum_i^n \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
+    N_d = N \exp \left( - \sum_i^S \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
 \end{align}
 
 which is identical to the genome-wide model of background selection used in
@@ -420,38 +420,27 @@ $R$ for each segment,
 
 \begin{align}
   \label{eq:main_eqns}
-  N_d &= N \exp \left( -V_a \frac{Q^2}{2} \right) & \text{\emph{draft-effective population equation}} \\
+  N_d &= N \exp \left( -(U-R)s \frac{Q^2}{2} \right) & \text{\emph{draft-effective population equation}} \\
   R &= \frac{4N_d U s}{\exp(4 N_d s)-1}  & \text{\emph{ratchet equation}}
 \end{align}
+%
 
-where $V_a = (U-R)s$ as in Equation \eqref{eq:Va}. We denote the solutions to
-these equation, which represent equilibria under mutation-selection-drift-draft
-process, as $\widetilde{N}_d$ and $\widetilde{R}$. These equilibria also imply
-an equilibrium level of additive fitness variation $\widetilde{V}_a$ in the
-segment, are used to calculate the reduction at an arbitrary position in the
-genome (see Methods 
+We denote the solutions to these equation, which represent equilibria under
+mutation-selection-drift-draft process, as $\widetilde{N}_d$ and
+$\widetilde{R}$. These equilibria also imply an equilibrium level of additive
+fitness variation $\widetilde{V}_a$ in the segment, which are used to calculate
+the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any genomic position $x$
+(see Methods \ref{sec:methods-maps}).
 
-With the equilibrium $V_a$ calculated at each segment for a particular $\mu$
-and $s$, we can estimate the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any
-genomic position $x$ (see Methods XXX).
+\section*{Results: Simulation Validation of Theory and Methods}
 
-\section*{Results: Validation of Theory}
-
-Similar to previous work, our method characterizes the negative selection
-process through the signal left on nucleotide diversity at linked sites.
-Although nucleotide diversity is a less-informative statistic than the full
-site frequency spectrum, it is much easier to derive models of how selection
-alters expected pairwise coalescence times at linked sites than to describe the
-entire genealogy. Spatial patterns of pairwise diversity are highly variable
-across eukaryotic genomes, as linked selection leads diversity to become
-correlated with spatial heterogeneity in recombination rates and the density of
-conserved sites. Statistical methods then fit observed diversity to the
-expected level under a particular theoretic model of linked selection
-processes. Consequently, statistical inferences about selection may be
-incorrect when the underlying theory inaccurately predicts average pairwise
-coalescence times.
+Given that modeling the interplay of mutation, drift, and draft under both weak
+and strong selection has proven to be difficult problem, we first sought to
+verify the SC16 theory and our genome-wide implementation of it with a three
+levels of simulations. 
 
 \subsection*{Simulations of a Segment under Negative Selection}
+\label{sec:segment-sims}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_1.pdf} \caption{Theory
@@ -478,21 +467,19 @@ and recombination map used in simulations. }
   \label{fig:figure-1}
 \end{figure}
 
-Given that Santiago and Caballero's (\citeyear{Santiago2016-mu}) model is a
-haploid-model for a single region under equilibrium negative selection, we
-first sought to confirm it could accurately predict the reduction in realistic
-forward-time simulations of diploid populations with recombination. Using SLiM
-\parencite{Haller2019-vu,Haller2023-uk} we simulated a region of $10^5$
-basepairs under varying levels of mutation and selection (see Methods
-\ref{sec:methods-sim}). We find a close correspondence between the observed
-and predicted reductions in effective population size $B=\nicefrac{N_d}{N}$
-over all selection and mutation parameters including weak selection (Figure
-\ref{fig:figure-1}A), in contrast to classic BGS theory. Furthermore, to
-investigate whether this accuracy was caused by the model correctly predicting
-the equilibrium fitness variance and ratchet rate, we also measured these
-throughout the simulation. Again, we find the diploid SC16 theory accurately
-predicts both the ratchet rate (Figure 1\ref{fig:figure-1}B) and the genic
-fitness variance (Figure 1\ref{fig:figure-1}C).
+Our first set of forward simulations were to ensure that the SC16 model
+adequately captures selective dynamics in a single $10^5$ basepair region
+undergoing negative selection, across a variety of mutation rates and selection
+coefficients (see Methods \ref{sec:methods-sim}). We find a close
+correspondence between the observed and predicted reductions in effective
+population size $B=\nicefrac{N_d}{N}$ over all selection and mutation
+parameters including weak selection (Figure \ref{fig:figure-1}A), in contrast
+to classic BGS theory. Furthermore, to investigate whether this accuracy was
+caused by the model correctly predicting the equilibrium fitness variance and
+ratchet rate, we also measured these throughout the simulation. Again, we find
+the diploid SC16 theory accurately predicts both the ratchet rate (Figure
+1\ref{fig:figure-1}B) and the genic fitness variance (Figure
+1\ref{fig:figure-1}C).
 
 Moreover, these simulations provide intuition about the underlying negative
 selection process. When mutations are strongly deleterious, there is no chance
@@ -505,59 +492,58 @@ ratchet eliminates variation, and the equilibrium variation diverges from the
 deterministic mutation-selection equilibrium (Figure \ref{fig:figure-1}C).
 
 \subsection*{Chromosome-wide Simulations and Models of Negative Selection}
+\label{sec:chrom-sims}
 
 Given the accuracy of the SC16 model in predicting the reduction factor $B$ and
 ratchet rate for a single segment under general mutation-selection processes,
-we extended their model so that it could be applied to whole-genome data. Our
-software method \texttt{bgspy} numerically solves Equations XXX to compute the
-equilibrium additive genic fitness variance ($V_a$) and ratchet rate ($R$)
-across grids of mutation rates and selection coefficients. This is done for
-each pre-specified segment in the genome that may be under negative selection
-(e.g. coding sequences or UTRs). Then, these equilibrium can be used to
-calculate a reduction map $B(x)$ across genomic positions $x$. To distinguish
-between McVicker's B maps based on classic BGS theory, we call our reduction
-map $B(x)$ a B' map.
+we next extended their model so that it could be applied to whole-genome data.
+Our software method \texttt{bgspy} numerically solves Equations
+\eqref{eq:main_eqns} to compute the equilibrium additive genic fitness variance
+($V_a$) and ratchet rate ($R$) across grids of mutation rates and selection
+coefficients. This is done for each pre-specified segment in the genome that
+may be under negative selection (e.g. coding sequences or UTRs). Then, these
+equilibrium can be used to calculate a reduction map $B(x)$ across genomic
+positions $x$. To distinguish between McVicker's B maps based on classic BGS
+theory, we call our reduction map $B(x)$ a B' map.
 
-To assess our predicted B' reduction maps, we simulated negative selection for
-fixed mutation rates and selection coefficient on human chromosome 10 using
-realistic recombination maps and conserved feature positions. Averaging over
-$100$ replicates, we estimated the simulation expected reduction map and
-compared this to the predicted B and B' maps for the same parameters. We find
-that our B' maps and the classic BGS theory B maps closely match simulations
-when selection is strong (top row of Figure \ref{fig:figure-1}E). This provides
-the first realistic forward-time chromosome-scale simulation confirmation of
-classic BGS theory. However, we find slight discrepancies in regions with low
-recombination (Figure \ref{fig:figure-1}E). Second, we find our theory is
-vastly more accurate than the classic B maps when selection is very weak ($2N_e
-s \ll 1$; bottom row of Figure \ref{fig:figure-1}E), which is expected since
-BGS theory does not work in this domain. Across all mutation and selection
-parameters simulated, the relative error of the classic B maps is 14.6\%
-whereas the relative error in the new B' maps is 5\%. Additionally, we find
-that the mean squared error between simulations and B' maps is close to the
-theoretic lower bound set by the coalescence variance \parencite[see Methods
-XXX]{Tajima1983-gu}.
+We next validated our predicted B' reduction maps with realistic
+chromosome-scale forward simulations of negative selection in conserved
+regions. Averaging over $100$ replicates, we estimated the simulation empirical
+reduction map and compared this to the predicted B and B' maps for the same
+parameters. We find that our B' maps and the classic BGS theory B maps closely
+match simulations when selection is strong (top row of Figure
+\ref{fig:figure-1}E). This provides the first realistic forward-time
+chromosome-scale simulation confirmation of classic BGS theory. However, we
+find slight discrepancies in regions with low recombination (Figure
+\ref{fig:figure-1}E). Second, we find our theory is vastly more accurate than
+the classic B maps when selection is very weak ($2N_e s \ll 1$; bottom row of
+Figure \ref{fig:figure-1}E), which is expected since BGS theory does not work
+in this domain. Across all mutation and selection parameters simulated, the
+relative error of the classic B maps is 14.6\% whereas the relative error in
+the new B' maps is 5\%. Additionally, we find that the mean squared error
+between simulations and B' maps is close to the theoretic lower bound set by
+the coalescence variance \parencite[see Methods XXX]{Tajima1983-gu}.
 
-Nearly all of the error between the new B' maps and chromosome-wide simulations
-occurs around the drift-barrier domain of $2Ns \approx 1$ (Figure
-\ref{fig:figure-1}D). The higher error in this domain occurs across all
-mutation rates. We hypothesized that the higher error in this domain may be
-because when our method numerically solves Equations \eqref{eq:main_eqns} for
-each segment, it does not consider the reduction experienced due to selection
-at other linked segments. In particular, we use a fixed drift-effective
-$N=1000$ corresponding to the number of diploids in the simulations rather than
-$B(x) N$ at position $x$. To test this, we implemented a locally-rescaled
-version of the B' maps, which numerically solves Equations \eqref{eq:main_eqns}
-for each segment at position $x$ taking into account the reduction experienced
-due to selection at other segments by setting $B'(x)N$ as the population size
-(see Method XXX). We find the locally-rescaled B' maps reduce the relative
-error from 5\% to 0.4\% and mean squared error (Figure \ref{fig:figure-1}D,
-dashed colored lines), but does not entirely eliminate the error in the $2Ns
-\approx 1$ domain. Overall, while we find evidence that local-rescaling
-slightly reduces error in the $2Ns \approx 1$ domain, we do not use it during
-in our genome-wide inference method. This is because to avoid circularity and
-possible overfitting, the method would need to solve the equilibria equations
-for all segments simultaneously, but this is currently computational
-unfeasible.
+The discrepancy between our theoretic B' maps and chromosome-wide simulations
+that leads to the 5\% error occurs entirely around the drift-barrier domain of
+$2Ns \approx 1$ (Figure \ref{fig:figure-1}D). The higher error in this domain
+occurs across all mutation rates. We hypothesized this error may be due to
+selective interference between segments that is not taken into account when we
+numerically solve Equations \eqref{eq:main_eqns} for each segment
+independently. In particular, we use a fixed drift-effective $N=1000$
+corresponding to the number of diploids in the simulations rather than $B(x) N$
+at position $x$. To test this, we implemented a locally-rescaled version of the
+B' maps, which numerically solves Equations \eqref{eq:main_eqns} for each
+segment at position $x$ taking into account the reduction experienced due to
+selection at other segments by setting $B'(x)N$ as the population size. We find
+the locally-rescaled B' maps reduce the relative error from 5\% to 0.4\% and
+mean squared error (Figure \ref{fig:figure-1}D, dashed colored lines), but does
+not entirely eliminate the error in the $2Ns \approx 1$ domain. Overall, while
+we find evidence that local-rescaling slightly reduces error in the $2Ns
+\approx 1$ domain, we do not use it during in our genome-wide inference method.
+This is because to avoid circularity and possible overfitting, our method would
+need to solve the equilibria equations for all segments simultaneously;
+unfortunately, this is currently computational unfeasible.
 
 Finally, we hypothesized that the remaining error is because of the build up of
 negative linkage disequilibria between selected sites due to Hill--Robertson
@@ -576,6 +562,86 @@ reductions in diversity should be determined by levels of additive genetic
 fitness variance that include the contribution of LD (Supplementary Materials
 Section \ref{supp:theory}).
 
+\subsection*{Validation of Composite-likelihood Method using Forward
+Simulations}
+
+\begin{figure}[htbp] \centering
+    \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
+    \caption{Comparison of parameter estimates using classic BGS theory (green
+        lines) with our new B' method (blue lines) across both full and sparse
+        track types (dark versus light hue), and different mutation rates
+        (columns). In the first row, $R^2$ between predictions and observations
+        increases with selection intensity. Both classic BGS and B' methods fit
+        the data equally well with sparse tracks, though the estimated
+        selection coefficients are inaccurate when selection is weak (second
+        row). Mutation rate estimates (third row) are more accurately estimated
+        by the B' method than classic BGS, but overall show slight biases.
+        Overall, classic BGS methods fail as expected when full-coverage tracks
+    are used, since it cannot accommodate weak selection and neutrality. }
+  \label{fig:figure-2}
+\end{figure}
+
+We next developed a composite-likelihood method that estimates the distribution
+of selection coefficients for each feature type, the mutation rate, and the
+diversity in the absence of linked selection ($\pi_0$) by fitting the theoretic
+reduction map to genome-wide diversity (see Methods
+\ref{sec:methods-likelihood}). We validated that our method can accurately
+estimate the parameters of negative selection by simulation a ``synthetic
+genome" of the first five human chromosomes (see Methods
+\ref{sec:methods-sim}). We note three findings from these simulations.
+
+First, we find the $R^2$ between predicted and simulated megabase-scale
+diversity serves as a measure of the strength of the linked selection signal in
+genome-wide data. The $R^2$ increases with the intensity of selection against
+new deleterious mutations and mutation rate (Figure \ref{fig:figure-2}, top
+row). Under just drift or weak negative selection, the variance in diversity is
+driven by unstructured coalescence noise along the genome and the predicted
+reduction map $B(x)$ does not fit the data well. However, we note that under
+very strong selection ($s=0.05$), $R^2$ is reduced. This is like due to very
+strong selection having less localized effects and impacting overall
+genome-wide diversity \parencite{Santiago1995-hx,Robertson1961-ho}.
+
+Second, both our implementation of classic BGS theory and our B' method
+accurately infer the average selection coefficient under strong selection
+(Figure \ref{fig:figure-2}, middle row). However, when selection was weak, the
+classic BGS model erroneously estimates strong selection and a very low
+mutation rate. By contrast, our B' method estimated selection coefficients much
+closer to their true value. A minor discrepancy occurs around $2Ns = 1$, likely
+due to the sensitivity of mutations in this region to selective interference
+(discussed in Section \ref{sec:chrom-sims}). Because we only simulated fixed
+selection coefficients and five chromosomes, we only assessed the accuracy of
+average selection coefficients and not the DFE probabilities.
+
+Third, we find slight biases in mutation rated estimated by both our B' and the
+classic BGS methods (Figure \ref{fig:figure-2}, bottom row). However, mutation
+rate estimates based on our B' method are more accurate than classic BGS theory
+across a range of selection coefficients. Overall, the bias in estimated
+mutation rates suggests that benchmarking genome-wide negative selection models
+based on their agreement with pedigree-based rate estimates may not be
+appropriate. When BGS is not functioning, either due to weak selection or a low
+rate of deleterious mutations (Figure \ref{fig:figure-2}, right column), all
+estimates deteriorate. This is understandable, as the overall signal from
+linked selection weakens relative to drift-based noise. We should note, though,
+that this is an unlikely region of parameter space and this issue can be
+readily diagnosed from the low $R^2$ values.
+
+Finally, we tested the sensitivity of our method to violations of two
+assumptions---constant population size and recessivity of selective
+effects---through simulations. Using an expansion rate and timing as estimated
+for Europeans by \textcite{Gutenkunst2009-pg}, we found that a population
+expansion had minimal impact on parameter estimates (Supplementary Materials
+Section \ref{supp:sim-assum}). We did not test the influence of population
+bottlenecks, since parameter estimates of out-of-Africa bottlenecked
+populations (CHB and CEU) did not differ much from YRI estimates (see below).
+However, these simulations did find that selection coefficient estimates were
+downwardly biased when deleterious mutations were recessive and weak.
+Recessivity did not bias selection coefficient estimates when selection was
+strong; this is expected since strongly deleterious mutations are predominantly
+are sufficiently rare that they are not often found in a homozygote. Overall,
+the sensitivity to recessivity is likely due to the ratchet rate being
+overestimated when selection is weak and recessive mutations drift up to higher
+frequency and experience stronger than expected selection in homozygotes.
+
 \section*{Results: Application to Human Genomic Data}
 
 \subsection*{Annotation Model Comparison}
@@ -584,11 +650,11 @@ Our composite likelihood method takes tracks of annotated features (an
 ``annotation model") that are \emph{a priori} expected to have similar fitness
 effects, and estimates the overall mutation rate and distribution of fitness
 effects for each feature type. We consider two classes of annotation models:
-(1) CADD-based models, which consider the top $x\%$ of basepairs according to
-the CADD pathogenicity score assigned to each basepair, and (2) and more
-interpretable gene feature-based models that includes protein coding regions,
-intron and UTRs, and PhastCons regions. We include PhastCons regions because
-there is strong evidence of highly-conserved non-coding regions
+(1) CADD-based models, which consider the top $x\%$ most pathogenic basepairs
+according to the CADD score, and (2) and more interpretable gene feature-based
+models that includes protein coding regions, intron and UTRs, and PhastCons
+regions. We include PhastCons regions because there is strong evidence of
+highly-conserved non-coding regions
 \parencite{Meader2010-hm,Harmston2013-tt,Katzman2007-gq,Siepel2005-wh}, that
 would be missed by gene feature only annotation. These two classes of
 annotation models have a trade-off between fine-scaled specificity to which
@@ -600,12 +666,13 @@ class. While CADD-based models only have a single conserved feature class (e.g.
 CADD 6\%), feature-based models can have multiple feature classes under varying
 levels of selective constrain. However, overlapping features (e.g. a basepair
 that is annotated as both PhastCons and coding sequence) must be assigned to
-one category or the other. Since this assignment impact DFE estimates, we fit
-both of the two alternatives. First, a \emph{PhastCons Priority} model, where
-genic features that overlap PhastCons regions are classified as PhastCons, and
-all remaining coding basepairs are labeled as CDS. Second, a \emph{Feature
-Priority} model, where all coding basepairs are assigned to CDS, and the
-PhastCons class catches the remaining highly-conserved non-genic regions. 
+one category or the other. Since this assignment impacts DFE estimates, we fit
+both of the two alternative models. First, a \emph{PhastCons Priority} model,
+where genic features that overlap PhastCons regions are classified as
+PhastCons, and all remaining coding basepairs are labeled as CDS. Second, a
+\emph{Feature Priority} model, where all coding basepairs are assigned to CDS,
+and the PhastCons class catches the remaining highly-conserved non-genic
+regions. 
 
 In total, we fit four annotation models (CADD 6\%, CADD 8\%, PhastCons
 Priority, and Feature Priority) to high-coverage 1000 Genome data for three
@@ -620,15 +687,19 @@ previous results suggesting the human linked selection signal fits best at the
 megabase scale \parencite{Murphy2022-sj}.
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
-    \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all 
-    populations (colors) fit at the megabase-scale. Round points are our B' 
-    method and diamonds are the classic B. Lighter color round points are
-    the out-sample $R_\text{LOCO}^2$ estimates for our B' method, and arrows show the decline
-    in goodness-of-fit due to in-sample overfitting (out-sample $R_\text{LOCO}^2$ 
-    were not calculated for classic B values due to computational costs). The 
-    horizontal dashed lines are the $R_\text{drift}^2$ expected when the residual
-    variance is given by the theoretic variance in coalescence times due to drift alone.}
+    \includegraphics[width=\textwidth]{figures/figure_3.pdf} 
+
+    \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all
+        populations (colors) fit at the megabase-scale. Round points are our B'
+        method and diamonds are the classic BGS (we exclude classic BGS in the
+        full track subfigure, since these all fit very poorly). Lighter color
+        round points are the out-sample $R_\text{LOCO}^2$ estimates for our B'
+        method, and arrows show the decline in goodness-of-fit due to in-sample
+        overfitting (out-sample $R_\text{LOCO}^2$ were not calculated for
+        classic B values due to computational costs). The horizontal dashed
+        lines are the $R_\text{drift}^2$ expected when the residual variance is
+    given by the theoretic variance in coalescence times due to drift alone.}
+
   \label{fig:figure-2}
 \end{figure}
 
@@ -636,17 +707,20 @@ Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
 as well (Figure \ref{fig:figure-2}A), consistent with recent work using classic
 BGS theory \parencite{Murphy2022-sj}. However, we find that our models predict
 out-sample diversity levels slightly better than previous methods. For these
-two models, we find that our B' method predicts $R_\text{LOCO}^2=68.45$\% and
-$R_\text{LOCO}^2=68.04$\% of the out-sample variance in Yoruba pairwise
+two models, we find that our B' method predicts $R_\text{LOCO}^2=67.3$\% and
+$R_\text{LOCO}^2=68.7$\% of the out-sample variance in Yoruba pairwise
 diversity at the megabase-scale, respectively. By contrast, the best-fitting
 CADD 6\% model from \textcite{Murphy2022-sj} explained 60\% of diversity in
-left-out 2 Mbp windows across YRI samples. We note that this might be explained
-by other differences in data process, reference genome, etc.
+left-out 2 Mbp windows across YRI samples. We note that this difference could
+be explained by other differences in data processing, optimization, etc.
 
 In populations impacted by the out-of-Africa bottleneck, the goodness-of-fit
-was lower across all models (e.g. 62.98\% and 59.98\% for CEU and CHB
-respectively in the PhastCons Priority model). Our PhastCons Priority model
-fits marginally better than the CADD 6\% model consistently across all three
+was lower across all models (e.g. 60.4\% and 58.7\% for CEU and CHB
+respectively in the CADD 6\% model). 
+
+
+Our PhastCons Priority model fits
+marginally better than the CADD 6\% model consistently across all three
 populations (Supplementary Table \ref{supp:tbl-r2}). This is likely because the
 PhastCons Priority model has more DFE parameters, and thus can fit finer-scale
 differences among the four feature types. By contrast, the CADD 6\% track must
@@ -715,7 +789,7 @@ that is not coalescence noise).
 \subsection*{Estimated Distribution of Fitness Effects}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_3.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
     \caption{The distribution of fitness effects of new mutations estimates for
         Yoruba individuals. (A) The DFEs using sparse (left column) and
         full-coverage (right column) tracks, across different annotation models
@@ -727,17 +801,22 @@ that is not coalescence noise).
 
 Our composite likelihood method has three sets of parameters: expected
 diversity in the absence of linked selection diversity $\pi_0$, the mutation
-rate $\mu$, and the distribution of fitness effects $\mathbf{W}$ across the
-selection grid for each of the $K$ feature types. Given that the relationship
-between $\pi$ and the strength selection is U-shaped, our model in theory could
-fit under different combinations of parameters.
+rate $\mu$, and the matrix of distribution of fitness effects $\mathbf{W}$
+across the selection grid for each of the $K$ feature types. Given that the
+relationship between $\pi$ and the strength selection is U-shaped, we wondered
+whether the linked selection signal in humans could fit under a weak selection
+regime.
 
 However, across all of our annotation models, new deleterious mutations in
 conserved feature classes were consistently estimated to have strongly
 deleterious effects (Figure \ref{fig:figure-3}A), consistent with previous work
 \parencite{McVicker2009-ax,Murphy2022-sj}. This includes features such as
 coding sequences, PhastCons regions, or the top 6\% of basepairs with the most
-pathogenic CADD scores. However, we find that there is considerable uncertainty
+pathogenic CADD scores. 
+
+
+
+However, we find that there is considerable uncertainty
 in how strong selection is against the most deleterious mutations. For example,
 in the CADD 6\% full-track model, new mutations are estimated to have a
 selection coefficients of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with
@@ -809,7 +888,7 @@ absorbed by the PhastCons feature, leaving only conditionally neutral sites.
 
 \begin{figure}[htbp] 
     \centering
-    \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_5.pdf} 
     \caption{(A) }
   \label{fig:figure-4}
 \end{figure}
@@ -870,67 +949,10 @@ with different features corresponding to the different percentiles of
 pathogenicity, these features are on the basepair scale and thus too
 memory-intensive for our method to currently accommodate.
 
-\subsection*{Tests of Parameter Inference using Forward Simulations}
-
-Given these the sensitivity of mutation rate estimates and the strong-selection
-non-identifiability issue, we next sought to assess the estimation overall
-accuracy of our composite likelihood method using forward simulations. In order
-to have enough megabase-scale data to apply our method, we independently
-evolved the first five human chromosomes and combined them into a ``synthetic"
-genome. Due to the immense computational expense of conducting forward
-simulations at this scale over numerous parameter combinations, we used fixed
-mutation and selection parameters in putatively conserved regions (see Methods
-XXX). We note three important findings from these simulations.
-
-First, the linked selection signal, as measured by the $R^2$ between predicted
-and simulated megabase-scale diversity, increases with the intensity of
-selection against new deleterious mutations and mutation rate (Figure
-\ref{fig:figure-4}B, top row). This shows the ``strength" of the linked
-selection signal varies as expected with these key parameters. However, if new
-mutations are highly deleterious ($s=0.05$), $R^2$ is reduced. This is
-consistent with very strong selection having less localized effects and acting
-more like a genome-wide faster rate of drift.
-
-Second, both classic BGS theory and our B' method accurately infer the average
-selection coefficient under strong selection (Figure \ref{fig:figure-4}B,
-middle row). However, when selection was weak, the classic BGS model
-erroneously estimates strong selection and a very low mutation rate. By
-contrast, our B' method estimated selection coefficients much closer to their
-true value. A minor discrepancy occurs around $2Ns = 1$, for reasons discussed
-in Section XXX. Because we only simulated fixed selection coefficients and five
-chromosomes, we only assessed the accuracy of average selection coefficients
-and not the DFE probabilities.
-
-Third, with both our B' and the classic BGS models, we find mutation rate
-estimates show slight biases in the strong-selection regime (Figure
-\ref{fig:figure-3}B, bottom row). Still, our B' method leads to more accurate
-mutation rate estimates than classic BGS theory across a variety of selection
-coefficients. These biases in mutation rate estimates suggest that benchmarking
-genome-wide models via their concordance with pedigree-based rate estimates may
-not be suitable. When BGS is not acting, either due to weak selection or a low
-rate of deleterious mutations (Figure \ref{fig:figure-4}B right column), all
-estimates are worse. This makes intuitive sense; the overall linked selection
-signal is weaker relative to drift-based noise. However, we note that this is
-an unlikely region of parameter space and this issue is readily diagnosable
-from the low $R^2$ values.
-
-Finally, we also used simulations to test the sensitivity of our method to
-violations of two assumptions: constant population size and recessivity of
-selective effects. Since we find little difference in parameter estimates among
-YRI and bottlenecked out-of-Africa (CEU and CHB) samples, we tested whether a
-population expansion would bias our method. We use an expansion rate and timing
-based on those estimated for Europeans by \textcite{Gutenkunst2009-pg}, finding
-they had little effect on parameter estimates (Supplementary Section
-\ref{supp:sim-assum}). By contrast, we find our estimates are downwardly biased
-when mutational effects are weak and recessive, but are accurate under
-recessive strong selection. This occurs because the fixation probabilities of
-recessive mutations are in reality much lower than under our model that assumes
-additivity.
-
 \subsection*{Predicted Diversity and Residual Signal}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_5.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_6.pdf} 
 
     \caption{(A) Observed and predicted diversity under the CADD 6\% full-track
         model. Once scaled by average diversity, populations differ little in
@@ -1004,7 +1026,7 @@ LoF-intolerant genes.
 \subsection*{Predicted Substitution Rate and Additive Fitness Variance}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_6.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_7.pdf} 
 
     \caption{}
 
@@ -1164,7 +1186,7 @@ where,
 %
 and $U = m_i L$ and $M = r_\text{BP} L$ are the total mutation and
 recombination rates in the segment. A detailed derivation of these equations
-can be found in Supplementary Section \ref{supp:theory}. The recombination
+can be found in Supplementary Materials Section \ref{supp:theory}. The recombination
 rate in a segment is determined by a user-supplied recombination map.
 
 \subsection*{Calculating the Reduction Maps}
@@ -1226,7 +1248,7 @@ across 10,000 random starts (see Supplementary Materials Section
 \ref{supp:optima}). We assessed model fit using out-sample predictive error,
 calculated by leaving out a whole chromosome during fitting and predicting its
 diversity. To calculate uncertainty, we used a block jackknife approach in 10
-Mbp windows (Supplementary Section \ref{supp:jackknife}).
+Mbp windows (Supplementary Materials Section \ref{supp:jackknife}).
 
 \subsection*{Human Population Genomic Data}
 \label{sec:methods-data}

@@ -1356,55 +1356,77 @@ CADD 8\%: 8.56\% of autosomal sequence.
 \begin{table}
     \label{supp:tbl-r2}
 \centering
-\caption{$R^2$ and mutation rate estimates for all primary models (top table)
-    and models fit on a smaller DFE grid (excluding the possibility of strong
-    selection $s=10^{-1}$). Note that the repeated values in the last rows are
+
+\caption{$R^2$ and mutation rate estimates for all primary models fit on the
+    default DFE grid (up to selection $s=10^{-1}$).}
+
+\begin{tabular}{lll|crr|cc}
+    \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
+\hline
+\hline
+PhastCons Priority &            sparse &          YRI &                        67.29 &             67.36 &            62.82 &                                 2.0039 &                                0.2070 \\
+PhastCons Priority &              full &          YRI &                        67.27 &             67.36 &            58.26 &                                 2.0037 &                                0.1037 \\
+          CADD 6\% &            sparse &          YRI &                        66.66 &             66.81 &            66.79 &                                 1.6565 &                                1.6328 \\
+          CADD 6\% &              full &          YRI &                        66.50 &             66.68 &            58.76 &                                 1.5556 &                                0.1074 \\
+          CADD 8\% &            sparse &          YRI &                        65.30 &             65.58 &            65.56 &                                 1.2229 &                                1.1997 \\
+          CADD 8\% &              full &          YRI &                        65.13 &             65.41 &            59.16 &                                 1.1260 &                                0.1067 \\
+  Feature Priority &            sparse &          YRI &                        63.61 &             64.28 &            60.43 &                                 3.3528 &                                0.2259 \\
+  Feature Priority &              full &          YRI &                        63.06 &             64.28 &            56.08 &                                 3.3490 &                                0.1000 \\
+PhastCons Priority &            sparse &          CEU &                        61.04 &             62.25 &            58.37 &                                 2.3133 &                                0.2160 \\
+PhastCons Priority &              full &          CEU &                        61.04 &             62.25 &            53.95 &                                 1.9117 &                                0.1044 \\
+          CADD 6\% &            sparse &          CEU &                        60.37 &             61.80 &            61.79 &                                 1.6797 &                                1.6670 \\
+          CADD 6\% &              full &          CEU &                        60.24 &             61.77 &            53.99 &                                 1.6347 &                                0.1096 \\
+          CADD 8\% &            sparse &          CEU &                        59.38 &             60.92 &            60.91 &                                 1.2547 &                                1.2418 \\
+          CADD 8\% &              full &          CEU &                        59.24 &             60.88 &            54.31 &                                 1.2078 &                                0.1090 \\
+PhastCons Priority &            sparse &          CHB &                        58.84 &             60.45 &            56.55 &                                 1.9202 &                                0.2240 \\
+PhastCons Priority &              full &          CHB &                        58.76 &             60.45 &            52.93 &                                 1.8689 &                                0.1101 \\
+          CADD 6\% &            sparse &          CHB &                        58.67 &             60.49 &            60.48 &                                 1.7454 &                                1.7334 \\
+          CADD 6\% &              full &          CHB &                        58.48 &             60.40 &            52.76 &                                 1.5981 &                                0.1166 \\
+          CADD 8\% &            sparse &          CHB &                        57.91 &             59.78 &            59.76 &                                 1.3093 &                                1.3022 \\
+          CADD 8\% &              full &          CHB &                        57.74 &             59.69 &            53.14 &                                 1.2038 &                                0.1161 \\
+  Feature Priority &            sparse &          CEU &                        57.24 &             59.11 &            56.35 &                                 3.0442 &                                0.2313 \\
+  Feature Priority &              full &          CEU &                        57.14 &             59.11 &            52.21 &                                 3.0441 &                                0.1004 \\
+  Feature Priority &            sparse &          CHB &                        56.00 &             57.88 &            54.76 &                                 3.1722 &                                0.2362 \\
+  Feature Priority &              full &          CHB &                        55.63 &             57.88 &            51.39 &
+\end{tabular}
+\end{table}
+
+\begin{table}
+    \label{supp:tbl-r2-strongsel}
+\centering
+\caption{$R^2$ and mutation rate estimates for all primary models fit 
+    with the strong selection grid (up to $s=10^{-1}$). Note that the repeated values in the last rows are
     correct and due to rounding; see \path{notebooks/main_fits.ipynb} in the
     GitHub repository for more information.}
 \begin{tabular}{lll|crr|cc}
     \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
 \hline
 \hline
-    \textbf{phastcons$>$CDS$>$genes} &            sparse &          YRI &                        \textbf{68.45} &             68.16 &            65.23 &                                 1.8636 &                                0.2975 \\
-phastcons$>$CDS$>$genes &              full &          YRI &                        68.19 &             68.12 &            63.67 &                                 1.7082 &                                0.1666 \\
-               CADD 6\% &              full &          YRI &                        68.08 &             68.08 &            62.96 &                                 1.4612 &                                0.1721 \\
-               CADD 6\% &            sparse &          YRI &                        68.04 &             68.03 &            68.01 &                                 2.0912 &                                2.0716 \\
-               CADD 8\% &              full &          YRI &                        66.98 &             67.11 &            63.61 &                                 1.0126 &                                0.1713 \\
-               CADD 8\% &            sparse &          YRI &                        66.67 &             67.01 &            66.98 &                                 1.5688 &                                1.5473 \\
-CDS$>$genes$>$phastcons &              full &          YRI &                        64.90 &             65.51 &            61.23 &                                 4.1951 &                                0.1620 \\
-CDS$>$genes$>$phastcons &            sparse &          YRI &                        64.90 &             65.51 &            63.16 &                                 4.1795 &                                0.3070 \\
-\textbf{phastcons$>$CDS$>$genes} &            sparse &          CEU &                        \textbf{61.98} &             63.02 &            60.02 &                                 2.0194 &                                0.3036 \\
-phastcons$>$CDS$>$genes &              full &          CEU &                        61.78 &             63.01 &            58.57 &                                 2.3499 &                                0.1679 \\
-               CADD 6\% &              full &          CEU &                        61.74 &             62.94 &            57.42 &                                 1.5365 &                                0.1739 \\
-               CADD 6\% &            sparse &          CEU &                        61.66 &             62.86 &            62.84 &                                 2.1215 &                                2.1084 \\
-               CADD 8\% &              full &          CEU &                        60.80 &             62.12 &            57.95 &                                 1.1572 &                                0.1742 \\
-               CADD 8\% &            sparse &          CEU &                        60.59 &             62.06 &            62.04 &                                 1.6030 &                                1.5876 \\
-               CADD 6\% &              full &          CHB &                        59.62 &             61.31 &            55.31 &                                 1.5083 &                                0.1727 \\
-               CADD 6\% &            sparse &          CHB &                        59.54 &             61.21 &            61.20 &                                 2.1242 &                                2.1170 \\
-               \textbf{phastcons$>$CDS$>$genes} &            sparse &          CHB &                        \textbf{59.44} &             61.08 &            57.88 &                                 2.1982 &                                0.3060 \\
-phastcons$>$CDS$>$genes &              full &          CHB &                        59.29 &             61.08 &            56.71 &                                 2.5573 &                                0.1694 \\
-               CADD 8\% &              full &          CHB &                        58.88 &             60.63 &            55.86 &                                 1.1128 &                                0.1733 \\
-               CADD 8\% &            sparse &          CHB &                        58.65 &             60.57 &            60.55 &                                 1.6098 &                                1.6001 \\
-CDS$>$genes$>$phastcons &            sparse &          CEU &                        58.58 &             60.30 &            58.41 &                                 4.1041 &                                0.3110 \\
-CDS$>$genes$>$phastcons &              full &          CEU &                        58.58 &             60.30 &            56.75 &                                 4.1001 &                                0.1648 \\
-CDS$>$genes$>$phastcons &            sparse &          CHB &                        56.48 &             58.73 &            56.60 &                                 3.7195 &                                0.3136 \\
-CDS$>$genes$>$phastcons &              full &          CHB &                        56.48 &             58.73 &            54.95 &                                 3.7552 &                                0.1654 \\
+PhastCons Priority &            sparse &          YRI &                        68.45 &             68.16 &            65.23 &                                 1.8636 &                                0.2975 \\
+PhastCons Priority &              full &          YRI &                        68.19 &             68.12 &            63.67 &                                 1.7082 &                                0.1666 \\
+          CADD 6\% &              full &          YRI &                        68.08 &             68.08 &            62.96 &                                 1.4612 &                                0.1721 \\
+          CADD 6\% &            sparse &          YRI &                        68.04 &             68.03 &            68.01 &                                 2.0912 &                                2.0716 \\
+          CADD 8\% &              full &          YRI &                        66.98 &             67.11 &            63.61 &                                 1.0126 &                                0.1713 \\
+          CADD 8\% &            sparse &          YRI &                        66.67 &             67.01 &            66.98 &                                 1.5688 &                                1.5473 \\
+  Feature Priority &              full &          YRI &                        64.90 &             65.51 &            61.23 &                                 4.1951 &                                0.1620 \\
+  Feature Priority &            sparse &          YRI &                        64.90 &             65.51 &            63.16 &                                 4.1795 &                                0.3070 \\
+PhastCons Priority &            sparse &          CEU &                        61.98 &             63.02 &            60.02 &                                 2.0194 &                                0.3036 \\
+PhastCons Priority &              full &          CEU &                        61.78 &             63.01 &            58.57 &                                 2.3499 &                                0.1679 \\
+          CADD 6\% &              full &          CEU &                        61.74 &             62.94 &            57.42 &                                 1.5365 &                                0.1739 \\
+          CADD 6\% &            sparse &          CEU &                        61.66 &             62.86 &            62.84 &                                 2.1215 &                                2.1084 \\
+          CADD 8\% &              full &          CEU &                        60.80 &             62.12 &            57.95 &                                 1.1572 &                                0.1742 \\
+          CADD 8\% &            sparse &          CEU &                        60.59 &             62.06 &            62.04 &                                 1.6030 &                                1.5876 \\
+          CADD 6\% &              full &          CHB &                        59.62 &             61.31 &            55.31 &                                 1.5083 &                                0.1727 \\
+          CADD 6\% &            sparse &          CHB &                        59.54 &             61.21 &            61.20 &                                 2.1242 &                                2.1170 \\
+PhastCons Priority &            sparse &          CHB &                        59.44 &             61.08 &            57.88 &                                 5.8874 &                                0.3060 \\
+PhastCons Priority &              full &          CHB &                        59.29 &             61.08 &            56.71 &                                 2.5573 &                                0.1694 \\
+          CADD 8\% &              full &          CHB &                        58.88 &             60.63 &            55.86 &                                 1.1128 &                                0.1733 \\
+          CADD 8\% &            sparse &          CHB &                        58.65 &             60.57 &            60.55 &                                 1.6098 &                                1.6001 \\
+  Feature Priority &            sparse &          CEU &                        58.58 &             60.30 &            58.41 &                                 4.1041 &                                0.3110 \\
+  Feature Priority &              full &          CEU &                        58.58 &             60.30 &            56.75 &                                 4.1001 &                                0.1648 \\
+  Feature Priority &            sparse &          CHB &                        56.48 &             58.73 &            56.60 &                                 3.7195 &                                0.3136 \\
+  Feature Priority &              full &          CHB &                        56.48 &             58.73 &            54.95 &                                 3.7552 &                                0.1654 \\
 \hline
-\hline
-\emph{constrained DFE grid} & & & & & & \\
-\hline
-\textbf{phastcons$>$CDS$>$genes}  &              full &          YRI &               \textbf{67.27} &             67.36 &             &                                 2.0333 &                                \\
-               CADD 6\%  &            sparse &          YRI &                        66.66 &             66.81 &             &                                 1.6565 &                                \\
-               CADD 6\%  &              full &          YRI &                        66.50 &             66.68 &             &                                 1.5556 &                                \\
-CDS$>$genes$>$phastcons  &              full &          YRI &                        63.61 &             64.28 &             &                                 3.3493 &                                \\
-\textbf{phastcons$>$CDS$>$genes}  &              full &          CEU &               \textbf{61.04} &             62.25 &             &                                 1.9128 &                                \\
-               CADD 6\%  &            sparse &          CEU &                        60.37 &             61.80 &             &                                 1.6797 &                                \\
-               CADD 6\%  &              full &          CEU &                        60.24 &             61.77 &             &                                 1.6347 &                                \\
-               \textbf{phastcons$>$CDS$>$genes}  &     full &          CHB &                        \textbf{58.76} &             60.45 &             &                                 1.8691 &                                \\
-               CADD 6\%  &            sparse &          CHB &                        58.67 &             60.49 &             &                                 1.7454 &                                \\
-               CADD 6\%  &              full &          CHB &                        58.48 &             60.40 &             &                                 1.5981 &                                \\
-CDS$>$genes$>$phastcons  &              full &          CEU &                        57.24 &             59.11 &             &                                 3.0461 &                                \\
-CDS$>$genes$>$phastcons  &              full &          CHB &                        55.63 &             57.88 &             &                                 3.1723 &                                \\
 \end{tabular}
 \end{table}
 
