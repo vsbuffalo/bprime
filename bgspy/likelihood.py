@@ -753,7 +753,7 @@ class BGSLikelihood:
     def ave_B(self):
         return self.predict(B=True).mean()
 
-    def jackknife_stderr(self, use_loo_chrom=False, trim=None, iqr_factor=2):
+    def jackknife_stderr(self, use_loo_chrom=False, trim=None, iqr_factor=3):
         """
         Calculate the jackknife standard errors.
         """
