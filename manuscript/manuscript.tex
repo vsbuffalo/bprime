@@ -205,7 +205,7 @@ rescaling the neutral coalescent with an effective population size of $N_0 = N
 \exp(-\nicefrac{U}{s})$
 \parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1994-oh}.
 This approximation works well for two reasons (though see
-\cite{Cvijovic2018-vd,Walczak2012-fi,Nicolaisen2012-vs}). First, he number of
+\cite{Cvijovic2018-vd,Walczak2012-fi,Nicolaisen2012-vs}). First, the number of
 mutations per haplotype has has a stationary Poisson distribution with an
 average equal to the deterministic mutation-selection equilibrium
 \parencite{Haldane1927-ga}. Second, the time it takes for a present-day lineage
@@ -224,14 +224,14 @@ genetic drift, the perturbations due to draft are directionless but overall
 increase the variance in allele frequency change. Unlike drift, the impact of
 the stochastic perturbations due to draft are autocorrelated and build up over
 generations until the fitness background recombines off
-\parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. While draft can
-generate multiple-merger coalescences that create discontinuities in allele
-frequency trajectories, making diffusion approximations ill-suited
+\parencite{Robertson1961-ho,Santiago1995-hx,Buffalo2019-qs}. The stochastic
+perturbations due to selection also impact selected sites, and alter their
+dynamics, creating Hill--Robertson interference \parencite{Hill1966-kd}. Strong
+draft can generate multiple-merger coalescences that create discontinuities in
+allele frequency trajectories, making diffusion approximations ill-suited
 \parencite{Gillespie2000-mh,Der2011-it,Neher2013-dz}. However, when selection
 is weak, draft is well-approximated as an increase in the rate of drift (or
-equivalently, a reduction in effective population size). The stochastic
-perturbations between selecting sites creates Hill--Robertson interference
-\parencite{Hill1966-kd}.
+equivalently, a reduction in effective population size).
 
 The stochastic perturbations from genetic drift and draft impact both
 genealogies and selection dynamics in complex ways, which has made finding
@@ -256,51 +256,31 @@ rate of Muller's ratchet is another difficult, open problem
 \parencite{Haigh1978-gt,Gordo2002-dr,Gessler1995-hz} related to Hill--Robertson
 interference \parencite{Felsenstein1974-xm}.
 
-A recent model from \textcite{Santiago2016-mu} addresses these limitations by
-formulating the negative selection process in terms of the equilibrium fitness
-variance $V_A$ under mutation, drift, and draft. 
-
-
-Since their earlier work has
-related the additive fitness variance in a region to the draft-effective
-population experienced by a neutral allele arbitrarily far away
-\parencite{Santiago1998-bs}, this can be 
-
-HERE
-
-that derives the effective population
-size experienced by a neutral allele when there is heritable fitness in the
-population. This theory is in essence a model for the magnitude of stochastic
-perturbations (what we think of as a \emph{draft-effective} population size)
-when heritable fitness variation generates weak genetic draft. As mentioned,
-perturbations due to draft are autocorrelated through time; at the individual
-level Robertson considered, this is because offspring from large families tend
-to beget many descendents themselves (and likewise with small families).
-However, the same autocorrelation occurs at the genomic level with linkage
-\parencite{Santiago1998-bs}, as the perturbations to a neutral allele's
-trajectory from its particular fitness background tend to occur in the same
-direction across generations until recombination.
-
-The benefit of this quantitative genetics formulation of linked selection is
-two-fold. First, as we will see, Santiago and Caballero's
-(\citeyear{Santiago2016-mu}) model for the additive fitness variance under both
-strong and weak negative selection is quite accurate. Second, these models of
-linked selection can 
-They do this through 
-
-
-Thus, the total additional
-heritable variation in offspring number is the product of the equilibrium
-additive fitness variation $V_A$ in a generation and an inflation factor
-$Q_t^2$ due to the build up of autocorrelation to generation $t$. We let $Q^2
-:= Q_t^2$ as $t \to \infty$. Intuitively, the product $V_A Q^2$ represents the
+Our work extends theory from \textcite{Santiago2016-mu}, which suggests both
+strong and weak negative selection can be be accommodated with a quantitative
+genetic model of linked selection. These linked selection models stem from
+\textcite{Robertson1961-ho}, which in essence describes how heritable polygenic
+fitness variation generates weak genetic draft. At the individual level
+Robertson considered, selection generates autocorrelation as offspring from
+large families tend to beget many descendents themselves (and likewise with
+small families) when fitness is heritable. This same autocorrelation occurs at
+the genomic level with linkage \parencite{Santiago1998-bs,Barton2000-zg}, as
+the perturbations to a neutral allele's trajectory from its particular fitness
+background tend to occur in the same direction across generations until the
+background recombines off. These models quantify the total impact of the
+autocorrelation generated by weak draft in terms of what we think of as a
+\emph{draft-effective} population size $N_d$. The key insight is that in the
+long-run, steady, weak draft created by the presence of additive genetic
+fitness variance $V_A > 0$ acts like an extra variance in offspring number
+would under pure drift \parencite{Wright1938-tv}. However, due to
+autocorrelation, the cumulative effect of this fitness variance is inflated by
+by a factor of $Q^2$. Intuitively, the product $V_A Q^2$ represents the
 expected total variance in reproductive success a neutral mutation experiences
 over its lifetime in a system with weak selection draft. 
 
-We can include this total additional variance into expressions for effective
-population size as we would larger variance in family sizes due to
-non-heritable causes \parencite{Wright1938-tv}. We define the draft-effective
-population size $N_d$ as
+We define the draft-effective population size $N_d$ by including the total
+additional variance created by heritable fitness in Wright's
+(\citeyear{Wright1938-tv}) equation,
 
 \begin{align}
     \label{eq:main_Ne}
