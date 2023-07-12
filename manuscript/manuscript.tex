@@ -566,7 +566,7 @@ Section \ref{supp:theory}).
 Simulations}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_2.pdf} 
+    \includegraphics[width=0.8\textwidth]{figures/figure_2.pdf} 
     \caption{Comparison of parameter estimates using classic BGS theory (green
         lines) with our new B' method (blue lines) across both full and sparse
         track types (dark versus light hue), and different mutation rates
@@ -708,52 +708,50 @@ as well (Figure \ref{fig:figure-2}A), consistent with recent work using classic
 BGS theory \parencite{Murphy2022-sj}. However, we find that our models predict
 out-sample diversity levels slightly better than previous methods. For these
 two models, we find that our B' method predicts $R_\text{LOCO}^2=67.3$\% and
-$R_\text{LOCO}^2=68.7$\% of the out-sample variance in Yoruba pairwise
+$R_\text{LOCO}^2=66.7$\% of the out-sample variance in Yoruba pairwise
 diversity at the megabase-scale, respectively. By contrast, the best-fitting
 CADD 6\% model from \textcite{Murphy2022-sj} explained 60\% of diversity in
 left-out 2 Mbp windows across YRI samples. We note that this difference could
-be explained by other differences in data processing, optimization, etc.
+be explained by other differences in data processing, optimization, etc. For
+populations impacted by the out-of-Africa bottleneck, the goodness-of-fit was
+lower across all models (e.g. 61.0\% and 58.8\% for CEU and CHB respectively in
+the PhastCons Priority model).
 
-In populations impacted by the out-of-Africa bottleneck, the goodness-of-fit
-was lower across all models (e.g. 60.4\% and 58.7\% for CEU and CHB
-respectively in the CADD 6\% model). 
-
-
-Our PhastCons Priority model fits
-marginally better than the CADD 6\% model consistently across all three
-populations (Supplementary Table \ref{supp:tbl-r2}). This is likely because the
-PhastCons Priority model has more DFE parameters, and thus can fit finer-scale
-differences among the four feature types. By contrast, the CADD 6\% track must
-fit patterns of diversity to conserved sites under a single DFE. The CADD 8\%
-model fit slightly worse than the CADD 6\% across all populations, and the
-Feature Priority model had the poorest-fit.
+Our PhastCons Priority model fits marginally better than the CADD 6\% model
+consistently across all three populations (Supplementary Table
+\ref{supp:tbl-r2}). This is likely because the PhastCons Priority model has
+more DFE parameters, and thus can fit finer-scale differences among the four
+feature types. By contrast, the CADD 6\% track must fit patterns of diversity
+to conserved sites under a single DFE. The CADD 8\% model fit slightly worse
+than the CADD 6\% across all populations, and the Feature Priority model had
+the poorest-fit.
 
 Since our method is built upon theory that fixes the weak selection problem of
 classic BGS theory, it should in principle fit equally well when an annotation
 model includes regions that are under no selective constraint and thus
 neutrally evolving. To test this, for each of our annotation models (which are
 ``sparse") we fit a corresponding ``full" model that assigns the remaining
-complement of the genome to a feature called ``other" that contains most of the
-genome. Ideally, how a model fits using our B' method should be invariant to
-whether an annotation model is sparse or full, since our method in principle
-can accommodate weak selection and neutrality. Indeed, we find this to be the
-case: both in-sample $R^2$ and out-sample $R_\text{LOCO}^2$ values are nearly
-identical across full and sparse-track models (Figures \ref{fig:figure-2}A and
-\ref{fig:figure-2}B, round points). 
+portion of the genome to a feature called ``other". Ideally, how a model fits
+using our B' method should be invariant to whether an annotation model is
+sparse or full, since our method in principle can accommodate weak selection
+and neutrality. Indeed, we find this to be the case: both in-sample $R^2$ and
+out-sample $R_\text{LOCO}^2$ values are nearly identical across full and
+sparse-track models (Figures \ref{fig:figure-2}A and \ref{fig:figure-2}B, round
+points). 
 
-By contrast, full annotation models fit poorly under classic BGS theory (Figure
-\ref{fig:figure-2}B, diamond-shaped points) and lead to unreasonable parameter
-estimates (discussed in Section XXX). Additionally, when sparse annotation
-models contain genomic features that are likely under weak constraint (such as
-introns and UTRs), models fit worse under classic BGS theory than our B' method
-(Figure \ref{fig:figure-2}A). However, among the CADD annotation models, the
-goodness-of-fit is nearly identical between B' and classic BGS methods. This
-behavior is what we would expect given that the CADD models contain only the
-most pathogenic sites, which are \emph{a priori} very likely under the strong
-selection domain under which B' and classic BGS theory agree.
+By contrast, full annotation models fit poorly under classic BGS theory, and
+lead to unreasonable parameter estimates (discussed in Section XXX).
+Additionally, when sparse annotation models contain genomic features that are
+likely under weak constraint (such as introns and UTRs), models fit worse under
+classic BGS theory than our B' method (Figure \ref{fig:figure-2}A). However,
+among the CADD annotation models, the goodness-of-fit is nearly identical
+between B' and classic BGS methods. This behavior is what we would expect given
+that the CADD models contain only the most pathogenic sites, which are \emph{a
+priori} very likely under the strong selection domain under which B' and
+classic BGS theory agree.
 
 Overall, our $R_\text{LOCO}^2$ estimates suggest our negative selection model
-explains up to 68\% of out-sample variance in diversity of the megabase scale,
+explains up to 67\% of out-sample variance in diversity of the megabase scale,
 even though our method assumes constant demography and homogeneous mutation
 rates along the genome. A worthwhile question is: how much variation
 \emph{could} we expect to fit at this scale? Given that selection alters
@@ -771,20 +769,21 @@ population size implies; our $R_\text{coal}^2$ would be an underestimate under
 selection.
 
 We find that our out-sample $R_\text{LOCO}^2$ for the Yoruba samples
-($R_\text{LOCO}^2 \approx 68$\%) is slightly above the theoretic
-$R_\text{coal}^2 \approx 67$\%. This suggests our model is close to the
-vicinity of fitting all the signal possible, under the coalescence-only noise
-assumption. By contrast, for bottlenecked out-of-Africa populations, we find a
-larger discrepancy between $R_\text{coal}^2$ and observed out-sample
-$R_\text{LOCO}^2$. The theoretic $R_\text{coal}^2 \approx 64$\% for both
-populations, compared to the observed $R_\text{LOCO}^2 \approx 62$\% for CEU
-and $R_\text{LOCO}^2 \approx 59$\% for CHB. Given that bottlenecks would act to
-increase the residual variance in coalescence times beyond the level implied by
-the effective population size, the gap would likely shrink under more realistic
-models or simulation-based approximations for $R_\text{coal}^2$. Overall, this
-suggests that negative selection models explain the vast majority coalescence
-time variation at the megabase-scale that is capable of being explained (i.e.
-that is not coalescence noise).
+($R_\text{LOCO}^2 \approx 67$\%) is slightly above the theoretic
+$R_\text{coal}^2 \approx 66.6$\%. This suggests our model is in the vicinity of
+fitting all the signal possible, under the coalescence-only noise assumption.
+By contrast, for bottlenecked out-of-Africa populations, we find a larger
+discrepancy between $R_\text{coal}^2$ and observed out-sample
+$R_\text{LOCO}^2$. The theoretic $R_\text{coal}^2 \approx 63\%-64$\% for both
+populations, compared to the observed $R_\text{LOCO}^2 \approx 61$\% for CEU
+and $R_\text{LOCO}^2 \approx 59$\% for CHB under the PhastCons Priority model.
+Given that bottlenecks would act to increase the residual variance in
+coalescence times beyond the level implied by the effective population size,
+this gap would likely shrink under more realistic models or simulation-based
+approximations for $R_\text{coal}^2$. Overall, this suggests that negative
+selection models explain the vast majority coalescence time variation at the
+megabase-scale that is capable of being explained (i.e. that is not coalescence
+noise).
 
 \subsection*{Estimated Distribution of Fitness Effects}
 
@@ -799,32 +798,52 @@ that is not coalescence noise).
   \label{fig:figure-3}
 \end{figure}
 
-Our composite likelihood method has three sets of parameters: expected
+Our composite likelihood method has three sets of parameters: the expected
 diversity in the absence of linked selection diversity $\pi_0$, the mutation
 rate $\mu$, and the matrix of distribution of fitness effects $\mathbf{W}$
 across the selection grid for each of the $K$ feature types. Given that the
 relationship between $\pi$ and the strength selection is U-shaped, we wondered
-whether the linked selection signal in humans could fit under a weak selection
-regime.
+whether our new B' model accommodating weak selection could fit the linked
+selection signal under a different combination of weak and strong selection
+parameters than found by previous work.
 
 However, across all of our annotation models, new deleterious mutations in
-conserved feature classes were consistently estimated to have strongly
-deleterious effects (Figure \ref{fig:figure-3}A), consistent with previous work
-\parencite{McVicker2009-ax,Murphy2022-sj}. This includes features such as
-coding sequences, PhastCons regions, or the top 6\% of basepairs with the most
-pathogenic CADD scores. 
+conserved feature classes (CADD tracks, CDS, and PhastCons regions) were
+consistently estimated to have strongly deleterious effects (Figure
+\ref{fig:figure-4}A), consistent with previous work
+\parencite{McVicker2009-ax,Murphy2022-sj}. The DFE estimates for CADD and
+PhastCons regions consistently places $\ge 75\%$ of mass on the largest
+selection coefficient, $s=10^{-2}$. The CADD 6\% DFE estimates imply an average
+selection coefficient of $\bar{s} = 0.65\%$ for CEU, $\bar{s} = 0.57\%$ for
+CHB, and $\bar{s} = 0.79\%$ for YRI. Similarly, the PhastCons Priority model
+implies average selection coefficient estimates of $\bar{s} = 0.63\%$, $\bar{s}
+= 0.58\%$, and $\bar{s}= 0.77\%$ for CEU, CHB, and YRI respectively for
+PhastCons regions. 
+
+Following previous work, our method used a grid of selection coefficients up to
+$s=10^{-2}$. However, we also experimented with a strong selection grid that
+includes $s=10^{-1}$. We find that models fit with the strong selection grid
+had $R_\text{LOCO}^2$ that were about one percentage point higher, which is
+suggestive of stronger selection than has previously been estimated using
+constrained grids (see Supplementary Materials Table
+\ref{supp:tbl-r2-strongsel}). For this strong selection grid, we estimate
+average selection coefficients for the CADD 6\% model of $\bar{s} = 4.3\%$ for
+CEU, $3.2\%$ for CHB, and $4.4\%$ for YRI. Thus, across different selection
+coefficient grids, there is considerable uncertainty in the average strength of
+selection against deleterious mutations in conserved regions.
+
+However, across the strong selection grid runs, 
 
 
-
-However, we find that there is considerable uncertainty
-in how strong selection is against the most deleterious mutations. For example,
-in the CADD 6\% full-track model, new mutations are estimated to have a
-selection coefficients of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with
-7.8\% chance, and $s=10^{-3}$ with 41\% chance. This creates a bimodal DFE
-(Figure \ref{fig:figure-3}A, second row, left column), which is mirrored across
-the other CADD models. Moreover, these DFE estimates suggest a very high
-average selection coefficient across CADD 6\% regions of ${\bar{s}}
-\approx 0.043$ for YRI.
+However, we find that there is considerable uncertainty in how strong selection
+is against the most deleterious mutations. For example, in the CADD 6\%
+full-track model, new mutations are estimated to have a selection coefficients
+of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with 7.8\% chance, and
+$s=10^{-3}$ with 41\% chance. This creates a bimodal DFE (Figure
+\ref{fig:figure-3}A, second row, left column), which is mirrored across the
+other CADD models. Moreover, these DFE estimates suggest a very high average
+selection coefficient across CADD 6\% regions of ${\bar{s}} \approx 0.043$ for
+YRI.
 
 Given that previous methods have typically not estimated the DFE up to
 selection coefficients of $s=10^{-1}$, we ran additional ``constrained grid"
@@ -888,8 +907,14 @@ absorbed by the PhastCons feature, leaving only conditionally neutral sites.
 
 \begin{figure}[htbp] 
     \centering
-    \includegraphics[width=\textwidth]{figures/figure_5.pdf} 
-    \caption{(A) }
+    \includegraphics[width=0.5\textwidth]{figures/figure_5.pdf} 
+    
+    \caption{Mutation rate estimates across sparse track (top row) and
+        full-coverage track (bottom row) models, for the new B' (circles) and
+        classic BGS (diamonds) methods. Estimates of the mutation rate are
+        consistent between classic BGS and B' methods for sparse tracks CADD
+        models (overlapping diamonds and circles, top row). Overall, mutation
+        rate estimates are sensitive to the underlying annotation model.}
   \label{fig:figure-4}
 \end{figure}
 
