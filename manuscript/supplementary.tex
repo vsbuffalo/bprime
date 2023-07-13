@@ -625,7 +625,7 @@ assumes additive genetic fitness is equal to the additive genic fitness (which
 excludes the contribution of covariance between selected sites), 
 
 \begin{align}
-  \label{eq:va_bgs}
+  \label{supp-eq:va_bgs}
   V_\text{BGS} &:= \V(w) = 2 s^2 \sum_{l=1}^L p_l(1-p_l) \nonumber  \\
             &= 2 L s^2 \frac{\mu}{s} \left( 1 - \frac{\mu}{s}\right) = U s + \mathcal{O}(\mu^2) \approx Us.
 \end{align}
@@ -1358,7 +1358,8 @@ CADD 8\%: 8.56\% of autosomal sequence.
 \centering
 
 \caption{$R^2$ and mutation rate estimates for all primary models fit on the
-    default DFE grid (up to selection $s=10^{-1}$).}
+default DFE grid (up to selection $s=10^{-1}$). $R_\text{IS}^2$ is the
+in-sample $R^2$, and $R_\text{LOCO}^2$ is the leave-one-chromosome-out $R^2$.}
 
 \begin{tabular}{lll|crr|cc}
     \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
@@ -1387,17 +1388,21 @@ PhastCons Priority &              full &          CHB &                        5
   Feature Priority &            sparse &          CEU &                        57.24 &             59.11 &            56.35 &                                 3.0442 &                                0.2313 \\
   Feature Priority &              full &          CEU &                        57.14 &             59.11 &            52.21 &                                 3.0441 &                                0.1004 \\
   Feature Priority &            sparse &          CHB &                        56.00 &             57.88 &            54.76 &                                 3.1722 &                                0.2362 \\
-  Feature Priority &              full &          CHB &                        55.63 &             57.88 &            51.39 &
+  Feature Priority &              full &          CHB &                        55.63 &             57.88 &            51.39 &                                 3.1722 &                                0.1056 \\
 \end{tabular}
 \end{table}
 
 \begin{table}
     \label{supp:tbl-r2-strongsel}
 \centering
-\caption{$R^2$ and mutation rate estimates for all primary models fit 
-    with the strong selection grid (up to $s=10^{-1}$). Note that the repeated values in the last rows are
-    correct and due to rounding; see \path{notebooks/main_fits.ipynb} in the
-    GitHub repository for more information.}
+
+\caption{$R^2$ and mutation rate estimates for all primary models fit with the
+    strong selection grid (up to $s=10^{-1}$). Note that the repeated values in
+    the last rows are correct and due to rounding; see
+    \path{notebooks/main_fits.ipynb} in the GitHub repository for more
+information. $R_\text{IS}^2$ is the in-sample $R^2$, and $R_\text{LOCO}^2$ is
+the leave-one-chromosome-out $R^2$. }
+
 \begin{tabular}{lll|crr|cc}
     \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
 \hline
@@ -1927,30 +1932,30 @@ estimated DFEs, across both default and constrained grids.
 \hline
 Annotation Model &  Population &    Feature &   ${\bar{s}}$ (default grid) & ${\bar{s}}$ (constrained grid) \\
 \hline
- PhastCons Priority &  CEU &        CDS &  0.100000 &  0.000000 \\
- PhastCons Priority &  CEU &       gene &  0.005308 &  0.000226 \\
- PhastCons Priority &  CEU &  PhastCons &  0.008076 &  0.006275 \\
- PhastCons Priority &  CHB &        CDS &  0.100000 &  0.000000 \\
- PhastCons Priority &  CHB &       gene &  0.004896 &  0.000296 \\
- PhastCons Priority &  CHB &  PhastCons &  0.001327 &  0.005886 \\
- PhastCons Priority &  YRI &        CDS &  0.000000 &  0.000000 \\
- PhastCons Priority &  YRI &       gene &  0.005556 &  0.000160 \\
- PhastCons Priority &  YRI &  PhastCons &  0.028642 &  0.007575 \\
-   Feature Priority &  CEU &        CDS &  0.075041 &  0.005281 \\
-   Feature Priority &  CEU &       gene &  0.001654 &  0.000315 \\
-   Feature Priority &  CEU &  PhastCons &  0.069563 &  0.008767 \\
-   Feature Priority &  CHB &        CDS &  0.074797 &  0.005211 \\
-   Feature Priority &  CHB &       gene &  0.001974 &  0.000271 \\
-   Feature Priority &  CHB &  PhastCons &  0.051988 &  0.008507 \\
-   Feature Priority &  YRI &        CDS &  0.054503 &  0.001576 \\
-   Feature Priority &  YRI &       gene &  0.001912 &  0.000336 \\
-   Feature Priority &  YRI &  PhastCons &  0.055153 &  0.009369 \\
-            CADD 6\% &  CEU &      CADD 6\% &  0.042458 &  0.006500 \\
-            CADD 6\% &  CHB &      CADD 6\% &  0.031565 &  0.005733 \\
-            CADD 6\% &  YRI &      CADD 6\% &  0.043671 &  0.007926 \\
-            CADD 8\% &  CEU &      CADD 8\% &  0.041254 &       - \\
-            CADD 8\% &  CHB &      CADD 8\% &  0.029052 &       - \\
-            CADD 8\% &  YRI &      CADD 8\% &  0.046212 &       - \\
+PhastCons Priority & CEU &       CDS &         0.100000 &       0.000000 \\
+PhastCons Priority & CEU &      gene &         0.005308 &       0.000226 \\
+PhastCons Priority & CEU & phastcons &         0.008076 &       0.006278 \\
+PhastCons Priority & CHB &       CDS &         0.100000 &       0.000000 \\
+PhastCons Priority & CHB &      gene &         0.004896 &       0.000296 \\
+PhastCons Priority & CHB & phastcons &         0.001327 &       0.005887 \\
+PhastCons Priority & YRI &       CDS &         0.000000 &       0.000000 \\
+PhastCons Priority & YRI &      gene &         0.005556 &       0.000163 \\
+PhastCons Priority & YRI & phastcons &         0.028642 &       0.007687 \\
+  Feature Priority & CEU &       CDS &         0.075041 &       0.005284 \\
+  Feature Priority & CEU &      gene &         0.001654 &       0.000315 \\
+  Feature Priority & CEU & phastcons &         0.069563 &       0.008772 \\
+  Feature Priority & CHB &       CDS &         0.074797 &       0.005211 \\
+  Feature Priority & CHB &      gene &         0.001974 &       0.000271 \\
+  Feature Priority & CHB & phastcons &         0.051988 &       0.008507 \\
+  Feature Priority & YRI &       CDS &         0.054503 &       0.001576 \\
+  Feature Priority & YRI &      gene &         0.001912 &       0.000336 \\
+  Feature Priority & YRI & phastcons &         0.055153 &       0.009370 \\
+           CADD 6\% & CEU &     cadd6 &         0.042458 &       0.006500 \\
+           CADD 6\% & CHB &     cadd6 &         0.031565 &       0.005733 \\
+           CADD 6\% & YRI &     cadd6 &         0.043671 &       0.007926 \\
+           CADD 8\% & CEU &     cadd8 &         0.041254 &       0.006017 \\
+           CADD 8\% & CHB &     cadd8 &         0.029052 &       0.005068 \\
+           CADD 8\% & YRI &     cadd8 &         0.046212 &       0.007543 \\
 \hline
 \end{tabular}
 
@@ -1963,6 +1968,18 @@ Annotation Model &  Population &    Feature &   ${\bar{s}}$ (default grid) & ${\
   \caption{Residuals from the CADD 6\% sparse track plotted against the fraction of
   basepairs in a window annotated by a CADD region.}
 \end{figure}
+
+\begin{figure}[htbp]
+  \label{suppfig:resid-sweeps}
+  \centering
+  \includegraphics[width=0.6\textwidth]{figures/supplementary/sweep_residuals.pdf}
+
+  \caption{The distributions of residuals in windows containing hard or soft
+  sweeps (blue) and not containing sweeps (orange) found by
+\parencite{Schrider2017-yx}.}
+
+\end{figure}
+
 
 \begin{figure}[htbp]
   \label{suppfig:resid-b}
