@@ -789,12 +789,15 @@ noise).
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
+
     \caption{The distribution of fitness effects of new mutations estimates for
-        Yoruba individuals. (A) The DFEs using sparse (left column) and
+        YRI reference samples. (A) The DFEs using sparse (left column) and
         full-coverage (right column) tracks, across different annotation models
         (row). Color indicates the feature type. (B) The DFE of the
-        full-coverage CDS-priority model comparing the estimates across
-    populations.}
+    full-coverage Feature Priority model comparing the estimates across
+populations. Although this model fit the data less well than alternatives, its
+results are more interpretable.}
+
   \label{fig:figure-3}
 \end{figure}
 
@@ -818,7 +821,9 @@ selection coefficient of $\bar{s} = 0.65\%$ for CEU, $\bar{s} = 0.57\%$ for
 CHB, and $\bar{s} = 0.79\%$ for YRI. Similarly, the PhastCons Priority model
 implies average selection coefficient estimates of $\bar{s} = 0.63\%$, $\bar{s}
 = 0.58\%$, and $\bar{s}= 0.77\%$ for CEU, CHB, and YRI respectively for
-PhastCons regions. 
+PhastCons regions. Our DFE estimates for the Feature Priority model are
+qualitatively consistent with the U-shaped DFEs found for amino acids through
+Poisson Random Field method \parencite{Boyko2008-tj}.
 
 Following previous work, our method used a grid of selection coefficients up to
 $s=10^{-2}$. However, we also experimented with a strong selection grid that
@@ -832,72 +837,56 @@ CEU, $3.2\%$ for CHB, and $4.4\%$ for YRI. Thus, across different selection
 coefficient grids, there is considerable uncertainty in the average strength of
 selection against deleterious mutations in conserved regions.
 
-However, across the strong selection grid runs, 
-
-
-However, we find that there is considerable uncertainty in how strong selection
-is against the most deleterious mutations. For example, in the CADD 6\%
-full-track model, new mutations are estimated to have a selection coefficients
-of $s = 10^{-1}$ with 42\% chance, $s=10^{-2}$ with 7.8\% chance, and
-$s=10^{-3}$ with 41\% chance. This creates a bimodal DFE (Figure
-\ref{fig:figure-3}A, second row, left column), which is mirrored across the
-other CADD models. Moreover, these DFE estimates suggest a very high average
-selection coefficient across CADD 6\% regions of ${\bar{s}} \approx 0.043$ for
-YRI.
-
-Given that previous methods have typically not estimated the DFE up to
-selection coefficients of $s=10^{-1}$, we ran additional ``constrained grid"
-models using a DFE only up to $s=10^{-2}$. Across all populations, these
-constrained grid models fit the data slightly less well than the default grid
-by about one percentage point less in $R_\text{LOCO}^2$ (see Supplementary
-Table \ref{supp:tbl-r2}). As expected, the constrained grid models distributed
-mass onto the next strongest selection coefficient, $s=10^{-2}$, and the
-average selection was reduced about six-fold to ${\bar{s}} \approx 0.0079$ for
-YRI. Our constrained-grid DFE estimates for the Feature Priority model are
-qualitatively consistent with the U-shaped DFEs found for amino acids through
-Poisson Random Field method \parencite{Boyko2008-tj}. While the DFE may truly
-be bimodal for highly-conserved regions and have a very high average selection
-coefficient, a likely alternative is that these results reflect a
-non-identifiability issue between selective effects of $s=10^{-1}$ and
-$s=10^{-2}$. We will refer to this as the \emph{strong-selection
-non-identifiability} issue.
-
-We propose that one mechanism for this non-identifiability is that mutations
-extremely harmful to fitness are difficult to distinguish from a smaller
-effective population. Intuitively, as $s$ increases, the average persistence
-time (in generations) of the mutation in the population goes below one
-generation, i.e. death of the carrier of the \emph{de novo} mutation. In this
-hypothetical limit, each occurrence of a very harmful mutation nearly acts like
-an instantaneous death that in effect is just a smaller population size. One
-way to test this hypothesis is to look to see if there is a systematic positive
+However, across the strong selection grid runs, we find indications of model
+non-identifiability. First, estimates of the DFE with the strong grid are
+strangely bimodal (Supplementary Figure \ref{suppfig:strong-sel-dfe}). For
+example, under the CADD 6\% strong selection grid model, new mutations are
+estimated to have a selection coefficients of $s = 10^{-1}$ with 43\% chance,
+$s=10^{-2}$ with 7.8\% chance, and $s=10^{-3}$ with 41\% chance. We propose
+that one mechanism for this non-identifiability is that mutations extremely
+harmful to fitness are difficult to distinguish from a smaller effective
+population. Intuitively, as $s$ increases, the average persistence time (in
+generations) of the mutation in the population goes below one generation, i.e.
+death of the carrier of the \emph{de novo} mutation. In this hypothetical
+limit, each occurrence of a very harmful mutation nearly acts like an
+instantaneous death that in effect is just a smaller population size. One way
+to test this hypothesis is to look to see if there is a systematic positive
 relationship across models between average selection coefficient and $\pi_0$,
 which is includes the drift-effective population size $N_e$.
 
 We find this is the case for all of our CADD 6\% models. Across every
 population, average selection was about $7.1$ times larger using the default
-grid, and $\pi_0$ was $5.6\%$ larger. There was no similar consistent change in
-mutation rate estimates among populations. In the CADD 6\% model, genome-wide
-average reduction factor $\bar{B}$ was $\approx 6.1\%$ lower in the default
-versus constrained grid. Overall, this suggests that the linked selection
-signal alone cannot differentiate very strong selection from a slightly smaller
+grid, and $\pi_0$ was $5.6\%$ larger (see Supplementary Materials Figure
+\ref{suppfig:sel-ident}). There was no similar consistent change in mutation
+rate estimates among populations. In the CADD 6\% model, genome-wide average
+reduction factor $\bar{B}$ was $\approx 6.1\%$ lower in the default versus
+constrained grid. Overall, this suggests that the linked selection signal alone
+cannot differentiate very strong selection from a slightly smaller
 drift-effective population size.
 
-Despite the strong-selection non-identifiability issue, we were curious how
-stable these estimates are across different reference populations. Overall, the
-DFE estimates were consistent over all populations and models (Supplementary
-Materials Section \ref{supp:fits}). Here, we highlight the Feature Priority
-model since though it is poor-fitting, the DFE estimates are more readily
-interpretable since it is based on gene features. Figure \ref{fig:figure-3}B
-shows consistent DFE estimates across populations, with narrow uncertainty as
-estimated by a block jackknife procedure. Coding sequences have a bimodal DFE
-consistent with the strong-selection non-identifiability issue. Additionally,
-coding sequences have a very uncertain neutral mode in the DFE. This is
-expected given the different level of selective constraint between synonymous
-and non-synonymous sites. 
+Given that it is debated how strongly demography impacts the deleterious
+mutation load
+\parencite{Torres2018-ni,Torres2020-hc,Lohmueller2008-qi,Simons2014-sv,Simons2016-cs},
+we were curious how consistent our DFE estimates are across populations.
+Overall, we find DFE estimates are relatively stable across populations and
+models (Supplementary Materials Section \ref{supp:fits}). Only in our Feature
+Priority model (Figure \ref{fig:figure-4}B, top row) do we see a slightly
+different DFE estimate for coding sequences between YRI and CEU/CHB
+populations, but this could be due to the poorer fit this model has to data.
 
-Additionally, the PhastCons class of this Feature Priority model, which
-contains highly conserved non-coding elements, is under strong selective
-constraint as expected. Finally, we highlight one result from our PhastCons
+Although the Feature Priority model fits the data less well than alternative
+models, its features are more interpretable. We find that our B' method
+estimates a bimodal DFE for coding sequences for the Feature Priority model,
+with a large mass placed on $10^{-3} \le s \le 10^{-2}$ and another on the
+neutral class $s=10^{-8}$. This is expected, given that the synonymous and
+non-synonymous sites that constitute coding sequences are under vastly
+different levels of constraint. Moreover, features expected to be only weakly
+constrained such as introns and UTRs have the bulk of DFE mass on the neutral
+class, with a small but significant amount of mass ($\approx 3\%$) placed on
+$s=10^{-2}$. As expected, the DFE for PhastCons regions suggests it is under
+strong selective constraint; however we note that block jackknife based
+uncertainty estimates suggest the model is uncertain whether there is some mass
+on the neutral class. Finally, we highlight one result from our PhastCons
 Priority annotation model (Figure \ref{fig:figure-3}A bottom row): the DFE
 estimate for coding sequences excluding PhastCons regions is estimated as
 neutral. This too is expected; the selection signal in coding regions is
