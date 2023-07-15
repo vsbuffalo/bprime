@@ -122,7 +122,8 @@ def ratchet_df(model, fit, predict_under_feature=None):
     return d
 
 
-def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
+def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None,
+                B_parts=False):
     """
     A better version of the function above.
     """
@@ -160,6 +161,8 @@ def ratchet_df2(model, fit, mu=None, bootstrap=False, ncores=None):
     # predict the Vs, Vms, and Ts for all segments
     Vs, Vms, Ts = segments._predict_segparts(fit, model.N, W=W, mu=mu, 
                                              ncores=ncores)
+    if B_parts:
+        return Vs, Vms, Ts
 
     R = 1/Ts
     with np.errstate(under='ignore'):

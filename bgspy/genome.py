@@ -222,7 +222,7 @@ class Segments:
         np.put_along_axis(F, self.features[:, None], 1, axis=1)
         self.F = F
 
-    def _load_rescaling(self, predicted_bscores, w, t):
+    def _load_rescaling(self, predicted_bscores):
         """
         Common code for both ways of rescaling Ne locally, i.e. from a MLE
         fit and from a set of existing Bs, e.g. grid
@@ -302,7 +302,8 @@ class Segments:
 
         predicted_bscores = BScores(bdict, posdict, w=w, t=t)
         logging.info("loading rescaling from B' fit")
-        self._load_rescaling(predicted_bscores, w, t)
+        self._load_rescaling(predicted_bscores)
+
 
 def process_annotation(features, recmap, split_length=None):
     """

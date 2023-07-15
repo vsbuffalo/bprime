@@ -207,7 +207,7 @@ class BGSModel(object):
             bp, w, t, fit = rescale
             assert isinstance(bp, BScores), "bp must be a BScores object"
             if w is not None or t is not None:
-                # grid-mode
+                # grid-mode -- e.g. for sims
                 msg = "both w and t must be set"
                 assert (w is not None) and (t is not None), msg
                 assert fit is None, "fit cannot bet set in grid-mode rescaling"
@@ -221,7 +221,12 @@ class BGSModel(object):
                 # load the rescaling factors from a model fit
                 # NOTE: this only effects the segment parts! nothing past that
                 # in the B' calc
-                self.genome.segments.load_rescaling_from_fit(fit)
+                # old way -- use the same scale as fit
+                #self.genome.segments.load_rescaling_from_fit(fit)
+                # new way -- use the scale set
+                bp = self.calc_Bp_from_fit(fit, N=N, step=10_000, 
+                                           ncores=ncores)
+                self.genome.segments._load_rescaling(bp)
 
             del bp  # free up this memory
             gc.collect()
@@ -303,6 +308,12 @@ class BGSModel(object):
         MLE will be used).
         """
         return ratchet_df2(self, fit, mu=mu, bootstrap=bootstrap, ncores=ncores)
+
+    def calc_Bp_from_fit(self, fit, N, ncores=None):
+        tmp = ratchet_df2(self, fit, B_parts=True, ncores=ncores)
+        obj = copy(self)
+        obj.genome._segment_parts_sc16 = tmp
+        return obj.calc_Bp(N, ncores=ncores)
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)
