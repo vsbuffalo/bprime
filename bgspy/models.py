@@ -202,6 +202,7 @@ class BGSModel(object):
           - (BpScores, w, t, None)
           - (BpScores, None, None, fit)
         """
+        self.N = N
         use_rescaling = False
         if rescale is not None:
             bp, w, t, fit = rescale
@@ -255,7 +256,6 @@ class BGSModel(object):
             warnings.warn(msg)
         self.Bps = stacked_Bs
         self.Bp_pos = B_pos
-        self.N = N
 
     def get_ratchet_rates(self, wi, ti, chrom=None, as_times=False,
                           use_midpoints=True, width=None):
@@ -310,8 +310,9 @@ class BGSModel(object):
         return ratchet_df2(self, fit, mu=mu, bootstrap=bootstrap, ncores=ncores)
 
     def calc_Bp_from_fit(self, fit, N, ncores=None):
-        tmp = ratchet_df2(self, fit, B_parts=True, ncores=ncores)
         obj = copy(self)
+        ojb.N = N
+        tmp = ratchet_df2(obj, fit, B_parts=True, ncores=ncores)
         obj.genome._segment_parts_sc16 = tmp
         return obj.calc_Bp(N, ncores=ncores)
 
