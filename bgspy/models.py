@@ -309,12 +309,13 @@ class BGSModel(object):
         """
         return ratchet_df2(self, fit, mu=mu, bootstrap=bootstrap, ncores=ncores)
 
-    def calc_Bp_from_fit(self, fit, N, ncores=None):
+    def calc_Bp_from_fit(self, fit, N, step=10_000, ncores=None):
+        tmp = ratchet_df2(self, fit, B_parts=True, ncores=ncores)
         obj = copy(self)
         ojb.N = N
         tmp = ratchet_df2(obj, fit, B_parts=True, ncores=ncores)
         obj.genome._segment_parts_sc16 = tmp
-        return obj.calc_Bp(N, ncores=ncores)
+        return obj.calc_Bp(N, step=step, ncores=ncores)
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)

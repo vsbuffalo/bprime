@@ -441,13 +441,13 @@ rule subrate_predict_mu_boot:
     """
 
 rule subrate_predict_mu:
-  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/mle.pkl", 
+  input: fit="fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{run_type}/mle.pkl", 
          bs_file=Bs_file
-  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/initial/predicted_subrates_{mu}.tsv", 
+  output: "fits/pop_{popl}/window_{window}/type_{tracktype}/mutrate_{mutrate}/{run_type}/predicted_subrates_{mu}.tsv", 
   params: **settings
   resources:
-    mem_mb=200000,
-    time_min=980,
+    mem_mb=400000,
+    time_min=2080,
     threads=40
   shell:
     """
