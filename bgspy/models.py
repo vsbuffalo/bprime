@@ -25,6 +25,7 @@ group. The set a_B(i_B) is the collection of sites in with membership in
 annotation set i_B.
 """
 import gc
+from copy import copy
 import pickle
 import logging
 import warnings
@@ -194,13 +195,18 @@ class BGSModel(object):
         self.B_pos = B_pos
 
     def calc_Bp(self, N, step=100_000, recalc_segments=False,
-                ncores=None, nchunks=None, rescale=None):
+                ncores=None, nchunks=None, rescale=None,
+                manual_segpart_set=False):
         """
         Calculate new B' values across the genome.
 
         For local reduction mode, rescale is a tuple with either:
           - (BpScores, w, t, None)
           - (BpScores, None, None, fit)
+
+        manual_segpart_set: this is a hack, trying alternate rescaling
+        approach that requires calc'ing seg parts, then setting them
+        manually, and then calc'ing B' again with these (no rescaling args).
         """
         self.N = N
         use_rescaling = False
@@ -227,6 +233,7 @@ class BGSModel(object):
                 # new way -- use the scale set
                 bp = self.calc_Bp_from_fit(fit, N=N, step=10_000, 
                                            ncores=ncores)
+                self.rescaling_bp = bp
                 self.genome.segments._load_rescaling(bp)
 
             del bp  # free up this memory
@@ -237,7 +244,8 @@ class BGSModel(object):
             raise ValueError("if ncores is set, nchunks must be specified")
         self.step = step
         no_sc16 = self.genome.segments._segment_parts_sc16 is None
-        if use_rescaling or recalc_segments or no_sc16:
+        rerun = (use_rescaling or recalc_segments or no_sc16)
+        if rerun and not manual_segpart_set:
             # re-calc the segment parts
             logging.info("calculating B' segment parts")
             self.genome.segments._calc_segparts(self.w, self.t, N, ncores=ncores)
@@ -309,13 +317,29 @@ class BGSModel(object):
         """
         return ratchet_df2(self, fit, mu=mu, bootstrap=bootstrap, ncores=ncores)
 
-    def calc_Bp_from_fit(self, fit, N, step=10_000, ncores=None):
-        tmp = ratchet_df2(self, fit, B_parts=True, ncores=ncores)
+    def calc_Bp_from_fit(self, fit, N, nchunks=200, step=10_000, ncores=None):
+        """
+        Experimental, for rescaling, predicting at different scales.
+        
+        """
         obj = copy(self)
-        ojb.N = N
+        obj.N = N
         tmp = ratchet_df2(obj, fit, B_parts=True, ncores=ncores)
-        obj.genome._segment_parts_sc16 = tmp
-        return obj.calc_Bp(N, step=step, ncores=ncores)
+        # add the mutation dimension (1 el)
+        tmp = tmp[0][None, ...], tmp[1][None, ...], tmp[2][None, ...]
+        obj.genome.segments._segment_parts_sc16 = tmp
+        # calculate rescaled B'
+        obj.calc_Bp(N, nchunks=nchunks, step=step, ncores=ncores, 
+                    manual_segpart_set=True)
+        # these are over the selection grid, but each item is 
+        # weighted by the MLE DFE (W matrix). So, we take the log sum
+        # to get a single B for these estimates
+        bscores = obj.BpScores
+        bps = {c: np.exp(x.sum(axis=(1, 2, 3))[:, None, None]) for 
+               c, x in bscores.B.items()}
+        pos = bscores.pos
+        # the w, t values are just placeholders
+        return BScores(bps, pos, np.array([0]), np.array([0]), step=step)
 
     def get_ratchet_binned_array(self, chrom, width):
         bins = bin_chrom(self.seqlens[chrom], width)

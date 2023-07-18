@@ -242,7 +242,7 @@ class Segments:
             #rescaling[chrom] = b
             rescaling.extend(b.squeeze())
         rescaling = np.array(rescaling)
-        assert all(rescaling > 0), "some rescaling factors < 0!"
+        assert all(rescaling > 0), "some rescaling factors <= 0!"
         assert all(rescaling <= 1), "some rescaling factors > 1!"
         self.rescaling = np.array(rescaling, dtype='float32')
 
