@@ -1884,6 +1884,23 @@ circles indicate estimates under the default grid (up to $s=10^{-2}$).}
 
 \end{figure}
 
+\begin{figure}[htbp]
+    \label{suppfig:strong-sel-dfe-pop-phastcons}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/supplementary/feature_priority_pop_dfe_strongselgrid.pdf}
+
+  \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$)
+  under the Feature Priority model, across populations.}
+\end{figure}
+
+\begin{figure}[htbp]
+    \label{suppfig:strong-sel-dfe-pop-feature}
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/supplementary/phastcons_priority_pop_dfe_strongselgrid.pdf}
+
+  \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$)
+  under the PhastCons Priority model, across populations.}
+\end{figure}
 
 \subsection{Demographic Expansion and Recessive Simulation Tests}
 \label{supp:sim-assum}
@@ -2016,23 +2033,6 @@ selection signal is not dependent on the model used (PhastCons Priority versus C
   \caption{The DFE across models for the CHB reference sample (analogous to the
   DFE for YRI samples in Figure \ref{fig:figure-3}.}
 \end{figure}
-
-\begin{figure}[htbp]
-    \label{suppfig:dfe-pop-smallgrid-feature}
-  \centering
-  \includegraphics[width=0.6\textwidth]{figures/supplementary/feature_priority_pop_dfe_smallselgrid.pdf}
-  \caption{The DFE for the Feature Priority model, fit with a smaller DFE grid from 
-  $\mu \in \{10^{-8}, 10^{-7}, \ldots, 10^{-2}\}$.}
-\end{figure}
-
-\begin{figure}[htbp]
-    \label{suppfig:dfe-pop-smallgrid-phastcons}
-  \centering
-  \includegraphics[width=0.6\textwidth]{figures/supplementary/phastcons_priority_pop_dfe_smallselgrid.pdf}
-  \caption{The DFE for the PhastCons Priority model, fit with a smaller DFE grid from 
-  $\mu \in \{10^{-8}, 10^{-7}, \ldots, 10^{-2}\}$.}
-\end{figure}
-
 
 \subsection{Spatial Residuals}
 \label{supp:spatial-residuals}
@@ -2209,6 +2209,1183 @@ selection signal is not dependent on the model used (PhastCons Priority versus C
 
 %\printbibliography
 %\end{document}
+
+
+\subsection{Phastcons Priority (strong sel. grid), Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 197825873893.4953
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.0011279
+pi  = 0.000801495
+mut. rate = 2.35e-08 
+Ne = 28,197 (if mu=1e-8), Ne = 14,098 (if mu=2e-8)
+R2 = 63.0106% (in-sample)  61.7759% (out-sample)
+W = 
+          CDS    gene    other    phastcons
+------  -----  ------  -------  -----------
+1e-08       0   0.901    0.984        0.034
+1e-07       0   0.026    0            0.376
+1e-06       0   0        0            0.001
+1e-05       0   0.019    0            0
+0.0001      0   0        0            0
+0.001       0   0        0            0.472
+0.01        0   0        0            0.046
+0.1         1   0.053    0.016        0.071
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 61821783504.67356
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00106467
+pi  = 0.000752601
+mut. rate = 2.557e-08 
+Ne = 26,616 (if mu=1e-8), Ne = 13,308 (if mu=2e-8)
+R2 = 61.0847% (in-sample)  59.2923% (out-sample)
+W = 
+          CDS    gene    other    phastcons
+------  -----  ------  -------  -----------
+1e-08       0   0.931    0.985        0.478
+1e-07       0   0.005    0            0.002
+1e-06       0   0        0            0
+1e-05       0   0.013    0            0
+0.0001      0   0        0            0
+0.001       0   0.003    0            0.43
+0.01        0   0        0            0.09
+0.1         1   0.049    0.015        0
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 250656989872.19766
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00147277
+pi  = 0.00106447
+mut. rate = 1.708e-08 
+Ne = 36,819 (if mu=1e-8), Ne = 18,409 (if mu=2e-8)
+R2 = 68.1177% (in-sample)  68.1947% (out-sample)
+W = 
+          CDS    gene    other    phastcons
+------  -----  ------  -------  -----------
+1e-08       1   0.902    0.979        0
+1e-07       0   0        0            0.004
+1e-06       0   0        0            0.001
+1e-05       0   0.042    0            0
+0.0001      0   0        0            0
+0.001       0   0        0            0.523
+0.01        0   0        0            0.212
+0.1         0   0.056    0.021        0.26
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Phastcons Priority (strong sel. grid), Sparse Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 197826612684.87143
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00112308
+pi  = 0.000801495
+mut. rate = 2.019e-08 
+Ne = 28,076 (if mu=1e-8), Ne = 14,038 (if mu=2e-8)
+R2 = 63.0152% (in-sample)  61.9834% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0       0.913        0.227
+1e-07   0       0            0.004
+1e-06   0.004   0            0
+1e-05   0       0.019        0
+0.0001  0       0            0
+0.001   0       0            0.546
+0.01    0       0            0.061
+0.1     0.996   0.069        0.161
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 61822016128.79776
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00106069
+pi  = 0.000752601
+mut. rate = 5.887e-08 
+Ne = 26,517 (if mu=1e-8), Ne = 13,258 (if mu=2e-8)
+R2 = 61.0804% (in-sample)  59.4419% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.617   0.968        0.744
+1e-07   0.01    0            0.02
+1e-06   0       0            0
+1e-05   0       0.005        0
+0.0001  0       0            0
+0.001   0       0.001        0.185
+0.01    0       0            0.051
+0.1     0.373   0.026        0
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 250657908564.79294
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00146801
+pi  = 0.00106447
+mut. rate = 1.864e-08 
+Ne = 36,700 (if mu=1e-8), Ne = 18,350 (if mu=2e-8)
+R2 = 68.1582% (in-sample)  68.4462% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08       1   0.907        0
+1e-07       0   0.001        0
+1e-06       0   0            0
+1e-05       0   0.035        0
+0.0001      0   0            0
+0.001       0   0            0.477
+0.01        0   0            0.199
+0.1         0   0.057        0.323
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Feature Priority (strong sel. grid), Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 197848627167.32043
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00115698
+pi  = 0.000801495
+mut. rate = 4.1e-08 
+Ne = 28,924 (if mu=1e-8), Ne = 14,462 (if mu=2e-8)
+R2 = 60.3026% (in-sample)  58.5808% (out-sample)
+W = 
+          CDS    gene    other    phastcons
+------  -----  ------  -------  -----------
+1e-08   0.107   0.946        1        0
+1e-07   0       0.001        0        0
+1e-06   0       0            0        0
+1e-05   0       0.023        0        0
+0.0001  0       0            0        0
+0.001   0.144   0.014        0        0.229
+0.01    0       0            0        0.086
+0.1     0.749   0.016        0        0.685
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 61827828856.16418
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00108991
+pi  = 0.000752601
+mut. rate = 3.755e-08 
+Ne = 27,247 (if mu=1e-8), Ne = 13,623 (if mu=2e-8)
+R2 = 58.7328% (in-sample)  56.4805% (out-sample)
+W = 
+          CDS    gene    other    phastcons
+------  -----  ------  -------  -----------
+1e-08   0.088   0.94         1        0.006
+1e-07   0.01    0            0        0.003
+1e-06   0       0            0        0
+1e-05   0       0.023        0        0
+0.0001  0       0            0        0
+0.001   0.156   0.017        0        0.244
+0.01    0       0            0        0.254
+0.1     0.746   0.02         0        0.492
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 250679665159.79324
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00151818
+pi  = 0.00106447
+mut. rate = 4.195e-08 
+Ne = 37,954 (if mu=1e-8), Ne = 18,977 (if mu=2e-8)
+R2 = 65.5097% (in-sample)  64.9049% (out-sample)
+W = 
+          CDS    gene    other    phastcons
+------  -----  ------  -------  -----------
+1e-08   0.364   0.931        1        0.003
+1e-07   0.001   0            0        0
+1e-06   0       0            0        0
+1e-05   0       0.039        0        0
+0.0001  0       0            0        0
+0.001   0.091   0.011        0        0.151
+0.01    0       0            0        0.328
+0.1     0.544   0.019        0        0.517
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Feature Priority (strong sel. grid), Sparse Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 197848626646.91736
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00115698
+pi  = 0.000801495
+mut. rate = 4.104e-08 
+Ne = 28,924 (if mu=1e-8), Ne = 14,462 (if mu=2e-8)
+R2 = 60.3027% (in-sample)  58.5823% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.107   0.947        0.001
+1e-07   0       0            0
+1e-06   0       0            0.001
+1e-05   0       0.023        0
+0.0001  0       0            0
+0.001   0.144   0.014        0.229
+0.01    0       0            0.086
+0.1     0.748   0.016        0.684
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 61827828699.43107
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00108991
+pi  = 0.000752601
+mut. rate = 3.719e-08 
+Ne = 27,247 (if mu=1e-8), Ne = 13,623 (if mu=2e-8)
+R2 = 58.7329% (in-sample)  56.4805% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.089   0.938        0
+1e-07   0       0.001        0
+1e-06   0       0            0
+1e-05   0       0.023        0
+0.0001  0       0            0
+0.001   0.157   0.017        0.246
+0.01    0       0            0.257
+0.1     0.754   0.02         0.497
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 250679664591.4161
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00151817
+pi  = 0.00106447
+mut. rate = 4.179e-08 
+Ne = 37,954 (if mu=1e-8), Ne = 18,977 (if mu=2e-8)
+R2 = 65.5099% (in-sample)  64.9049% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.36    0.931        0
+1e-07   0.002   0            0
+1e-06   0       0            0
+1e-05   0       0.039        0
+0.0001  0       0            0
+0.001   0.092   0.011        0.151
+0.01    0       0            0.329
+0.1     0.546   0.019        0.519
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{CADD 6\% (strong selection DFE grid), Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 197826953189.02365
+number of successful starts: 20000 (100.0% total)
+pi_0 = 0.00109999
+pi  = 0.000801495
+mut. rate = 1.537e-08 
+Ne = 27,499 (if mu=1e-8), Ne = 13,749 (if mu=2e-8)
+R2 = 62.9394% (in-sample)  61.7433% (out-sample)
+W = 
+          cadd6    other
+------  -------  -------
+1e-08     0        0.965
+1e-07     0        0
+1e-06     0        0
+1e-05     0        0
+0.0001    0.026    0
+0.001     0.555    0
+0.01      0        0
+0.1       0.419    0.035
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 61821323176.26884
+number of successful starts: 20000 (100.0% total)
+pi_0 = 0.00103624
+pi  = 0.000752601
+mut. rate = 1.508e-08 
+Ne = 25,905 (if mu=1e-8), Ne = 12,952 (if mu=2e-8)
+R2 = 61.3115% (in-sample)  59.6228% (out-sample)
+W = 
+          cadd6    other
+------  -------  -------
+1e-08     0        0.961
+1e-07     0.007    0
+1e-06     0.009    0
+1e-05     0        0
+0.0001    0.004    0
+0.001     0.67     0
+0.01      0        0
+0.1       0.309    0.039
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 250659830283.90668
+number of successful starts: 20000 (100.0% total)
+pi_0 = 0.00145893
+pi  = 0.00106447
+mut. rate = 1.461e-08 
+Ne = 36,473 (if mu=1e-8), Ne = 18,236 (if mu=2e-8)
+R2 = 68.0839% (in-sample)  68.0751% (out-sample)
+W = 
+          cadd6    other
+------  -------  -------
+1e-08     0        0.958
+1e-07     0.023    0
+1e-06     0.001    0
+1e-05     0        0
+0.0001    0.065    0
+0.001     0.407    0
+0.01      0.078    0
+0.1       0.425    0.041
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{CADD 8\% (strong selection DFE grid), Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 197834651568.3971
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00109606
+pi  = 0.000801495
+mut. rate = 1.157e-08 
+Ne = 27,401 (if mu=1e-8), Ne = 13,700 (if mu=2e-8)
+R2 = 62.1245% (in-sample)  60.8009% (out-sample)
+W = 
+          cadd8    other
+------  -------  -------
+1e-08     0        0.952
+1e-07     0.004    0
+1e-06     0        0
+1e-05     0        0
+0.0001    0.052    0
+0.001     0.537    0
+0.01      0        0
+0.1       0.407    0.048
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 61823378586.32404
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00103245
+pi  = 0.000752601
+mut. rate = 1.113e-08 
+Ne = 25,811 (if mu=1e-8), Ne = 12,905 (if mu=2e-8)
+R2 = 60.6265% (in-sample)  58.8768% (out-sample)
+W = 
+          cadd8    other
+------  -------  -------
+1e-08     0        0.944
+1e-07     0        0.001
+1e-06     0        0
+1e-05     0        0
+0.0001    0.026    0
+0.001     0.69     0
+0.01      0        0
+0.1       0.284    0.055
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: moving block jackknife
+negative log-likelihood: 250669695762.61414
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00145867
+pi  = 0.00106447
+mut. rate = 1.013e-08 
+Ne = 36,466 (if mu=1e-8), Ne = 18,233 (if mu=2e-8)
+R2 = 67.1076% (in-sample)  66.9835% (out-sample)
+W = 
+          cadd8    other
+------  -------  -------
+1e-08     0        0.932
+1e-07     0.002    0
+1e-06     0        0
+1e-05     0        0
+0.0001    0.103    0
+0.001     0.438    0
+0.01      0        0
+0.1       0.458    0.068
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Phastcons Priority, Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 264
+standard error method: moving block jackknife
+negative log-likelihood: 197835157725.57724
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00105552 (0.00106, 0.00106)
+pi  = 0.000801495
+mut. rate = 1.912e-08  (1.32e-08, 2.5e-08)
+Ne = 26,387 (if mu=1e-8), Ne = 13,193 (if mu=2e-8)
+R2 = 62.2547% (in-sample)  61.0392% (out-sample)
+W = 
+        CDS                      gene                     other                    phastcons
+------  -----------------------  -----------------------  -----------------------  -----------------------
+1e-08   1.000 (0.9744, 1.0256)   0.947 (0.8398, 1.0542)   1.000 (0.9959, 1.0041)   0.000 (-0.2261, 0.2262)
+1e-07   0.000 (-0.0250, 0.0250)  0.000 (-0.1053, 0.1053)  0.000 (-0.0041, 0.0041)  0.000 (-0.1200, 0.1200)
+1e-06   0.000 (-0.0021, 0.0021)  0.000 (-0.0010, 0.0010)  0.000 (-0.0001, 0.0001)  0.000 (-0.0280, 0.0280)
+1e-05   0.000 (-0.0000, 0.0000)  0.030 (0.0209, 0.0400)   0.000 (-0.0000, 0.0000)  0.000 (-0.0004, 0.0004)
+0.0001  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0001)
+0.001   0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.413 (0.2960, 0.5308)
+0.01    0.000 (-0.0001, 0.0001)  0.023 (0.0160, 0.0292)   0.000 (-0.0000, 0.0000)  0.586 (0.4205, 0.7525)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 266
+standard error method: moving block jackknife
+negative log-likelihood: 61824235931.79921
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00100129 (0.00100, 0.00100)
+pi  = 0.000752601
+mut. rate = 1.869e-08  (1.16e-08, 2.57e-08)
+Ne = 25,032 (if mu=1e-8), Ne = 12,516 (if mu=2e-8)
+R2 = 60.4486% (in-sample)  58.7636% (out-sample)
+W = 
+        CDS                      gene                     other                    phastcons
+------  -----------------------  -----------------------  -----------------------  -----------------------
+1e-08   1.000 (0.8992, 1.1008)   0.940 (0.7946, 1.0845)   1.000 (0.9996, 1.0004)   0.000 (-0.2201, 0.2202)
+1e-07   0.000 (-0.1006, 0.1006)  0.000 (-0.1420, 0.1420)  0.000 (-0.0003, 0.0003)  0.000 (-0.2016, 0.2017)
+1e-06   0.000 (-0.0021, 0.0021)  0.000 (-0.0025, 0.0025)  0.000 (-0.0001, 0.0001)  0.000 (-0.0118, 0.0119)
+1e-05   0.000 (-0.0000, 0.0000)  0.031 (0.0161, 0.0457)   0.000 (-0.0000, 0.0000)  0.000 (-0.0002, 0.0002)
+0.0001  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)
+0.001   0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.457 (0.2998, 0.6141)
+0.01    0.000 (-0.0000, 0.0000)  0.030 (0.0193, 0.0399)   0.000 (-0.0000, 0.0000)  0.543 (0.3558, 0.7302)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 264
+standard error method: moving block jackknife
+negative log-likelihood: 250667315874.309
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00139482 (0.00139, 0.00140)
+pi  = 0.00106447
+mut. rate = 2.004e-08  (1.53e-08, 2.48e-08)
+Ne = 34,870 (if mu=1e-8), Ne = 17,435 (if mu=2e-8)
+R2 = 67.3564% (in-sample)  67.274% (out-sample)
+W = 
+        CDS                      gene                     other                    phastcons
+------  -----------------------  -----------------------  -----------------------  -----------------------
+1e-08   1.000 (0.9646, 1.0354)   0.955 (0.8905, 1.0192)   1.000 (0.9972, 1.0028)   0.000 (-0.1515, 0.1516)
+1e-07   0.000 (-0.0352, 0.0352)  0.000 (-0.0636, 0.0636)  0.000 (-0.0028, 0.0028)  0.000 (-0.1435, 0.1435)
+1e-06   0.000 (-0.0008, 0.0008)  0.000 (-0.0009, 0.0011)  0.000 (-0.0000, 0.0000)  0.000 (-0.0101, 0.0101)
+1e-05   0.000 (-0.0000, 0.0000)  0.029 (0.0192, 0.0384)   0.000 (-0.0000, 0.0000)  0.000 (-0.0002, 0.0002)
+0.0001  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.027 (0.0108, 0.0435)
+0.001   0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.227 (0.1661, 0.2882)
+0.01    0.000 (-0.0000, 0.0000)  0.016 (0.0124, 0.0201)   0.000 (-0.0000, 0.0000)  0.746 (0.5776, 0.9138)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Phastcons Priority, Sparse Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 197835157553.76733
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00105552
+pi  = 0.000801495
+mut. rate = 2.313e-08 
+Ne = 26,387 (if mu=1e-8), Ne = 13,193 (if mu=2e-8)
+R2 = 62.2548% (in-sample)  61.0392% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08       1   0.954        0.174
+1e-07       0   0.002        0
+1e-06       0   0            0
+1e-05       0   0.025        0
+0.0001      0   0            0
+0.001       0   0            0.342
+0.01        0   0.019        0.485
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 61824235897.32505
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00100129
+pi  = 0.000752601
+mut. rate = 1.92e-08 
+Ne = 25,032 (if mu=1e-8), Ne = 12,516 (if mu=2e-8)
+R2 = 60.4487% (in-sample)  58.8423% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08       1   0.939        0.003
+1e-07       0   0.002        0.022
+1e-06       0   0            0.002
+1e-05       0   0.03         0
+0.0001      0   0            0
+0.001       0   0            0.445
+0.01        0   0.029        0.528
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 250667315734.13507
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00139482
+pi  = 0.00106447
+mut. rate = 2.004e-08 
+Ne = 34,870 (if mu=1e-8), Ne = 17,435 (if mu=2e-8)
+R2 = 67.3565% (in-sample)  67.2897% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08       1   0.954        0
+1e-07       0   0.001        0
+1e-06       0   0            0
+1e-05       0   0.029        0
+0.0001      0   0            0.027
+0.001       0   0            0.227
+0.01        0   0.016        0.746
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Feature Priority, Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 116
+standard error method: moving block jackknife
+negative log-likelihood: 197860660948.8551
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00109138 (0.00109, 0.00109)
+pi  = 0.000801495
+mut. rate = 3.044e-08  (2.79e-08, 3.3e-08)
+Ne = 27,284 (if mu=1e-8), Ne = 13,642 (if mu=2e-8)
+R2 = 59.1052% (in-sample)  57.1447% (out-sample)
+W = 
+        CDS                      gene                     other                    phastcons
+------  -----------------------  -----------------------  -----------------------  -----------------------
+1e-08   0.412 (0.2565, 0.5672)   0.884 (0.8329, 0.9356)   1.000 (0.9996, 1.0003)   0.000 (-0.0666, 0.0666)
+1e-07   0.000 (-0.1509, 0.1511)  0.003 (-0.0480, 0.0534)  0.000 (-0.0003, 0.0004)  0.000 (-0.0248, 0.0248)
+1e-06   0.000 (-0.0021, 0.0025)  0.000 (-0.0005, 0.0005)  0.000 (-0.0000, 0.0000)  0.000 (-0.0054, 0.0054)
+1e-05   0.000 (-0.0000, 0.0000)  0.074 (0.0608, 0.0875)   0.000 (-0.0000, 0.0000)  0.000 (-0.0001, 0.0001)
+0.0001  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)
+0.001   0.066 (0.0340, 0.0982)   0.008 (0.0064, 0.0102)   0.000 (-0.0000, 0.0000)  0.136 (0.1225, 0.1503)
+0.01    0.522 (0.4497, 0.5939)   0.031 (0.0276, 0.0336)   0.000 (-0.0000, 0.0000)  0.864 (0.7932, 0.9340)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 256
+standard error method: moving block jackknife
+negative log-likelihood: 61830715796.965416
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00103388 (0.00103, 0.00104)
+pi  = 0.000752601
+mut. rate = 3.172e-08  (2.73e-08, 3.62e-08)
+Ne = 25,847 (if mu=1e-8), Ne = 12,923 (if mu=2e-8)
+R2 = 57.8792% (in-sample)  55.631% (out-sample)
+W = 
+        CDS                      gene                     other                    phastcons
+------  -----------------------  -----------------------  -----------------------  -----------------------
+1e-08   0.430 (0.1137, 0.7471)   0.894 (0.8175, 0.9702)   1.000 (0.9993, 1.0007)   0.000 (-0.1107, 0.1107)
+1e-07   0.001 (-0.2978, 0.3001)  0.004 (-0.0686, 0.0772)  0.000 (-0.0007, 0.0007)  0.000 (-0.0393, 0.0393)
+1e-06   0.000 (-0.0035, 0.0042)  0.000 (-0.0006, 0.0006)  0.000 (-0.0000, 0.0000)  0.000 (-0.0053, 0.0053)
+1e-05   0.000 (-0.0000, 0.0000)  0.064 (0.0437, 0.0848)   0.000 (-0.0000, 0.0000)  0.000 (-0.0001, 0.0001)
+0.0001  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)
+0.001   0.052 (0.0045, 0.1000)   0.012 (0.0086, 0.0148)   0.000 (-0.0000, 0.0000)  0.166 (0.1391, 0.1926)
+0.01    0.516 (0.4059, 0.6258)   0.026 (0.0216, 0.0302)   0.000 (-0.0000, 0.0000)  0.834 (0.7222, 0.9461)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 241
+standard error method: moving block jackknife
+negative log-likelihood: 250692005490.22156
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00144148 (0.00144, 0.00144)
+pi  = 0.00106447
+mut. rate = 3.349e-08  (2.85e-08, 3.85e-08)
+Ne = 36,037 (if mu=1e-8), Ne = 18,018 (if mu=2e-8)
+R2 = 64.2844% (in-sample)  63.058% (out-sample)
+W = 
+        CDS                      gene                     other                    phastcons
+------  -----------------------  -----------------------  -----------------------  -----------------------
+1e-08   0.752 (0.4939, 1.0110)   0.878 (0.8209, 0.9353)   1.000 (0.9998, 1.0002)   0.000 (-0.1066, 0.1066)
+1e-07   0.000 (-0.2548, 0.2552)  0.000 (-0.0533, 0.0533)  0.000 (-0.0002, 0.0002)  0.000 (-0.0669, 0.0669)
+1e-06   0.000 (-0.0028, 0.0029)  0.000 (-0.0005, 0.0005)  0.000 (-0.0000, 0.0000)  0.000 (-0.0087, 0.0087)
+1e-05   0.000 (-0.0000, 0.0000)  0.085 (0.0721, 0.0986)   0.000 (-0.0000, 0.0000)  0.000 (-0.0002, 0.0002)
+0.0001  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)  0.000 (-0.0000, 0.0000)
+0.001   0.100 (0.0858, 0.1136)   0.003 (0.0026, 0.0040)   0.000 (-0.0000, 0.0000)  0.070 (0.0577, 0.0823)
+0.01    0.148 (0.1266, 0.1688)   0.033 (0.0285, 0.0379)   0.000 (-0.0000, 0.0000)  0.930 (0.8006, 1.0594)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{Feature Priority, Sparse Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 197860660635.007
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00109138
+pi  = 0.000801495
+mut. rate = 3.044e-08 
+Ne = 27,284 (if mu=1e-8), Ne = 13,642 (if mu=2e-8)
+R2 = 59.1053% (in-sample)  57.2393% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.412   0.887        0
+1e-07   0       0            0
+1e-06   0.001   0            0
+1e-05   0       0.074        0
+0.0001  0       0            0
+0.001   0.066   0.008        0.136
+0.01    0.522   0.031        0.864
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 61830715695.97452
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00103388
+pi  = 0.000752601
+mut. rate = 3.172e-08 
+Ne = 25,847 (if mu=1e-8), Ne = 12,923 (if mu=2e-8)
+R2 = 57.8793% (in-sample)  55.9962% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.418   0.898        0
+1e-07   0.014   0            0
+1e-06   0       0            0
+1e-05   0       0.064        0
+0.0001  0       0            0
+0.001   0.052   0.012        0.166
+0.01    0.516   0.026        0.834
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 250692005023.91275
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00144148
+pi  = 0.00106447
+mut. rate = 3.353e-08 
+Ne = 36,037 (if mu=1e-8), Ne = 18,018 (if mu=2e-8)
+R2 = 64.2844% (in-sample)  63.6078% (out-sample)
+W = 
+          CDS    gene    phastcons
+------  -----  ------  -----------
+1e-08   0.747   0.875        0
+1e-07   0.006   0.004        0.001
+1e-06   0       0            0
+1e-05   0       0.085        0
+0.0001  0       0            0
+0.001   0.1     0.003        0.07
+0.01    0.148   0.033        0.929
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{CADD 6\%, Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 280
+standard error method: moving block jackknife
+negative log-likelihood: 197839911915.8117
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00102951 (0.00103, 0.00103)
+pi  = 0.000801495
+mut. rate = 1.635e-08  (1.2e-08, 2.07e-08)
+Ne = 25,737 (if mu=1e-8), Ne = 12,868 (if mu=2e-8)
+R2 = 61.767% (in-sample)  60.2433% (out-sample)
+W = 
+        cadd6                    other
+------  -----------------------  -----------------------
+1e-08   0.002 (-0.1758, 0.1800)  0.997 (0.9918, 1.0019)
+1e-07   0.006 (-0.1224, 0.1353)  0.000 (-0.0049, 0.0049)
+1e-06   0.000 (-0.0079, 0.0084)  0.000 (-0.0001, 0.0001)
+1e-05   0.000 (-0.0002, 0.0002)  0.000 (-0.0000, 0.0000)
+0.0001  0.049 (0.0332, 0.0649)   0.000 (-0.0000, 0.0000)
+0.001   0.325 (0.2429, 0.4072)   0.000 (-0.0000, 0.0000)
+0.01    0.617 (0.4630, 0.7711)   0.003 (0.0022, 0.0042)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 279
+standard error method: moving block jackknife
+negative log-likelihood: 61824516495.02472
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.000977579 (0.00098, 0.00098)
+pi  = 0.000752601
+mut. rate = 1.598e-08  (1.15e-08, 2.05e-08)
+Ne = 24,439 (if mu=1e-8), Ne = 12,219 (if mu=2e-8)
+R2 = 60.4032% (in-sample)  58.4847% (out-sample)
+W = 
+        cadd6                    other
+------  -----------------------  -----------------------
+1e-08   0.000 (-0.1922, 0.1922)  0.992 (0.9829, 1.0002)
+1e-07   0.001 (-0.1431, 0.1441)  0.001 (-0.0076, 0.0088)
+1e-06   0.000 (-0.0068, 0.0068)  0.000 (-0.0001, 0.0001)
+1e-05   0.000 (-0.0002, 0.0002)  0.000 (-0.0000, 0.0000)
+0.0001  0.030 (0.0129, 0.0476)   0.000 (-0.0000, 0.0000)
+0.001   0.440 (0.3238, 0.5568)   0.000 (-0.0000, 0.0000)
+0.01    0.529 (0.3902, 0.6676)   0.008 (0.0056, 0.0101)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 280
+standard error method: moving block jackknife
+negative log-likelihood: 250675195472.4508
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00136706 (0.00137, 0.00137)
+pi  = 0.00106447
+mut. rate = 1.556e-08  (1.25e-08, 1.86e-08)
+Ne = 34,176 (if mu=1e-8), Ne = 17,088 (if mu=2e-8)
+R2 = 66.6755% (in-sample)  66.5047% (out-sample)
+W = 
+        cadd6                    other
+------  -----------------------  -----------------------
+1e-08   0.000 (-0.1074, 0.1079)  0.994 (0.9892, 0.9985)
+1e-07   0.006 (-0.1023, 0.1133)  0.000 (-0.0045, 0.0045)
+1e-06   0.000 (-0.0038, 0.0038)  0.000 (-0.0001, 0.0001)
+1e-05   0.000 (-0.0001, 0.0001)  0.000 (-0.0000, 0.0000)
+0.0001  0.099 (0.0783, 0.1204)   0.000 (-0.0000, 0.0000)
+0.001   0.115 (0.0848, 0.1448)   0.000 (-0.0000, 0.0000)
+0.01    0.780 (0.6381, 0.9221)   0.006 (0.0049, 0.0074)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{CADD 6\%, Sparse Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 197839997860.2112
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00102636
+pi  = 0.000801495
+mut. rate = 1.68e-08 
+Ne = 25,659 (if mu=1e-8), Ne = 12,829 (if mu=2e-8)
+R2 = 61.8005% (in-sample)  60.3663% (out-sample)
+W = 
+          cadd6
+------  -------
+1e-08     0
+1e-07     0
+1e-06     0
+1e-05     0
+0.0001    0.046
+0.001     0.317
+0.01      0.638
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 61824669694.580444
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.000970441
+pi  = 0.000752601
+mut. rate = 1.745e-08 
+Ne = 24,261 (if mu=1e-8), Ne = 12,130 (if mu=2e-8)
+R2 = 60.4898% (in-sample)  58.67% (out-sample)
+W = 
+          cadd6
+------  -------
+1e-08     0.003
+1e-07     0
+1e-06     0
+1e-05     0
+0.0001    0.024
+0.001     0.403
+0.01      0.57
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 250675581171.07547
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00135936
+pi  = 0.00106447
+mut. rate = 1.657e-08 
+Ne = 33,983 (if mu=1e-8), Ne = 16,991 (if mu=2e-8)
+R2 = 66.8084% (in-sample)  66.6575% (out-sample)
+W = 
+          cadd6
+------  -------
+1e-08     0
+1e-07     0
+1e-06     0
+1e-05     0
+0.0001    0.09
+0.001     0.109
+0.01      0.801
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{CADD 8\%, Full Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 241
+standard error method: moving block jackknife
+negative log-likelihood: 197849369068.89285
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00102211 (0.00102, 0.00102)
+pi  = 0.000801495
+mut. rate = 1.208e-08  (8.74e-09, 1.54e-08)
+Ne = 25,552 (if mu=1e-8), Ne = 12,776 (if mu=2e-8)
+R2 = 60.8766% (in-sample)  59.2433% (out-sample)
+W = 
+        cadd8                    other
+------  -----------------------  -----------------------
+1e-08   0.001 (-0.1544, 0.1557)  0.995 (0.9888, 1.0016)
+1e-07   0.002 (-0.1762, 0.1804)  0.000 (-0.0061, 0.0061)
+1e-06   0.000 (-0.0102, 0.0108)  0.000 (-0.0001, 0.0001)
+1e-05   0.000 (-0.0002, 0.0003)  0.000 (-0.0000, 0.0000)
+0.0001  0.068 (0.0475, 0.0880)   0.000 (-0.0000, 0.0000)
+0.001   0.365 (0.2695, 0.4596)   0.000 (-0.0000, 0.0000)
+0.01    0.565 (0.4218, 0.7074)   0.005 (0.0034, 0.0062)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 214
+standard error method: moving block jackknife
+negative log-likelihood: 61827005013.645355
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00097036 (0.00097, 0.00097)
+pi  = 0.000752601
+mut. rate = 1.204e-08  (9.22e-09, 1.49e-08)
+Ne = 24,259 (if mu=1e-8), Ne = 12,129 (if mu=2e-8)
+R2 = 59.6862% (in-sample)  57.7389% (out-sample)
+W = 
+        cadd8                    other
+------  -----------------------  -----------------------
+1e-08   0.000 (-0.1398, 0.1399)  0.990 (0.9834, 0.9965)
+1e-07   0.000 (-0.1330, 0.1331)  0.000 (-0.0061, 0.0061)
+1e-06   0.000 (-0.0085, 0.0085)  0.000 (-0.0001, 0.0001)
+1e-05   0.000 (-0.0002, 0.0002)  0.000 (-0.0000, 0.0000)
+0.0001  0.040 (0.0316, 0.0492)   0.000 (-0.0000, 0.0000)
+0.001   0.504 (0.3939, 0.6132)   0.000 (-0.0000, 0.0000)
+0.01    0.456 (0.3568, 0.5552)   0.010 (0.0079, 0.0122)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+number jackknife samples: 263
+standard error method: moving block jackknife
+negative log-likelihood: 250687699969.473
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00135876 (0.00136, 0.00136)
+pi  = 0.00106447
+mut. rate = 1.126e-08  (7.74e-09, 1.48e-08)
+Ne = 33,968 (if mu=1e-8), Ne = 16,984 (if mu=2e-8)
+R2 = 65.4089% (in-sample)  65.1251% (out-sample)
+W = 
+        cadd8                    other
+------  -----------------------  -----------------------
+1e-08   0.013 (-0.2171, 0.2439)  0.989 (0.9817, 0.9956)
+1e-07   0.000 (-0.1466, 0.1466)  0.000 (-0.0059, 0.0059)
+1e-06   0.000 (-0.0058, 0.0058)  0.000 (-0.0001, 0.0001)
+1e-05   0.000 (-0.0002, 0.0002)  0.000 (-0.0000, 0.0000)
+0.0001  0.136 (0.0944, 0.1781)   0.000 (-0.0000, 0.0000)
+0.001   0.108 (0.0673, 0.1492)   0.000 (-0.0000, 0.0000)
+0.01    0.742 (0.5313, 0.9529)   0.011 (0.0079, 0.0148)
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsection{CADD 8\%, Sparse Track}
+\subsubsection*{CEU}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 197849464223.25174
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00101859
+pi  = 0.000801495
+mut. rate = 1.255e-08 
+Ne = 25,464 (if mu=1e-8), Ne = 12,732 (if mu=2e-8)
+R2 = 60.9207% (in-sample)  59.3772% (out-sample)
+W = 
+          cadd8
+------  -------
+1e-08     0
+1e-07     0
+1e-06     0
+1e-05     0
+0.0001    0.063
+0.001     0.354
+0.01      0.583
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{CHB}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 61827132377.38223
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.000963444
+pi  = 0.000752601
+mut. rate = 1.309e-08 
+Ne = 24,086 (if mu=1e-8), Ne = 12,043 (if mu=2e-8)
+R2 = 59.7755% (in-sample)  57.9086% (out-sample)
+W = 
+          cadd8
+------  -------
+1e-08     0
+1e-07     0
+1e-06     0
+1e-05     0
+0.0001    0.032
+0.001     0.469
+0.01      0.499
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+
+\subsubsection*{YRI}
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+
+ML estimates: (whole genome)
+standard error method: None
+negative log-likelihood: 250688310460.67032
+number of successful starts: 10000 (100.0% total)
+pi_0 = 0.00134845
+pi  = 0.00106447
+mut. rate = 1.223e-08 
+Ne = 33,711 (if mu=1e-8), Ne = 16,855 (if mu=2e-8)
+R2 = 65.5761% (in-sample)  65.3002% (out-sample)
+W = 
+          cadd8
+------  -------
+1e-08     0
+1e-07     0
+1e-06     0
+1e-05     0
+0.0001    0.12
+0.001     0.106
+0.01      0.774
+\end{verbatim}
+\end{footnotesize}\end{minipage}
 
 
 \printbibliography

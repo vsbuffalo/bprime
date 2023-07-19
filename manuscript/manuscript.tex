@@ -539,8 +539,8 @@ selective interference between segments that is not taken into account when we
 numerically solve Equations \eqref{eq:main_eqns} for each segment
 independently. In particular, we use a fixed drift-effective $N=1000$
 corresponding to the number of diploids in the simulations rather than $B(x) N$
-at position $x$. To test this, we implemented a locally-rescaled version of the
-B' maps, which numerically solves Equations \eqref{eq:main_eqns} for each
+at position $x$. To test this, we implemented a ``locally-rescaled" version of
+the B' maps, which numerically solves Equations \eqref{eq:main_eqns} for each
 segment at position $x$ taking into account the reduction experienced due to
 selection at other segments by setting $B'(x)N$ as the population size. We find
 the locally-rescaled B' maps reduce the relative error from 5\% to 0.4\% and
@@ -828,7 +828,7 @@ selection coefficient, $s=10^{-2}$. The CADD 6\% DFE estimates imply an average
 selection coefficient of $\bar{s} = 0.65\%$ for CEU, $\bar{s} = 0.57\%$ for
 CHB, and $\bar{s} = 0.79\%$ for YRI. Similarly, the PhastCons Priority model
 implies average selection coefficient estimates of $\bar{s} = 0.63\%$, $\bar{s}
-= 0.58\%$, and $\bar{s}= 0.77\%$ for CEU, CHB, and YRI respectively for
+= 0.59\%$, and $\bar{s}= 0.77\%$ for CEU, CHB, and YRI respectively for
 PhastCons regions. Our DFE estimates for the Feature Priority model are
 qualitatively consistent with the U-shaped DFEs found for amino acids through
 Poisson Random Field method \parencite{Boyko2008-tj}.
@@ -840,37 +840,34 @@ had $R_\text{LOCO}^2$ that were about one percentage point higher, which is
 suggestive of stronger selection than has previously been estimated using
 constrained grids (see Supplementary Materials Table
 \ref{supp:tbl-r2-strongsel}). For this strong selection grid, we estimate
-average selection coefficients for the CADD 6\% model of $\bar{s} = 4.3\%$ for
-CEU, $3.2\%$ for CHB, and $4.4\%$ for YRI. Thus, across different selection
-coefficient grids, there is considerable uncertainty in the average strength of
-selection against deleterious mutations in conserved regions.
+average selection coefficients for the CADD 6\% model of $\bar{s} = 4.2\%$ for
+CEU, $3.2\%$ for CHB, and $4.4\%$ for YRI. Thus, there is quite a degree of
+sensitivity to DFEs and average selection estimates based on the selection
+coefficient grid.
 
 However, across the strong selection grid runs, we find indications of model
 non-identifiability. First, estimates of the DFE with the strong grid are
 strangely bimodal (Supplementary Figure \ref{suppfig:strong-sel-dfe}). For
 example, under the CADD 6\% strong selection grid model, new mutations are
 estimated to have a selection coefficients of $s = 10^{-1}$ with 43\% chance,
-$s=10^{-2}$ with 7.8\% chance, and $s=10^{-3}$ with 41\% chance. We propose
-that one mechanism for this non-identifiability is that mutations extremely
-harmful to fitness are difficult to distinguish from a smaller effective
-population. Intuitively, as $s$ increases, the average persistence time (in
-generations) of the mutation in the population goes below one generation, i.e.
-death of the carrier of the \emph{de novo} mutation. In this hypothetical
-limit, each occurrence of a very harmful mutation nearly acts like an
-instantaneous death that in effect is just a smaller population size. One way
-to test this hypothesis is to look to see if there is a systematic positive
-relationship across models between average selection coefficient and $\pi_0$,
-which is includes the drift-effective population size $N_e$.
+$s=10^{-2}$ with 7.8\% chance, and $s=10^{-3}$ with 41\% chance in the YRI
+samples. We propose that one mechanism for this non-identifiability is that
+very deleterious mutations lead to larger whole-genome reductions, which are
+difficult to distinguish from a smaller drift effective population size (i.e.
+the $\pi_0$ parameter). One way to test this hypothesis is to look to see if
+there is a systematic positive relationship across models between average
+selection coefficient and $\pi_0$, which is includes the drift-effective
+population size $N_e$.
 
-We find this is the case for all of our CADD 6\% models. Across every
-population, average selection was about $7.1$ times larger using the default
-grid, and $\pi_0$ was $5.6\%$ larger (see Supplementary Materials Figure
-\ref{suppfig:sel-ident}). There was no similar consistent change in mutation
-rate estimates among populations. In the CADD 6\% model, genome-wide average
-reduction factor $\bar{B}$ was $\approx 6.1\%$ lower in the default versus
-constrained grid. Overall, this suggests that the linked selection signal alone
-cannot differentiate very strong selection from a slightly smaller
-drift-effective population size.
+We find this is the case for all of our CADD 6\% models. Across all
+populations, average selection was about $7.1$ times larger using the strong
+selection grid, and $\pi_0$ was $5.6\%$ higher (see Supplementary Materials
+Figure \ref{suppfig:sel-ident}). There was no similar consistent change in
+mutation rate estimates among populations. In the CADD 6\% model, genome-wide
+average reduction factor $\bar{B}$ was $\approx 6.1\%$ lower in the default
+versus constrained grid. Overall, this suggests that the linked selection
+signal alone cannot differentiate very strong selection from a slightly smaller
+drift-effective population size. 
 
 Given that it is debated how strongly demography impacts the deleterious
 mutation load
@@ -883,22 +880,23 @@ different DFE estimate for coding sequences between YRI and CEU/CHB
 populations, but this could be due to the poorer fit this model has to data.
 
 Although the Feature Priority model fits the data less well than alternative
-models, its features are more interpretable. We find that our B' method
-estimates a bimodal DFE for coding sequences for the Feature Priority model,
-with a large mass placed on $10^{-3} \le s \le 10^{-2}$ and another on the
-neutral class $s=10^{-8}$. This is expected, given that the synonymous and
+models, its DFE estimates are are more interpretable. We find that our B'
+method estimates a bimodal DFE for coding sequences for the Feature Priority
+model, with a large mass placed on $10^{-3} \le s \le 10^{-2}$ and another on
+the neutral class $s=10^{-8}$. This is expected, given that the synonymous and
 non-synonymous sites that constitute coding sequences are under vastly
 different levels of constraint. Moreover, features expected to be only weakly
 constrained such as introns and UTRs have the bulk of DFE mass on the neutral
 class, with a small but significant amount of mass ($\approx 3\%$) placed on
-$s=10^{-2}$. As expected, the DFE for PhastCons regions suggests it is under
-strong selective constraint; however we note that block jackknife based
-uncertainty estimates suggest the model is uncertain whether there is some mass
-on the neutral class. Finally, we highlight one result from our PhastCons
-Priority annotation model (Figure \ref{fig:figure-3}A bottom row): the DFE
-estimate for coding sequences excluding PhastCons regions is estimated as
-neutral. This too is expected; the selection signal in coding regions is
-absorbed by the PhastCons feature, leaving only conditionally neutral sites.
+$s=10^{-2}$. As expected, the DFE for PhastCons regions (which in this model
+correspond to highly-conserved non-coding elements) suggests it is under strong
+selective constraint; however we note that block jackknife based uncertainty
+estimates suggest the model is uncertain whether there is some mass on the
+neutral class. Finally, we highlight one result from our PhastCons Priority
+annotation model (Figure \ref{fig:figure-3}A bottom row): the DFE estimate for
+coding sequences excluding PhastCons regions is estimated as neutral. This too
+is expected; the selection signal in coding regions is absorbed by the
+PhastCons feature, leaving only conditionally neutral sites.
 
 \subsection*{Estimates of the Deleterious Mutation Rate in Humans}
 
@@ -915,46 +913,47 @@ absorbed by the PhastCons feature, leaving only conditionally neutral sites.
   \label{fig:figure-4}
 \end{figure}
 
-Early genome-wide implementations of the classic BGS model fit well, but lead
-to unusually high estimates of the mutation rate \parencite{McVicker2009-ax}.
-This lead to the hypothesis that these models could be absorbing the signal of
-positive selection \parencite{Enard2014-kz}, though other work has found a
-limited role for hitchhiking
+Prior work on genome-wide inference using the classic BGS model fit the linked
+selection signal well, but led to unusually high estimates of the mutation rate
+\parencite{McVicker2009-ax}. This lead to the hypothesis that these models
+could be absorbing the signal of positive selection \parencite{Enard2014-kz},
+though other work has found a limited role for hitchhiking
 \parencite{Pickrell2009-tt,Hernandez2011-gs,Murphy2022}. While our simulation
 results suggest estimates of the mutation rate from linked selection models are
-biased, we still our estimates were in rough accordance with pedigree-based
-estimates \parencite{Kong2013-fc,Tian2019-so}. 
+biased, we still check for rough agreement with pedigree-based estimates
+\parencite{Kong2013-fc,Tian2019-so}. 
 
 We find across all populations, our mutation rate estimates from CADD-based
 models are roughly consistent with pedigree-based estimates (Figure
 \ref{fig:figure-4}A), consistent with recent work \parencite{Murphy2022-sj}.
 Our full-track CADD 6\% model estimates the mutation rate as $\widehat{\mu} =
-1.56 \times 10^{-8}$ for YRI, $1.63 \times 10^{-8}$ for CEU, and $1.60 \times
+1.56 \times 10^{-8}$ for YRI, $1.64 \times 10^{-8}$ for CEU, and $1.60 \times
 10^{-8}$ for CHB reference samples (Supplementary Table \ref{supp:tbl-r2}). As
-expected, the sparse-track CADD model mutation rate estimates are identical
-between the B' and classic BGS methods (Figure \ref{fig:figure-4}A top row).
+expected, the sparse-track CADD model mutation rate estimates are nearly
+identical between the B' and classic BGS methods (Figure \ref{fig:figure-4}A
+top row).
 
-However, mutation rate estimates for feature-based annotation models are less
-concordant with pedigree-based estimates. First, mutation rate estimates under
-our implementation of classic BGS theory are an order of magnitude below the
-expected range (Figure \ref{fig:figure-4}A top row). We observe similar
-behavior when we use the classic BGS model to fit full-coverage annotation
-models (Figure \ref{fig:figure-4}A bottom row). This behavior is consistent
-with classic BGS theory being unable to fit the DFE to features under weak
-constraint (e.g. introns, UTRs, and the ``other" feature), and most compensate 
-by estimating an unusually low mutation rate.
+However, mutation rate estimates for feature-based annotation models are
+implausibly higher than pedigree-based estimates. First, mutation rate
+estimates under our implementation of classic BGS theory are an order of
+magnitude below the expected range (Figure \ref{fig:figure-4}A top row). We
+observe similar behavior when we use the classic BGS model to fit full-coverage
+annotation models (Figure \ref{fig:figure-4}A bottom row). This behavior is
+consistent with classic BGS theory being unable to fit the DFE to features
+under weak constraint (e.g. introns, UTRs, and the ``other" feature), and most
+compensate by estimating an unusually low mutation rate.
 
 Second, we noticed that across all populations and sparse/full tracks, the CADD
 6\% model consistently led to slightly higher mutation rates than the CADD 8\%
 model (Figure \ref{fig:figure-4}A bottom row; Supplementary Table
-\ref{supp:tbl-r2}). This pattern was observed in Murphy et al. too (2023;
+\ref{supp:tbl-r2}). This same pattern was observed in Murphy et al. too (2023;
 Appendix 1, Figure 16). This behavior suggests a non-identifiability issue
 between a slightly higher per-basepair mutation rate and annotation tracks that
 contain more conserved sequence. This is expected from theory, since both
 classic BGS and SC16 models only depend on mutation rate through the compound
 parameter $\mu L$, where $L$ is the length of the conserved segment. Even
-though our method is much more robust to including non-conserved regions like
-introns, we still observe this non-identifiability issue.
+though our method is much more robust to inclusion of non-conserved regions
+like introns, we still observe this non-identifiability issue.
 
 Finally, we note that mutation rate estimates in the Feature Priority model are
 unreasonably high ($\widehat{\mu} \approx 3 \times 10^{-8}$), reminiscent of
@@ -963,15 +962,15 @@ the high mutation rate estimates found under McVicker et al.'s
 PhastCons-based models alleviate this issue, it is worth discussing why this
 could occur. We gain some insight from comparing the estimated mutation rates
 between our Feature and PhastCons Priority annotation models, which both
-contain the exact same number of basepairs, but these are assigned to different
-feature classes based on the priority of overlapping features. That one of
-these models is our best-fitting model, and the other our worst indicates the
-sensitivity these models have when features classes have heterogeneous DFEs.
-CADD-based models fit better in part due to their fine-scale resolution of
-selective effects across the genome. While ideally we would fit a CADD model
-with different features corresponding to the different percentiles of
-pathogenicity, these features are on the basepair scale and thus too
-memory-intensive for our method to currently accommodate.
+contain the exact same number of feature basepairs, but these are assigned to
+different feature classes based on the priority of overlapping features. That
+one of these models is our best-fitting model, and the other our worst
+indicates the sensitivity these models have when features classes have
+heterogeneous DFEs. CADD-based models fit better in part due to their
+fine-scale resolution of selective effects across the genome. While ideally we
+would fit a CADD model with different features corresponding to the different
+percentiles of pathogenicity, these features are on the basepair scale and thus
+too memory-intensive for our method to currently accommodate.
 
 \subsection*{Predicted Diversity and Residual Signal}
 
@@ -1081,44 +1080,40 @@ results.
 To compare our models' predicted substitution rates against observed
 divergence, we estimated sequence divergence on the human lineage using a
 multiple alignment of five primates for each feature in our feature-based
-models (Methods XXX). Since our simulations show that mutation rate estimates
-can be biased, we predicted substitution rates under a fixed mutation rate of
-$\mu = 1.5 \times 10^{-8}$. Fixing the mutation rate also allows us to more
-easily compare the predictions across our feature-based models. Unfortunately,
-a careful comparison between our predictions and observed divergence rates is
-hindered by considerable uncertainty in the rate of the molecular clock,
-generation times, and the human-chimpanzee divergence time. We assume a
-generation time of 29 years, and calculate the sequence divergence implied by
-our predicted substitution rates over a range of divergence times, from 6 Mya
-to 12 Mya \parencite{Moorjani2016-tb,Nachman2000-te,Yi2002-pw,Steiper2006-xx}.
+models (Methods \ref{sec:methods-sub}). We compared these to the predicted
+substitution rates per feature, averaging over all segments in the genome.
+Since our simulations show that mutation rate estimates can be biased, we
+predicted substitution rates under a fixed mutation rate of $\mu = 1.5 \times
+10^{-8}$. Fixing the mutation rate also allows us to more easily compare the
+predictions across our feature-based models. Unfortunately, a careful
+comparison between our predictions and observed divergence rates is hindered by
+considerable uncertainty in the rate of the molecular clock, generation times,
+and the human-chimpanzee divergence time. We assume a generation time of 29
+years, and calculate the sequence divergence implied by our predicted
+substitution rates over a range of divergence times, from 6 Mya to 12 Mya
+\parencite{Moorjani2016-tb,Nachman2000-te,Yi2002-pw,Steiper2006-xx}.
 
 We find that our predicted substitution rates are qualitatively consistent with
 the observed divergence along the human lineage for all features except
-PhastCons (Figure \ref{fig:figure-7}). 
+PhastCons (Figure \ref{fig:figure-7}). As expected, the predicted substitution
+rates in features unlikely to be under selective constraint (introns and UTRs,
+and the ``other" feature) are very close to the mutation rate. Throughout, we
+report our substitution rates as a percent relative to the total mutation rate,
+$\mu$ (here fixed to $1.5 \times 10^{-8}$). In our Feature Priority model,
+coding sequences are predicted to have a substitution rate of 41.20\% of the
+mutation rate, introns and UTRs 94.71\%, coding sequences 0\%, and the ``other"
+feature 99.98\%. For comparison, the substitution rates along the human lineage
+(as a proportion to the substitution rate in putatively neutral regions) are
+74.15\% in UTRs, 92.44\% in introns, 50.96\% in coding sequences, and 49.56\%
+in PhastCons regions. The large discrepancy between predicted and observed
+PhastCons substitution rates is driven by our DFE estimates suggesting that the
+bulk of mass is on selection coefficients greater than $10^{-3}$, which have no
+chance of fixation in a population of $N_e \approx 10,000$. We note that our
+DFE estimates are qualitatively similar to those inferred using the classic BGS
+model; thus this DFE-substitution rate contradiction is not unique to our
+estimates, and could indicate a potential model misspecfication problem.
 
-
-
-
-As expected, the predicted substitution
-rate in features unlikely to be under selective constraint is very close to the
-mutation rate. Throughout, we report our substitution rates as a percent
-relative to the total mutation rate, $\mu$ (here fixed to $1.5 \times
-10^{-8}$). In our PhastCons Priority model, introns and UTRs are estimated to
-have have substitution rates that are $93.6\%$ of the mutation rate, and the
-``other" feature is estimated at $97.8\%$.  When we use the constrained grid,
-these change to $97.85\%$ and $99.98\%$ respectively. In our PhyloFit
-estimates, the divergence rate in introns is $92.44\%$, 5' UTRs $75.5\%$, and
-3' UTRs $72.65\%$. By contrast, our predicted substitution rates for PhastCons
-regions are much lower: $0.48\%$ for the default grid, and $1.65\%$ for the
-constrained grid. For comparison, the PhyloFit estimates for PhastCons regions
-is much higher, at $51.23\%$. Since this would include beneficial substitutions
-that would not be predicted by our model, this suggests a very high proportion
-of beneficial substitutions XXX check
-
-
-% This is likely due to the constrained grid placing more of the DFE mass on
-% weaker selection coefficients, which in turn have a higher chance of drifting
-% up to fixation. 
+XXX HERE
 
 Finally, we entertain two more speculative predictions. First, the equilibrium
 additive genic fitness variance. Our PhastCons Priority model DFE estimates and
@@ -1345,19 +1340,17 @@ samples (CEU and CHB) and YRI samples. More details about these and the segment
 simulations shown in Figure \ref{fig:figure-1}A-C can be found Supplementary
 Section \ref{supp:simulation}.
 
-\subsection*{Substitution Rate and Total Genic Fitness Variance Predictions}
+\subsection*{Substitution Rate Estimation and Prediction}
+\label{sec:methods-sub}
 
-
-a set of corresponding substitution rate predictions for each segment under
-mutation-selection-draft process. There are two sources of variation in these
-predictions in this model. First, there is the variation across the
-pre-specified functional categories, e.g. CDS, UTRs, and PhastCons. Second,
-there is region-specific variation 
-
-
-
-The SC16 theory models linked selection in quantitative genetics terms and
-relies on simultaneously predicting the deleterious substitution rate.
+We estimated the divergence along the human branch using PhyloFit
+\parencite{Siepel2004-ql} run on the Multiz alignments
+\parencite{Blanchette2004-bb} of humans and four other primates (\emph{Pongo
+abelii}, \emph{Pan troglodytes}, \emph{Pan paniscus}, \emph{Gorilla gorilla}).
+PhyloFit was run using the HKY85 substitution model per-feature; estimates from
+alternate substitution models yielded equivalent results. Further details about
+this process can be be found in the GitHub repository
+(\url{https://github.com/vsbuffalo/bprime}).
 
 \printbibliography
 
