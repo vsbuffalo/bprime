@@ -1113,8 +1113,6 @@ DFE estimates are qualitatively similar to those inferred using the classic BGS
 model; thus this DFE-substitution rate contradiction is not unique to our
 estimates, and could indicate a potential model misspecfication problem.
 
-XXX HERE
-
 Finally, we entertain two more speculative predictions. First, the equilibrium
 additive genic fitness variance. Our PhastCons Priority model DFE estimates and
 negative selection model imply a $\widehat{V}_a = 0.45$ for the default grid,
@@ -1154,8 +1152,133 @@ on the estimates: we calculate that across the genome, the loss in relative
 fitness per generation is 0.00160\% for the default grid, and 0.00119\% for the
 constrained grid.
 
+\section*{Locally-rescaled Fits}
+
+Given that our simulations indicated that $B(x)$ is more accurately predicted
+when we use local-rescaling, we modified our composite-likelihood method to be
+run a second time. Intuitively, this is based on the notion that if a neutral
+allele experiences an effective population size of $B(x)N$, so too should a
+selected allele, and this should be considered in how the SC16 equations are
+solved. Immediately, there is an important caveats to note about this analysis.
+Local-rescaling is done using the first round of maximum likelihood estimates,
+and then re-solving the system of equations with a population size of $B(x)N$.
+This could introduce the possibility of some circularity, since the $B(x)$ at
+this position includes the contribution of the focal segment that is being
+rescaled. However, the qualitative results do not change based on whether the
+$B(x)$ is at averaged at the 1 kbp level or at the megabase scale; for the
+latter, a single segment makes little contribution to the average.
+
+With this caveat noted, there are three important but tentative results to draw
+from this analysis. First, the estimated mutation rate is implausibly higher,
+reaching the upper limit of our optimization boundary of $\mu = 8 \times
+10^{-8}$ across all populations in or PhastCons Priority model (Supplementary
+Material XXX). Second, all of our leave-one-chromosome-out $R_\text{LOCO}^2$
+are about one percentage point higher than the unrescaled model. This improved
+fit could be an artifact of the circularity, so it is unimportant. Third, the
+DFE estimates for PhastCons regions is now U-shaped, with $75-77\%$ of mass
+being placed on a weakly deleterious class, $s=10{^-5}$. Interestingly, this is
+the first of all of our models where such an appreciable mass has been placed
+on a midpoint in our grid; in all other cases, non-strongly estimates were
+neutral ($s=10^{-8}$). Finally, predicted pairwise diversity is nearly
+identical to our original, non-locally-rescaled fit (see Supplementary
+Materials XXX). This 
+
+Overall, this leads to an open end in our work. If selected sites along the
+genome were to experience a draft effective population size that is closer to
+our locally-rescaled version, then these quantitative genetic models of linked
+selection 
+
+the fit to the linked selection signal is very close under
+different parameter combinations (Supplementary Materials XXX). The fits with
+local-rescaling 
+
+
+Intuitively, this is based on the notion that if a neutral allele experiences
+an effective population size of $B(x)N$, so too should a selected allele. We
+find in simulations this reduces error around $2 N_e s \approx 1$.
+Unfortunately, employing this in our composite-likelihood method would create
+some circularity, since the local $B(x)$ experienced at a conserved segment
+includes the reduction due to the segment itself. There are not computationally
+feasible ways to avoid this issue in the current implementation.
+
+
 
 \section*{Discussion}
+
+Linked selection processes alter genetic diversity on multiple scales, creating
+patterns based on their strength relative to the stochasticity of coalescence
+times and mutations. Sweeps typically leave signals on shorter genomic scales
+(i.e. kilobases; \cite{Akey2004-zg}) which combined with the paucity of
+adaptive substitutions in humans suggests positive selection is generating the
+apparent large, megabase-scale linked selection signal
+\parencite{Hernandez2011-gs,Murphy2022-sj}. By contrast, there is reasonable
+evidence that negative selection against new mutations occurring in
+highly-conserved sequences is generating large-scale chromosomal patterns of
+diversity. 
+
+Population genetic theory has been productively applied to fit this linked
+selection signal, producing plausible estimates of the strength of selection at
+these conserved regions and mutations rates consistent with more precise
+pedigree-based estimates. However, these models rely on the canonical
+background selection model, which due to its assumption that mutations are
+sufficiently deleterious they cannot fix, has constrained statistical methods
+to only fit background selection models in regions \emph{a priori} under
+constraint. In reality, the relationship between diversity levels and the
+strength of selection at deleterious mutations is U-shaped, which implies there
+could be more uncertainty that previously appreciated in the distribution of
+weak and strongly deleterious mutations.
+
+We sought to address this uncertainty in this work, by leveraging a different
+class of linked selection models based on modeling the equilibrium fitness
+variance \parencite{Santiago2016-mu}. This model is more general than classic
+background selection theory; the background selection model is analytically a
+special case when the deleterious substitution rate is zero. Moreover, the SC16
+model explains equilibrium fitness variance across all selection coefficients
+by jointly predicting another central quantity in evolutionary genomics: the
+deleterious substitution rate in conserved features. This offers a further way
+to confirm or falsify that our understanding of the negative selection process
+is accordance with other observed quantities.
+
+However, while our improved negative selection model leads to nearly identical
+parameter estimates as previous working employing classic BGS theory, we find a
+fundamental contradiction in the implied rate of deleterious substitution and
+observed divergence in conserved regions. Unfortunately, this suggests a
+potentially serious model misspecfication or non-identifiability issue. Since
+the rate of substitutions is determined by the fraction of DFE mass below $2N_e
+s \le 1$, the consistency between our DFE estimates and those from
+\textcite{Murphy2022-sj} suggests this discrepancy is shared across models of
+negative selection.
+
+One clue towards solving this contradiction is given by our simulation work.
+While our linked selection model accurately predicts the substitution rates,
+fitness variance, and diversity for $2N_e s > 1$ and $2N_e s \ll 1$, there's a
+nominal error around the drift boundary of $2N_e s \approx 1$. This region of
+parameter space is at a delicate balance between stochasticity dominating
+allele frequency dynamics (for $2N_e s \ll 1$) and having little influence
+($2N_e s > 1$). Our implementation of the SC16 model in essence only considers
+the reduction due to selection \emph{within} the segment and not neighboring
+regions. Thus, like classic BGS methods, our model does not consider selective
+interference due to neighboring regions under selective constraint. Solving the
+SC16 equations using a locally-rescaled population size of $B(x) N$ rather than
+$N$ are in effect approximating the reduction in effective population due to
+selective interference. Intuitively, this is based on the notion that if a
+neutral allele experiences an effective population size of $B(x)N$, so too
+should a selected allele. We find in simulations this reduces error around $2
+N_e s \approx 1$. Unfortunately, employing this in our composite-likelihood
+method would create some circularity, since the local $B(x)$ experienced at a
+conserved segment includes the reduction due to the segment itself. There are
+not computationally feasible ways to avoid this issue in the current
+implementation.
+
+Out of curiosity, we experimented with fitting human diversity data, using the
+predicted $\widehat{B}(x)$ for local-rescaling, and rerunning our
+composite-likelihood framework (see Supplementary Mathematical XXX). While the
+circularity issue means these results should be interpreted with caution, we
+generally find these models fit nearly as well 
+
+it creates a bit of circularity. 
+
+
 
 draft limits discussion - we were heavily constrained by simulations / regions
 etc
