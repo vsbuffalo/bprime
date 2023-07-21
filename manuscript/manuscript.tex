@@ -53,13 +53,11 @@
 \begin{document}
 \maketitle
 
-
-
 \begin{abstract}
 
     Across the human genome, there are large-scale fluctuations in genetic
     diversity caused by the indirect effects of selection. This can be thought
-    of as a ``linked selection signal" that reflects selection's effects
+    of as a ``linked selection signal" that reflects the effects of selection
     varying according to the placement of functional regions and recombination
     rates along the genome. Previous work has shown that negative selection
     against the steady influx of new deleterious mutations into conserved
@@ -67,25 +65,31 @@
     theoretic model that underpins these results, classic Background Selection
     theory, is only applicable when new mutations are so deleterious that they
     cannot drift up in frequency and ultimately fix in the population. Here, we
-    develop an alternate theoretic basis for genome-wide linked selection based
-    on a quantitative genetics view, which considers how diversity is reduced
-    according to the arrangement of additive fitness variance along the genome.
-    Using a recent model that jointly predicts the equilibrium fitness variance
-    and substitution rates due to deleterious mutations, we estimate the
-    distribution of selection coefficients and mutation rate across three human
-    populations. While our model can accommodate weaker selection, we find
-    consistent evidence across all populations of very strong selection against
-    deleterious mutations. We also find that our model's predicted substitution
-    rates are qualitatively consistent with observed divergences in features
-    under weak selective constraint like introns and UTRs, but less so in
-    regions under strong selective constraint. While our model explains up to
-    67\% of the out-sample variance in diversity at the megabase scale, we find
-    evidence of residual strong selection against loss-of-function variants
-    unfit by our model, indicating the dominant role negative selection plays
-    in the human genome. Altogether, our genome-wide model of the linked
-    selection is a step towards uniting population and quantitative genetic
-    models of selection with the substitution processes.
-
+    develop and apply a statistical method to fit the linked selection signal
+    based on an alternate theoretic approach. This theory is based on a
+    quantitative genetics view of the linked selection process, which models
+    the cumulative effects of weak draft created according the arrangement of
+    polygenic additive fitness variance along the genome. Using a recent model
+    that jointly predicts the equilibrium fitness variance and substitution
+    rates due to deleterious mutations, we estimate the distribution of fitness
+    effects (DFE) and mutation rate across three human populations. While our
+    model can accommodate weaker selection, we initially find evidence across
+    three human populations of very strong selection against deleterious
+    mutations consistent with previous work. However, the corollary predictions
+    of the substitution rates from our model suggest an unreasonably low rate
+    of divergence in highly-conserved region which disagree with observations.
+    We hypothesize that this is driven by selected sites within conserved
+    segments experiencing a reduced effective population size due to selection
+    across other segments. Extending our method to approximate these effects
+    through a locally-reduced effective population size brings predicted
+    substitution rates into agreement with observed divergence rates and
+    revises DFE estimates to include a sizable portion of weakly deleterious
+    mutations. However, this also leads to implausibly large mutation rate
+    estimates. Overall, while our model of the genomic linked selection signal
+    brings us a step towards uniting population and quantitative genetic
+    selection models with the substitution process, our work suggests
+    considerable uncertainty remains about the processes generating fitness
+    variance in humans.
 \end{abstract}
 
 
@@ -172,7 +176,7 @@ estimates of the negative selection process in humans.
 
 \section*{Theory}
 
-Similar to previous work, we aim to characterize the negative selection process
+Similar to previous work, we aim to characterize the selection processes
 through the signal left on nucleotide diversity at linked sites. Although
 nucleotide diversity is a less-informative statistic than the full site
 frequency spectrum, it is much easier to derive theoretic models of how linked
@@ -190,6 +194,10 @@ for why the classic BGS model works well for strong selection but not weak, and
 how formulating the equilibrium between new deleterious mutations and negative
 selection in terms of the additive fitness variance can alleviate these
 problems.
+
+The theoretic basis of our method models the effects of weak draft on diversity
+in terms of polygenic additive fitness variance. This fitness variance could
+occur due to any weakly selected 
 
 Throughout, we imagine a negative selection process where a continual influx of
 deleterious mutations occur at a rate of $\mu$ per basepair per generation in a
@@ -434,7 +442,7 @@ mutation-selection-drift-draft process, as $\widetilde{N}_d$ and
 $\widetilde{R}$. These equilibria also imply an equilibrium level of additive
 fitness variation $\widetilde{V}_a$ in the segment, which are used to calculate
 the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any genomic position $x$
-(see Methods \ref{sec:methods-maps}).
+(see Methods Section \nameref{sec:methods-maps}).
 
 \section*{Results: Simulation Validation of Theory and Methods}
 
@@ -708,7 +716,7 @@ megabase scale \parencite{Murphy2022-sj}.
         lines are the $R_\text{drift}^2$ expected when the residual variance is
     given by the theoretic variance in coalescence times due to drift alone.}
 
-  \label{fig:figure-2}
+  \label{fig:figure-3}
 \end{figure}
 
 Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
@@ -806,7 +814,7 @@ noise).
 populations. Although this model fit the data less well than alternatives, its
 results are more interpretable.}
 
-  \label{fig:figure-3}
+  \label{fig:figure-4}
 \end{figure}
 
 Our composite likelihood method has three sets of parameters: the expected
@@ -910,7 +918,7 @@ PhastCons feature, leaving only conditionally neutral sites.
         consistent between classic BGS and B' methods for sparse tracks CADD
         models (overlapping diamonds and circles, top row). Overall, mutation
         rate estimates are sensitive to the underlying annotation model.}
-  \label{fig:figure-4}
+  \label{fig:figure-5}
 \end{figure}
 
 Prior work on genome-wide inference using the classic BGS model fit the linked
@@ -918,7 +926,7 @@ selection signal well, but led to unusually high estimates of the mutation rate
 \parencite{McVicker2009-ax}. This lead to the hypothesis that these models
 could be absorbing the signal of positive selection \parencite{Enard2014-kz},
 though other work has found a limited role for hitchhiking
-\parencite{Pickrell2009-tt,Hernandez2011-gs,Murphy2022}. While our simulation
+\parencite{Pickrell2009-tt,Hernandez2011-gs,Murphy2022-sj}. While our simulation
 results suggest estimates of the mutation rate from linked selection models are
 biased, we still check for rough agreement with pedigree-based estimates
 \parencite{Kong2013-fc,Tian2019-so}. 
@@ -988,7 +996,7 @@ too memory-intensive for our method to currently accommodate.
 against the average LoF selection coefficient across genes in a megabase window
 (estimated by \cite{Agarwal2023-un}).}
 
-  \label{fig:figure-5}
+  \label{fig:figure-6}
 \end{figure}
 
 While we have previously shown that out-sample predicted diversity matches
@@ -1022,7 +1030,7 @@ that is poorly captured by this approach. We investigated this possibility by
 looking for lingering selection signal in our model residuals. First, we
 inspected whether there was a relationship between the fraction of CADD 2\% and
 6\% basepairs and the residual across megabase windows (Supplementary Figure
-\label{suppfig:resid-cadd}), finding a negative significant relationship in
+\ref{suppfig:resid-cadd}), finding a negative significant relationship in
 both cases. Moreover, our model over-predicted diversity in windows containing
 more CADD 2\% basepairs moreso than CADD 6\%, consistent with heterogeneity in
 site pathogenicity being poorly fit by our model. However, the total residual
@@ -1072,7 +1080,7 @@ LoF-intolerant genes.
     local-rescaling is applied (we omit other locally-rescaled predictions
 since these to not differ substantially).}
 
-  \label{fig:figure-6}
+  \label{fig:figure-7}
 \end{figure}
 
 Since our B' method is based upon quantitative genetic models of linked
@@ -1278,7 +1286,7 @@ grids of mutation rate weighted by the DFE $m_i$ and selection coefficient
 $s_j$, by numerically solving the following system of equations,
 
 \begin{align}
-  \label{eq:}
+  \label{eq:method-2eqns}
   {N}_{d} &= N \exp \left( -V_a \frac{Q^2(m_i, s_j)}{2} \right) & \text{\emph{effective population equation}} \\
   R &= \frac{4N_dU s_j}{\exp(4 N_d s_j)-1}  & \text{\emph{substitution equation}} 
 \end{align}

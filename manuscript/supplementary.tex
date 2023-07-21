@@ -1052,7 +1052,6 @@ otherwise.
 There are three ways to aggregate $\pi_l$ across all sites. The first is,
 
 \begin{align}
-  \label{eq:}
   \pi^{(1)} = \frac{1}{L} \sum_{i=1}^L \frac{n_{D,i}}{n_{T,i}}
 \end{align}
 %
@@ -1061,7 +1060,6 @@ unweighted average across sites. Second, one can take a weighted average, with
 weights determined by the total number of samples present at a site,
 
 \begin{align}
-  \label{eq:}
   \pi^{(2)} = \frac{1}{\sum_{i=1}^L n_i} \sum_{i=1}^L n_i \frac{n_{D,i}}{n_{T,i}}
 \end{align}
 %
@@ -1070,7 +1068,6 @@ $n_{T,i}$, rather than total number of samples, $n_i$, which leads to a ratio
 of sums,
 
 \begin{align}
-  \label{eq:}
   \pi^{(3)} = \frac{\sum_{i=1}^L n_{D,i}}{\sum_{i=1}^L n_{T,i}}.
 \end{align}
 
@@ -1106,18 +1103,6 @@ $\widehat{\mathbf{W}}$, i.e. $\widehat{\mathbf{w}}_k$
 The predicted ratchet rate for segment $g$ $\lambda_d(g)$ is based on these
 values.
  
-\subsection{Numeric Optimization}
-\label{supp:optim}
-
-
-mu bounds 
-
-bounds and time, bounds and convergence
-
-Same optima, but took longer
-
-
-
 \subsection{Numeric methods for calculating $B$}
 
 Depending on the number of features, this can be incredibly memory intensive.
@@ -1838,6 +1823,20 @@ approximation is fine over short scales (such as the 10 kbp scale used here).
 
 \subsection{Optimization and Diagnostics}
 \label{supp:optim}
+
+As described in the Methods section we use the BOBYQA algorithm implemented by
+the NLopt library for numeric optimization to find maximum likelihood estimates
+\parencite{Powell2009-jm,Johnson2007-tl}. The DFE is a simplex, and thus
+requires constrained optimization. We compared constrained optimization
+algorithms to an unconstrained softmax approach, finding the latter vastly
+outperformed the former. Bounds for $\pi_0$ and $\mu$ can be set manually in
+\texttt{bgspy}; our main models used $10^{-8} \le \mu \le 5 \times 10^{-8}$ and
+$0.0005 \le \pi_0 \le 0.008$. All main model fits were not at bounds. For
+locally-rescaled fits, we found our $\widehat{\mu}$ estimate was continually
+the upper bound; for these fits we increased this first to $\mu = 8 \times
+10^{-8}$ and then again to $\mu = \times 10^{-7}$, find it still always reached
+the upper bound. Since $10^{-7}$ is an implausibly high mutation rate, we
+stopped there.
 
 We only show one optimization diagnostic plot here (Supplementary Figure
 \ref{suppfig:diag-plot}), but the can be easily calculated from the model
