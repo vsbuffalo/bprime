@@ -1060,7 +1060,7 @@ LoF-intolerant genes.
 \subsection*{Predicted Substitution Rate and Additive Fitness Variance}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_7.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_7_mod.pdf} 
 
     \caption{}
 
@@ -1113,97 +1113,57 @@ DFE estimates are qualitatively similar to those inferred using the classic BGS
 model; thus this DFE-substitution rate contradiction is not unique to our
 estimates, and could indicate a potential model misspecfication problem.
 
-Finally, we entertain two more speculative predictions. First, the equilibrium
-additive genic fitness variance. Our PhastCons Priority model DFE estimates and
-negative selection model imply a $\widehat{V}_a = 0.45$ for the default grid,
-and $\widehat{V}_a = 0.040$ for the constrained grid. This is a considerable
-level of uncertainty---over an order of magnitude---due to a difference in the
-selection grid. There are no other known direct estimates in humans of this
-quantity for comparison. When $2N \gg 1$, theory suggests $V_a \approx
-U_D\bar{s}$ where $U_D$ is the diploid rate of strongly deleterious mutations.
-Thus, the uncertainty is a byproduct of the different average estimates of
-$\bar{s}$ across the alternate grids. Since both this work and
-\textcite{Murphy2022-sj} find the single-feature CADD 6\% track fits well, we
-can use this to gain intuition through some rough calculations. In this case,
-$U_D \approx 6\% \times 2 \times 3 \times 10^{9} \mu \approx 3.6 \times 10^{8}
-\mu$. For $\mu \approx 1.5 \times 10^{-8}$, $U_D \approx 5.2$. Under the
-constrained grid, ${\bar{s}} \approx 0.0079$ and thus $V_a \approx 0.043$; with
-the default grid $\bar{s} \approx 0.043$, and $V_a \approx 0.23$. Often fitness
-reductions of $\approx 1\%$ are assumed for the most highly-conserved regions
-(XXX, Keightly, Lynch); for comparison, this leads to $V_a \approx 0.054$.
-
-XXX HERE  USE CADD PREDICTIONS
-
-By theory, this relative fitness (scaled by the mean squared) is
-bounded from above by the Index of Selection, defined as the theoretic relative
-fitness variance if fitness were perfectly heritable \parencite{Crow1958-pc}.
-Based on rough calculation by Crow, this could range between 0.982-3.286 in
-humans. However, this is based on modern-day mortality figures that may not
-extrapolate to the timescales that determine genome-wide patterns of diversity. 
-
-Second, we can calculate the reduction in relative fitness per generation due
-to deleterious substitutions. Since \textcite{Muller1950-ta}, there has been
-considerable interest in whether mildly deleterious mutations, perhaps due to
-the relaxation of selection pressures, could accumulate and fix at a faster
-pace in humans.
-
-Here, the selection grid choice has little impact
-on the estimates: we calculate that across the genome, the loss in relative
-fitness per generation is 0.00160\% for the default grid, and 0.00119\% for the
-constrained grid.
-
 \section*{Locally-rescaled Fits}
 
-Given that our simulations indicated that $B(x)$ is more accurately predicted
-when we use local-rescaling, we modified our composite-likelihood method to be
-run a second time. Intuitively, this is based on the notion that if a neutral
-allele experiences an effective population size of $B(x)N$, so too should a
-selected allele, and this should be considered in how the SC16 equations are
-solved. Immediately, there is an important caveats to note about this analysis.
-Local-rescaling is done using the first round of maximum likelihood estimates,
-and then re-solving the system of equations with a population size of $B(x)N$.
-This could introduce the possibility of some circularity, since the $B(x)$ at
-this position includes the contribution of the focal segment that is being
-rescaled. However, the qualitative results do not change based on whether the
-$B(x)$ is at averaged at the 1 kbp level or at the megabase scale; for the
-latter, a single segment makes little contribution to the average.
+Given the observed DFE-substitution rate contradiction and that our simulations
+indicated that $B(x)$ is more accurately predicted when we use local-rescaling,
+we modified our composite-likelihood method to so that it can be run a second
+time, on B' maps locally-rescaled by the predicted $\widehat{B}(x)$ from the
+initial fit. Intuitively, this is based on the notion that if a neutral allele
+experiences an effective population size of $B(x)N$, so too should a selected
+allele, and this should be considered in how the SC16 equations are solved.
+There is an important caveat about this analysis. Since local-rescaling is done
+using the first round of maximum likelihood estimates, there is a possibility
+of some circularity, since the $B(x)$ at this position includes the
+contribution of the focal segment that is being rescaled. However, the results
+do not change based on whether the $B(x)$ is at averaged at the 1 kbp level or
+at the megabase scale; for the latter, a single segment makes little
+contribution to the average. 
 
-With this caveat noted, there are three important but tentative results to draw
+With this caveat noted, there are five important but tentative results to draw
 from this analysis. First, the estimated mutation rate is implausibly higher,
 reaching the upper limit of our optimization boundary of $\mu = 8 \times
 10^{-8}$ across all populations in or PhastCons Priority model (Supplementary
-Material XXX). Second, all of our leave-one-chromosome-out $R_\text{LOCO}^2$
-are about one percentage point higher than the unrescaled model. This improved
-fit could be an artifact of the circularity, so it is unimportant. Third, the
-DFE estimates for PhastCons regions is now U-shaped, with $75-77\%$ of mass
-being placed on a weakly deleterious class, $s=10{^-5}$. Interestingly, this is
-the first of all of our models where such an appreciable mass has been placed
-on a midpoint in our grid; in all other cases, non-strongly estimates were
-neutral ($s=10^{-8}$). Finally, predicted pairwise diversity is nearly
-identical to our original, non-locally-rescaled fit (see Supplementary
-Materials Figure \ref{suppfig:rescale}). However, this is not the case when the
-locally-rescaled maximum likelihood estimates are used to predict on the
-non-locally-rescaled B' maps.
+Material XXX). When we re-ran optimization with an upper limit of $\mu = 1
+\times 10^{-7}$, the mutation rate was again estimated to this (implausibly
+large) upper limit, with no considerable changes to model fit or DFE estimates.
+Second, all of our leave-one-chromosome-out $R_\text{LOCO}^2$ are about one
+percentage point higher than the unrescaled model. This improved fit could be
+an artifact of the circularity, so it is unimportant. Third, the DFE estimates
+for PhastCons regions is now U-shaped (Supplementary Materials Figure
+\ref{suppfig:rescale-dfe}), with $75-77\%$ of mass being placed on a weakly
+deleterious class, $s=10{^-5}$. Interestingly, this is the first of all of our
+models where such an appreciable mass has been placed on a midpoint in our
+grid; in all other cases, non-strongly estimates were neutral ($s=10^{-8}$).
+Fourth, predicted pairwise diversity is nearly identical to our original,
+non-locally-rescaled fit (see Supplementary Materials Figure
+\ref{suppfig:rescale}). Finally, since local-rescaling increases the DFE mass
+over $s < 10^{-3}$, mutations in PhastCons regions now have the possibility of
+fixation. We find that local-rescaling the PhastCons Priority, leads the
+predicted substitution rates in PhastCons regions to be much closer to observed
+levels (blue line, Figure \ref{fig:figure-6}).
 
-Overall, this leads to an open end in our work. If selected sites along the
-genome were to experience a draft effective population size that is closer to
-our locally-rescaled version, then these quantitative genetic models of linked
-selection 
-
-the fit to the linked selection signal is very close under
-different parameter combinations (Supplementary Materials XXX). The fits with
-local-rescaling 
-
-
-Intuitively, this is based on the notion that if a neutral allele experiences
-an effective population size of $B(x)N$, so too should a selected allele. We
-find in simulations this reduces error around $2 N_e s \approx 1$.
-Unfortunately, employing this in our composite-likelihood method would create
-some circularity, since the local $B(x)$ experienced at a conserved segment
-includes the reduction due to the segment itself. There are not computationally
-feasible ways to avoid this issue in the current implementation.
-
-
+Finally, as a robustness check, we investigated the extent to which
+local-rescaling differed from the B' maps across selection parameters. We find
+minor differences between the locally-rescaled and standard B' maps in the $0.2
+\le 2N_e s \le 2$ range; the maps were identical under strong selection ($2N_e
+s= 20$) as expected (Supplementary Materials Figure \ref{suppfig:rescale-b}).
+Overall, this suggests that models that fit the linked selection are worryingly
+sensitive the theoretic B' values in the $2Ns \le 1$ domain. Local-rescaling
+turns out to only slightly alter the B' maps, yet significantly modifies the
+DFE estimates. This brings the deleterious substitution rate in agreement with
+observations (since this is predicted with a fixed $\mu = 1.5 \times 10^{-8}$;
+however, the maximum likelihood estimate of mutation is implausibly high.
 
 \section*{Discussion}
 
