@@ -1062,7 +1062,15 @@ LoF-intolerant genes.
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_7_mod.pdf} 
 
-    \caption{}
+    \caption{Predicted versus observed divergence along the human lineage.
+        Black points are the PhyloFit divergence rate estimates per features
+        (on x-axis). Line ranges are the implied divergences across a range of
+        human-chimpanzee divergence times of 6-12 Mya (using a generate time of
+        29 years). We show the predicted divergences for our Feature
+        (turquoise) and PhastCons priority (green) annotation models.
+        Additionally, we show the predicted PhastCons region divergences when
+    local-rescaling is applied (we omit other locally-rescaled predictions
+since these to not differ substantially).}
 
   \label{fig:figure-6}
 \end{figure}
@@ -1095,7 +1103,7 @@ substitution rates over a range of divergence times, from 6 Mya to 12 Mya
 
 We find that our predicted substitution rates are qualitatively consistent with
 the observed divergence along the human lineage for all features except
-PhastCons (Figure \ref{fig:figure-7}). As expected, the predicted substitution
+PhastCons (Figure \ref{fig:figure-6}). As expected, the predicted substitution
 rates in features unlikely to be under selective constraint (introns and UTRs,
 and the ``other" feature) are very close to the mutation rate. Throughout, we
 report our substitution rates as a percent relative to the total mutation rate,
@@ -1171,8 +1179,8 @@ Linked selection processes alter genetic diversity on multiple scales, creating
 patterns based on their strength relative to the stochasticity of coalescence
 times and mutations. Sweeps typically leave signals on shorter genomic scales
 (i.e. kilobases; \cite{Akey2004-zg}) which combined with the paucity of
-adaptive substitutions in humans suggests positive selection is generating the
-apparent large, megabase-scale linked selection signal
+adaptive substitutions in humans suggests positive selection is not generating
+the apparent large, megabase-scale linked selection signal
 \parencite{Hernandez2011-gs,Murphy2022-sj}. By contrast, there is reasonable
 evidence that negative selection against new mutations occurring in
 highly-conserved sequences is generating large-scale chromosomal patterns of
@@ -1187,100 +1195,78 @@ sufficiently deleterious they cannot fix, has constrained statistical methods
 to only fit background selection models in regions \emph{a priori} under
 constraint. In reality, the relationship between diversity levels and the
 strength of selection at deleterious mutations is U-shaped, which implies there
-could be more uncertainty that previously appreciated in the distribution of
+could be more uncertainty than previously appreciated in the distribution of
 weak and strongly deleterious mutations.
 
 We sought to address this uncertainty in this work, by leveraging a different
 class of linked selection models based on modeling the equilibrium fitness
-variance \parencite{Santiago2016-mu}. This model is more general than classic
-background selection theory; the background selection model is analytically a
-special case when the deleterious substitution rate is zero. Moreover, the SC16
-model explains equilibrium fitness variance across all selection coefficients
-by jointly predicting another central quantity in evolutionary genomics: the
-deleterious substitution rate in conserved features. This offers a further way
-to confirm or falsify that our understanding of the negative selection process
-is accordance with other observed quantities.
+variance \parencite{Santiago2016-mu}. At its core, the theory underlying this
+model states that the linked selection signal is a function of how the fitness
+variance is distributed along the recombination map of the genome
+\parencite{Santiago1998-bs}. We fit a specific process model for this fitness
+variance that supposes all fitness variance is the result of selection against
+new deleterious mutations \parencite{Santiago2016-mu}. Unlike classic
+background selection theory, the SC16 model explains equilibrium fitness
+variance across all selection coefficients by jointly predicting another
+central quantity in evolutionary genomics: the deleterious substitution rate in
+conserved features. This model is more general than classic background
+selection theory; background selection theory is analytically a special case
+when the deleterious substitution rate is zero.
 
-However, while our improved negative selection model leads to nearly identical
-parameter estimates as previous working employing classic BGS theory, we find a
-fundamental contradiction in the implied rate of deleterious substitution and
-observed divergence in conserved regions. Unfortunately, this suggests a
-potentially serious model misspecfication or non-identifiability issue. Since
-the rate of substitutions is determined by the fraction of DFE mass below $2N_e
-s \le 1$, the consistency between our DFE estimates and those from
-\textcite{Murphy2022-sj} suggests this discrepancy is shared across models of
-negative selection.
+Generally, our method lead to better fits to data that those based on classic
+BGS, as measured by predicted out-sample diversity. Furthermore, unlike
+BGS-based methods, our model is capable of fitting weak selection; we find
+evidence of this since we can robustly estimate the DFE for weakly constrained
+features like introns and UTRs. Yet even with the possibility of fitting weak
+selection, our main model fits are in agreement with the prior results from
+BGS-based methods. Both mutation rate estimates and DFE estimates are
+consistent with prior work. This, at first glance, suggests further
+confirmation that negative selection against new deleterious mutations is the
+dominant mode of linked selection in the genome.
 
-One clue towards solving this contradiction is given by our simulation work.
-While our linked selection model accurately predicts the substitution rates,
-fitness variance, and diversity for $2N_e s > 1$ and $2N_e s \ll 1$, there's a
-nominal error around the drift boundary of $2N_e s \approx 1$. This region of
-parameter space is at a delicate balance between stochasticity dominating
-allele frequency dynamics (for $2N_e s \ll 1$) and having little influence
-($2N_e s > 1$). Our implementation of the SC16 model in essence only considers
-the reduction due to selection \emph{within} the segment and not neighboring
-regions. Thus, like classic BGS methods, our model does not consider selective
-interference due to neighboring regions under selective constraint. Solving the
-SC16 equations using a locally-rescaled population size of $B(x) N$ rather than
-$N$ are in effect approximating the reduction in effective population due to
-selective interference. Intuitively, this is based on the notion that if a
-neutral allele experiences an effective population size of $B(x)N$, so too
-should a selected allele. We find in simulations this reduces error around $2
-N_e s \approx 1$. Unfortunately, employing this in our composite-likelihood
-method would create some circularity, since the local $B(x)$ experienced at a
-conserved segment includes the reduction due to the segment itself. There are
-not computationally feasible ways to avoid this issue in the current
-implementation.
+Since the SC16 theory calculates fitness variance by jointly predicting the
+deleterious substitution rate, this provides another route to verify our main
+findings. We find that predicted substitution rates for highly-conserved
+PhastCons features are in strong disagreement with observed substitution rates
+along the human lineage: the DFE-substitution rate contradiction. This is a
+consequence of our DFE estimate for PhastCons regions containing little mass
+over weakly deleterious and neutral selection coefficients --- a characteristic
+of DFE estimates from other work too \parencite{Murphy2022-sj}. One clue to
+this discrepancy is that our simulation results indicate an appreciable level
+of error between observed reductions and the B' maps in the weak selection
+domain of $2N_e s \approx 1$.
 
-Out of curiosity, we experimented with fitting human diversity data, using the
-predicted $\widehat{B}(x)$ for local-rescaling, and rerunning our
-composite-likelihood framework (see Supplementary Mathematical XXX). While the
-circularity issue means these results should be interpreted with caution, we
-generally find these models fit nearly as well 
+We hypothesized that this could be because in this domain, a segment under
+selective constraint experiences a local draft-effective population size of
+$B(x)N$, and not just $N$. This local draft-effective population size is
+induced by selection at other segments that is not being taken into account by
+classic BGS theory or our standard model. When we experimented by fitting our
+model and then using the predicted reduction map to local-rescale $N_e$ to the
+draft-effective population size $N_d = \widehat{B}(x)$, we find the
+disagreement between predicted and observed substitution rates disappears. This
+is expected, since locally-rescaled fits result in DFE estimates to have an
+appreciable mass on weakly deleterious selection coefficients. While this
+brings substitution rates into agreement, we encounter the same problem found
+by \textcite{McVicker2009-ax}: the estimated mutation rate is too high. We
+emphasize that although there are several caveats with the local-rescaling
+approach, in practice it is altering the B' maps only slightly in the domain of
+$2N_e s \approx 1$. Even if the local-rescaling approximation to selective
+interference is incorrect, these results suggest parameter estimates are
+extremely sensitivity to how accurate the B' maps are in this domain.
 
-it creates a bit of circularity. 
-
-
-
-draft limits discussion - we were heavily constrained by simulations / regions
-etc
-
-the PhastCons Priority Model is very close to CADD 6\%, and interpretable,
-similiar mutation rates. This 
-
-weak selection remains elusive
-
-UTR rates 
-
-- parametric DFEs are trash
-
-- the $pi_0$ problem
-
-Ipsita Agarwal article 
-
-what time scale is the average mutation being lost at?
-
-Regularization / overfitting 
-
-It is worth considering why this model performs well for models of negative
-selection. The fitness variance equation, $V(x) = (U-2R)s$ tells us that under
-models, the long-run variance is set by the balance of mutation and fixation.
-Whether a particular basepair's behavior follows this equation depends upon
-whether the long-run average is close to ``typical" for that basepair at a
-given time. Good things fix so quickly, that we're left with a constant
-churning of new variation
-
-- need for coalescent simulations with reduced $N_e$ along the genome.
-
-- we need to talk about Fisher's Fundamental Theorem and how this model
-connects fitness variation to absolute changes in fitness.
-
-Measuring selection in the Genome Versus Finding Selection in the Genome
-
+Unfortunately, this work opens up more questions about the nature of selection
+in humans that it answers. The implausibly high estimate of mutation rates
+could suggest that negative selection is not the only source of fitness
+variance generating the genome-wide linked selection signal in humans. Positive
+selection on polygenic variation along the genome could be another source of
+fitness variance contributing to the weak selection signal. Alternatively,
+negative selection could be the main source of fitness variance, but the
+complexity of selective interference may be poorly approximated by the
+local-rescaling approach. Overall, understanding how the sources of human
+fitness variance shape the striking patterns of diversity along the human
+genome still remains an open riddle.
 
 \section*{Methods}
-% (the method would support a new
-% ``interaction" type, but this greatly increases the number of parameters).
 
 \subsection*{Solving the B' Equations for each Segment}
 \label{sec:methods-bprime-eqns}
@@ -1400,7 +1386,10 @@ circularity that could occur by using LD-based maps. We use Ensembl gene
 annotation \parencite{Cunningham2022-vk}, a special CADD Score dataset with
 McVicker B scores removed (to avoid circularity;
 \cite{Kircher2014-bv,Rentzsch2019-lr}), and PhastCons regions
-\parencite{Siepel2005-wh}.
+\parencite{Siepel2005-wh}. We did not account for mutation rate heterogeneity
+along the genome, since this would require using divergence-based estimates of
+local mutation rates that would introduce circularity when we predict
+divergence rates under our model.
 
 \subsection*{Forward Simulations}
 \label{sec:methods-sim}
