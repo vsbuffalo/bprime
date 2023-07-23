@@ -325,7 +325,7 @@ or for continuous $t$,
 which as $t \to \infty$, converges to,
 
 \begin{align}
-  \label{eq:Qinf}
+  \label{supp-eq:Qinf}
   Q_\infty &= \frac{1}{\kappa + r(1-\kappa)}.
 \end{align}
 
@@ -1337,9 +1337,8 @@ CADD 8\%: 8.56\% of autosomal sequence.
 % \end{table}
 
 \subsection{Table of $R^2$ Values}
-
+\label{supp:tbl-r2}
 \begin{table}
-    \label{supp:tbl-r2}
 \centering
 
 \caption{$R^2$ and mutation rate estimates for all primary models fit on the
@@ -1377,8 +1376,9 @@ PhastCons Priority &              full &          CHB &                        5
 \end{tabular}
 \end{table}
 
+\subsection{Table of $R^2$ Values (Strong Selection Grid)}
+\label{supp:tbl-r2-strongsel}
 \begin{table}
-    \label{supp:tbl-r2-strongsel}
 \centering
 
 \caption{$R^2$ and mutation rate estimates for all primary models fit with the
@@ -1720,18 +1720,6 @@ and $\bar{\pi}$ is the average diversity across all windows.
 \subsection{Jackknife Procedures}
 \label{supp:jackknife}
 
-\begin{figure}[htbp]
-  \label{suppfig:jackknife-iqr}
-  \centering
-  \includegraphics[width=0.7\textwidth]{figures/supplementary/iqr_jackknife_trim.pdf}
-
-  \caption{The distribution of block jackknife samples for the Feature Priority
-  model fit on YRI data. The ranges at the top of the figure indicate the
-untrimmed and the 2 IQR-trimmed jackknife intervals. Trimming off the numeric
-optimization outliers leads to more realistic estimates of uncertainty.}
-
-\end{figure}
-
 We use a block jackknife procedure to calculate the uncertainty of our
 estimates. This approach is unfortunately computationally intensive, since a
 10Mbp block width requires $\approx 280$ blocks to cover 2.8Gbp of autosomal
@@ -1741,15 +1729,25 @@ evenly-spaced positions along the genome that are chosen to approximately cover
 all 2.8Gbps of autosomal sequence. Each of these positions is sent out across a
 computing cluster, which excludes the 10Mbp block there and fits on the
 remaining data. Then, using these jackknife samples we calculated the jackknife
-standard error for each of parameters \parencite{Wasserman2004-ip}. In some
-cases, our jackknife standard error estimates were very large. Upon inspection
-of optimization diagnostic plots (see Supplementary Materials Section
-\ref{suppfig:diag-plot}) and histograms of jackknife fits (Supplementary Figure
-\ref{suppfig:jackknife-iqr}), these were due to rare aberrant optima. We
-removed these using a trimmed-interquartile range, which removes points that
-are 2 interquartile ranges below the first quartile or above the third quartile
-(1.5 is standard, but we chose to be more conservative to not underestimate
-uncertainty).
+standard error for each of parameters \parencite{Wasserman2004-ip}. 
+
+\begin{figure}[htbp]
+  \label{suppfig:diag-plot-mode}
+  \centering
+  \includegraphics[width=\textwidth]{figures/supplementary/phastcons_diag_plot.pdf}
+
+  \caption{An optimization diagnostic plot showing an example of the bimodal likelihood
+  optima, or a numeric optimization issue.}
+\end{figure}
+
+In one case, for our PhastCons Priority model mutation rate estimtes, our
+jackknife standard error estimates were very large. Upon inspection of
+optimization diagnostic plots (see Supplementary Materials Section
+\ref{suppfig:diag-plot-mode}) and histograms of jackknife estimates, these
+looked like they were due to rare aberrant optima. These were either caused by
+a numeric optimization issue or another likelihood mode. Given that this looked
+to be artificially inflating the uncertainty compared to all other models, we
+filtered out these jackknife results before computing the standard error.
 
 \section{Simulations}
 \label{supp:simulation}
@@ -1861,7 +1859,6 @@ optimization plot for YRI Feature Priority model.}
 \subsection{Locally-Rescaled Fit Results}
 
 \begin{figure}[htbp]
-    \label{suppfig:rescale}
   \centering
   \includegraphics[]{figures/supplementary/rescale_pi_pred_plot.pdf}
 
@@ -1872,10 +1869,10 @@ optimization plot for YRI Feature Priority model.}
       using the standard B' map (without local-rescaled) and the maximum likelihood
       estimates from the locally-rescaled fits. The large discrepancy in this shows
       that estimates are highly dependent on the B' map.}
+    \label{suppfig:rescale}
 \end{figure}
 
 \begin{figure}[htbp]
-    \label{suppfig:rescale-b}
   \centering
   \includegraphics[]{figures/supplementary/rescale_Bs.pdf}
 
@@ -1887,11 +1884,11 @@ optimization plot for YRI Feature Priority model.}
 slight difference between standard and locally-rescaled B' maps. Finally, for
 strong selection $s=10^{-3}$ ($2N_e s = 20$), locally-rescaling does not change
 the B' maps, as expected. }
+    \label{suppfig:rescale-b}
 \end{figure}
 
 
 \begin{figure}[htbp]
-    \label{suppfig:rescale-dfe}
   \centering
   \includegraphics[]{figures/supplementary/rescale_DFE.pdf}
 
@@ -1899,6 +1896,7 @@ the B' maps, as expected. }
   likelihood mutation rate estimate for this is $\widehat{\mu} = 8 \times
 10^{-8}$, which is the upper boundary of the range used during optimization.}
 
+    \label{suppfig:rescale-dfe}
 \end{figure}
 
 
@@ -1907,16 +1905,15 @@ the B' maps, as expected. }
 \label{supp:strong-sel-grid}
 
 \begin{figure}[htbp]
-    \label{suppfig:strong-sel-dfe}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/strongsel_grid_dfe.pdf}
   \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$).}
+    \label{suppfig:strong-sel-dfe}
 \end{figure}
 
 
 
 \begin{figure}[htbp]
-    \label{suppfig:sel-ident}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/ave_sel_vs_pi0.pdf}
 
@@ -1925,24 +1922,26 @@ the B' maps, as expected. }
 indicate estimates under the strong selection grid (up to $s=10^{-1}$) and
 circles indicate estimates under the default grid (up to $s=10^{-2}$).}
 
+    \label{suppfig:sel-ident}
 \end{figure}
 
 \begin{figure}[htbp]
-    \label{suppfig:strong-sel-dfe-pop-phastcons}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/feature_priority_pop_dfe_strongselgrid.pdf}
 
   \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$)
   under the Feature Priority model, across populations.}
+
+    \label{suppfig:strong-sel-dfe-pop-phastcons}
 \end{figure}
 
 \begin{figure}[htbp]
-    \label{suppfig:strong-sel-dfe-pop-feature}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/phastcons_priority_pop_dfe_strongselgrid.pdf}
 
   \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$)
   under the PhastCons Priority model, across populations.}
+    \label{suppfig:strong-sel-dfe-pop-feature}
 \end{figure}
 
 \subsection{Demographic Expansion and Recessive Simulation Tests}
@@ -1950,7 +1949,6 @@ circles indicate estimates under the default grid (up to $s=10^{-2}$).}
 
 
 \begin{figure}[htbp]
-    \label{suppfig:sim-exp}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/subfigure_sim_mle_expansion.pdf}
 
@@ -1961,10 +1959,10 @@ circles indicate estimates under the default grid (up to $s=10^{-2}$).}
   European expansion parameters estimated by \textcite{Gutenkunst2009-pg}.
 Overall, we see little impact on estimated parameters.}
 
+    \label{suppfig:sim-exp}
 \end{figure}
 
 \begin{figure}[htbp]
-  \label{suppfig:sim-rec}
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/subfigure_sim_mle_recessive.pdf}
 
@@ -1981,6 +1979,7 @@ Overall, we see little impact on estimated parameters.}
       are found in heterozygotes. Since our theory assumes additive effects, it
       accommodates by estimating weaker selection coefficients.}
 
+  \label{suppfig:sim-rec}
 \end{figure}
 
 \subsection{Average Selection Coefficients}
@@ -2022,15 +2021,14 @@ PhastCons Priority & YRI & phastcons &         0.028642 &       0.007687 \\
 \subsection{Residual Covariate Diagnostics}
 
 \begin{figure}[htbp]
-  \label{suppfig:resid-cadd}
   \centering
   \includegraphics[width=0.6\textwidth]{figures/supplementary/cadd_residual.pdf}
   \caption{Residuals from the CADD 6\% sparse track plotted against the fraction of
   basepairs in a window annotated by a CADD region.}
+  \label{suppfig:resid-cadd}
 \end{figure}
 
 \begin{figure}[htbp]
-  \label{suppfig:resid-sweeps}
   \centering
   \includegraphics[width=0.6\textwidth]{figures/supplementary/sweep_residuals.pdf}
 
@@ -2038,43 +2036,44 @@ PhastCons Priority & YRI & phastcons &         0.028642 &       0.007687 \\
   sweeps (blue) and not containing sweeps (orange) found by
 \parencite{Schrider2017-yx}.}
 
+  \label{suppfig:resid-sweeps}
 \end{figure}
 
 
 \begin{figure}[htbp]
-  \label{suppfig:resid-b}
   \centering
   \includegraphics[width=0.6\textwidth]{figures/supplementary/b_resid.pdf}
   \caption{Residuals from the CADD 6\% model plotted against the predicted $B(x)$
            value.}
+  \label{suppfig:resid-b}
 \end{figure}
 
 \begin{figure}[htbp]
-  \label{suppfig:resid-pc-fit}
   \centering
   \includegraphics[width=0.6\textwidth]{figures/supplementary/phastcons_resid_lof.pdf}
   \caption{Residuals from the PhastCons Priority model plotted against the
   average LoF selection coefficient across genes in a megabase window
 (estimated from \cite{Agarwal2023-un}). These results show that the remaining likely 
 selection signal is not dependent on the model used (PhastCons Priority versus CADD 6\%).}
+  \label{suppfig:resid-pc-fit}
 \end{figure}
 
 \subsection{Additional DFE Figures}
 
 \begin{figure}[htbp]
-  \label{suppfig:dfe-ceu}
   \centering
   \includegraphics[width=0.9\textwidth]{figures/supplementary/figure_ceu_dfe.pdf}
   \caption{The DFE across models for the CEU reference sample (analogous to the
   DFE for YRI samples in Figure \ref{fig:figure-3}.}
+  \label{suppfig:dfe-ceu}
 \end{figure}
 
 \begin{figure}[htbp]
-    \label{suppfig:dfe-chb}
   \centering
   \includegraphics[width=0.9\textwidth]{figures/supplementary/figure_chb_dfe.pdf}
   \caption{The DFE across models for the CHB reference sample (analogous to the
   DFE for YRI samples in Figure \ref{fig:figure-3}.}
+    \label{suppfig:dfe-chb}
 \end{figure}
 
 \subsection{Spatial Residuals}
