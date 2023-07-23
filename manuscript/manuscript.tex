@@ -1095,25 +1095,19 @@ time, on B' maps locally-rescaled by the predicted $\widehat{B}(x)$ from the
 initial fit. Intuitively, this is based on the notion that if a neutral allele
 experiences an effective population size of $B(x)N$, so too should a selected
 allele, and this should be considered in how the SC16 equations are solved.
-There is an important caveat about this analysis. Since local-rescaling is done
-using the first round of maximum likelihood estimates, there is a possibility
-of some circularity, since the $B(x)$ at this position includes the
-contribution of the focal segment that is being rescaled. However, the results
-do not change based on whether the $B(x)$ is at averaged at the 1 kbp level or
-at the megabase scale; for the latter, a single segment makes little
-contribution to the average. 
+There is an important caveat about this analysis.  
 
-With this caveat noted, there are five important but tentative results to draw
-from this analysis. First, the estimated mutation rate is implausibly higher,
-reaching the upper limit of our optimization boundary of $\mu = 8 \times
-10^{-8}$ across all populations in or PhastCons Priority model (Supplementary
-Material XXX). When we re-ran optimization with an upper limit of $\mu = 1
-\times 10^{-7}$, the mutation rate was again estimated to this (implausibly
-large) upper limit, with no considerable changes to model fit or DFE estimates.
-Second, all of our leave-one-chromosome-out $R_\text{LOCO}^2$ are about one
-percentage point higher than the unrescaled model. This improved fit could be
-an artifact of the circularity, so it is unimportant. Third, the DFE estimates
-for PhastCons regions is now U-shaped (Supplementary Materials Figure
+There are five important but tentative results to draw from this analysis.
+First, the estimated mutation rate is implausibly higher, reaching the upper
+limit of our optimization boundary of $\mu = 8 \times 10^{-8}$ across all
+populations in or PhastCons Priority model (Supplementary Material XXX). When
+we re-ran optimization with an upper limit of $\mu = 1 \times 10^{-7}$, the
+mutation rate was again estimated to this (implausibly large) upper limit, with
+no considerable changes to model fit or DFE estimates. Second, all of our
+leave-one-chromosome-out $R_\text{LOCO}^2$ are about one percentage point
+higher than the unrescaled model. This improved fit could be an artifact of the
+circularity, so it is unimportant. Third, the DFE estimates for PhastCons
+regions is now U-shaped (Supplementary Materials Figure
 \ref{suppfig:rescale-dfe}), with $75-77\%$ of mass being placed on a weakly
 deleterious class, $s=10{^-5}$. Interestingly, this is the first of all of our
 models where such an appreciable mass has been placed on a midpoint in our
@@ -1126,11 +1120,25 @@ fixation. We find that local-rescaling the PhastCons Priority, leads the
 predicted substitution rates in PhastCons regions to be much closer to observed
 levels (blue line, Figure \ref{fig:figure-6}).
 
-Finally, as a robustness check, we investigated the extent to which
-local-rescaling differed from the B' maps across selection parameters. We find
-minor differences between the locally-rescaled and standard B' maps in the $0.2
-\le 2N_e s \le 2$ range; the maps were identical under strong selection ($2N_e
-s= 20$) as expected (Supplementary Materials Figure \ref{suppfig:rescale-b}).
+Finally, we one important caveat about this analysis. Since local-rescaling is
+done using the first round of maximum likelihood estimates, there is a
+possibility of some circularity, since the $B(x)$ at this position includes the
+contribution of the focal segment that is being rescaled. However, two
+observations indicate this would matter little. First, the results do not
+change based on whether the $B(x)$ is at averaged at the 1 kbp level or at the
+megabase scale; for the latter, a single segment makes little contribution to
+the average. Second, we investigated the extent to which local-rescaling
+differed from the B' maps across selection parameters. We find minor
+differences between the locally-rescaled and standard B' maps in the
+nearly-neutral domain ($0.2 \le 2N_e s \le 2$); the maps were identical under
+strong selection ($2N_e s= 20$) as expected (Supplementary Materials Figure
+\ref{suppfig:rescale-b}). Moreover, the correlations between the standard and
+local-rescaled B' maps across the genome are high (100\% for $2N_e s = 20$,
+96.5\% for $2N_e s = 2$, and 60.21\% for $2N_e s = 0.2$). The overall realized
+effect of local-rescaling is to just alter how deep the ``U" is in the
+relationship between the reduction factor $B$ and the selection coefficient
+(Supplementary Materials Figure \ref{suppfig:rescale-effects}).
+
 Overall, this suggests that models that fit the linked selection are worryingly
 sensitive the theoretic B' values in the $2Ns \le 1$ domain. Local-rescaling
 turns out to only slightly alter the B' maps, yet significantly modifies the
@@ -1211,13 +1219,14 @@ draft-effective population size $N_d = \widehat{B}(x)$, we find the
 disagreement between predicted and observed substitution rates disappears. This
 is expected, since locally-rescaled fits result in DFE estimates to have an
 appreciable mass on weakly deleterious selection coefficients. While this
-brings substitution rates into agreement, we encounter the same problem found
+brings substitution rates into agreement, we encounter a similar problem found
 by \textcite{McVicker2009-ax}: the estimated mutation rate is too high. We
 emphasize that although there are several caveats with the local-rescaling
 approach, in practice it is altering the B' maps only slightly in the domain of
-$2N_e s \approx 1$. Even if the local-rescaling approximation to selective
-interference is incorrect, these results suggest parameter estimates are
-extremely sensitivity to how accurate the B' maps are in this domain.
+$2N_e s \approx 1$ (deepening the bottom of the ``U"). Even if the local-rescaling
+approximation to selective interference is incorrect, these results suggest
+parameter estimates are extremely sensitivity to how accurate the B' maps are
+in this domain.
 
 Unfortunately, this work opens up more questions about the nature of selection
 in humans that it answers. The implausibly high estimate of mutation rates
@@ -1227,9 +1236,11 @@ selection on polygenic variation along the genome could be another source of
 fitness variance contributing to the weak selection signal. Alternatively,
 negative selection could be the main source of fitness variance, but the
 complexity of selective interference may be poorly approximated by the
-local-rescaling approach. Overall, understanding how the sources of human
-fitness variance shape the striking patterns of diversity along the human
-genome still remains an open riddle.
+local-rescaling approach. Another possibility is that our assumption throughout
+of additive effects may lead to biases given deleterious mutations likely
+recessive effects. Overall, understanding how the sources of human fitness
+variance shape the striking patterns of diversity along the human genome still
+remains an open riddle.
 
 \section*{Methods}
 
