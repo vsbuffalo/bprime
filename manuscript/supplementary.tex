@@ -1856,6 +1856,7 @@ other top 100 optima.
 optimization plot for YRI Feature Priority model.}
 \end{figure}
 
+\clearpage
 \subsection{Locally-Rescaled Fit Results}
 
 \begin{figure}[htbp]
@@ -1912,8 +1913,107 @@ maps only in practice changes how deep the ``U" is.}
     \label{suppfig:rescale-effects}
 \end{figure}
 
+\clearpage
+\subsubsection{Locally-Rescaled Model Fit Results}
+\label{supp:locally-rescaled-fits}
 
+Below are the model fit results for locally-rescaled model runs, with the
+upper mutation rate boundary set to $\mu = 8 \times 10^{-8}$.
 
+\subsubsection*{CHB}
+
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+SimplexModel (interpolated w): 6 x 7 x 3
+    w grid: [1.000e-11 6.310e-11 3.981e-10 2.512e-09 1.585e-08 1.000e-07] (before interpolation)
+    t grid: [1.e-08 1.e-07 1.e-06 1.e-05 1.e-04 1.e-03 1.e-02]
+    window size: 1.0 Mbp
+  
+  ML estimates: (whole genome)
+  standard error method: None
+  negative log-likelihood: 61820142829.01206
+  number of successful starts: 10000 (100.0% total)
+  pi_0 = 0.00106289
+  pi  = 0.000752601
+  mut. rate  = 8e-08 
+  Ne = 26,572 (if μ=1e-8), Ne = 13,286 (if μ=2e-8)
+  R² = 60.8648% (in-sample)  59.1654% (out-sample)
+  W = 
+            CDS    gene    phastcons
+  ------  -----  ------  -----------
+  1e-08       1   0.991        0
+  1e-07       0   0            0
+  1e-06       0   0            0
+  1e-05       0   0            0.767
+  0.0001      0   0            0.03
+  0.001       0   0            0.069
+  0.01        0   0.008        0.134
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+\subsubsection*{CEU}
+
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+SimplexModel (interpolated w): 6 x 7 x 3
+    w grid: [1.000e-11 6.310e-11 3.981e-10 2.512e-09 1.585e-08 1.000e-07] (before interpolation)
+    t grid: [1.e-08 1.e-07 1.e-06 1.e-05 1.e-04 1.e-03 1.e-02]
+    window size: 1.0 Mbp
+  
+  ML estimates: (whole genome)
+  standard error method: None
+  negative log-likelihood: 250647896892.40094
+  number of successful starts: 10000 (100.0% total)
+  pi_0 = 0.001479
+  pi  = 0.00106447
+  mut. rate  = 8e-08 
+  Ne = 36,974 (if μ=1e-8), Ne = 18,487 (if μ=2e-8)
+  R² = 68.7046% (in-sample)  67.8854% (out-sample)
+  W = 
+            CDS    gene    phastcons
+  ------  -----  ------  -----------
+  1e-08       1   0.994        0
+  1e-07       0   0            0
+  1e-06       0   0            0
+  1e-05       0   0            0.751
+  0.0001      0   0            0.039
+  0.001       0   0            0.028
+  0.01        0   0.006        0.183
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+\subsubsection*{YRI}
+
+\begin{minipage}{\linewidth}\begin{footnotesize}
+\begin{verbatim}
+SimplexModel (interpolated w): 6 x 7 x 3
+    w grid: [1.000e-11 6.310e-11 3.981e-10 2.512e-09 1.585e-08 1.000e-07] (before interpolation)
+    t grid: [1.e-08 1.e-07 1.e-06 1.e-05 1.e-04 1.e-03 1.e-02]
+    window size: 1.0 Mbp
+  
+  ML estimates: (whole genome)
+  standard error method: None
+  negative log-likelihood: 197824525643.2897
+  number of successful starts: 10000 (100.0% total)
+  pi_0 = 0.00111021
+  pi  = 0.000801495
+  mut. rate  = 8e-08 
+  Ne = 27,755 (if μ=1e-8), Ne = 13,877 (if μ=2e-8)
+  R² = 62.5591% (in-sample)  61.367% (out-sample)
+  W = 
+            CDS    gene    phastcons
+  ------  -----  ------  -----------
+  1e-08       1   0.989        0
+  1e-07       0   0.003        0
+  1e-06       0   0            0
+  1e-05       0   0            0.774
+  0.0001      0   0            0.025
+  0.001       0   0            0.067
+  0.01        0   0.008        0.134
+\end{verbatim}
+\end{footnotesize}\end{minipage}
+
+\clearpage
 \subsection{Strong Selection Grids}
 \label{supp:strong-sel-grid}
 
