@@ -46,7 +46,7 @@
 
 %\title{Towards a Complete Model of the Negative Selection Process in Humans}
 %\title{An Evolutionary Quantitative Genetic Model of the Negative Selection Process in Humans}
-\title{A Quantitative Genetic Linked Selection Model of the Negative Selection Process in Humans}
+\title{A Quantitative Genetic Linked Selection Model of Linked Selection in Humans}
 
 \author{Vince Buffalo and Andrew Kern}
 
@@ -989,7 +989,7 @@ the window. Consequently, our model over-predicts diversity by about
 $\nicefrac{\sigma}{2}$ or more in windows harboring the top 1.7\% most
 LoF-intolerant genes.
 
-\subsection*{Predicted Substitution Rate and Additive Fitness Variance}
+\subsection*{Predicted Substitution Rates}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_7_mod.pdf} 
@@ -1001,7 +1001,7 @@ LoF-intolerant genes.
         29 years). We show the predicted divergences for our Feature
         (turquoise) and PhastCons priority (green) annotation models.
         Additionally, we show the predicted PhastCons region divergences when
-    local-rescaling is applied (we omit other locally-rescaled predictions
+    local-rescaling is applied (blue; we omit other locally-rescaled predictions
 since these to not differ substantially).}
 
   \label{fig:figure-7}
@@ -1056,50 +1056,49 @@ experiences an effective population size of $B(x)N$, so too should a selected
 allele, and this should be considered in how the SC16 equations are solved.
 
 There are five important but tentative results to draw from this analysis.
-First, the estimated mutation rate is implausibly higher, reaching the upper
-limit of our optimization boundary of $\mu = 8 \times 10^{-8}$ across all
-populations in or PhastCons Priority model (Supplementary Material
-\ref{supp:locally-rescaled-fits}). When we re-ran optimization with an upper
-limit of $\mu = 1 \times 10^{-7}$, the mutation rate was again estimated to
-this (implausibly large) upper limit, with no considerable changes to model fit
-or DFE estimates. Second, all of our leave-one-chromosome-out $R_\text{LOCO}^2$
-are about one percentage point higher than the unrescaled model. Third, the DFE
-estimates for PhastCons regions is now U-shaped (Supplementary Materials Figure
-\ref{suppfig:rescale-dfe}), with $75-77\%$ of mass being placed on a weakly
+First, estimated mutation rates are in general higher. Under the CADD 6\%
+model, they are $\widehat{\mu} = 6-7.3 \times 10^{-8}$ across populations; for
+the PhastCons Priority model, they reach the upper limit of our optimization
+boundary of $\mu = 8 \times 10^{-8}$ (Supplementary Material
+\ref{supp:locally-rescaled-fits}). Second, all of our leave-one-chromosome-out
+$R_\text{LOCO}^2$ are about one percentage point higher than the unrescaled
+model. Third, the DFE estimates for both CADD 6\% and PhastCons regions in the
+PhastCons Priority model is now U-shaped (Supplementary Materials Figure
+\ref{suppfig:rescale-dfe}), with $70-77\%$ of mass being placed on a weakly
 deleterious class, $s=10{^-5}$. Interestingly, this is the first of all of our
 models where such an appreciable mass has been placed on a midpoint in our
-grid; in all other cases, non-strongly estimates were neutral ($s=10^{-8}$).
-Fourth, predicted pairwise diversity is nearly identical to our original,
-non-locally-rescaled fit (see Supplementary Materials Figure
+selection coefficient grid; in all other cases, non-strongly estimates were
+neutral ($s=10^{-8}$). Fourth, predicted pairwise diversity is nearly identical
+to our original, non-locally-rescaled fit (see Supplementary Materials Figure
 \ref{suppfig:rescale}). Finally, since local-rescaling increases the DFE mass
 over $s < 10^{-3}$, mutations in PhastCons regions now have the possibility of
 fixation. We find that local-rescaling the PhastCons Priority, leads the
 predicted substitution rates in PhastCons regions to be much closer to observed
 levels (blue line, Figure \ref{fig:figure-6}).
 
-Finally, we one important caveat about this analysis. Since local-rescaling is
-done using the first round of maximum likelihood estimates, there is a
+Finally, we note an important caveat about this analysis. Since local-rescaling
+is done using the first round of maximum likelihood estimates, there is a
 possibility of some circularity, since the $B(x)$ at this position includes the
 contribution of the focal segment that is being rescaled. Ideally, one would
 exclude this segment's contribution to $B(x)$; however, this is computationally
-unfeasible. However, two observations indicate our findings here are robust
-despite this limitation. First, the results do not change based on whether the
-$B(x)$ is averaged at the 1 kbp level or at the megabase scale; for the latter,
-a single segment makes little contribution to the average. Second, we
-investigated the extent to which local-rescaling differed from the B' maps
-across selection parameters. We find minor differences between the
-locally-rescaled and standard B' maps in the nearly-neutral domain ($0.2 \le
-2N_e s \le 2$); the maps were identical under strong selection ($2N_e s= 20$)
-as expected (Supplementary Materials Figure \ref{suppfig:rescale-b}). Moreover,
-the correlations between the standard and local-rescaled B' maps across the
-genome are high (100\% for $2N_e s = 20$, 96.5\% for $2N_e s = 2$, and 60.21\%
-for $2N_e s = 0.2$). The overall realized effect of local-rescaling is to just
+unfeasible. However, two observations indicate our findings here are relatively
+robust despite this limitation. First, the results do not change based on
+whether the $B(x)$ is averaged at the 1 kbp level or at the megabase scale; for
+the latter, a single segment makes little contribution to the average. Second,
+we investigated the extent to which local-rescaling modified the B' maps across
+selection parameters. We find minor differences between the locally-rescaled
+and standard B' maps in the nearly-neutral domain ($0.2 \le 2N_e s \le 2$); the
+maps were identical under strong selection ($2N_e s= 20$) as expected
+(Supplementary Materials Figure \ref{suppfig:rescale-b}). Moreover, the
+correlations between the standard and local-rescaled B' maps across the genome
+are high (100\% for $2N_e s = 20$, 96.5\% for $2N_e s = 2$, and 60.21\% for
+$2N_e s = 0.2$). The overall realized effect of local-rescaling is to just
 alter how deep the ``U" is in the relationship between the reduction factor $B$
 and the selection coefficient (Supplementary Materials Figure
 \ref{suppfig:rescale-effects}).
 
 Overall, this suggests that models that fit the linked selection are worryingly
-sensitive the theoretic B' values in the $2Ns \le 1$ domain. The fact that
+sensitive to the theoretic B' values in the $2Ns \le 1$ domain. The fact that
 predicted diversity differs little between standard and locally-rescaled B'
 methods indicates there may not be enough information in the linked selection
 signal alone to differentiate when interference is occurring or the causes of
@@ -1107,7 +1106,10 @@ fitness variance along the genome. Moreover, local-rescaling turns out to only
 slightly alter the B' maps, yet significantly modifies the DFE estimates. This
 brings the deleterious substitution rate in agreement with observations (since
 this is predicted with a fixed $\mu = 1.5 \times 10^{-8}$; however, the maximum
-likelihood estimate of mutation is implausibly high.
+likelihood estimate of mutation is implausibly high. This suggests either the
+local-rescaling approximation to interference is not suitable (though
+chromosome-wide simulations show it results in lower error), or there is
+another selection process contributing to total fitness variance.
 
 \section*{Discussion}
 
@@ -1161,8 +1163,8 @@ confirmation that negative selection against new deleterious mutations is the
 dominant mode of linked selection in the genome.
 
 Since the SC16 theory calculates fitness variance by jointly predicting the
-deleterious substitution rate, this provides another route to verify our main
-findings. We find that predicted substitution rates for highly-conserved
+deleterious substitution rate, this provides another avenue to verify or refute
+our models. We find that predicted substitution rates for highly-conserved
 PhastCons features are in strong disagreement with observed substitution rates
 along the human lineage: the DFE-substitution rate contradiction. This is a
 consequence of our DFE estimate for PhastCons regions containing little mass
@@ -1186,24 +1188,42 @@ brings substitution rates into agreement, we encounter a similar problem found
 by \textcite{McVicker2009-ax}: the estimated mutation rate is too high. We
 emphasize that although there are several caveats with the local-rescaling
 approach, in practice it is altering the B' maps only slightly in the domain of
-$2N_e s \approx 1$ (deepening the bottom of the ``U"). Even if the local-rescaling
-approximation to selective interference is incorrect, these results suggest
-parameter estimates are extremely sensitivity to how accurate the B' maps are
-in this domain.
+$2N_e s \approx 1$ (deepening the bottom of the ``U"). Even if the
+local-rescaling approximation to selective interference is incorrect (though
+simulations indicate it does reduce error), these results suggest parameter
+estimates are extremely sensitivity to how accurate the B' maps are in this
+domain. Moreover, we find that predicted diversity differs little across DFE
+and mutation rate estimates, suggesting there may be limited information in the
+pairwise diversity linked selection signal to differentiate models. While
+nucleotide diversity is a less informative statistic than the full site
+frequency spectrum, it is much easier to derive theoretic models of how linked
+selection alters expected pairwise coalescence times than to describe the
+entire genealogy. While one could imagine using more informative SFS-based
+models to infer selection parameters, accounting for selective interference in
+these models would be difficult.
 
 Unfortunately, this work opens up more questions about the nature of selection
-in humans that it answers. The implausibly high estimate of mutation rates
-could suggest that negative selection is not the only source of fitness
-variance generating the genome-wide linked selection signal in humans. Positive
-selection on polygenic variation along the genome could be another source of
-fitness variance contributing to the weak selection signal. Alternatively,
-negative selection could be the main source of fitness variance, but the
-complexity of selective interference may be poorly approximated by the
-local-rescaling approach. Another possibility is that our assumption throughout
-of additive effects may lead to biases given deleterious mutations likely
-recessive effects. Overall, understanding how the sources of human fitness
-variance shape the striking patterns of diversity along the human genome still
-remains an open riddle.
+in humans that it answers. The high estimate of mutation rates could suggest
+that negative selection is not the only source of fitness variance generating
+the genome-wide linked selection signal in humans. Positive selection on
+polygenic variation along the genome could be another source of fitness
+variance contributing to the weak selection signal. Alternatively, negative
+selection could be the main source of fitness variance, but the complexity of
+selective interference may be poorly approximated by the local-rescaling
+approach. Another possibility is that our assumption throughout of additive
+effects may lead to biases given deleterious mutations likely recessive
+effects. As we find evidence of strong selection against loss-of-function in
+our model residuals, it is also possible that the bulk of fitness variance
+\emph{is} due to purifying selection, but our model is unable to account for
+local strong effects since the DFE is estimated per feature. Overall,
+understanding how the sources of human fitness variance shape the striking
+patterns of diversity along the human genome still remains an open riddle.
+
+\subsection*{Acknowledgments}
+
+We would like to thank Nate Pope and Rasmus Nielsen for helpful advice, and
+Martin Kircher for providing special CADD tracks. This research was supported
+by NIH awards R35GM148253 and R01HG010774 to ADK
 
 \section*{Methods}
 
@@ -1223,7 +1243,7 @@ $s_j$, by numerically solving the following system of equations,
 \end{align}
 
 where,
-
+%
 \begin{align}
   %V(x) &= U s - 2 {R}(x) s & \text{\emph{fitness variance equation}} \\
   V_a &= (U - 2 R) s_j & \text{\emph{fitness variance equation}} \\
@@ -1265,7 +1285,8 @@ likelihood approach to fit our negative selection model. Per-basepair allele
 count data (described below) is summarized into the number of same and
 different pairwise differences per window. All of our primary models were fit
 with megabase windows, since previous work has found the strongest selection
-signal at this scale (we confirm this with one XXX fit at the $10^5$bp scale).
+signal at this scale (we confirm this with one CADD 6\% fit at the $100$ kbp
+scale).
 
 Our binomial likelihood models the number of different pairwise comparisons
 observed per window given the total number of pairwise comparisons. The
@@ -1292,7 +1313,7 @@ tested multiple different optimization routines, finding that BOBYQA
 outperformed alternatives \parencite{Powell2009-jm,Johnson2007-tl}. We
 inspected and confirmed convergence with diagnostic plots finding stable optima
 across 10,000 random starts (see Supplementary Materials Section
-\ref{supp:optima}). We assessed model fit using out-sample predictive error,
+\ref{supp:optim}). We assessed model fit using out-sample predictive error,
 calculated by leaving out a whole chromosome during fitting and predicting its
 diversity. To calculate uncertainty, we used a block jackknife approach in 10
 Mbp windows (Supplementary Materials Section \ref{supp:jackknife}).
@@ -1364,6 +1385,14 @@ PhyloFit was run using the HKY85 substitution model per-feature; estimates from
 alternate substitution models yielded equivalent results. Further details about
 this process can be be found in the GitHub repository
 (\url{https://github.com/vsbuffalo/bprime}).
+
+\subsection*{Data Availability}
+
+All code from \texttt{bgspy} and our Jupyter Lab \parencite{Kluyver_undated-ol}
+notebooks for analysis are available on GitHub
+(\url{https://github.com/vsbuffalo/bprime}). The main model fits are available
+as Python Pickle objects on FigShare (XXX).
+
 
 \printbibliography
 
