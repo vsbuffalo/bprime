@@ -1,6 +1,14 @@
+# Methods and Analysis for "A Quantitative Genetic Model of Background Selection in Humans"
 
+Below are some brief notes about the code in this repository, which introduces
+a new method and Python software implementation `bgspy`. This repository also
+contains all Jupyter analysis notebooks in `notebooks/` (see `main_fits.ipynb`
+for the main results in the paper).
 
 ## Installation
+
+You will need to install conda (and it is highly recommended you install
+[mamba](https://mamba.readthedocs.io/en/latest/) too).
 
     mamba env create -f envs/bprime_dev.yml
     conda activate bprime
@@ -13,10 +21,14 @@ with:
 Note I use the full path to `pip`; I had some issues with the wrong `pip` being 
 used.
 
-## Pipeline 
+## Command Line Interface
 
-The fitting process can be done in a notebook for simple models.
-But this requires two main pieces of preliminary data:
+The fitting process can be done in a notebook for simple models. The main fits
+for the paper's results are done using the Snakemake-based cluster (see section
+below).
+
+Two main pieces of preliminary data are needed before fitting with the MLE
+method:
 
  1. The B' (and optionally, B) maps for a specific genome, 
      recombination map, and set of annotation features (takes 
@@ -43,7 +55,7 @@ estimation of R2, and block-jackknife estimation of standard errors).
       --access accessible.bed --bs-file simple_track.pkl \
       --window 1000000  --fasta hg38.fa  --output hg38_simple_track_data.pkl
 
-Then in Python, one could fit the likelihood with,
+Then in Python, one could fit a simple likelihood model with:
 
 ```python
 from bgspy.likelihood import mb = SimplexModel
@@ -79,62 +91,8 @@ W =
 Then other analysis steps can be done, like leave-one-out estimation of R2,
 and block-jackknife estimates of the parameter standard errors.
 
-### Rescaled-B' Fits
+## Snakemake-based Pipeline and Running Fits on a Cluster
 
-The new B' map approach solves a system of two equations for each segment
-that gives the B' curves for a mutation rate and DFE for each feature type.
-These equations, however, assume the dynamics at that segment follow a single
-genome-wide $N_e$, when in reality, the reductions due to selection impact
-the local $N_e$ and these dynamics. However, this reduction depends on the
-estimated parameters; ideally we would be able to *simultaneously* solve the
-equation and estimate the parameters in a single fitting process. But this is
-computationally unfeasible currently, so we do an iterative process.
-
- 1. First the fits are done with the global $N_e$ set to $N$.
-
- 2. Then, these preliminary model estimates go into recalculating a
-    *locally-rescaled* B' map, where these equations are re-solved 
-    with the preliminary estimate of the local $N_e$ in its vicinity.
-
-Note that this is not cheating in any sense, since the full likelihood would
-just have us compute the locally-rescaled B' during the fitting process, but 
-given the time costs of calculating the B' map, this is not something can be 
-done during every step of numeric optimization.
-
-### Snakemake-based Pipeline and Running Fits on a Cluster
-
-Additionally, see the `fits/` directory for model fits in human. These are
-all done with a snakemake-based pipeline that wraps the command line
-interface. This allows for model comparison, simply by specifying a model
-file in YAML. 
-
-
-For steps like the block-jackknife that require finding a numeric
-optimization
-
-## The B Map Human Simulations
-
-### Single conservation track
-
-```
-Conservation track: data/annotation/conserved_phastcons_thresh0_slop1k_chr10.bed 
-Recombination map: annotation/HapMapII_GRCh37_liftedOverTo_Hg38/genetic_map_Hg38_chr10.txt
-Mutation rates: 1e-10, 3.16e-10, 1e-9, 3.16e-9, 1e-8, 3.16e-8
-Selection coefficient: 0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316, 0.1
-```
-
-Assumes fixed selection/mutation rates for one single feature type (phastcons).
-Phastcons regions are unfiltered (threshold = 0), where I've merged features
-that are within 1kbp of each other.  This perhaps increases selection over what
-we'd expect in reality, but this is to reduce the time it takes for each
-simulation. 
-
-Overall, this is a very approximate model, used primarily for comparing the
-theoretic and simulation B scores.
-
-
-## TODO
-
- - in sim validation notebook -- we need to watch haploid N
- - should move 
-
+Additionally, see the `fits/` directory for model fits in human based on a
+Snakemake pipeline. This approach uses YAML configuration files to fit lots of
+models across a cluster; this wraps the command line interface. 
