@@ -12,7 +12,21 @@
 
 \RequirePackage{cleveref}
 \RequirePackage{xr}
-\externaldocument{supplementary}
+
+\newcommand*{\addFileDependency}[1]{
+\typeout{(#1)}
+
+\IfFileExists{#1}{}{\typeout{No file #1.}}
+}\makeatother
+
+\newcommand*{\myexternaldocument}[1]{%
+\externaldocument{#1}%
+\addFileDependency{#1.tex}%
+\addFileDependency{#1.aux}%
+}
+
+\myexternaldocument{supplementary}
+
 
 %\RequirePackage[osf]{mathpazo}
 \let\temp\rmdefault
@@ -33,9 +47,13 @@
 \addbibresource{biblio.bib}
 
 % line numbers:
-\RequirePackage{lineno}
-%\modulolinenumbers[5]
-\renewcommand\linenumberfont{\normalfont\tiny\sffamily\color{black}}
+\RequirePackage[left, modulo]{lineno}
+\modulolinenumbers[2]
+
+% spacing
+\RequirePackage{setspace}
+\onehalfspacing
+
 
 \renewcommand{\P}{\mathbb{P}}
 \newcommand{\E}{\mathbb{E}}
@@ -46,82 +64,50 @@
 
 %\title{Towards a Complete Model of the Negative Selection Process in Humans}
 %\title{An Evolutionary Quantitative Genetic Model of the Negative Selection Process in Humans}
-\title{A Quantitative Genetic Linked Selection Model of Linked Selection in Humans}
+\title{A Quantitative Genetic Model of Background Selection in Humans}
 
-\author{Vince Buffalo and Andrew Kern}
+\author[1,2,$\dag$]{Vince Buffalo}
+\author[2]{Andrew D. Kern}
+\affil[1]{\small{Department of Integrative Biology, University of California, Berkeley}}
+\affil[2]{\small{Institute of Ecology and Evolution and Department of Biology, University of Oregon }}
+\affil[*]{Corresponding author email: \href{vsb@berkeley.edu}{vsb@berkeley.edu}}
+
 
 \begin{document}
 \maketitle
 
+\linenumbers
 \begin{abstract}
-
-    Across the human genome, there are large-scale fluctuations in genetic
-    diversity caused by the indirect effects of selection. This can be thought
-    of as a ``linked selection signal" that reflects the impact of selection
-    varying according to the placement of functional regions and recombination
-    rates along the genome. Previous work has shown that negative selection
-    against the steady influx of new deleterious mutations into conserved
-    regions is the predominant mode of selection in humans. However, the
-    theoretic model that underpins these results, classic Background Selection
-    theory, is only applicable when new mutations are so deleterious that they
-    cannot fix in the population. Here, we develop a statistical method based
-    on a quantitative genetics view of the linked selection, which models the
-    effects of weak draft created according to how polygenic additive fitness
-    variance is distributed along the genome. We use a recent model that
-    jointly predicts the equilibrium fitness variance and substitution rates
+    Across the human genome, there are large-scale fluctuations in genetic diversity caused by the indirect effects of selection. 
+    This ``linked selection signal" reflects the impact of selection according to the physical placement of functional regions and recombination
+    rates along chromosomes. Previous work has shown that purifying selection
+    acting against the steady influx of new deleterious mutations at functional portions
+    of the genome shapes patterns of genomic variation. To date, statistical
+    efforts to estimate purifying selection parameters from linked selection models have relied on
+    classic Background Selection theory, which is only applicable when new mutations are so deleterious that they cannot fix in the population. 
+    Here, we develop a statistical method based
+    on a quantitative genetics view of linked selection, that models how
+    polygenic additive fitness variance distributed along the genome increases 
+    the rate of stochastic allele frequency change. By 
+    jointly predicting the equilibrium fitness variance and substitution rate
     due to both strong and weakly deleterious mutations, we estimate the
-    distribution of fitness effects (DFE) and mutation rate across three human
-    populations. While our model can accommodate weaker selection, we initially
-    find evidence across three human populations of very strong selection
-    against deleterious mutations consistent with previous work. However, the
-    corollary predicted substitution rates for conserved regions are
-    unreasonably low, and in disagreement with observed rates. We hypothesize
-    this could be due to selected sites experiencing a further diminished
-    population size due to selective interference. When we account for this in
-    our method, we find evidence of weakly deleterious mutations in conserved
-    regions which brings the predicted substitution rate into agreement with
-    observations. However, these models lead to implausibly large mutation rate
-    estimates. Overall, while our model of the genomic linked selection signal
-    brings us a step towards uniting population and quantitative genetic
-    selection models with the substitution process, our work suggests
-    considerable uncertainty remains about the processes generating fitness
-    variance in humans.
-
+    distribution of fitness effects (DFE) and mutation rate across three geographically distinct human samples. While our model can accommodate weaker selection, we find evidence of strong selection operating similarly across all human samples. While our quantitative genetic model of linked selection fits better than previous models, substitution rates of the most constrained sites are poorly predicted. We find evidence that a model incorporating selective interference better predicts observed divergence, but overall our results ultimately suggest considerable uncertainty remains about the processes generating fitness variation in humans.
 \end{abstract}
 
 
 \section*{Introduction}
 
-The continual influx of new mutations into populations is the ultimate source
-of all adaptations, but the vast majority of mutations either do not affect
-fitness or are deleterious. Negative selection (i.e. purifying selection) works
-to eliminate these deleterious mutations from the population; thus we expect
-them to appear at low frequencies within populations
-\parencite{Haldane1927-ga}, and be less likely to fix between lineages. The
-best predictor of whether a new mutation will reduce fitness is if it occurs in
-a functional region of the genome, which are often conserved over deep
-phylogenetic timescales \parencite{Siepel2005-wh,Margulies2003-sn}. Since these
-conserved regions reflect the product of millions of years of evolutionary
-optimization, it follows that deleterious variants should be the overwhelming
-majority of segregating variation in these regions. Furthermore, rare variation
-in these regions is responsible for a significant portion of phenotypic
-variation and disease in humans
-\parencite{Zeng2018-ci,Lek2016-cb,Karczewski2020-ky,Tennessen2012-ge}.
+The continual influx of new mutations into populations is the ultimate source of all adaptations, but the vast majority of mutations either do not affect fitness or are deleterious. Natural selection works to eliminate these deleterious mutations from the population, thus we expect them to appear at low frequencies within populations \parencite{Haldane1927-ga}, and be less likely to fix between lineages. Conserved genomic regions reflect the product of hundreds of millions of years of evolutionary optimization; thus the overwhelming majority of segregating variation in these regions will have deleterious fitness effects. Consequently, a good predictor of whether a new mutation will reduce fitness is if it occurs in a region of the genome that has been conserved over phylogenetic timescales \parencite{Siepel2005-wh,Margulies2003-sn}. Moreover, segregating rare variation in these regions is responsible for a significant proportion of the genetic contribution to phenotypic variation and disease in humans\parencite{Zeng2018-ci,Lek2016-cb,Karczewski2020-ky,Tennessen2012-ge}.
 
-Selection on both beneficial and deleterious variants perturbs the allele
-frequencies of neighboring linked sites, a phenomenon known as linked selection
-\parencite{Nordborg1996-nq,Maynard_Smith1974-zr,Barton1998-aj,Charlesworth1993-gb}.
+Selection on both beneficial and deleterious variants perturbs the allele frequencies of neighboring linked sites, a phenomenon known as linked selection
+\parencite{Nordborg1996-nq,Maynard_Smith1974-zr,Barton1998-aj,Charlesworth1993-gb,Kaplan1989-sc}.
 Since deleterious variation is clustered in functional portions of the genome,
-we expect linked selection to reduce levels of diversity around conserved
+we expect linked selection to reduce levels of diversity around evolutionarily constrained
 segments (e.g. genes, regulatory elements, etc.). The genomic arrangement of
-these evolutionarily conserved regions and recombination rates create a
-large-scale spatial signal of the linked selection process in genetic diversity
-along the genome. Since genome-wide recombination maps and putatively conserved
-segments are available for many species, there has been consistent effort to
-fit models to this linked selection signal to estimate population genetic
+these evolutionarily conserved regions coupled with heterogeneous recombination rates create a
+large-scale spatial signal of linked selection of genetic diversity along chromosomes. Since genome-wide recombination maps and functional annotations are available for many species, there has been consistent effort to fit models of linked selection to patterns of diversity. This general approach provides estimates of population genetic
 parameters such as the strength of selection and the deleterious mutation rate
-\parencite{Hudson1995-pt,McVicker2009-ax}, as well as distinguish and quantify
-the roles of positive and negative selection and estimate the rate of
+\parencite{Hudson1995-pt,McVicker2009-ax}, and potentially distinguishes the roles of positive and negative selection and estimate the rate of
 beneficial mutations \parencite{Elyashiv2016-vt,Murphy2022-sj}. In humans,
 previous work has shown that negative selection plays the dominant role in
 shaping megabase-scale patterns of diversity, with positive selection having a
@@ -130,130 +116,100 @@ nearly negligible impact \parencite{Murphy2022-sj}.
 Prior work to model the reduction in linked diversity due to deleterious
 mutations has largely relied on the classic Background Selection (BGS) model
 \parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1995-xc}.
-While this model has been successful in explaining many patterns of diversity,
-some its simplifying assumptions may distort inferences about the negative
-selection process. First, since fixation probabilities ultimately depend on the
+While the BGS model has been successful in fitting many patterns of diversity,
+some of its simplifying assumptions may distort inferences about the selective process. First, since fixation probabilities ultimately depend on the
 product of the deleterious selection coefficient ($s$) and population size
-($N$), the efficacy of negative selection should depend on demography.
-Unfortunately, accommodating demography into theoretic negative selection
-models remains an open, difficult problem \parencite{Zeng2013-ep,Johri2020-oj}.
-Second, building off classic models of mutation-selection balance
-\parencite{Crow1970-wm,Kimura1966-bk}, the BGS model assumes that new mutations
-are sufficiently deleterious that they are invariably driven to loss. Under
+($N$), the efficacy of selection depends on past population sizes.
+Unfortunately, accommodating such demography into purifying selection models remains an open, difficult problem \parencite{Zeng2013-ep,Johri2020-oj}.
+Second as the BGS model builds off classic models of mutation-selection balance
+\parencite{Crow1970-wm,Kimura1966-bk}, it assumes that new mutations are sufficiently deleterious that they are invariably driven to loss. Under
 this assumption, the effect of selection is well-approximated by simply
 rescaling the neutral coalescent by a reduction factor known as $B =
 \nicefrac{N_e}{N}$ \parencite{Charlesworth2013-kl}. However, this simple
 rescaling approach is not appropriate across parts of parameter space that are
 relevant to natural populations \parencite{McVean2000-bt,Good2014-yz}. In
-particular, the BGS model cannot accommodate the possibility of fixation for
-mutations with $2Ns \ll 1$, leading diversity to be incorrectly predicted to
-fall to zero as the strength of selection diminishes. This weak selection
-problem is related to the wider problem of modeling the substitution rate of
-deleterious mutation (i.e. the ``ratchet" rate) and incorporating the impact of
-interference from other neighboring selected sites. Finally, the classic BGS
-model assumes that selection occurring within other segments does not interfere
-with selection occurring in other regions, i.e. no selective or
+particular, the BGS model cannot accommodate the possibility of weakly deleterious mutations (those with fitness effects $2Ns \le 1$) reaching fixation, which leads to incorrect
+predictions of diversity levels as the strength of selection diminishes. 
+Finally, the classic BGS
+model assumes that the selective dynamics occurring within a segment are not impacted by selection occurring outside the segment, i.e. no selective or
 ``Hill--Robertson" interference
 \parencite{Hill1966-kd,McVean2000-bt,Felsenstein1974-xm}.
 
 In this work, we use another class of linked selection models that derive from
-quantitative genetics to address limitations of the classic BGS model. These
-models express linked selection in terms of how polygenic fitness variance
-creates weak genetic draft, and which increases pairwise coalescence rates.
-While these models can theoretically accommodate additive fitness variance from
-any source as long as its rate of change is not too rapid, we focus
+quantitative genetics to address limitations of the classic BGS model \parencite{Santiago1998-bs, Santiago2016-mu,Santiago1995-hx,Robertson1961-ho}.
+These models consider how polygenic fitness variance spread along the genome increases the variance of stochastic allele frequency change, as alleles become randomly linked to fitness backgrounds over time and their frequency trajectories are perturbed by selection at other sites. While these models can theoretically accommodate additive fitness variance from any source as long as its rate of change is not too rapid, we focus
 specifically on a deleterious-mutations-only model of fitness variance from
 \textcite{Santiago2016-mu}. This model is identical to BGS when selection
 against deleterious mutations is strong, but it also correctly predicts the
 reduction in diversity when selection is weak by jointly predicting the
 deleterious substitution rate. We extend the Santiago and Caballero (hereafter
-the SC16) model of the negative selection process so that it can be fit to
-patterns of genome-wide diversity, according to the spatial distribution of
-genomic features that could harbor deleterious fitness variation. Using forward
-simulations, we show this model leads to more accurate estimates of the
-distribution of fitness effects under weak selection. We apply our
+the SC16) model of the negative selection process so that it can be fit using a composite likelihood approach to patterns of genome-wide diversity, according to the spatial distribution of genomic features that could harbor deleterious fitness variation. Using forward simulations, we show this model leads to more accurate estimates of the distribution of fitness effects (DFE) under weak selection. We apply our
 composite-likelihood method to human population genomic data and provide new
-estimates of the negative selection process in humans. However, we find that
-there may be considerable uncertainty around these estimates if selective
-interference is occurring across segments under purifying selection.
+parameter estimates of the genome-wide impact of purifying selection in humans. 
+We show that our new method is better able to predict the patterns of diversity along human chromosomes than previous models. 
+However, our model leads to predictions of the deleterious substitution rate that disagree with observed levels of divergence. We discuss the potential causes and implications of such discrepancies and what it might mean for future efforts to fit linked selection models to genomic patterns of variation.
 
 \section*{Theory}
 
-% Similar to previous work, we aim to characterize selection processes through
-% the signal left on nucleotide diversity at linked neutral sites. Although
-% nucleotide diversity is a less informative statistic than the full site
-% frequency spectrum, it is much easier to derive theoretic models of how linked
-% selection alters expected pairwise coalescence times than to describe the
-% entire genealogy. Still, inferences drawn from the linked selection signal
-% about selective processes are only as accurate as the underlying theoretic
-% model. Since we base our method on a fundamentally different theoretic approach
-% to modeling linked selection, we briefly introduce the theory was extend to
-% apply across whole-genomes.
-
 Our work extends quantitative genetic models of linked selection
 \parencite{Robertson1961-ho,Santiago1995-hx,Santiago1998-bs,Santiago2016-mu},
-which model the effects linked selection in terms of polygenic additive fitness
-variance ($V_A$). These linked selection models stem from
-\textcite{Robertson1961-ho}, which in essence describes how heritable polygenic
-fitness variation causes weak genetic draft. At the individual level Robertson
-considered, selection generates autocorrelation as offspring from large
-families tend to beget many descendents themselves (and likewise with small
-families) when fitness is heritable. This same autocorrelation occurs at the
-genomic level with linkage \parencite{Santiago1998-bs,Barton2000-zg}, as the
+which model the effects of linked selection in terms of polygenic additive fitness
+variance ($V_A$). Here we review the relevant theory before introducing our genome-wide extension. These linked selection models stem from
+\textcite{Robertson1961-ho}, which in essence describes how polygenic additive
+fitness variation increases the pace of stochastic allele frequency change, thus reducing effective population size. At the individual level Robertson considered, 
+selection generates an autocorrelation in fecundity as offspring from large
+families tend to beget many descendants themselves (and likewise with small
+families) when fitness is heritable. This same across-generation autocorrelation occurs at the
+genomic level due to linkage \parencite{Santiago1998-bs,Barton2000-zg}, as the
 perturbations to a neutral allele's trajectory from its particular fitness
 background tend to occur in the same direction across generations until the
-background recombines off. These models quantify the total impact of the
-autocorrelation generated by weak draft in terms of what we think of as a
-\emph{draft-effective} population size $N_d$. The key insight is that in the
-long-run, steady, weak draft created by the presence of additive genetic
-fitness variance $V_A > 0$ acts like an extra variance in offspring number
-would under pure drift \parencite{Wright1938-tv}. However, due to
-autocorrelation, the cumulative effect of this fitness variance is inflated by
-a factor of $Q^2$. Intuitively, the product $V_A Q^2$ represents the expected
-total variance in reproductive success a neutral mutation experiences over its
-lifetime in a system with weak selection draft. 
+background recombines off. Quantitative genetic models such as \textcite{Santiago1998-bs}
+quantify the total impact of the autocorrelation generated by selection in terms of what we think of as a
+\emph{fitness-effective} population size $N_f$ (to differentiate it from the \emph{drift}-effective population size, which is the size of the ideal population when there is no fitness variation).
+
+The key insight is that in the long run, the steady presence of additive genetic fitness variance ($V_A > 0$) contributes an extra source of variance in offspring number beyond the variance expected under pure drift \parencite{Wright1938-tv}. However, because heritable fitness variation generates across-generation autocorrelation, the cumulative effect of this fitness variance on the variance in allele frequency change is inflated by a factor of $Q^2$. Intuitively, the product $V_A Q^2$ represents the expected
+total variance in reproductive success a neutral mutation experiences over its lifetime in a system with weak selection at linked sites. 
 
 Following \textcite{Robertson1961-ho} and \textcite{Santiago1995-hx}, we define
-the draft-effective population size $N_d$ by including the total additional
+the fitness-effective population size $N_f$ by including the total additional
 variance created by heritable fitness into Wright's (\citeyear{Wright1938-tv})
 equation for effective population size,
 
 \begin{align}
     \label{eq:main_Ne}
-    N_d = \frac{N}{Q^2 V_A + 1}
+    N_f = \frac{N}{Q^2 V_A + 1}
 \end{align}
 %
 (c.f. \cite{Robertson1961-ho,Santiago1995-hx}; see Supplementary Materials Section
-\ref{supp:theory} for a proof). The benefit of modeling draft with Robertson's
-forward-time model is that the inflation factor is invariant with respect to
-the particular fitness background the neutral allele becomes stochastically
-associated with. By contrast, the difficulty with modeling draft backwards in
-time is that the coalescence rates experienced by a lineage are not invariant
-to which lineage was sampled due to its particular associated fitness
-background.
+\ref{supp:theory} for a proof). The benefit of modeling linked selection with Robertson's
+forward-time model is that the inflation factor is invariant with respect to the particular fitness background the neutral allele becomes stochastically associated with. By contrast,  modeling diversity levels under linked selection backwards in time requires tracking the particular associated fitness backgrounds, as coalescence rates experienced by a lineage are not invariant with respect to their fitness background.
 
 Equation \eqref{eq:main_Ne} is general, since different modes of selection and
 linkage can be accommodated by different expressions for $V_A$ and the
 inflation factor $Q^2$ \parencite{Santiago1995-hx,Santiago1998-bs}. When
 fitness variation has a multiplicative polygenic basis, as is often assumed for
-genome-wide negative selection processes, the draft asymptotic effective
+genome-wide selection processes, the fitness-effective
 population size experienced by an arbitrary neutral site under the influence of
 all $S$ linked regions is,
 
 \begin{align}
     \label{eq:polygenic_Ne}
-    N_d \approx N \exp\left(-\sum_{i=1}^S V_{A,i} \frac{Q_i^2}{2}\right)
+    N_f \approx N \exp\left(-\sum_{i=1}^S V_{A,i} \frac{Q_i^2}{2}\right)
 \end{align}
 %
-where the factor of one-half comes from ignoring weak associations from
-unlinked regions and chromosomes (see Supplementary Materials Section
+where the factor of one-half comes from ignoring the short-lived 
+associations with the homologous chromosome, 
+which have a weak effect on the focal allele (see Supplementary Materials Section
 \ref{supp:heritable-fitness}). In our genome-wide model, we consider the
 summation in Equation \eqref{eq:polygenic_Ne} over non-overlapping segments $i
 \in \{1, 2, \ldots, S\}$ each undergoing selection such that segment $i$
 contributes additive fitness variance $V_{A,i}$ to the total additive genetic
-fitness variance. The autocorrelation function for a neutral allele associated
-with segment $i$ is $C(t) = [(1-r_i)(1-\kappa_i)]^t$, where $r_i$ is the
-recombination fraction to the segment and $\kappa_i$ is the rate that the
+fitness variance. The impact this segment's fitness variance $V_{A,i}$ has on 
+the fitness-effective population size is mediated by the autocorrelation term 
+$Q_i$, which is a decaying function of the recombination rate between the 
+segment and focal neutral allele. Specifically, the autocorrelation function
+for a neutral allele associated with segment $i$ is $C(t) = [(1-r_i)(1-\kappa_i)]^t$, 
+where $r_i$ is the recombination fraction to the segment and $\kappa_i$ is the rate that the
 associated fitness variance decays due to selective dynamics. Then, the
 cumulative autocorrelation over the lifespan of the allele is,
 
@@ -263,24 +219,12 @@ cumulative autocorrelation over the lifespan of the allele is,
         &= \frac{1}{\kappa_i + r_i(1-\kappa_i)}.
 \end{align}
 %
-(see Supplementary Materials Equation \ref{supp-eq:Qinf}). This general equation can accommodate
-models of polygenic selection as long as the equilibrium additive fitness
-variation $V_{A,i}$ can be specified and the change in variance due to
-selection can be approximated as a geometric decay, i.e. $\Delta V_{A,i} =
--\kappa V_{A,i}$ \parencite{Bulmer1971-ae,Keightley1988-eq,Walsh2018-bt}. This
-is usually a reasonable assumption since within-generation selection removes a
-fraction of phenotypic variation from the population, and some fraction of that
-is additive genetic variation \parencite{Bulmer1971-ae,Keightley1988-eq}.
+(see Supplementary Materials Equation \ref{supp-eq:Qinf}). This general equation can accommodate models of polygenic selection as long as the equilibrium additive fitness variation $V_{A,i}$ can be specified and the change in variance due to selection can be approximated as a geometric decay, i.e. $\Delta V_{A,i} = -\kappa V_{A,i}$ \parencite{Bulmer1971-ae,Keightley1988-eq,Walsh2018-bt, Santiago1998-bs}. This is usually a reasonable assumption since within-generation selection removes a fraction of phenotypic variation from the population, and some fraction of that is additive genetic variation \parencite{Bulmer1971-ae,Keightley1988-eq}.
 
 The remaining required expressions are for the equilibrium additive fitness
 variance $V_A$ and the decay rate in associated fitness $1-\kappa$. Fitness
-variance could arise from positively or negatively selected alleles, but given
-prior work has found negative selection against new deleterious mutations play
-a dominant role in shaping genome-wide patterns of diversity
-\parencite{McVicker2009-ax,Murphy2022-sj}, we focus on models of fitness
-variance created by the continual influx of deleterious mutations into a
-population. We imagine a mutation-selection process that creates fitness
-variance through a continual influx of deleterious mutations occur at a rate of
+variance could arise from beneficial or deleterious alleles, but given
+prior work has found selection against new deleterious mutations in conserved regions plays a dominant role in shaping genome-wide patterns of diversity \parencite{McVicker2009-ax,Murphy2022-sj}, we focus specifically on purifying selection. We imagine a mutation-selection process that creates fitness variation as deleterious mutations enter a population at rate
 $\mu$ per basepair per generation in a conserved region of $L$ basepairs, such
 that the region-wide per generation diploid mutation rate is $U = 2 \mu L$.
 Each mutation imposes a selective cost of $s$ in heterozygotes and $2s$ in
@@ -288,8 +232,7 @@ homozygotes, and fitness effects are multiplicative across sites.
 
 Under this selection model, the additive genic fitness variance created by a
 new mutation (at frequency $x=\nicefrac{1}{2N}$) is $2s^2 x(1-x) \approx
-\nicefrac{s^2}{N}$. For the entire population of $2N$ chromosomes, the fresh
-variance from mutation each generation in segment $i$ is $V_{m,i} \approx
+\nicefrac{s^2}{N}$. For the entire population of $2N$ chromosomes, the mutational variance input each generation in segment $i$ is $V_{M,i} \approx
 U_is^2$ where $U_i = 2\mu L_i$ is the diploid mutation rate per generation
 within the segment. Under the mutation-selection balance assumed by classic BGS
 theory, an $L_i$-basepair segment has equilibrium genic variance $V_{a,i}^{BGS}
@@ -298,7 +241,7 @@ thus $\kappa_i^{BGS} = s$. Substituting $V_{a,i}^{BGS}$ and $\kappa_i^{BGS}$ in
 Equation \eqref{eq:polygenic_Ne} and simplifying, we have
 
 \begin{align}
-    N_d = N \exp \left( - \sum_i^S \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
+    N_f = N \exp \left( - \sum_i^S \frac{\mu L_i}{s(1 + r_i(1-s)/s)^2} \right) 
 \end{align}
 %
 which is identical to the genome-wide model of background selection used in
@@ -310,35 +253,33 @@ they had shown previously (\citeyear{Santiago1998-bs}).
 However, when new mutations are only weakly deleterious, they can drift up in
 frequency before their eventual loss or fixation. At this point, the number of
 deleterious mutations per haplotype is no longer well-approximated by the
-deterministic mutation-selection-balance theory; their dynamics are strongly
-influenced by stochastic perturbations due to both drift and draft. In this
-weak selection regime, classic BGS no longer accurately predicts levels of
-linked diversity
+deterministic mutation-selection-balance theory, and their dynamics are strongly
+influenced by stochastic perturbations due to both drift and linked selection. 
+In this weak selection regime, classic BGS theory no longer accurately predicts levels of linked diversity
 \parencite{Charlesworth1993-gb,McVean2000-bt,Good2013-lp,Gordo2002-dr}.
-Moreover, selection against weakly deleterious mutations alters the
-genealogies, such that they are no longer well-approximated by a rescaled
+Moreover, selection against weakly deleterious mutations alters the topology of genealogies, such that they are no longer well-approximated by a rescaled
 neutral coalescent as assumed under the classic BGS model
 \parencite{Przeworski1999-mb,OFallon2010-my,Higgs1995-xc}. To further
 complicate matters, the distribution of the number of deleterious mutations
-(and its corresponding fitness distribution) is no longer a stationary Poisson
-distribution, instead becoming a traveling wave
-\parencite{Rouzine2008-qz,Good2013-lp,Gessler1995-hz} towards reduced
-population fitness (since we ignore beneficial mutations). When this occurs,
-individuals in the least-loaded class are stochastically lost, fixing those
-mutations with a click of ``Muller's ratchet"
-\parencite{Muller1964-ki,Charlesworth1997-qn}. Unfortunately, determining the
-rate of Muller's ratchet is another difficult, open problem
+(and its corresponding fitness distribution) is no longer a stationary Poisson distribution, instead becoming a traveling wave
+\parencite{Rouzine2008-qz,Good2013-lp,Gessler1995-hz} towards increased numbers
+of deleterious alleles per chromosome and reduced mean population fitness.
+In asexual populations, substitutions correspond to a click of ``Muller's ratchet", which is 
+the stochastic loss of the least-loaded class \parencite{Muller1964-ki,Charlesworth1997-qn}.
+Unfortunately, determining the rate of Muller's ratchet is another difficult problem
 \parencite{Haigh1978-gt,Gordo2002-dr,Gessler1995-hz,Higgs1995-xc} related to
 Hill--Robertson interference \parencite{Felsenstein1974-xm}.
 
-Under qualitative genetic models of linked selection, these complications can
+Under quantitative genetic models of linked selection, these complications can
 be avoided by finding a general expression for the equilibrium $V_A$ applicable
-for both strong and weakly deleterious mutations. \textcite{Santiago2016-mu}
+to both strong and weakly deleterious mutations while concurrently modeling the rate
+of fixation of deleterious alleles in the region, $R$. \textcite{Santiago2016-mu}
 suggest that equilibrium fitness variance is lower than predicted by
 $V_{a}^{BGS}$ once weakly deleterious mutations begin to have an appreciable
-rate of fixation, $R > 0$, since each substitution (or click of Muller's
-``ratchet") removes a segregating site and its heterozygosity becomes zero.
-Thus, the steady-state genic variance under mutation and negative selection is
+rate of fixation $R > 0$ per generation in the region. The substitution rate $R$
+decreases fitness variance since each substitution removes a segregating site 
+and thus its contribution to fitness variance. Thus the steady-state additive 
+genetic variance of fitness under mutation and negative selection is
 (omitting the segment index $i$ for clarity),
 
 \begin{align}
@@ -347,13 +288,8 @@ Thus, the steady-state genic variance under mutation and negative selection is
 \end{align}
 
 where the condition $V_a \ge 0$ is met when the probability of fixation is less
-than or equal to the neutral fixation probability of $\nicefrac{1}{2N}$, which
-is held when considering deleterious mutations. This equation connects the
-equilibrium additive genic fitness variance to the flux of new variation in
-from new deleterious mutations, and the flux out due to their substitution (and
-the decline in mean population fitness). When $R=0$, selection is so strong it
-cannot fix, and the equilibrium fitness variation is due entirely to young rare
-mutations before their extinction $V_a = V_a^{BGS} \approx Us$. Santiago and
+than or equal to the neutral fixation probability of $\nicefrac{1}{2N}$, as is true for all deleterious mutations. This equation describes the
+equilibrium additive genetic fitness variance as the balance of the flux of new variation in to the population from deleterious mutations, and the removal of variation due to their substitution (and the decline in mean population fitness). When $R=0$, selection is so strong deleterious alleles cannot fix, and the equilibrium fitness variation is due entirely to young rare mutations before their extinction $V_a = V_a^{BGS} \approx Us$. Santiago and
 Caballero derive Equation \eqref{eq:Va} through Fisher's Fundamental Theorem of
 Natural Selection, but we find an alternative proof (\cite{Higgs1995-xc}; see
 Supplementary Materials Section \ref{supp:weak-strong}). We also find that the
@@ -361,69 +297,68 @@ steady-state additive genic variance in Equation \eqref{eq:Va} results from
 diffusion models with a flux of mutations into discrete sites
 (\cite{Kimura1969-jw}). 
 
-%Our results differ from \parencite{Santiago2016-mu}, since we find from
-%simulations their expression models the additive \emph{genic} fitness
-%variation, not additive genetic fitness variation (see Section XXX). This is
-%because Equation \eqref{eq:Va} does not capture the expected build-up of
-%negative linkage disequilibria when selection is mildly deleterious.
-
 While using Equation \eqref{eq:Va} in Equation \eqref{eq:main_Ne} leads to a
-prediction for the draft-effective population size $N_d$, closed-form
-expressions for the rate of the ratchet $R$ have generally been hard to find
-\parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. The key insight of
-\textcite{Santiago2016-mu} is that the ratchet rate under draft is determined
-by the probability of fixation $p_F(N_d, s)$
-\parencite{Kimura1962-su,Malecot1952-qh} using the draft-rescaled effective
-population size, i.e. $R = N U p_F(N_d, s)$. Given this equation for the
-ratchet and Equation \eqref{eq:polygenic_Ne} for $N_d$ under draft, we have a
-system of two non-linear equations that can be solved numerically for $N_d$ and
+prediction for the fitness-effective population size $N_f$, closed-form
+expressions for the deleterious substitution rate $R$ have generally been hard to find
+\parencite{Haigh1978-gt,Higgs1995-xc,Gessler1995-hz}. A key insight of
+\textcite{Santiago2016-mu} is that the deleterious substitution rate with linked selection is determined by the probability of fixation $p_F(N_f, s)$
+\parencite{Kimura1962-su,Malecot1952-qh} using the rescaled fitness-effective
+population size, i.e. $R = N U p_F(N_f, s)$. Given this equation for the
+substitution rate and Equation \eqref{eq:polygenic_Ne} for $N_f$ under linked selection, we have a
+system of two non-linear equations that can be solved numerically for $N_f$ and
 $R$ for each segment,
 
 \begin{align}
   \label{eq:main_eqns}
-  N_d &= N \exp \left( -(U-R)s \frac{Q^2}{2} \right) & \text{\emph{draft-effective population equation}} \\
-  R &= \frac{4N_d U s}{\exp(4 N_d s)-1}  & \text{\emph{ratchet equation}}
+  N_f &= N \exp \left( -(U-R)s \frac{Q^2}{2} \right) & \text{\emph{fitness-effective population equation}} \\
+  R &= \frac{4N_f U s}{\exp(4 N_f s)-1}  & \text{\emph{substitution rate equation}}
 \end{align}
 %
 
-We denote the solutions to these equation, which represent equilibria under
-mutation-selection-drift-draft process, as $\widetilde{N}_d$ and
+We denote the solutions to these equations, which represent equilibria under
+mutation-selection-drift process, as $\widetilde{N}_f$ and
 $\widetilde{R}$. These equilibria also imply an equilibrium level of additive
 fitness variation $\widetilde{V}_a$ in the segment, which are used to calculate
-the reduction factor $B(x) = \nicefrac{N_d}{N}$ at any genomic position $x$
+the reduction factor $B(x) = \nicefrac{N_f}{N}$ at any genomic position $x$
 (see Methods Section \nameref{sec:methods-maps}).
 
-\section*{Results: Simulation Validation of Theory and Methods}
+\section*{Results}
 
-Given that modeling the interplay of mutation, drift, and draft under both weak
-and strong selection has proven to be difficult problem, we first sought to
-verify the SC16 theory and our genome-wide extension of this theory with three
-levels of simulations: forward simulations of negative selection in a region,
-chromosome-scale forward simulations of negative selection, and simulations of
-a ``synthetic genome" to test our composite-likelihood method based on this
+We provide two main classes of results. First, we show simulation results which demonstrate
+the accuracy of the SC16 model over the BGS approximation across the parameter space,
+as well as validations of the composite likelihood strategy we use to fit the SC16 model. Second, we provide fits of our method to human genome data, where we show comparison of models fit using different annotations, the estimated DFEs, and predictions of the deleterious substitution
+rate.
+
+\subsection*{Simulation Validation of Theory and Methods}
+
+Given that modeling the interplay of mutation, drift, and linked selection under both weak and strong selection has proven to be a difficult problem, we first sought to verify the SC16 theory and our genome-wide extension with three
+levels of simulations: forward simulations of purifying selection in a region,
+chromosome-scale forward simulations of purifying selection, and simulations of
+a ``synthetic genome" (i.e. by combining independently simulated chromosomes) to test our composite-likelihood method based on this
 theory.
 
-\subsection*{Simulations of a Segment under Negative Selection}
+\subsubsection*{Simulations of a Segment under Purifying Selection}
 \label{sec:segment-sims}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_1.pdf} \caption{Theory
-        compared to simulation results. (A) The predicted reduction factor
+    \includegraphics[width=\textwidth]{figures/figure_1.pdf} \caption{Santiago and Caballero (2016) theory models the weak selection regime better than classic BGS theory. (A) The predicted reduction factor
         under classic B theory (dark gray line) and the diploid SC16 model
         (colored lines corresponding to mutation rate) compared to average
-        reduction across 10,000 simulation replicates (points). (B) The predicted
-        ratchet rate under the SC16 model scaled by mutation rate (colored
-        lines) compared to the ratchet estimated from simulation (points). When
-        $2Ns>1$, the ratchet rate is near zero. (C) The genic variance from
+        reduction across 10,000 simulation replicates (points). The inset figure is zoomed out to show extent of disagreement under classic BGS. (B) The predicted
+        deleterious substitution rate under the SC16 model, scaled by mutation rate (colored
+        lines) compared to the substitution rate estimated from simulation (points). When
+        $2Ns>1$, the substitution rate is near zero. (C) The genic variance from
         simulations (points) against the predicted variance under the SC16
-        model (colored lines). As the ratchet begins to click, the genic
+        model (colored lines). As substitutions begin to occur, the genic
         variance is decreased from the level expected under strong BGS (dashed
         line). (D, bottom) The mean squared error (MSE) between
         whole-chromosome simulations and predicted classic B (dots), new B'
-        (solid), and locally-rescaled B' (dashed) for different mutation rates
-        (colors). The dashed horizontal line is the approximate theoretic
-        minimum MSE. (D, top) The build up of negative linkage disequilibria
-        around $2Ns=1$ in whole-chromosome simulations in bottom panel. (E) The
+        (solid), and locally rescaled B' (dashed) for different mutation rates
+        (colors). Locally rescaled B' (yellow lines) are omitted for clarity in the top and bottom 
+        rows, since they are identical to B'; Local rescaling only impacts B'
+        in the $2Ns \approx = 1$ domain. The dashed horizontal line is the approximate theoretic
+        minimum MSE. (D, top) The build-up of negative linkage disequilibria
+        around $2Ns=1$ in whole-chromosome simulations shown in the bottom panel. (E) The
         average B map from 100 chromosome 10 simulation replicates (gray)
     against different predictions, for parameters that correspond to $2Ns < 1$,
 $2Ns = 1$, and $2Ns > 1$. The chromosome shows the density of conserved sites
@@ -431,47 +366,46 @@ and recombination map used in simulations. }
   \label{fig:figure-1}
 \end{figure}
 
-Our first set of forward simulations were to ensure that the SC16 model
-adequately captures selective dynamics in a single $10^5$ basepair region
-undergoing negative selection, across a variety of mutation rates and selection
-coefficients (see Methods \ref{sec:methods-sim}). We find a close
+Our first set of forward simulations was to ensure that the SC16 model
+adequately captures selective dynamics in a single $100$ Mbp basepair region
+under selection, across a variety of mutation rates and selection
+coefficients (see Methods \nameref{sec:methods-sim}). We find a close
 correspondence between the observed and predicted reductions in effective
-population size $B=\nicefrac{N_d}{N}$ over all selection and mutation
+population size $B=\nicefrac{N_f}{N}$ over all selection and mutation
 parameters including weak selection (Figure \ref{fig:figure-1}A), in contrast
 to classic BGS theory. Furthermore, to investigate whether this accuracy was
 caused by the model correctly predicting the equilibrium fitness variance and
-ratchet rate, we also measured these throughout the simulation. Again, we find
-the diploid SC16 theory accurately predicts both the ratchet rate (Figure
+substitution rate, we also measured these throughout the simulation. Again, we find
+diploid SC16 theory accurately predicts both the deleterious substitution rate (Figure
 1\ref{fig:figure-1}B) and the genic fitness variance (Figure
 1\ref{fig:figure-1}C).
 
-Moreover, these simulations provide intuition about the underlying negative
+Moreover, these simulations provide intuition about the underlying 
 selection process. When mutations are strongly deleterious, there is no chance
-they can fix, and the ratchet rate is zero (Figure \ref{fig:figure-1}B for $2Ns
+they can fix, and the substitution rate is zero (Figure \ref{fig:figure-1}B for $2Ns
 > 1$). In this strong selection regime, the additive genic fitness variation
 closely matches the theoretic deterministic equilibrium of $V_a = Us$ (dashed
 gray line, Figure \ref{fig:figure-1}C) However, around $2N_e s \approx 1$, the
-ratchet begins clicking as $p_F > 0$. When this occurs, each click of the
-ratchet eliminates variation, and the equilibrium variation diverges from the
+substitutions begin to occur as $p_F$ moves away from zero. When this occurs, each fixation eliminates variation, and the equilibrium variation diverges from the
 deterministic mutation-selection equilibrium (Figure \ref{fig:figure-1}C).
 
-\subsection*{Chromosome-wide Simulations and Models of Negative Selection}
+\subsubsection*{Chromosome-wide Simulations and Models of Negative Selection}
 \label{sec:chrom-sims}
 
 Given the accuracy of the SC16 model in predicting the reduction factor $B$ and
-ratchet rate for a single segment under general mutation-selection processes,
-we next extended their model so that it could be applied to whole-genome data.
-Our software method \texttt{bgspy} numerically solves Equations
+the deleterious substitution rate for a single segment under general mutation-selection processes, we next extended their model so that it could be fit to patterns of windowed genome-wide
+diversity through a composite likelihood approach. Our software method 
+\texttt{bgspy} numerically solves Equations
 \eqref{eq:main_eqns} to compute the equilibrium additive genic fitness variance
-($\widetilde{V}_a$) and ratchet rate ($\widetilde{R}$) across grids of mutation
+($\widetilde{V}_a$) and the deleterious substitution rate ($\widetilde{R}$) across grids of mutation
 rates and selection coefficients. This is done for each pre-specified segment
-in the genome that may be under negative selection (e.g. coding sequences or
-UTRs). We call the set of predicted reductions across these grids the B' maps
-(to distinguish them from McVicker's B maps); these can be used then to find
+in the genome (potentially tens of millions of small regions) that may be under purifying selection (e.g. coding sequences or UTRs). We call the set of theoretic predicted reductions across these grids the B' maps
+(to distinguish them from McVicker's B maps \parencite{McVicker2009-ax});
+these can be used to find
 the equilibrium reduction factor $B(x)$ for any genomic position $x$.
 
 We validated our predicted B' reduction maps with realistic chromosome-scale
-forward simulations of negative selection in conserved regions. We find that
+forward simulations of purifying selection using putatively conserved regions and recombination maps for the human genome. We find that
 our B' maps and the classic BGS theory B maps closely match simulations when
 selection is strong (top row of Figure \ref{fig:figure-1}E), apart from slight
 discrepancies in low recombination regions (Figure \ref{fig:figure-1}E).
@@ -479,41 +413,35 @@ Second, we find our theory is vastly more accurate than the classic BGS when
 selection is very weak ($2N_e s \ll 1$; bottom row of Figure
 \ref{fig:figure-1}E). Across all mutation and selection parameters simulated,
 the relative error of the classic B maps is 14.6\% whereas the relative error
-in the new B' maps is 5\%. Nearly all of this error is in the drift-barrier
+in the new B' maps is 5\%. Nearly all of this error is in the nearly neutral
 domain ($2N_e s \approx 1$ domain); for strong and weak selection, the mean
 squared error between simulations and B' maps is close to the theoretic lower
-bound of $\V(B) \approx \nicefrac{2}{9n}$ set by the coalescence variance
+bound of the mean squared error, $\approx \nicefrac{2}{9n}$ set by the coalescence variance for a 10 kb region
 \parencite{Tajima1983-gu}.
 
-We hypothesized this error in the drift-barrier domain may be due to selective
+We hypothesized this error in the nearly neutral domain may be due to selective
 interference between segments that is not taken into account when we
 numerically solve Equations \eqref{eq:main_eqns} independently for each
-segment. In particular, we use a fixed drift-effective $N=1,000$ corresponding
-to the number of diploids in the simulations rather than $B(x) N$, which is an
-approximation to the draft-effective population size experienced by a selected
-segment at position $x$. To test this, we implemented a ``locally-rescaled"
-version of the B' maps, which uses $B(x)N$ as the population size. We find the
-locally-rescaled B' maps reduce the relative error from 5\% to 0.4\% and mean
-squared error (Figure \ref{fig:figure-1}D, dashed colored lines), but does not
-entirely eliminate the error in the $2Ns \approx 1$ domain. 
+segment. In particular, we use a fixed drift-effective population size, $N=1,000$, corresponding 
+to the number of diploids in the simulations rather than $B(x) N$, which is an approximation to 
+the fitness-effective population size experienced by a selected segment at position $x$. To test 
+this, we implemented a ``locally rescaled" version of the B' maps, which uses $B(x)N$ as the population size. We find the locally rescaled B' maps reduce the relative error from 5\% to 0.4\% and mean squared error (Figure \ref{fig:figure-1}D, dashed colored lines), but does not entirely eliminate the error in the $2Ns \approx 1$ domain. 
 
-Finally, we hypothesized that the remaining error could be due to the build up
+We hypothesized that the remaining error could be due to the build-up
 of negative linkage disequilibria between selected sites due to Hill--Robertson
 interference \parencite{Hill1966-kd,McVean2000-bt,Comeron2007-wq}. By
-calculating the sum of all linkage disequilibria pairs in our chromosome-wide
-simulations, we find such a build up of negative LD around $2Ns \approx 1$
+calculating the sum of all linkage disequilibria among all pairs of selected sites in our chromosome-wide simulations, we find such a build-up of negative LD around $2Ns \approx 1$
 (Figure \ref{fig:figure-1}D, top row). As $Ns \to 0$, the variance in LD
-inflates as expected \parencite{Ohta1969-ae,Hill1968-ue}. Overall, the build up
+inflates as expected \parencite{Ohta1969-ae,Hill1968-ue}. Overall, the build-up
 of negative LD is consistent our view that the equilibrium fitness variance
-modeled by the SC16 theory is the additive \emph{genic} fitness variance, which
-differs from the additive genetic variance by the sum of linkage disequilibria
+modeled by the SC16 theory is predominantly the additive \emph{genic} fitness variance, which differs from the additive genetic variance by the sum of linkage disequilibria
 between selected sites (i.e. $\delta_{LD} = s^2 \sum_{i\ne j} D_{i,j}$ where
 $D_{i,j}$ is the LD between sites $i$ and $j$). However, according to theory,
 the reductions in diversity should be determined by levels of additive genetic
 fitness variance that include the contribution of LD (Supplementary Materials
-Section \ref{supp:theory}).
+Section \ref{supp:theory}); thus the fitted SC16 model has predictable bias in the nearly neutral selection regime.
 
-\subsection*{Validation of Composite-likelihood Method using Forward
+\subsubsection*{Validation of Composite-likelihood Method using Forward
 Simulations}
 
 \begin{figure}[htbp] \centering
@@ -529,43 +457,34 @@ Simulations}
         row). Mutation rate estimates (third row) are more accurately estimated
         by the B' method than classic BGS, but overall show slight biases.
         Overall, classic BGS methods break down as expected when full-coverage tracks
-    are used, since it cannot accommodate weak selection and neutrality. }
+    are used, since it cannot accommodate weak selection and neutrality in putatively
+    conserved regions. See methods for details on sparse versus full tracks.
+    }
 
   \label{fig:figure-2}
 \end{figure}
 
-We next developed a composite-likelihood method that estimates the distribution
+Our composite-likelihood method estimates the distribution
 of selection coefficients for each feature type, the mutation rate, and the
 diversity in the absence of linked selection ($\pi_0$) by fitting the theoretic
-reduction map to genome-wide diversity (see Methods
-\ref{sec:methods-likelihood}). We validated that our method can accurately
-estimate the parameters of negative selection by simulation a ``synthetic
+reduction map to windowed genome-wide diversity (see Methods
+\nameref{sec:methods-likelihood}). We validated that our method can accurately
+estimate the selective parameters by simulation a ``synthetic
 genome" of the first five human chromosomes (see Methods
-\ref{sec:methods-sim}). We note three findings from these simulations.
+\nameref{sec:methods-sim}). We note three findings from these simulations.
 
-First, we find the $R^2$ between predicted and simulated megabase-scale
-diversity serves as a measure of the strength of the linked selection signal in
-genome-wide data. The $R^2$ increases with the intensity of selection against
-new deleterious mutations and mutation rate (Figure \ref{fig:figure-2}, top
-row). Under just drift or weak negative selection, the variance in diversity is
-driven by unstructured coalescence noise along the genome and the predicted
-reduction map $B(x)$ does not fit the data well. Under very strong selection
-($s=0.05$), $R^2$ is reduced; this is likely due to very strong selection
-having less localized effects and impacting overall genome-wide diversity
-\parencite{Santiago1995-hx,Robertson1961-ho}.
-
-Second, both our implementation of classic BGS theory and our B' method
+First, both our implementation of classic BGS theory and our B' method
 accurately infer the average selection coefficient under strong selection
 (Figure \ref{fig:figure-2}, middle row). However, when selection was weak, the
-classic BGS model erroneously estimates strong selection and a very low
+classic BGS model erroneously estimated strong selection and a very low
 mutation rate. By contrast, our B' method estimated selection coefficients much
-closer to their true value. A minor discrepancy occurs around $2Ns = 1$, likely
+more accurately. A minor discrepancy occurs around $2Ns = 1$, likely
 due to the sensitivity of mutations in this region to selective interference
-(these do not use local-rescaling). Because we only simulated fixed selection
-coefficients and five chromosomes, we only assessed the accuracy of average
-selection coefficients and not the DFE probabilities.
+(these results do not use local rescaling). 
+To ease computational costs, we only simulated fixed selection coefficients and five chromosomes, 
+and we only assessed the accuracy of average selection coefficients rather than the full estimated DFE.
 
-Third, we find slight biases in mutation rated estimated by both our B' and the
+Second, we find slight biases in mutation rate estimates from both our B' and the
 classic BGS methods (Figure \ref{fig:figure-2}, bottom row). However, mutation
 rate estimates based on our B' method are more accurate than classic BGS theory
 across a range of selection coefficients. Overall, the bias in estimated
@@ -577,16 +496,25 @@ estimates deteriorate. This is understandable, as the overall signal from
 linked selection weakens relative to drift-based noise. We should note, though,
 that this is an unlikely region of parameter space and this issue can be
 readily diagnosed from the low $R^2$ values. Finally, we find in additional
-tests that our estimates are robust to demographic expansions but sensitive
-when mutuations have recessive effects, since our model assumes additive
+tests that our estimates are robust to demographic expansions but inaccurate
+when mutations have recessive effects, since our model assumes additive
 effects (see Supplementary Materials Section \ref{supp:sim-assum}). We did not
 test the influence of population bottlenecks, since parameter estimates of
 out-of-Africa bottlenecked populations (CHB and CEU) did not differ much from
 YRI estimates (see below).
 
-\section*{Results: Application to Human Genomic Data}
+Third, we find the coefficient of determination, $R^2$, between predicted and simulated megabase-scale diversity serves as a measure of the strength of the linked selection signal in genome-wide data. $R^2$ increases with the intensity of selection against new deleterious mutations and mutation rate (Figure \ref{fig:figure-2}, top
+row). Under just drift or weak purifying selection, the variance in diversity is
+driven by unstructured coalescence noise along the genome and the predicted
+reduction map, $B(x)$, and does not fit the data well. Under very strong selection
+($s=0.05$), $R^2$ is reduced; this is likely due to very strong selection
+having less localized effects and impacting overall genome-wide diversity
+\parencite{Santiago1995-hx,Robertson1961-ho}.
 
-\subsection*{Annotation Model Comparison}
+
+\subsection*{Application to Human Genomic Data}
+
+\subsubsection*{Annotation Model Comparison}
 \label{sec:annotation}
 
 Our composite likelihood method takes tracks of annotated features (an
@@ -594,10 +522,10 @@ Our composite likelihood method takes tracks of annotated features (an
 effects, and estimates the overall mutation rate and distribution of fitness
 effects for each feature type. We consider two classes of annotation models:
 (1) CADD-based models, which consider the top $x\%$ most pathogenic basepairs
-according to the CADD score, and (2) and more interpretable gene feature-based
-models that includes protein coding regions, intron and UTRs, and PhastCons
-regions. We include PhastCons regions because there is strong evidence of
-highly-conserved non-coding regions
+according to the CADD score, and (2) and more interpretable, feature-based
+models that includes protein coding regions, introns and UTRs, and PhastCons
+regions. We include PhastCons regions because they include 
+highly-conserved, non-coding regions known to harbor important functions
 \parencite{Meader2010-hm,Harmston2013-tt,Katzman2007-gq,Siepel2005-wh}, that
 would be missed by gene feature only annotation. These two classes of
 annotation models have a trade-off between fine-scaled specificity to which
@@ -619,21 +547,20 @@ regions.
 
 In total, we fit four annotation models (CADD 6\%, CADD 8\%, PhastCons
 Priority, and Feature Priority) to high-coverage 1000 Genome data for three
-populations: Yoruba (YRI), Han Chinese (CHB), and European (CEU) reference
-samples. We assess and compare our models according to how well they predict
+reference samples: Yoruba (YRI), Han Chinese (CHB), and European (CEU). We assess and compare our models according to how well they predict
 patterns of diversity on whole chromosomes left-out during the model fitting
 process (e.g. leave-one-chromosome-out, LOCO). We use the metric
 $R_\text{LOCO}^2$, which is the proportion of the observed variance in genomic
-diversity at the megabase scale predicted by our model. We experimented with a
-few smaller spatial scales (e.g. 100 kbp), but our results were consistent with
-previous results suggesting the human linked selection signal fits best at the
-megabase scale \parencite{Murphy2022-sj}.
+diversity at the megabase scale predicted by our model on held out data. 
+We experimented with a few smaller spatial scales (e.g. 100 kbp), but our results were consistent 
+with previous results suggesting the human linked selection signal due to purifying selection
+fits best at the megabase scale \parencite{Murphy2022-sj}.
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_3.pdf} 
 
-    \caption{The $R^2$ estimates for a sparse (A) and full (B) models, for all
-        populations (colors) fit at the megabase-scale. Round points are our B'
+    \caption{The $R^2$ estimates for sparse (A) and full (B) models, for all
+        samples (colors) fit at the megabase-scale. Round points are our B'
         method and diamonds are the classic BGS (we exclude classic BGS in the
         full track subfigure, since these all fit very poorly). Lighter color
         round points are the out-sample $R_\text{LOCO}^2$ estimates for our B'
@@ -646,41 +573,33 @@ megabase scale \parencite{Murphy2022-sj}.
   \label{fig:figure-3}
 \end{figure}
 
-Overall, we find the PhastCons Priority and CADD 6\% models fit about equally
-as well (Figure \ref{fig:figure-2}A), consistent with recent work using classic
+Overall, we find the PhastCons Priority and CADD 6\% models fit equally
+well (Figure \ref{fig:figure-2}A), consistent with recent work using classic
 BGS theory \parencite{Murphy2022-sj}. However, we find that our models predict
-out-sample diversity levels slightly better than previous methods. For these
+out-of-sample diversity levels slightly better than previous methods. For these
 two models, we find that our B' method predicts $R_\text{LOCO}^2=67.3$\% and
-$R_\text{LOCO}^2=66.7$\% of the out-sample variance in Yoruba pairwise
+$R_\text{LOCO}^2=66.7$\% of the out-of-sample variance in Yoruba pairwise
 diversity at the megabase-scale, respectively. By contrast, the best-fitting
 CADD 6\% model from \textcite{Murphy2022-sj} explained 60\% of diversity in
 left-out 2 Mbp windows across YRI samples. We note that this difference could
 be explained by other differences in data processing, optimization, etc. For
-populations impacted by the out-of-Africa bottleneck, the goodness-of-fit was
+lineages impacted by the out-of-Africa bottleneck, the goodness-of-fit was
 lower across all models (e.g. 61.0\% and 58.8\% for CEU and CHB respectively in
 the PhastCons Priority model).
 
-% Our PhastCons Priority model fits marginally better than the CADD 6\% model
-% consistently across all three populations (Supplementary Materials Table
-% \ref{supp:tbl-r2}). This is likely because the PhastCons Priority model has
-% more DFE parameters, and thus can fit finer-scale differences among the four
-% feature types. By contrast, the CADD 6\% track must fit patterns of diversity
-% to conserved sites under a single DFE. The CADD 8\% model fit slightly worse
-% than the CADD 6\% across all populations, and the Feature Priority model had
-% the poorest-fit.
-
 Since our method is built upon theory that fixes the weak selection problem of
 classic BGS theory, it should in principle fit equally well when an annotation
-model includes regions that are under no selective constraint and thus
-neutrally evolving. To test this, for each of our annotation models (which are
+model includes regions that are under no or little selective constraint and thus
+(nearly) neutrally evolving. To test this, for each of our annotation models (which are
 ``sparse") we fit a corresponding ``full" model that assigns the remaining
 portion of the genome to a feature called ``other". Ideally, how a model fits
 using our B' method should be invariant to whether an annotation model is
 sparse or full, since our method in principle can accommodate weak selection
-and neutrality. Indeed, we find this to be the case: both in-sample $R^2$ and
-out-sample $R_\text{LOCO}^2$ values are nearly identical across full and
+and neutrality. Indeed, we find that both in-sample $R^2$ and
+out-of-sample $R_\text{LOCO}^2$ values are nearly identical across full and
 sparse-track models (Figures \ref{fig:figure-2}A and \ref{fig:figure-2}B, round
-points). 
+points), which demonstrates that our method is able to deal with weak selection
+and that there is little more predictive power to gain from including sites considered ``other'' as annotations. 
 
 By contrast, full annotation models fit poorly under classic BGS theory, and
 lead to unreasonable parameter estimates. Additionally, when sparse annotation
@@ -692,7 +611,7 @@ behavior is what we would expect given that the CADD models contain only the
 most pathogenic sites, which are \emph{a priori} very likely under the strong
 selection domain under which B' and classic BGS theory agree.
 
-Overall, our $R_\text{LOCO}^2$ estimates suggest our negative selection model
+Overall, our $R_\text{LOCO}^2$ estimates suggest our model
 explains up to 67\% of out-sample variance in diversity of the megabase scale,
 even though our method assumes constant demography and homogeneous mutation
 rates along the genome. A worthwhile question is: how much variation
@@ -704,30 +623,30 @@ residual variance $\sum_b (\pi_b - \widehat{\pi}_b)^2$ is determined entirely
 by the expected neutral coalescence noise around the expected coalescence time
 $2B(b)N$. This can be be found analytically, plugging-in our predictions for
 $B(b)$. This allows us to calculate $R_\text{coal}^2$ to ballpark the theoretic
-variance that is capable of being explained, assuming this coalescence-only
-noise process (see Supplementary Materials \ref{supp:r2-coal}). We note that
+variance that is capable of being explained, assuming this coalescent
+noise process alone (see Supplementary Materials \ref{supp:r2-coal}). We note that
 selection is expected to \emph{decrease} the variance in coalescence times
-beyond a rescaled effective population size implies; our $R_\text{coal}^2$
-would be an underestimate under selection.
+beyond a rescaled effective population size implies, thus our $R_\text{coal}^2$
+would be an underestimate under models with selection.
 
 We find that our out-sample $R_\text{LOCO}^2$ for the Yoruba samples
 ($R_\text{LOCO}^2 \approx 67$\%) is slightly above the theoretic
 $R_\text{coal}^2 \approx 66.6$\%. This suggests our model is in the vicinity of
 fitting all the signal possible, under the coalescence-only noise assumption.
-By contrast, for bottlenecked out-of-Africa populations, we find a larger
+By contrast, for bottlenecked out-of-Africa samples, we find a larger
 discrepancy between $R_\text{coal}^2$ and observed out-sample
 $R_\text{LOCO}^2$. The theoretic $R_\text{coal}^2 \approx 63\%-64$\% for both
-populations, compared to the observed $R_\text{LOCO}^2 \approx 61$\% for CEU
+samples, compared to the observed $R_\text{LOCO}^2 \approx 61$\% for CEU
 and $R_\text{LOCO}^2 \approx 59$\% for CHB under the PhastCons Priority model.
 Given that bottlenecks would act to increase the residual variance in
 coalescence times beyond the level implied by the effective population size,
 this gap would likely shrink under more realistic models or simulation-based
-approximations for $R_\text{coal}^2$. Overall, this suggests that negative
-selection models explain the vast majority coalescence time variation at the
-megabase-scale that is capable of being explained (i.e. that is not coalescence
+approximations for $R_\text{coal}^2$. Overall, this suggests that purifying
+selection models fit the vast majority coalescence time variation at the
+megabase-scale that is capable of being explained (i.e. that is not coalescent
 noise).
 
-\subsection*{Estimated Distribution of Fitness Effects}
+\subsubsection*{Estimated Distribution of Fitness Effects}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_4.pdf} 
@@ -737,7 +656,7 @@ noise).
         full-coverage (right column) tracks, across different annotation models
         (row). Color indicates the feature type. (B) The DFE of the
     full-coverage Feature Priority model comparing the estimates across
-populations. Although this model fit the data less well than alternatives, its
+reference population samples. Although this model fit the data less well than alternatives, its
 results are more interpretable.}
 
   \label{fig:figure-4}
@@ -747,57 +666,50 @@ Our composite likelihood method has three sets of parameters: the expected
 diversity in the absence of linked selection diversity $\pi_0$, the mutation
 rate $\mu$, and the matrix of distribution of fitness effects $\mathbf{W}$
 across the selection grid for each of the $K$ feature types. Given that the
-relationship between $\pi$ and the strength selection is U-shaped, we wondered
-whether our new B' model accommodating weak selection could fit the linked
+relationship between $\pi$ and the strength selection is U-shaped (i.e., see \ref{fig:figure-1}A), we wondered
+whether our new B' model accommodating weak selection would fit the linked
 selection signal under a different combination of weak and strong selection
-parameters than found by previous work.
-
+parameters than observed previously.
 However, across all of our annotation models, new deleterious mutations in
 conserved feature classes (CADD tracks, CDS, and PhastCons regions) were
 consistently estimated to have strongly deleterious effects (Figure
 \ref{fig:figure-4}A), consistent with previous work
 \parencite{McVicker2009-ax,Murphy2022-sj}. The DFE estimates for CADD and
 PhastCons regions consistently places $\ge 75\%$ of mass on the largest
-selection coefficient, $s=10^{-2}$. The CADD 6\% DFE estimates imply an average
-selection coefficient of $\bar{s} = 0.65\%$ for CEU, $\bar{s} = 0.57\%$ for
-CHB, and $\bar{s} = 0.79\%$ for YRI. Similarly, the PhastCons Priority model
-implies average selection coefficient estimates of $\bar{s} = 0.63\%$, $\bar{s}
-= 0.59\%$, and $\bar{s}= 0.77\%$ for CEU, CHB, and YRI respectively for
+selection coefficient we used, $s=10^{-2}$. The CADD 6\% DFE estimates imply an average
+selection coefficient of $\bar{s} = 0.0065$ for CEU, $\bar{s} = 0.0057$ for
+CHB, and $\bar{s} = 0.0079$ for YRI. Similarly, the PhastCons Priority model
+implies average selection coefficient estimates of $\bar{s} = 0.0063$, $\bar{s}
+= 0.0059$, and $\bar{s}= 0.0077$ for CEU, CHB, and YRI respectively for
 PhastCons regions. Our DFE estimates for CDS under the Feature Priority model
 are qualitatively consistent with the U-shaped DFEs found for amino acids
 through Poisson Random Field method \parencite{Boyko2008-tj}.
 
 Following previous work, our method used a grid of selection coefficients up to
 $s=10^{-2}$. However, we also experimented with a strong selection grid that
-includes $s=10^{-1}$. We find that models fit with the strong selection grid
-had $R_\text{LOCO}^2$ that were about one percentage point higher, which is
-suggestive of stronger selection than has previously been estimated using
+includes $s=10^{-1}$. We find that models fit with the strong selection grid 
+have predictive accuracy, as measured with $R_\text{LOCO}^2$, that were about one percentage point higher. This is suggestive of stronger selection than has previously been estimated using
 constrained grids (see Supplementary Materials Table
 \ref{supp:tbl-r2-strongsel}). For this strong selection grid, we estimate
-average selection coefficients for the CADD 6\% model of $\bar{s} = 4.2\%$ for
-CEU, $3.2\%$ for CHB, and $4.4\%$ for YRI. Thus, there is quite a degree of
-sensitivity to DFEs and average selection estimates based on the selection
-coefficient grid.
+average selection coefficients for the CADD 6\% model of $\bar{s} = 0.042$ for
+CEU, $0.032$ for CHB, and $0.044$ for YRI. Thus, the predefined selection coefficient grid affects ultimate estimates of the DFE and average selection coefficient.
 
-However, across the strong selection grid runs, we find indications of model
-non-identifiability. First, estimates of the DFE with the strong grid are
-strangely bimodal (Supplementary Figure \ref{suppfig:strong-sel-dfe}). For
+
+However, we find indications of model non-identifiability across the strong selection grid runs. First, estimates of the DFE with the strong grid are
+bimodal (Supplementary Figure \ref{suppfig:strong-sel-dfe}). For
 example, under the CADD 6\% strong selection grid model, new mutations are
 estimated to have a selection coefficients of $s = 10^{-1}$ with 43\% chance,
 $s=10^{-2}$ with 7.8\% chance, and $s=10^{-3}$ with 41\% chance in the YRI
 samples. We propose that one mechanism for this non-identifiability is that
-very deleterious mutations lead to larger whole-genome reductions, which are
+very deleterious mutations lead to larger whole-genome reductions in diversity, which are
 difficult to distinguish from a smaller drift effective population size (i.e.
 the $\pi_0$ parameter). One way to test this hypothesis is to look to see if
 there is a systematic positive relationship across models between average
 selection coefficient and $\pi_0$, which is includes the drift-effective
-population size $N_e$.
-
-We find this is the case for all of our CADD 6\% models. Across all
-populations, average selection was about $7.1$ times larger using the strong
+population size $N_e$. We find this is the case for all of our CADD 6\% models. Across all reference samples, average selection was about $7.1$ times larger using the strong
 selection grid, and $\pi_0$ was $5.6\%$ higher (see Supplementary Materials
 Figure \ref{suppfig:sel-ident}). There was no similar consistent change in
-mutation rate estimates among populations. In the CADD 6\% model, genome-wide
+mutation rate estimates among reference samples. In the CADD 6\% model, genome-wide
 average reduction factor $\bar{B}$ was $\approx 6.1\%$ lower in the default
 versus constrained grid. Overall, this suggests that the linked selection
 signal alone cannot differentiate very strong selection from a slightly smaller
@@ -806,25 +718,24 @@ drift-effective population size.
 Given that it is debated how strongly demography impacts the deleterious
 mutation load
 \parencite{Torres2018-ni,Torres2020-hc,Lohmueller2008-qi,Simons2014-sv,Simons2016-cs},
-we were curious how consistent our DFE estimates are across populations.
-Overall, we find DFE estimates are relatively stable across populations and
-models (Supplementary Materials Section \ref{supp:fits}). Only in our Feature
+we were curious how consistent our DFE estimates are across samples from different reference populations. Overall, we find DFE estimates are relatively stable across samples from different reference populations and annotation models (Supplementary Materials Section \ref{supp:fits}). Only in our Feature
 Priority model (Figure \ref{fig:figure-4}B, top row) do we see a slightly
 different DFE estimate for coding sequences between YRI and CEU/CHB
-populations, but this could be due to the poorer fit this model has to data.
+samples, but this could be due to the poorer fit this model has to data.
 
 Although the Feature Priority model fits the data less well than alternative
-models, its DFE estimates are are more interpretable. We find that our B'
+models, its DFE estimates are more interpretable. We find that our B'
 method estimates a bimodal DFE for coding sequences for the Feature Priority
 model, with a large mass placed on $10^{-3} \le s \le 10^{-2}$ and another on
 the neutral class $s=10^{-8}$. This is expected, given that the synonymous and
 non-synonymous sites that constitute coding sequences are under vastly
-different levels of constraint. Moreover, features expected to be only weakly
+different levels of constraint and are lumped together in our annotation class.
+Moreover, features expected to be only weakly
 constrained such as introns and UTRs have the bulk of DFE mass on the neutral
 class, with a small but significant amount of mass ($\approx 3\%$) placed on
 $s=10^{-2}$. As expected, the DFE for PhastCons regions (which in this model
 correspond to highly-conserved non-coding elements) suggests it is under strong
-selective constraint; however we note that block jackknife based uncertainty
+selective constraint; however, we note that block jackknife-based uncertainty
 estimates suggest the model is uncertain whether there is some mass on the
 neutral class. Finally, we highlight one result from our PhastCons Priority
 annotation model (Figure \ref{fig:figure-3}A bottom row): the DFE estimate for
@@ -832,14 +743,14 @@ coding sequences excluding PhastCons regions is estimated as neutral. This too
 is expected; the selection signal in coding regions is absorbed by the
 PhastCons feature, leaving only conditionally neutral sites.
 
-\subsection*{Estimates of the Deleterious Mutation Rate in Humans}
+\subsubsection*{Estimates of the Deleterious Mutation Rate Are Sensitive to Model Choice}
 
 \begin{figure}[htbp] 
     \centering
     \includegraphics[width=0.5\textwidth]{figures/figure_5.pdf} 
     
-    \caption{Mutation rate estimates across sparse track (top row) and
-        full-coverage track (bottom row) models, for the new B' (circles) and
+    \caption{Mutation rate estimates across the sparse (top row) and
+        full-coverage tracks (bottom row) models, for the new B' (circles) and
         classic BGS (diamonds) methods. Estimates of the mutation rate are
         consistent between classic BGS and B' methods for sparse tracks CADD
         models (overlapping diamonds and circles, top row). Overall, mutation
@@ -847,16 +758,14 @@ PhastCons feature, leaving only conditionally neutral sites.
   \label{fig:figure-5}
 \end{figure}
 
-Prior work on genome-wide inference using the classic BGS model fit the linked
-selection signal well, but led to unusually high estimates of the mutation rate
-\parencite{McVicker2009-ax}. This lead to the hypothesis that these models
+Prior work on genome-wide inference using the classic BGS model fit the patterns of diversity well,
+but led to unusually high estimates of the mutation rate
+\parencite{McVicker2009-ax}. This led to the hypothesis that these models
 could be absorbing the signal of positive selection \parencite{Enard2014-kz},
-though other work has found a limited role for hitchhiking
-\parencite{Pickrell2009-tt,Hernandez2011-gs,Murphy2022-sj}. While our simulation
+though other work has found a limited role for hitchhiking at amino acid substitutions \parencite{Pickrell2009-tt,Hernandez2011-gs,Murphy2022-sj}. While our simulation
 results suggest estimates of the mutation rate from linked selection models are
 biased, we still check for rough agreement with pedigree-based estimates
 \parencite{Kong2013-fc,Tian2019-so}. 
-
 We find across all populations, our mutation rate estimates from CADD-based
 models are roughly consistent with pedigree-based estimates (Figure
 \ref{fig:figure-4}A), consistent with recent work \parencite{Murphy2022-sj}.
@@ -867,18 +776,16 @@ Our full-track CADD 6\% model estimates the mutation rate as $\widehat{\mu} =
 estimates are nearly identical between the B' and classic BGS methods (Figure
 \ref{fig:figure-4}A top row).
 
-However, mutation rate estimates for feature-based annotation models are
-implausibly higher than pedigree-based estimates. First, mutation rate
-estimates under our implementation of classic BGS theory are an order of
+However, mutation rate estimates for feature-based annotation models
+do not agree with pedigree-based estimates. First, mutation rate
+estimates under from classic BGS theory are an order of
 magnitude below the expected range (Figure \ref{fig:figure-4}A top row). We
 observe similar behavior when we use the classic BGS model to fit full-coverage
 annotation models (Figure \ref{fig:figure-4}A bottom row). This behavior is
 consistent with classic BGS theory being unable to fit the DFE to features
-under weak constraint (e.g. introns, UTRs, and the ``other" feature), and most
-compensate by estimating an unusually low mutation rate.
+under weak constraint (e.g. introns, UTRs, and the ``other" feature), and thus must compensate by estimating too low a mutation rate.
 
-Second, we noticed that across all populations and sparse/full tracks, the CADD
-6\% model consistently led to slightly higher mutation rates than the CADD 8\%
+Second, we noticed that across all populations and sparse and full tracks, the CADD 6\% model consistently led to slightly higher mutation rates than the CADD 8\%
 model (Figure \ref{fig:figure-4}A bottom row; Supplementary Materials Table
 \ref{supp:tbl-r2}). This same pattern was observed in Murphy et al. too (2023;
 Appendix 1, Figure 16). This behavior suggests a non-identifiability issue
@@ -886,99 +793,70 @@ between a slightly higher per-basepair mutation rate and annotation tracks that
 contain more conserved sequence. This is expected from theory, since both
 classic BGS and SC16 models only depend on mutation rate through the compound
 parameter $\mu L$, where $L$ is the length of the conserved segment. Even
-though our method is much more robust to inclusion of non-conserved regions
+though our method is much more robust to the inclusion of non-conserved regions
 like introns, we still observe this non-identifiability issue.
 
-Finally, we note that mutation rate estimates in the Feature Priority model are
-unreasonably high ($\widehat{\mu} \approx 3 \times 10^{-8}$), reminiscent of
-the high mutation rate estimates found under McVicker et al.'s
+Finally, we note that mutation rate estimates from the Feature Priority model are themselves too high ($\widehat{\mu} \approx 3 \times 10^{-8}$), reminiscent of the high mutation rate estimates found under McVicker et al.'s
 (\citeyear{McVicker2009-ax}) model. While both our and Murphy et al.'s CADD and
-PhastCons-based models alleviate this issue, it is worth discussing why this
-could occur. We gain some insight from comparing the estimated mutation rates
-between our Feature and PhastCons Priority annotation models, which both
-contain the exact same number of feature basepairs, but these are assigned to
-different feature classes based on the priority of overlapping features. That
-one of these models is our best-fitting model, and the other our worst
-indicates the sensitivity these models have when features classes have
-heterogeneous DFEs. CADD-based models fit better in part due to their
+PhastCons-based models alleviate this issue, it is worth considering why this
+could occur. We can potentially gain some insight from comparing the estimated mutation rates from our Feature and PhastCons Priority annotation models, which each contain the exact same number of feature basepairs, but whose composition varies based on the priority of overlapping features. That
+one of these models is our best-fitting model and the other our worst
+indicates that model fits are sensitive to feature classes which themselves have heterogeneous DFEs. CADD-based models fit better in part due to their
 fine-scale resolution of selective effects across the genome. While ideally we
 would fit a CADD model with different features corresponding to the different
 percentiles of pathogenicity, these features are on the basepair scale and thus
 too memory-intensive for our method to currently accommodate.
 
-\subsection*{Predicted Diversity and Residual Signal}
+\subsubsection*{Despite Close Fit, Residual Purifying Selection Signal Remains}
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/figure_6.pdf} 
 
-    \caption{(A) Observed and predicted diversity under the CADD 6\% full-track
-        model. Once scaled by average diversity, populations differ little in
-        their predicted diversity levels (colors). Additionally, we show
+    \caption{(A) Observed and predicted diversity of the B' model fit with the
+       CADD 6\% full-track annotation. Once scaled by average diversity, predicted diversity for populations (colored lines) differs little across populations, and closely matches observed diversity within each population (light gray lines). Additionally, we show
         summaries of CADD density and recombination rate along the chromosome
-        below. (B) Predicted $B$ and observed $\pi$ for each window. The
-        residual variance is in the vicinity of the levels expected from the
-        $R_\text{LOCO}^2$ calculation. (C) Evidence that negative selection
-    signal remains in CADD 6\% residuals (YRI shown). Residuals are plotted
-against the average LoF selection coefficient across genes in a megabase window
-(estimated by \cite{Agarwal2023-un}).}
+        below. (B) Predicted $B$ and observed $\pi$ for each window. The red dashed line indicates the observed 2 standard deviation ellipsoid, which has nearly the same width as the expected by $R_\text{coal}^2$, indicating the residual variance is close to theoretic expectations. The yellow points are binned means, and the yellow line is the lowess curve through predicted and observed values. (C) CADD 6\% residuals (YRI shown) plotted against the average LoF selection coefficient across genes in megabase windows (estimated by \cite{Agarwal2023-un}).}
 
   \label{fig:figure-6}
 \end{figure}
 
-Comparing predicted against observed diversity along chromosomes (see
-Supplementary Materials Section \ref{supp:chrom-fit}) we find a close
-correspondence consistent with the high $R_\text{LOCO}^2$. However, we find a
-few large (tens of megabases) regions with systematically poorer fit
+Comparing predicted against observed diversity along chromosomes, we find a close
+correspondence consistent with the high $R_\text{LOCO}^2$ (Figure \ref{fig:figure-5}A). Once scaled by the genome-wide average, predicted and observed diversity levels across the genome differ little across samples from reference populations. Given that the CEU and CHB samples are from bottlenecked out-of-Africa populations and their mutation rate and DFE estimates are similar, this is an empirical demonstration that our model is fairly robust to violations of the constant population size assumption of the theory.
+
+However, we note a few large (tens of megabases) regions with systematically poorer fit
 (Supplementary Materials Figure \ref{supp:spatial-residuals}). In Figure
 \ref{fig:figure-5}A we see one such region on the short arm of chromosome 2,
-from 30 Mbp to 60Mbp. Interestingly, predicted diversity closely follows the
-peaks and troughs of this region. We note that a small region within this
-stretch had been found by a genome-wide scan for associative overdominance
-\parencite{Gilbert2020-aw}.  
+from 30 Mbp to 60 Mbp. Interestingly, predicted diversity closely follows the
+peaks and troughs of this region, however, predicted diversity is lower than observed. We note that a small region within this stretch had been found by a genome-wide scan for associative overdominance \parencite{Gilbert2020-aw}. We further investigate this by inspecting whether observations are systematically different from predictions. We confirm a finding of \textcite{Murphy2022-sj} that regions predicted to experience little reduction in diversity due to background selection (i.e. $B\approx 1$) have higher diversity than predicted (Figure \ref{fig:figure-5}B, orange line). \textcite{Murphy2022-sj} suggested that this could reflect ancient introgression between archaic humans and ancestors of contemporary humans. Despite the prediction error in this region, the variance around observed and predicted diversity levels falls very close to what we would expect under the theoretic coalescent-noise-only expectation ($R_\text{coal}^2$).
 
-Another model diagnostic is to inspect whether observations are systematically
-different from predictions. We confirm the finding of \textcite{Murphy2022-sj}
-that regions predicted to experience little reduction in diversity due to
-background selection (i.e. $B\approx 1$) have higher diversity than predicted
-(Figure \ref{fig:figure-5}B, orange line). They suggested that this could
-reflect ancient introgression between archaic humans and ancestors of
-contemporary humans. Despite this aberration, the variance around observed and
-predicted diversity levels falls very close to what we would expect under the
-theoretic coalescence-noise-only expectation ($R_\text{coal}^2$).
-
-Earlier, we found that the goodness-of-fit and DFE estimates of our
-feature-based annotation models are sensitive to how basepairs are grouped into
-feature classes. Our models are in essence fitting a single distribution across
-sites within a feature class, yet there may be local heterogeneity among sites
-that is poorly captured by this approach. We investigated this possibility by
-looking for lingering selection signal in our model residuals. First, we
-inspected whether there was a relationship between the fraction of CADD 2\% and
-6\% basepairs and the residual across megabase windows (Supplementary Figure
+As DFE heterogeneity within a class of sites may be poorly fit by our model,
+we looked for unaccounted selection in our model residuals. First, we
+inspected whether there was a relationship between the fraction of CADD 2\% and 6\% basepairs and the residual across megabase windows (Supplementary Figure
 \ref{suppfig:resid-cadd}), finding a negative significant relationship in
-both cases. Moreover, our model over-predicted diversity in windows containing
-more CADD 2\% basepairs moreso than CADD 6\%, consistent with heterogeneity in
+both cases. CADD 2\% was used in this case to search for a residual signal from highly-constrained regions. Moreover, our model over-predicted diversity in windows containing
+more CADD 2\% basepairs than CADD 6\%, consistent with heterogeneity in
 site pathogenicity being poorly fit by our model. However, the total residual
 variance explained is $R^2 = 0.3\%$ and $R^2 = 0.9\%$ for the CADD 2\% and 6\%
-tracks respectively, suggesting only modest amount of selection signal remains.
+tracks respectively, suggesting only a modest amount of selection signal remains within the CADD annotations.
 
 Since our method does not include the possible effects of linked positive
 selection, we might expect windows containing hard or soft sweeps would have
 systematically lower diversity levels than predicted. Using the locations of
 soft and hard sweeps detected using a machine learning approach
-\parencite{Schrider2017-yx,Kern2018-jd}, we tested whether the residuals of the
+\parencite{Schrider2016-xn, Schrider2017-yx}, we tested whether the residuals of the
 CADD 6\% model containing sweeps were systematically different than those not
 containing sweeps. We find no significant difference between the magnitude of
 residuals of windows containing sweeps versus those that do not (Supplementary
 Materials Figure \ref{suppfig:resid-sweeps}; Kolmogorov--Smirnov p-value =
-0.71). 
+0.71). The same was true if we looked at hard or soft sweeps individually as a class. 
 
 We further tested for remaining selection signal in our CADD 6\% model
 residuals by using gene-specific estimates of the fitness cost of
 loss-of-function (LoF) mutations from \textcite{Agarwal2023-un}. These
 estimates are based on an Approximate Bayesian Computation approach that
 estimates the posterior distribution over LoF fitness costs from the observed
-dearth of LoF mutations per gene, and thus is an independent methodological
-approach than ours. We averaged the estimated LoF fitness costs across genes
+dearth of LoF mutations per gene, and thus is an independent
+approach to assess the strength of purifying selection. We averaged the estimated LoF fitness costs across genes
 for each of our megabase windows, and plotted our residuals against these
 average LoF fitness costs. Contrary to the weak CADD residual signal described
 above, we find evidence of a fairly strong relationship between our residuals
@@ -989,71 +867,43 @@ the window. Consequently, our model over-predicts diversity by about
 $\nicefrac{\sigma}{2}$ or more in windows harboring the top 1.7\% most
 LoF-intolerant genes.
 
-\subsection*{Predicted Substitution Rates}
+\subsubsection*{Predicted Substitution Rates Indicate Potential Model Misspecification}
 
 \begin{figure}[htbp] \centering
-    \includegraphics[width=\textwidth]{figures/figure_7_mod.pdf} 
+    \includegraphics[width=\textwidth]{figures/figure_7.pdf} 
 
-    \caption{Predicted versus observed divergence along the human lineage.
-        Black points are the PhyloFit divergence rate estimates per features
+    \caption{The divergence implied from predicted substitution rates under the B' model versus observed divergence along the human lineage.
+        Black points are the PhyloFit divergence rate estimates per feature
         (on x-axis). Line ranges are the implied divergences across a range of
-        human-chimpanzee divergence times of 6-12 Mya (using a generate time of
-        29 years). We show the predicted divergences for our Feature
+        human-chimpanzee divergence times of 6-12 Mya (using a generation time of
+        28 years). We show the predicted divergences for our Feature
         (turquoise) and PhastCons priority (green) annotation models.
         Additionally, we show the predicted PhastCons region divergences when
-    local-rescaling is applied (blue; we omit other locally-rescaled predictions
+    local rescaling is applied (blue; we omit other locally rescaled predictions
 since these to not differ substantially).}
 
   \label{fig:figure-7}
 \end{figure}
 
-Since our B' method relies on theory that jointly predicts the deleterious
-substitution rate, we can also check whether our model produces substitution
-rate predictions in agreement with observed divergence levels across features.
-We estimated sequence divergence on the human lineage using a multiple
+Since our B' method also predicts deleterious substitution rates ($\widehat{R}$) for each feature class, it allows for another check of model sufficiency by comparing the predicted substitution rates to observed levels of divergence. We estimated sequence divergence on the human lineage using a multiple
 alignment of five primates for each feature in our feature-based models
-(Methods Section \nameref{sec:methods-sub}). We compared these to the predicted
-substitution rates per feature, averaging over all segments in the genome.
-Since our simulations show that mutation rate estimates can be biased, we
-predicted substitution rates under a fixed mutation rate of $\mu = 1.5 \times
+(Methods Section \nameref{sec:methods-sub}). We compared these to the predicted substitution rates per feature, averaging over all segments in the genome. Since our simulations show that mutation rate estimates can be biased, we predicted substitution rates under a fixed mutation rate of $\mu = 1.5 \times
 10^{-8}$. Fixing the mutation rate also allows us to more easily compare the
 predictions across our feature-based models. Unfortunately, a careful
-comparison between our predictions and observed divergence rates is hindered by
-considerable uncertainty in the rate of the molecular clock, generation times,
-and the human-chimpanzee divergence time. We assume a generation time of 29
-years, and calculate the sequence divergence implied by our predicted
+comparison between our predictions and observed divergence rates is hindered by considerable uncertainty in the rate of the molecular clock, generation times, and the human-chimpanzee divergence time. We assume a generation time of 28 years \parencite{Fenner2005-yi}, and calculate the sequence divergence implied by our predicted
 substitution rates over a range of divergence times, from 6 Mya to 12 Mya
 \parencite{Moorjani2016-tb,Nachman2000-te,Yi2002-pw,Steiper2006-xx}.
 
-We find that our predicted substitution rates are qualitatively consistent with
-the observed divergence along the human lineage for all features except
-PhastCons (Figure \ref{fig:figure-6}). As expected, the predicted substitution
-rates in features unlikely to be under selective constraint (introns and UTRs,
-and the ``other" feature) are very close to the mutation rate. Throughout, we
-report our substitution rates as a percent relative to the total mutation rate,
-$\mu$ (here fixed to $1.5 \times 10^{-8}$). In our Feature Priority model,
-coding sequences are predicted to have a substitution rate of 41.20\% of the
-mutation rate, introns and UTRs 94.71\%, coding sequences 0\%, and the ``other"
-feature 99.98\%. For comparison, the substitution rates along the human lineage
+We find that predicted substitution rates are qualitatively consistent with the observed divergence along the human lineage for all features except
+the PhastCons regions (Figure \ref{fig:figure-6}). As expected, the predicted substitution rates in features under reduced selective constraint (introns and UTRs, and the ``other" feature) are very close to the mutation rate. Throughout, we report our substitution rates as a percent relative to the total mutation rate, $\mu$ (here fixed to $1.5 \times 10^{-8}$). In our Feature Priority model, coding sequences are predicted to have a substitution rate of 41.20\% of the mutation rate, introns and UTRs 94.71\%, PhastCons regions 0\%, and the ``other" feature 99.98\%. For comparison, the substitution rates along the human lineage
 (as a proportion to the substitution rate in putatively neutral regions) are
 74.15\% in UTRs, 92.44\% in introns, 50.96\% in coding sequences, and 49.56\%
 in PhastCons regions. The large discrepancy between predicted and observed
-PhastCons substitution rates is driven by our DFE estimates suggesting that the
-bulk of mass is on selection coefficients greater than $10^{-3}$, which have no
-chance of fixation in a population of $N_e \approx 10,000$. We note that our
-DFE estimates are qualitatively similar to those inferred using the classic BGS
-model; thus this DFE-substitution rate contradiction is not unique to our
-estimates, and could indicate a potential model misspecfication problem.
+PhastCons substitution rates is driven by our DFE estimates suggesting that the bulk of mass is on selection coefficients greater than $10^{-3}$, which have no chance of fixation in a population of $N_e \approx 10,000$. We note that our DFE estimates are qualitatively similar to those inferred using the classic BGS model, so the disagreement between observed divergence and predicted substitution rates could indicate a potential model misspecification problem.
 
-\section*{Locally-rescaled Fits}
+\subsubsection*{Possible Signal of Selective Interference}
 
-Given the observed DFE-substitution rate contradiction and that our simulations
-indicated that $B(x)$ is more accurately predicted when we use local-rescaling,
-we modified our composite-likelihood method to so that it can be run a second
-time, on B' maps locally-rescaled by the predicted $\widehat{B}(x)$ from the
-initial fit. Intuitively, this is based on the notion that if a neutral allele
-experiences an effective population size of $B(x)N$, so too should a selected
-allele, and this should be considered in how the SC16 equations are solved.
+Given the prediction error for substitution rates in highly-conserved regions and that simulation indicates that $B(x)$ is more accurately predicted when we use local rescaling, we modified our composite-likelihood method so that it can be run a second time, on B' maps locally rescaled by the predicted $\widehat{B}(x)$ from the initial fit. Intuitively, this is based on the notion that if a neutral allele experiences a fitness-effective population size of $B(x)N$, so too should a selected allele, and this should be considered in how the SC16 equations are solved.
 
 There are five important but tentative results to draw from this analysis.
 First, estimated mutation rates are in general higher. Under the CADD 6\%
@@ -1068,163 +918,63 @@ PhastCons Priority model is now U-shaped (Supplementary Materials Figure
 deleterious class, $s=10{^-5}$. Interestingly, this is the first of all of our
 models where such an appreciable mass has been placed on a midpoint in our
 selection coefficient grid; in all other cases, non-strongly estimates were
-neutral ($s=10^{-8}$). Fourth, predicted pairwise diversity is nearly identical
-to our original, non-locally-rescaled fit (see Supplementary Materials Figure
-\ref{suppfig:rescale}). Finally, since local-rescaling increases the DFE mass
-over $s < 10^{-3}$, mutations in PhastCons regions now have the possibility of
-fixation. We find that local-rescaling the PhastCons Priority, leads the
-predicted substitution rates in PhastCons regions to be much closer to observed
-levels (blue line, Figure \ref{fig:figure-6}).
+neutral ($s=10^{-8}$). Fourth, predicted pairwise diversity is nearly identical to our original, non-rescaled fit (see Supplementary Materials Figure \ref{suppfig:rescale}). Finally, since local rescaling increases the DFE mass over $s < 10^{-3}$, mutations in PhastCons regions now have the possibility of fixation. We find that local rescaling the PhastCons Priority, leads the predicted substitution rates in PhastCons regions to be much closer to observed levels (blue line, Figure \ref{fig:figure-6}).
 
-Finally, we note an important caveat about this analysis. Since local-rescaling
-is done using the first round of maximum likelihood estimates, there is a
-possibility of some circularity, since the $B(x)$ at this position includes the
-contribution of the focal segment that is being rescaled. Ideally, one would
-exclude this segment's contribution to $B(x)$; however, this is computationally
-unfeasible. However, two observations indicate our findings here are relatively
+Finally, we note an important caveat about this analysis. Since local rescaling is done using the first round of maximum likelihood estimates, there is some possibility of statistical ``double dipping'', since the $B(x)$ at this position includes the contribution of the focal segment that is being rescaled. Ideally, one would exclude this segment's contribution to $B(x)$; however, this is computationally unfeasible. However, two observations indicate our findings here are relatively
 robust despite this limitation. First, the results do not change based on
-whether the $B(x)$ is averaged at the 1 kbp level or at the megabase scale; for
-the latter, a single segment makes little contribution to the average. Second,
-we investigated the extent to which local-rescaling modified the B' maps across
-selection parameters. We find minor differences between the locally-rescaled
-and standard B' maps in the nearly-neutral domain ($0.2 \le 2N_e s \le 2$); the
-maps were identical under strong selection ($2N_e s= 20$) as expected
-(Supplementary Materials Figure \ref{suppfig:rescale-b}). Moreover, the
-correlations between the standard and local-rescaled B' maps across the genome
-are high (100\% for $2N_e s = 20$, 96.5\% for $2N_e s = 2$, and 60.21\% for
-$2N_e s = 0.2$). The overall realized effect of local-rescaling is to just
-alter how deep the ``U" is in the relationship between the reduction factor $B$
-and the selection coefficient (Supplementary Materials Figure
+whether the $B(x)$ is averaged at the 1 kbp level or at the megabase scale; for the latter, a single segment makes little contribution to the average. Second, we investigated the extent to which local rescaling modified the B' maps across selection parameters. We find minor differences between the locally rescaled and standard B' maps for fixed selection coefficients (i.e. before model fitting) in the nearly-neutral domain ($0.2 \le 2N_e s \le 2$). Additionally, the locally rescaled and standard maps are identical under strong selection ($2N_e s= 20$) as expected (Supplementary Materials Figure \ref{suppfig:rescale-b}). Moreover, the correlations between the standard and locally rescaled B' maps across the genome are high (100\% for $2N_e s = 20$, 96.5\% for $2N_e s = 2$, and 60.21\% for $2N_e s = 0.2$). The overall realized effect of local rescaling is to just alter how deep the ``U" is in the relationship between the reduction factor $B$ and the selection coefficient (Supplementary Materials Figure
 \ref{suppfig:rescale-effects}).
 
-Overall, this suggests that models that fit the linked selection are worryingly
-sensitive to the theoretic B' values in the $2Ns \le 1$ domain. The fact that
-predicted diversity differs little between standard and locally-rescaled B'
-methods indicates there may not be enough information in the linked selection
-signal alone to differentiate when interference is occurring or the causes of
-fitness variance along the genome. Moreover, local-rescaling turns out to only
-slightly alter the B' maps, yet significantly modifies the DFE estimates. This
-brings the deleterious substitution rate in agreement with observations (since
-this is predicted with a fixed $\mu = 1.5 \times 10^{-8}$; however, the maximum
-likelihood estimate of mutation is implausibly high. This suggests either the
-local-rescaling approximation to interference is not suitable (though
-chromosome-wide simulations show it results in lower error), or there is
-another selection process contributing to total fitness variance.
+Overall, this suggests that models of the signal of linked selection are worryingly sensitive to the theoretic B' values in the $2Ns \le 1$ domain. The fact that predicted diversity differs little between standard and locally rescaled B' methods indicates there may not be enough information in pairwise diversity alone to differentiate when interference is occurring or the causes of fitness variance along the genome. Moreover, local rescaling turns out to only slightly alter the B' maps, yet significantly modifies the DFE estimates. This brings the deleterious substitution rate in agreement with observations (since this is predicted with a fixed $\mu = 1.5 \times 10^{-8}$; however, the maximum likelihood estimate of mutation is implausibly high. This suggests either the local rescaling approximation to interference is not suitable (though our chromosome-wide simulations show locally rescaled B' maps are close to the reductions observed from simulations), or that the deleterious mutations-only model does not adequately describe the processes generating fitness variance.
 
 \section*{Discussion}
 
-Linked selection processes alter genetic diversity on multiple scales, creating
-patterns based on their strength relative to the stochasticity of coalescence
-times and mutations. Sweeps typically leave signals on shorter genomic scales
-(i.e. kilobases; \cite{Akey2004-zg}) which combined with the paucity of
-adaptive substitutions in humans suggests positive selection is not generating
-the apparent large, megabase-scale linked selection signal
-\parencite{Hernandez2011-gs,Murphy2022-sj}. By contrast, there is reasonable
-evidence that negative selection against new mutations occurring in
-highly-conserved sequences is generating large-scale chromosomal patterns of
-diversity. 
+New mutations at functionally important regions of the genome are a major source of fitness variation in natural populations, as the vast majority of such mutations are deleterious. Purifying selection, working to remove these deleterious variants, perturbs genealogies at linked sites, creating large-scale patterns in genomic diversity. While this has been recognized for decades (e.g., \textcite{Nordborg1996-nq,Hudson1995-xc}), the availability of genomic data allows for methods to estimate the degree to which purifying selection shapes genomic variation and at what scale.
 
-Population genetic theory has been productively applied to fit this linked
-selection signal, producing plausible estimates of the strength of selection at
-these conserved regions and mutations rates consistent with more precise
-pedigree-based estimates. However, these models rely on the canonical
-background selection model, which due to its assumption that mutations are
-sufficiently deleterious they cannot fix, has constrained statistical methods
-to only fit background selection models in regions \emph{a priori} under
-constraint. In reality, the relationship between diversity levels and the
-strength of selection at deleterious mutations is U-shaped, which implies there
-could be more uncertainty than previously appreciated in the distribution of
-weak and strongly deleterious mutations.
+Accordingly, there have been a number of recent efforts to fit parametric models of linked selection to polymorphism and divergence data in Drosophila \parencite{Elyashiv2016-vt} and humans \parencite{McVicker2009-ax, Murphy2022-sj}. These efforts have yielded reasonable estimates of the strength of selection on new mutations as well as provided mutation rate estimates that largely agree with pedigree-based estimates. However, previous methods have relied on the canonical background selection model, which assumes that mutations are sufficiently deleterious such that they cannot fix. Consequently, statistical methods using the BGS model should only be expected to fit well when some regions are \emph{a priori} under strong selective constraint. In reality, the relationship between neutral diversity levels and the strength of selection from purifying selection in linked regions is U-shaped, which implies there could be more uncertainty than previously appreciated in the distribution of weak and strongly deleterious mutations.
 
-We sought to address this uncertainty in this work, by leveraging a different
-class of linked selection models based on modeling the equilibrium fitness
-variance \parencite{Santiago2016-mu}. At its core, the theory underlying this
-model states that the linked selection signal is a function of how the fitness
-variance is distributed along the recombination map of the genome
-\parencite{Santiago1998-bs}. We fit a specific process model for this fitness
-variance that supposes all fitness variance is the result of selection against
-new deleterious mutations \parencite{Santiago2016-mu}. Unlike classic
-background selection theory, the SC16 model explains equilibrium fitness
-variance across all selection coefficients by jointly predicting another
-central quantity in evolutionary genomics: the deleterious substitution rate in
-conserved features. This model is more general than classic background
-selection theory; background selection theory is analytically a special case
-when the deleterious substitution rate is zero.
+In this work, we developed and fit a different class of linked selection models based on the equilibrium fitness variance \parencite{Santiago1998-bs,Santiago2016-mu}. Fundamentally, we model the reduction in diversity as a 
+function of how additive fitness variance is distributed along the recombination map of the genome \parencite{Santiago1998-bs}. We fit a specific model for this fitness variance that supposes all 
+variation is the result of selection against new additive deleterious mutations \parencite{Santiago2016-mu}. 
+Unlike classic background selection theory \parencite{Charlesworth1993-gb,Nordborg1996-nq,Hudson1995-pt,Hudson1995-xc}, 
+the SC16 model explains equilibrium fitness variance across all selection coefficients by jointly predicting another central quantity in evolutionary genomics: the 
+substitution rate of deleterious alleles.
 
-Generally, our method lead to better fits to data that those based on classic
-BGS, as measured by predicted out-sample diversity. Furthermore, unlike
-BGS-based methods, our model is capable of fitting weak selection; we find
-evidence of this since we can robustly estimate the DFE for weakly constrained
-features like introns and UTRs. Yet even with the possibility of fitting weak
-selection, our main model fits are in agreement with the prior results from
-BGS-based methods. Both mutation rate estimates and DFE estimates are
-consistent with prior work. This, at first glance, suggests further
-confirmation that negative selection against new deleterious mutations is the
-dominant mode of linked selection in the genome.
+Our method has at least four improvements over previous whole-genome linked selection methods based on the BGS model. First, our model leads to better fits to data than those based on classic BGS, as measured by predicted out-of-sample diversity. Second, unlike BGS-based methods, our model is capable of fitting weak selection. When regions under weak or little selective constraint are included in methods using classic BGS, parameter estimates can become severely biased. By contrast, we have demonstrated via simulation that our method can estimate the strength of selection even for weakly constrained features (e.g. introns and UTRs), as well as remaining unannotated regions of the genome. Third, fitting our model produces a simultaneous prediction of substitution rates, which can be compared to observed divergence rates. Finally, the effect of selective interference can be approximated by locally rescaling the B' maps, which our forward simulations show reduce prediction error of genome-wide diversity levels.
 
-Since the SC16 theory calculates fitness variance by jointly predicting the
-deleterious substitution rate, this provides another avenue to verify or refute
-our models. We find that predicted substitution rates for highly-conserved
-PhastCons features are in strong disagreement with observed substitution rates
-along the human lineage: the DFE-substitution rate contradiction. This is a
-consequence of our DFE estimate for PhastCons regions containing little mass
-over weakly deleterious and neutral selection coefficients --- a characteristic
-of DFE estimates from other work too \parencite{Murphy2022-sj}. One clue to
-this discrepancy is that our simulation results indicate an appreciable level
-of error between observed reductions and the B' maps in the weak selection
-domain of $2N_e s \approx 1$.
+Even though our model is able to fit weak selection, our initial estimates of mutation rate and DFEs were consistent with prior work \parencite{Murphy2022-sj}. This, at first glance, suggests further confirmation that strong purifying selection is the dominant mode of linked selection in the genome. However, we find that predicted substitution rates for highly-conserved PhastCons features disagree with observed rates of divergence along the human lineage. This disparity between observed divergence and predicted substitution rates is likely a consequence of our DFE estimate for PhastCons regions containing little mass over weakly deleterious and neutral selection coefficients that would have some possibility of fixation --- a characteristic of DFE estimates from other work too \parencite{Murphy2022-sj}.
 
-We hypothesized that this could be because in this domain, a segment under
-selective constraint experiences a local draft-effective population size of
-$B(x)N$, and not just $N$. This local draft-effective population size is
-induced by selection at other segments that is not being taken into account by
-classic BGS theory or our standard model. When we experimented by fitting our
-model and then using the predicted reduction map to local-rescale $N_e$ to the
-draft-effective population size $N_d = \widehat{B}(x)$, we find the
-disagreement between predicted and observed substitution rates disappears. This
-is expected, since locally-rescaled fits result in DFE estimates to have an
-appreciable mass on weakly deleterious selection coefficients. While this
-brings substitution rates into agreement, we encounter a similar problem found
-by \textcite{McVicker2009-ax}: the estimated mutation rate is too high. We
-emphasize that although there are several caveats with the local-rescaling
-approach, in practice it is altering the B' maps only slightly in the domain of
-$2N_e s \approx 1$ (deepening the bottom of the ``U"). Even if the
-local-rescaling approximation to selective interference is incorrect (though
-simulations indicate it does reduce error), these results suggest parameter
-estimates are extremely sensitivity to how accurate the B' maps are in this
-domain. Moreover, we find that predicted diversity differs little across DFE
-and mutation rate estimates, suggesting there may be limited information in the
-pairwise diversity linked selection signal to differentiate models. While
-nucleotide diversity is a less informative statistic than the full site
-frequency spectrum, it is much easier to derive theoretic models of how linked
-selection alters expected pairwise coalescence times than to describe the
-entire genealogy. While one could imagine using more informative SFS-based
-models to infer selection parameters, accounting for selective interference in
-these models would be difficult.
+Our simulation results reveal another possible source of disagreement: in the weak selection domain of $2N_e s \approx 1$ there is an appreciable level of disagreement between theory and simulation. We hypothesize that this could be because as $2N_e s$ approaches $1$, a segment under
+selective constraint experiences a local fitness-effective population size of $B(x)N$, and not just $N$. This local fitness-effective population size is induced by selection at other segments that is not being taken into account by classic BGS theory or our standard SC16 model. When we experimented by fitting our model and then using the predicted reduction map to locally rescale $N_e$ to the fitness-effective population size $N_f = \widehat{B}(x)$, we found the disagreement between predicted and observed substitution rates disappears. This is expected since locally rescaled DFE estimates have an appreciable mass on weakly deleterious selection coefficients, contrary to the standard fits.
 
-Unfortunately, this work opens up more questions about the nature of selection
-in humans that it answers. The high estimate of mutation rates could suggest
-that negative selection is not the only source of fitness variance generating
-the genome-wide linked selection signal in humans. Positive selection on
-polygenic variation along the genome could be another source of fitness
-variance contributing to the weak selection signal. Alternatively, negative
-selection could be the main source of fitness variance, but the complexity of
-selective interference may be poorly approximated by the local-rescaling
-approach. Another possibility is that our assumption throughout of additive
-effects may lead to biases given deleterious mutations likely recessive
-effects. As we find evidence of strong selection against loss-of-function in
-our model residuals, it is also possible that the bulk of fitness variance
-\emph{is} due to purifying selection, but our model is unable to account for
-local strong effects since the DFE is estimated per feature. Overall,
-understanding how the sources of human fitness variance shape the striking
-patterns of diversity along the human genome still remains an open riddle.
+This pattern is consistent with a scenario where the same selection processes that reduce diversity over long stretches along the chromosome also decrease the efficacy of purifying selection. This idea has been proposed before in an extension to the McDonald--Kreitman test that accounts for how 
+background selection can bias estimates of the proportion of adaptive substitutions 
+\parencite{Uricchio2019-wp}. While our simulation results indicate local rescaling reduces error in the weak selection domain, it is worth noting some caveats about this approach. First, local rescaling is only an approximation to selective interference; as our simulations show, this approximation reduces error in the predicted reduction $B(x)$, but this may not fully account for how negative linkage disequilibrium builds up and reduces fitness variance. A benefit of the SC16 approach is that the equations 
+can be solved with a locally rescaled effective population that approximates this process. Second, there is the possibility of circularity, since a preliminary fit must be made to estimate $B(x)$, which is then 
+used to re-solve the SC16 equations with a local fitness-effective population size.
 
-\subsection*{Acknowledgments}
+Despite these caveats, the local rescaling approach suggests selective interference could alter inferences about the DFE and bring predicted substitution rates into agreement with observed divergence rates.  However, these results also demonstrate that parameter estimates are extremely sensitive to how accurate the theoretic B' maps 
+are in this domain. Moreover, we find that predicted diversity differs little across DFE and mutation rate estimates, suggesting there may be limited information in pairwise diversity to differentiate between models, thus inclusion 
+of allele or haplotype frequency information might be informative in the future. While local rescaling brings substitution rates into agreement, it also re-introduces a similar problem found by \textcite{McVicker2009-ax}: the 
+estimated mutation rate is too high. While our mutation rate includes point mutations as well as all other forms of 
+deleterious variation (e.g. insertions/deletions, copy number variants, etc.), our estimations suggest exceedingly high 
+rates of deleterious variation per generation.
 
-We would like to thank Graham McVicker, Priya Moorjani, Rasmus Nielsen, Nate
-Pope, Guy Sella, and Peter Sudmant for helpful advice, and Martin Kircher for
-providing modified CADD tracks. This research was supported by NIH awards
-R35GM148253 and R01HG010774 to ADK
+Examination of the local residuals of our predicted diversity levels demonstrated no systematic effect of previously identified hard and soft selective sweeps \parencite{Schrider2017-yx}. 
+This result echoes what has been observed in previous efforts to look at genome-wide patterns of 
+linked selection \parencite{Hernandez2011-gs, Murphy2022-sj}, and suggests that the scale of perturbation due to selection sweeps is more restricted (e.g. at the kilobase scale, \cite{Akey2004-zg}) than the scale at which we are modeling variation. Taken together this suggests that selective sweeps are not likely responsible for shaping the 
+majority of variance in large-scale patterns of chromosomal variation in humans. 
+
+Given that our model is essentially parameterized by levels of fitness 
+variance along the genome, the high estimates of mutation rate could suggest that purifying selection is not the only source of fitness variance generating the genome-wide linked selection signal in humans. 
+Selection on polygenic traits could be another source of fitness variance. Alternatively, purifying selection could be the main source of fitness variance, but the complexity of selective interference may be poorly approximated by the local rescaling approach. Another possibility is that our assumption throughout of additive effects may lead to biases given deleterious mutations likely recessive effects. Future theoretic work, as well as realistic across-species forward simulations of multiple modes of linked selection (e.g. \cite{Rodrigues2023-rj}) are needed to fully disentangle these processes. As we find evidence of strong selection against loss-of-function in our model residuals, it is also possible that the bulk of fitness variance \emph{is} due to purifying selection, but our model is unable to account for strong heterogeneity in the DFE per annotation class.
+
+Moving forward it remains a central goal to understand how the sources of fitness variation shape the striking patterns of diversity along the human genome. Our work embeds this question in the quantitative genetic framework that is more accurate and flexible than proceeding models, but there is much work yet to do to incorporate important population genetic features such as dominance effects and selective interference. Overall, the complex interplay of mutation, selection, drift, and interference may confound our understanding of selection in the human genome for some time.
+
+\section*{Acknowledgments}
+
+We would like to thank Doc Edge, Ben Good, Taylor Kessinger, Graham McVicker, Priya Moorjani, Rasmus Nielsen, Guy Sella, Joshua Schraiber, and Peter Sudmant for helpful discussions, and Martin Kircher for providing modified CADD tracks. We thank Graham Coop, Matt Hahn, Nate Pope, and Enrique Santiago for comments on the manuscript.
+This research was supported by NIH awards R35GM148253 and R01HG010774 to ADK
 
 \section*{Methods}
 
@@ -1232,15 +982,15 @@ R35GM148253 and R01HG010774 to ADK
 \label{sec:methods-bprime-eqns}
 
 Our software \texttt{bgspy} first calculates the equilibrium additive genic
-fitness variation $\widetilde{V}_a$ and ratchet rate $\widetilde{R}$ for each
+fitness variation $\widetilde{V}_a$ and deleterious substitution rate $\widetilde{R}$ for each
 user-specified segments in the genome. These equilibria are calculated across
 grids of mutation rate weighted by the DFE $m_i$ and selection coefficient
 $s_j$, by numerically solving the following system of equations,
 
 \begin{align}
   \label{eq:method-2eqns}
-  {N}_{d} &= N \exp \left( -V_a \frac{Q^2(m_i, s_j)}{2} \right) & \text{\emph{effective population equation}} \\
-  R &= \frac{4N_dU s_j}{\exp(4 N_d s_j)-1}  & \text{\emph{substitution equation}} 
+  {N}_f &= N \exp \left( -V_a \frac{Q^2(m_i, s_j)}{2} \right) & \text{\emph{effective population equation}} \\
+  R &= \frac{4N_fU s_j}{\exp(4 N_f s_j)-1}  & \text{\emph{substitution equation}} 
 \end{align}
 
 where,
@@ -1323,7 +1073,7 @@ Mbp windows (Supplementary Materials Section \ref{supp:jackknife}).
 \label{sec:methods-data}
 
 Our analyses was conducted on the Yoruba (YRI), European (CEU), and Han Chinese
-(CHB) reference samples individuals from the high-coverage 1000 Human Genomes
+(CHB) reference sample individuals from the high-coverage 1000 Human Genomes
 data aligned to GRCh38/hg38 \parencite{Byrska-Bishop2022-tn}. Since nucleotide
 diversity is a ratio estimator, it can be biased when subtly different
 filtering criteria are applied to variant and invariant sites. To prevent this,
@@ -1375,26 +1125,23 @@ samples (CEU and CHB) and YRI samples. More details about these and the segment
 simulations shown in Figure \ref{fig:figure-1}A-C can be found Supplementary
 Materials Section \ref{supp:simulation}.
 
-\subsection*{Substitution Rate Estimation and Prediction}
+\subsection*{Substitution Rate Prediction and Divergence Estimates}
 \label{sec:methods-sub}
 
-We estimated the divergence along the human branch using PhyloFit
-\parencite{Siepel2004-ql} run on the Multiz alignments
-\parencite{Blanchette2004-bb} of humans and four other primates (\emph{Pongo
+Substitution rates were predicted by resolving Equations \eqref{eq:main_eqns} for the given estimated product between mutation rate and DFE weight, $w_{i,j} = \mu W_{i,j}$. We estimated the divergence along the human branch using PhyloFit
+\parencite{Siepel2004-ql} run on a subset of the UCSC 17-way Multiz alignments
+\parencite{Blanchette2004-bb} consisting of humans and four other primates (\emph{Pongo
 abelii}, \emph{Pan troglodytes}, \emph{Pan paniscus}, \emph{Gorilla gorilla}).
 PhyloFit was run using the HKY85 substitution model per-feature; estimates from
 alternate substitution models yielded equivalent results. Further details about
 this process can be be found in the GitHub repository
-(\url{https://github.com/vsbuffalo/bprime}).
-
+(\url{https://github.com/vsbuffalo/bprime}). 
 \subsection*{Data Availability}
 
 All code from \texttt{bgspy} and our Jupyter Lab \parencite{Kluyver_undated-ol}
 notebooks for analysis are available on GitHub
 (\url{https://github.com/vsbuffalo/bprime}). The main model fits are available
-as Python Pickle objects on Data Dryad
-(\url{https://doi.org/10.5061/dryad.qnk98sfnv}).
-
+as Python Pickle objects on Data Dryad repository (\url{https://doi.org/10.5061/dryad.qnk98sfnv}).
 
 \printbibliography
 

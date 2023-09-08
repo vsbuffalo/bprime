@@ -11,6 +11,21 @@
 \RequirePackage{bm}
 \RequirePackage{bbm}
 \RequirePackage{xr}
+
+\newcommand*{\addFileDependency}[1]{
+\typeout{(#1)}
+
+\IfFileExists{#1}{}{\typeout{No file #1.}}
+}\makeatother
+
+\newcommand*{\myexternaldocument}[1]{%
+\externaldocument{#1}%
+\addFileDependency{#1.tex}%
+\addFileDependency{#1.aux}%
+}
+
+\myexternaldocument{manuscript}
+
 %\RequirePackage[osf]{mathpazo}
 \let\temp\rmdefault
 \RequirePackage{mathpazo}
@@ -28,12 +43,18 @@
 \usepackage{nicefrac}
 
 % for cross references
-\externaldocument{manuscript}
+%\externaldocument{manuscript}
 
 % line numbers:
-\RequirePackage{lineno}
-%\modulolinenumbers[5]
-\renewcommand\linenumberfont{\normalfont\tiny\sffamily\color{black}}
+\RequirePackage[left, modulo]{lineno}
+\modulolinenumbers[2]
+\linenumbers
+
+
+% spacing
+\RequirePackage{setspace}
+\onehalfspacing
+
 
 \renewcommand{\P}{\mathbb{P}}
 \newcommand{\E}{\mathbb{E}}
@@ -61,7 +82,7 @@ Here, we step through a quick derivation of \textcite{Santiago1995-hx}.
 Throughout, we assume random mating, hermaphroditic individuals, and a constant
 population size. The change in a neutral allele's frequency in one generation
 can be partitioned into the three sources of stochasticity: the random
-associations with fitness backgrounds (i.e. \emph{draft}), the non-heritable
+associations with fitness backgrounds, the non-heritable
 randomness in family size, and the Mendelian noise from heterozygotes
 segregating. If we let $x_{0,i} \in \{0, \nicefrac{1}{2}, 1\}$ be the frequency
 of neutral alleles individual $i$ in generation 0 carries, we can partition the
@@ -343,8 +364,8 @@ generations 2 and 3 would be,
 \end{align}
 %
 The $Q_t^2$ terms represent the inflation of variance due to autocovariance in
-frequency change across generations due to weak draft. Incorporating the impact
-of time-invariant autocorrelation created by draft as a rescaled rate of drift
+frequency change across generations due to linked polygenic selection. Incorporating the impact
+of time-invariant autocorrelation created by linked selection as a rescaled rate of drift
 is analogous to using the Green--Kubo relation to find the transport
 coefficient in molecular dynamics with velocity autocorrelation
 \parencite{Green1954-kl,Kubo1957-va}.
@@ -382,21 +403,21 @@ holds for polygenic selection (see Supplementary Section
 coalescence (or, equivalently, identity by descent) is proportional to the
 variance in allele frequency change \parencite{Barton2000-zg}, this equation
 for the variance encodes the pairwise coalescent rate of the population through
-time under weak draft. Others have found that the genealogies under purifying
+time under weak polygenic linked selection. Others have found that the genealogies under purifying
 selection can be characterized by such a time-dependent effective population
 size \parencite{Nicolaisen2013-gv}.
 
 
-\subsection{The Draft-Effective Population Size}
+\subsection{The Fitness-Effective Population Size}
 
 Now, we consider how to turn this expression for the variance in neutral allele
-frequency at time $t$ under weak draft into an expression for the
-\emph{draft-effective} population size analogous to drift-effective population
+frequency at time $t$ under weak linked selection into an expression for the
+\emph{fitness-effective} population size analogous to drift-effective population
 size given in Supplementary Equation \eqref{supp-eq:var-ne}. In an ideal
 Wright--Fisher population, the instantaneous variance is $\V(\Delta x_t) =
 \nicefrac{p_{t-1}(1-p_{t-1})}{2N_{d,t-1}}$. Santiago and Caballero consider the
 allele frequency change at some $t$ to define their effective population size
-at time $t$ (which we here are calling draft-effective population size,
+at time $t$ (which we here are calling fitness-effective population size,
 $N_{d,t}$),
 
 \begin{align}
@@ -419,16 +440,16 @@ Using Supplementary Equation \eqref{supp-eq:var-xt} we have,
 (cf. equation 18, \cite{Santiago1995-hx}). Note if $V_A = 0$, this equation
 reduces to Wright's (\citeyear{Wright1938-tv}) equation. 
 
-In many cases, we care about the asymptotic $N_d$, 
+In many cases, we care about the asymptotic $N_f$, 
 
 \begin{align}
-    N_d := \lim_{t \to \infty} N_{d,t} \approx \frac{4N}{4 V_A Q_\infty^2 +V_n+2}.
+    N_f := \lim_{t \to \infty} N_{d,t} \approx \frac{4N}{4 V_A Q_\infty^2 +V_n+2}.
 \end{align}
 %
 Now, we turn to different expressions for $Q_t^2$ and $V_A$ under different
 types of polygenic selection.
 
-\subsection{The Draft-Effective Population Size Under Polygenic Selection}
+\subsection{The Fitness-Effective Population Size Under Polygenic Selection}
 \label{supp:ne-polygenic}
 
 The results of the previous section assume only a single locus a recombination
@@ -437,7 +458,7 @@ model of \textcite{Santiago1998-bs} extends this to the case where fitness is
 polygenic. As they show in their original paper, this system can accommodate a
 variety of different equilibrium selection systems as long as expressions for
 $V_A$ and $1-\kappa$ can be worked out. Other authors have extended similar models to
-more elaborate bbreeding structures \parencite{Wray1990-zf,Woolliams1993-qo}.
+more elaborate breeding structures \parencite{Wray1990-zf,Woolliams1993-qo}.
 
 First, we extend Supplementary Equation \eqref{supp-eq:var-ndt} to a polygenic
 system. Throughout, we assume a multiplicative fitness model (i.e. independent
@@ -602,7 +623,7 @@ that $\kappa V_A = V_m$, and thus the rate of loss is $\kappa =
 
 % TODO this is a good description that could make its way to maintext
 
-\subsection{The Draft-Effective Population Size Under Strong Background Selection}
+\subsection{The Fitness-Effective Population Size Under Strong Background Selection}
 
 Under strong background selection, multiple segregating deleterious sites
 contribute to fitness variation. BGS models assume a multiplicative fitness
@@ -658,7 +679,7 @@ arrive at the same equation as classic BGS theory,
 This matches equation 8 of \textcite{Hudson1995-xc} except for the $Ms$ term
 and equation 10 of \textcite{Nordborg1996-nq} except for the $2s$ term.
 
-\subsection{The Draft-Effective Population Size Under Weak and Strong Negative Selection}
+\subsection{The Fitness-Effective Population Size Under Weak and Strong Negative Selection}
 \label{supp:weak-strong}
 
 With the possibility of weak selection, deleterious alleles can drift up in
@@ -672,7 +693,7 @@ the ``moment-closure problem" previously mentioned. In their approximation,
 \textcite{Santiago2016-mu} consider a modified additive genic variance that is
 below $V_\text{BGS}$ due to the loss of variation from each fixation of a
 weakly deleterious mutation. This fixation process is related to the Muller's
-Ratchet, the rate $R$ of fixation of deleterious mutations per generation per
+Ratchet in assexual populations, the rate $R$ of fixation of deleterious mutations per generation per
 region, since each fixation directly reduces the additive genic variance of the
 fitness distribution. However, in general, the rate of this ratchet is unknown
 since it depends on the fitness variance (and thus higher moments of the
@@ -690,7 +711,7 @@ formal derivation follows from \textcite{Higgs1995-xc} (though they assume a
 haploid asexual system, the end result is the same up to a factor of two). In
 their work, they derive equations for the change per generation for the moments
 and cross-moments of the fitness distribution under multiplicative selection in
-a haploid model. They find, the haploid rate of the ratchet is $r = u - s v_n$
+a haploid model. They find the haploid rate of the ratchet is $r = u - s v_n$
 (equation 13.3, \cite{Higgs1995-xc}), where we use lowercase to distinguish
 between haploid and diploid models. Here, $v_n$ is the variance in the
 \emph{number} of deleterious mutations; as long as selection is not too strong,
@@ -718,7 +739,7 @@ through Kimura's diffusion models with a flux of mutations into infinite,
 discrete sites (\citeyear{Kimura1969-jw}). Note that if selected sites are
 sufficiently deleterious that they cannot fix (or the population is infinite),
 $R=0$ and the additive fitness variance is identical to that under strong
-background selection, $V_A = Us = V_\text{BGS}$ (equation \ref{eq:va_bgs}).
+background selection, $V_A = Us = V_\text{BGS}$ (equation \ref{supp-eq:va_bgs}).
 We note that while we use $V_A$ here following \textcite{Santiago2016-mu}, 
 this is only the \emph{additive genic} component of additive fitness variation,
 as our simulations confirm in the main text.
@@ -759,7 +780,7 @@ $V_m$ is the same, and using the $V_A$ derived above, the decay in variance is
 %
 At equilibrium, the $N_e$ that determines fixation probability is the
 asymptotic $N_{d,\infty}$. Consequently, Santiago and Caballero argue that the
-asymptotic reduction in draft-effective population size uses the $Q_\infty^2$ and is
+asymptotic reduction in fitness-effective population size uses the $Q_\infty^2$ and is
 given by the following system of non-linear equations,
 
 \begin{align}
@@ -779,13 +800,13 @@ equilibrium variance $\widetilde{V} > 0$ for $s>0$.
 \section{Statistical Methods}
 
 The previous section outlined the basis of quantitative genetic linked
-selection models that predict the draft-effective population size under
+selection models that predict the fitness-effective population size under
 polygenic selection and linkage. Our work here only considers the contribution
-of strongly and weakly deleterious mutations to fitness variation. In this
+of deleterious mutations to fitness variation. In this
 section, we outline more details about the statistical models used to construct
 the genome-wide B and B' maps that are used in model fitting.
 
-\subsection{Parametric Forms of Negative Linked Selection Models}
+\subsection{Models of Linked Selection}
 
 Both the classic BGS and the SC16 model we extend have the same parametric
 form, since both (1) model the impact of linked selection as a rescaling of
@@ -822,7 +843,7 @@ $\bar{B}(v | \Psi)$.
 
 \subsection{Discretization of Parameters and Annotation Feature Classes}
 
-In practice, to fit negative selection models, we must discretize both $\mu(s,
+In practice to fit negative selection models we must discretize both $\mu(s,
 k(g))$ and $s$ in Supplementary Equation \eqref{supp-eq:b}. We define
 $\mu_{i,k(g)}$ to be the rate of mutations entering the population per basepair
 per generation with selection coefficient $s_i$ for the feature class $k(g)$ of
@@ -837,7 +858,7 @@ is,
 \end{align}
 %
 Because it is computationally-intensive to numerically solve the system of two
-non-linear equations to calculate $b$ at each segment, these are pre-computed
+non-linear equations (Equation \ref{eq:main_eqns} in the main paper) to calculate $b$ at each segment, these are pre-computed
 for an $n_s$-element grid of selection coefficients and an $n_\mu$-element grid
 of mutation rates--DFE products. Likewise, when we calculate $b$ under classic
 BGS models, we pre-calculate segment components across these same grids, and
@@ -967,7 +988,7 @@ but ensures more accurate estimates of the reduction factor $B$.
 Under Santiago and Caballero's model, the correct effective population size to
 gauge reduction in heterozygosity or coalescent times is given by their
 equation 4 \parencite{Santiago2016-mu}. This equation considers how the
-inflation factor $Q_t^2$ that sets the draft-effective population size varies
+inflation factor $Q_t^2$ that sets the fitness-effective population size varies
 over $t$. This is because statistics such as heterozygosity depend on the
 cumulative autocorrelation factor up to some time $t$, $Q_t^2$ \parencite[p.
 2111]{Santiago1998-bs}. This reflects the fact that effective population size
@@ -976,7 +997,7 @@ than the asymptotic effective population size, since not much autocorrelation
 has accumulated in the stochastic perturbations caused by drift yet. From a
 backwards-time perspective, this reflects the fact that pairwise diversity
 (which is approximately heterozygosity when $2N\mu \ll 1$) depends on the
-pairwise coalescence rate per generation, which is not constant under draft. 
+pairwise coalescence rate per generation, which is not constant under linked selection. 
 
 We experimented with calculating this full sum and integral approximations to
 it in our methods, but it seemed to make little difference in our application.
@@ -1019,15 +1040,15 @@ c_1 + c_2$. Then, the (1) total number of pairwise combinations of chromosomes
 $n_T$, (2) the number of pairwise with identical alleles $n_S$, and (3) the
 number of pairwise combinations with differing alleles $n_D$ are respectively,
 
-\begin{align*}
-  n_T &= \frac{n(n-1)}{2} \\
-  n_S &= {c_1 \choose 2} + {c_2 \choose 2} \\
+\begin{align}
+  n_T &= \frac{n(n-1)}{2} \nonumber \\
+  n_S &= \binom{c_1}{2} + \binom{c_2}{2} \nonumber \\
   n_D &= n_T - n_S
-\end{align*}
+\end{align}
 %
 which would be stored in row $\mathbf{Y}_l = [n_S, n_D]$. Note that the
 per-site $\mathbf{Y}$ handles non-polymorphic sites and missing data.
-Non-polymorphic sites have $n_S = {n \choose 2}$ and $n_D = 0$, and missing
+Non-polymorphic sites have $n_S = \binom{n}{2}$ and $n_D = 0$, and missing
 data has $n_S = n_D = 0$.
 
 \subsection{Pairwise Diversity Estimates}
@@ -1083,44 +1104,15 @@ pairwise diversity is a ratio estimator, and is thus biased, since by Jensen's
 inequality $\E(\nicefrac{y}{x}) \ge \nicefrac{\E(y)}{\E(x)}$ for random
 variables $x$ and $y$. 
 
-\subsection{Ratchet Rate Prediction}
 
-After rescaling each segment $N_e$ by the local predicted reduction
-$\hat{B}(x)$, the ratchet rates and $B'$ values are re-calculated. 
+\section{Analysis Details}
 
-The rescaled $B'$ calculation outputs a $n_\mu \times n_s \times S$
-multidimensional array $\mathbf{R}$ of ratchet rates per segment. These are
-rescaled by the segment lengths $\mathbf{l}$, giving the per-basepair mutation
-rate array. The per-basepair ratchet rate given maximum likelihood estimates of
-$\hat{\mu}$ and $\widehat{\mathbf{W}}$ is used to predicted the ratchet rate
-for each segment $g$. The DFE estimate for feature $k$ is a column vector of
-$\widehat{\mathbf{W}}$, i.e. $\widehat{\mathbf{w}}_k$
-
-\begin{align}
-  \lambda_D(g) = 
-\end{align}
-
-The predicted ratchet rate for segment $g$ $\lambda_d(g)$ is based on these
-values.
- 
-\subsection{Numeric methods for calculating $B$}
-
-Depending on the number of features, this can be incredibly memory intensive.
-
-\subsection{Optimization}
-
-Optimization in non-linear regression is notoriously difficult both in general
-(Bates) and in the specific problem of estimating the effects of genome-wide
-selection \parencite{Murphy2022-sj}. We experimented with a variety of global
-and local optimization approaches and parameterizations, but found that 
-
-
-\section{Human Genomic Data}
+\subsection{Human Genomic Data}
 
 In order to try to ensure accurate estimation of pairwise diversity, which is a
 ratio estimator that is sensitivity to its denominator, we use the complete
-per-basepair genotype calls (gVCF) produced by Illumina's DRAGEN pipeline
-\parencite{Illumina_Inc2020-dk}. The original samples were sequenced to 30x by
+per-basepair genotype calls (gVCF) produced by Illumina's DRAGEN pipeline for the high-coverage 1000 Genome samples
+\parencite{Illumina_Inc2020-dk,Byrska-Bishop2022-tn}. The original samples were sequenced to 30x by
 the New York Genome Center \parencite{Byrska-Bishop2022-tn}. This allows for
 filtering to be applied to the entire genome at once, rather than just
 variants, so the denominator does not need to be estimated separately.
@@ -1128,7 +1120,7 @@ variants, so the denominator does not need to be estimated separately.
 \subsection{Filtering gVCFs}
 \label{supp:filter}
 
-The gVCFs were filtered using a custom Python tool, \texttt{gvcf2counts.py} (in
+The gVCFs were filtered using a custom Python tool, \texttt{gvcf2counts.py} (available in the repository associated with the manuscript at
 \path{tools/gvcf2counts.py}), which reads the gVCFs, filters them according to
 the criteria below, and outputs a Numpy \path{.npy} file of reference and
 alternative allele counts for each chromosome (hereafter, ``allele counts
@@ -1197,10 +1189,10 @@ consisting of the union (i.e. \texttt{bedtools merge}) of: exons and coding
 sequences from Ensembl Version 107
 \path{Homo_sapiens.GRCh38.107.chr.gff3.gz}]{Cunningham2022-vk} and PhastCons
 regions \path{phastConsElements100way.bed.gz}]{Siepel2005-wh}. Then, we remove
-200 basepairs of ``slop" around each of these regions (i.e. \texttt{bedtools
+200 basepairs of buffer around each of these regions (i.e. \texttt{bedtools
 slop}). We show in Supplementary Figure \ref{suppfig:neutral-tracks} that
 average diversity (we only consider YRI samples for this analysis) is fairly
-insensitive to the slop width, but increasing slop widths around putatively
+insensitive to the buffer width, but increasing slop widths around putatively
 conserved segments does lead to higher diversity estimates. This is expected,
 since increasing the slop width considers a smaller subset of sites, further
 away from putatively conserved regions. For our analyses we choose the 200bp
@@ -1238,7 +1230,6 @@ basepairs after masking per chromosome in Supplementary Table
 \ref{supp-table:masks}.
 
 \begin{table}
-    \label{supp-table:masks}
 \centering
 \caption{Accessible and putatively neutral sequence mask statistics, for the criteria used in 
          the main model fits.}
@@ -1272,6 +1263,7 @@ Chromosome & Accessible (\%) & Neutral (\%) & Intersection (\%) & Total Basepair
 weighted average & 40.1 & 63.6 & 17.1 & - \\
 \hline
 \end{tabular}
+\label{supp-table:masks}
 \end{table}
 
 \subsection{Window-based Summaries and filtering}
@@ -1296,14 +1288,6 @@ Figure \ref{suppfig:trimming}. We also remove 1cM from each end of the
 recombination map. These window-based filters are in addition to the
 accessible and neutral sequence masked described in Supplementary Sections
 \ref{supp:filter} and \ref{supp:accessible}.
-
-\subsection{Annotation Models}
-
-
-CADD 6\%: 6.49\% of autosomal sequence.
-CADD 8\%: 8.56\% of autosomal sequence.
-
-
 
 \subsection{Model Comparisons}
 
@@ -1334,7 +1318,7 @@ CADD 8\%: 8.56\% of autosomal sequence.
 % \end{tabular}
 % \end{table}
 
-\subsection{Table of $R^2$ Values}
+\subsection{Table of \texorpdfstring{$R^2$}{R2} Values}
 \label{supp:tbl-r2}
 \begin{table}
 \centering
@@ -1374,7 +1358,7 @@ PhastCons Priority &              full &          CHB &                        5
 \end{tabular}
 \end{table}
 
-\subsection{Table of $R^2$ Values (Strong Selection Grid)}
+\subsection{Table of \texorpdfstring{$R^2$}{R2} Values (Strong Selection Grid)}
 \label{supp:tbl-r2-strongsel}
 \begin{table}
 \centering
@@ -1382,9 +1366,7 @@ PhastCons Priority &              full &          CHB &                        5
 \caption{$R^2$ and mutation rate estimates for all primary models fit with the
     strong selection grid (up to $s=10^{-1}$). Note that the repeated values in
     the last rows are correct and due to rounding; see
-    \path{notebooks/main_fits.ipynb} in the GitHub repository for more
-information. $R_\text{IS}^2$ is the in-sample $R^2$, and $R_\text{LOCO}^2$ is
-the leave-one-chromosome-out $R^2$. }
+    the main analysis notebook in the GitHub repository for more information. $R_\mathrm{IS}^2$ is the in-sample $R^2$, and $R_\mathrm{LOCO}^2$ is the leave-one-chromosome-out $R^2$. }
 
 \begin{tabular}{lll|crr|cc}
     \textbf{Model} & \textbf{Track type} & \textbf{Pop.} & \textbf{B' $R_\text{LOCO}^2$} & \textbf{B' $R_\text{IS}^2$} & \textbf{B $R_\text{IS}^2$} & \textbf{B' $\hat{\mu} \times 10^{-8}$} & \textbf{B $\hat{\mu} \times 10^{-8}$} \\[0.5ex] 
@@ -1419,7 +1401,7 @@ PhastCons Priority &              full &          CHB &                        5
 \end{table}
 
 
-\subsection{Derivation of Approximate Coalescence $R_\text{coal}^2$}
+\subsection{Derivation of Approximate Coalescence \texorpdfstring{$R_\text{coal}^2$}{R2}}
 \label{supp:r2-coal}
 
 Our approach models the observed megabase-scale diversity $y_i$ in window $i$
@@ -1500,7 +1482,7 @@ Since this is a rough approximation,  we set $\theta = w \pi_0 B_i$ and fix
 $\rho = w \gamma \pi_0 B_i$ where $\gamma$ is the ratio of recombination to
 mutation rates, $\nicefrac{r}{\mu}$. In humans, $\gamma \approx 1$, but we
 explore different ratios to assess sensitivity of this calculation
-(Supplementary Figure \ref{suppfig:r2_upper}). 
+(Supplementary Figure \ref{suppfig:drift_r2}B). 
 
 \begin{figure}[htbp] \centering
     \includegraphics[width=\textwidth]{figures/supplementary/suppfigure_drift_R2.pdf}
@@ -1588,15 +1570,15 @@ Our model is essentially a generalized nonlinear model with a binomial link
 function. This is the form used by \textcite{Elyashiv2016-vt} and
 \textcite{Murphy2022-sj}. These models fit the observed number of pairwise
 nucleotide differences in genomic windows to the expected pairwise diversity
-under some evolutionary model. We only consider BGS models here, so the mean
-function for position $x$ is the product of the proportion by which BGS reduces
+under some evolutionary model. We only consider  models of purifying selection here, so the mean
+function for position $x$ is the product of the proportion by which selection reduces
 diversity at position $x$, $B(x)$, and genome-wide neutral diversity $\pi_0$,
 
 \begin{align}
   \pi(x) = B(x, \Phi) \pi_0
 \end{align}
 
-$\Phi$ is the set of BGS parameters (i.e. the DFE matrix $\mathbf{W}$ and
+$\Phi$ is the set of parameters (i.e. the DFE matrix $\mathbf{W}$ and
 mutation rate $\mu$), and $\pi_0 = 4 N_e \mu$ is determined by the genome-wide
 drift-effective population size $N_e$, set by only reproductive and demographic
 processes. Regional mutation rate heterogeneity can be accounted for with a
@@ -1637,6 +1619,46 @@ the likelihood. Then, the binomial log-likelihood for the data at site $v$ is,
 \begin{align}
   \ell_v(\Psi) &= \log(\pi(v, \Psi)) n_{\text{D},v} + \log(1-\pi(v, \Psi)) n_{\text{S},{v}}
 \end{align}
+
+
+\subsection{Optimization and Diagnostics}
+\label{supp:optim}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/supplementary/figure_feature_priority_yri_full_diag.pdf}
+
+  \caption{ An optimization diagnostic plot showing the 100 top optima. Heatmap
+  colors indicate probability mass for the DFE parameters (top four rows).
+  Estimates of $\pi_0$ and $\mu$ are shown in the bottom two rows. This is the
+optimization plot for YRI Feature Priority model.}
+  \label{suppfig:diag-plot}
+\end{figure}
+
+
+As described in the Methods section we use the BOBYQA algorithm implemented by
+the NLopt library for numeric optimization to find maximum likelihood estimates
+\parencite{Powell2009-jm,Johnson2007-tl}. The DFE is a simplex, and thus
+requires constrained optimization. We compared constrained optimization
+algorithms to an unconstrained softmax approach, finding the latter vastly
+outperformed the former. Bounds for $\pi_0$ and $\mu$ can be set manually in
+\texttt{bgspy}; our main models used $10^{-8} \le \mu \le 5 \times 10^{-8}$ and
+$0.0005 \le \pi_0 \le 0.008$. All main model fits were not at bounds. For
+locally rescaled fits, we found our $\widehat{\mu}$ estimate was continually
+the upper bound for the PhastCons Priority model; for these fits we increased this first to $\mu = 8 \times
+10^{-8}$ and then again to $\mu = \times 10^{-7}$, find it still always reached the upper bound. This did not occur for CADD 6\% locally rescaled models.
+
+
+We only show one optimization diagnostic plot here (Supplementary Figure
+\ref{suppfig:diag-plot}), but the can be easily calculated from the model
+pickle files in the Data Dryad repository (\url{https://doi.org/10.5061/dryad.qnk98sfnv}). In one case, our optimization
+diagnostics indicated that the best optima across 10,000 random starts was one
+of few of the top 100 hits that were hitting either an alternate likelihood
+mode, or the optimization routine had numeric issues. In this one case, we
+removed the top hit and used the second, which was the consensus among the
+other top 100 optima. 
+
+
 
 \subsection{The scale of processes}
 
@@ -1683,10 +1705,10 @@ two-alleles finite sites model link function of the form, $\pi/(1 + 2 \pi)$. We
 experimented with this and found there was little difference between these link
 functions, so we opted for the simpler identity link function.
 
-\subsection{Out-Sample Error Estimation and $\widehat{R}_\text{LOCO}^2$}
+\subsection{Out-Sample Error Estimation and \texorpdfstring{$\widehat{R}_\text{LOCO}^2$}{R2}}
 
 To estimate out-sample prediction error, we fit each model leaving one
-chromosome out (LOCO) and calculating the out-sample prediction error on
+chromosome out (LOCO) and calculating the out-of-sample prediction error on
 these excluded chromosomes. Each fit used 10,000 random starting positions as
 the main fits. The out-sample prediction error (i.e. sum of residuals
 squared, $\widehat{\mathrm{SSR}}_\text{LOCO}$) for all bins in chromosome $C$
@@ -1730,12 +1752,16 @@ remaining data. Then, using these jackknife samples we calculated the jackknife
 standard error for each of parameters \parencite{Wasserman2004-ip}. 
 
 \begin{figure}[htbp]
-  \label{suppfig:diag-plot-mode}
   \centering
   \includegraphics[width=\textwidth]{figures/supplementary/phastcons_diag_plot.pdf}
 
-  \caption{An optimization diagnostic plot showing an example of the bimodal likelihood
-  optima, or a numeric optimization issue.}
+  \caption{An optimization diagnostic plot showing an example of the bimodal likelihood optima, or a numeric optimization issue. The first four rows are the DFE estimates, where color indicates the parameter
+  value (brighter colors closer to 1, darker colors closer to 0). 
+  The $\pi_0$ and $\mu$ estimates are shown in the bottom two 
+  rows. Note that different parameter combinations co-occur, 
+  indicating in the top 100 optima, there is an apparent other
+  mode that varies with mutation rate.}
+    \label{suppfig:diag-plot-mode}
 \end{figure}
 
 In one case, for our PhastCons Priority model mutation rate estimtes, our
@@ -1743,7 +1769,7 @@ jackknife standard error estimates were very large. Upon inspection of
 optimization diagnostic plots (see Supplementary Materials Section
 \ref{suppfig:diag-plot-mode}) and histograms of jackknife estimates, these
 looked like they were due to rare aberrant optima. These were either caused by
-a numeric optimization issue or another likelihood mode. Given that this looked
+a numeric optimization issue or the presence of multiple local optima. Given that this looked
 to be artificially inflating the uncertainty compared to all other models, we
 filtered out these jackknife results before computing the standard error.
 
@@ -1788,7 +1814,7 @@ Our whole-chromosome simulations use realistic human recombination maps and
 putatively conserved segments. These annotation differ slightly from our
 primary model fits, since these simulations were written before the method was
 finalized. We use the HapMap recombination map
-\parencite{International_HapMap_Consortium2007-nu}, PhastCons regions, and UTRs
+\parencite{International_HapMap_Consortium2007-nu}, PhastCons regions \parencite{Siepel2005-wh}, and UTRs
 as an approximate set of putatively conserved segments. 
 
 Our first set of simulations were used to validate that our methods were
@@ -1809,7 +1835,7 @@ estimating the true reduction at a position, the MSE is just the stochastic
 variance due to the $n=100$ replicates we simulate and the coalescence noise in
 each one. \textcite{Tajima1983-gu} showed that variance in diversity due to
 coalescence noise is much larger than sampling noise, and is given by
-$\var(\pi) \approx \nicefrac{2\theta^2}{9}$ in an infinite sample. One can
+$\var(\pi) \approx \nicefrac{2\theta^2}{9}$ in an infinite sample at a non-recombining locus. One can
 derive an analogous equation for the variance of average simulation $\bar{B}$
 across $n$ replicate simulations as, $\var(\bar{B}) \approx
 \nicefrac{2B^2}{9n}$. We note that this assumes no recombination but this
@@ -1817,58 +1843,21 @@ approximation is fine over short scales (such as the 10 kbp scale used here).
 
 \section{Additional Results and Figures}
 
-\subsection{Optimization and Diagnostics}
-\label{supp:optim}
-
-As described in the Methods section we use the BOBYQA algorithm implemented by
-the NLopt library for numeric optimization to find maximum likelihood estimates
-\parencite{Powell2009-jm,Johnson2007-tl}. The DFE is a simplex, and thus
-requires constrained optimization. We compared constrained optimization
-algorithms to an unconstrained softmax approach, finding the latter vastly
-outperformed the former. Bounds for $\pi_0$ and $\mu$ can be set manually in
-\texttt{bgspy}; our main models used $10^{-8} \le \mu \le 5 \times 10^{-8}$ and
-$0.0005 \le \pi_0 \le 0.008$. All main model fits were not at bounds. For
-locally-rescaled fits, we found our $\widehat{\mu}$ estimate was continually
-the upper bound; for these fits we increased this first to $\mu = 8 \times
-10^{-8}$ and then again to $\mu = \times 10^{-7}$, find it still always reached
-the upper bound. Since $10^{-7}$ is an implausibly high mutation rate, we
-stopped there.
-
-We only show one optimization diagnostic plot here (Supplementary Figure
-\ref{suppfig:diag-plot}), but the can be easily calculated from the model
-pickle files in the Data Dryad repository
-(\url{https://doi.org/10.5061/dryad.qnk98sfnv}). In one case, our optimization
-diagnostics indicated that the best optima across 10,000 random starts was one
-of few of the top 100 hits that were hitting either an alternate likelihood
-mode, or the optimization routine had numeric issues. In this one case, we
-removed the top hit and used the second, which was the consensus among the
-other top 100 optima. 
-
-\begin{figure}[htbp]
-  \label{suppfig:diag-plot}
-  \centering
-  \includegraphics[width=\textwidth]{figures/supplementary/figure_feature_priority_yri_full_diag.pdf}
-
-  \caption{ An optimization diagnostic plot showing the 100 top optima. Heatmap
-  colors indicate probability mass for the DFE parameters (top four rows).
-  Estimates of $\pi_0$ and $\mu$ are shown in the bottom two rows. This is the
-optimization plot for YRI Feature Priority model.}
-\end{figure}
 
 \clearpage
-\subsection{Locally-Rescaled Fit Results}
+\subsection{Locally Rescaled Fit Results}
 \label{supp:locally-rescaled-fits}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[]{figures/supplementary/rescale_pi_pred_plot.pdf}
+  \includegraphics[width=\textwidth]{figures/supplementary/rescale_pi_pred_plot.pdf}
 
-  \caption{Chromosome 2 predictions on the YRI samples, with locally-rescaled
-      model fits. Observed data is the dark gray line, and the normal MLE for
-      the PhastCons Priority model is the blue line. The locally-rescaled
+  \caption{Chromosome 2 predictions on the YRI samples, with locally rescaled
+      model fits. The observed data is the dark gray line, and the normal MLE for
+      the PhastCons Priority model is the blue line. The locally rescaled
       predictions are the green line. The dashed red line are the prediction
-      using the standard B' map (without local-rescaled) and the maximum likelihood
-      estimates from the locally-rescaled fits. The large discrepancy in this shows
+      using the standard B' map (without local rescaling) and the maximum likelihood
+      estimates from the locally rescaled fits. The large discrepancy in this shows
       that estimates are highly dependent on the B' map.}
     \label{suppfig:rescale}
 \end{figure}
@@ -1877,13 +1866,13 @@ optimization plot for YRI Feature Priority model.}
   \centering
   \includegraphics[]{figures/supplementary/rescale_Bs.pdf}
 
-  \caption{The standard (dark gray) and locally-rescaled (blue) B' maps for different
+  \caption{The standard (dark gray) and locally rescaled (blue) B' maps for different
       $\mu = 1.6 \times 10^{-8}$ and three different selection coefficients.
-      For $s=10^{-5}$ ($2N_e s = 0.2$), locally-rescaling alters the predicted
+      For $s=10^{-5}$ ($2N_e s = 0.2$), locally rescaling alters the predicted
       reduction so that it is essentially insignificant ($B \approx 1$). For
   mid-strength selection $s=10^{-4}$ ($2N_e s = 2$), there is only a very
-slight difference between standard and locally-rescaled B' maps. Finally, for
-strong selection $s=10^{-3}$ ($2N_e s = 20$), locally-rescaling does not change
+slight difference between standard and locally rescaled B' maps. Finally, for
+strong selection $s=10^{-3}$ ($2N_e s = 20$), local rescaling does not change
 the B' maps, as expected. }
     \label{suppfig:rescale-b}
 \end{figure}
@@ -1893,7 +1882,7 @@ the B' maps, as expected. }
   \centering
   \includegraphics[]{figures/supplementary/rescale_DFE.pdf}
 
-  \caption{The DFE for YRI samples with locally-rescaling. The maximum
+  \caption{The DFE for YRI samples with local rescaling. The maximum
   likelihood mutation rate estimate for this is $\widehat{\mu} = 8 \times
 10^{-8}$, which is the upper boundary of the range used during optimization.}
 
@@ -1907,7 +1896,7 @@ the B' maps, as expected. }
 
   \caption{Genome-wide average $B(x)$ values across selection coefficients for
   $\mu = 1.58 \times 10^{-8}$, for both the standard (blue) and
-locally-rescaled B' (orange) maps. This indicates that locally-rescaling the B'
+locally rescaled B' (orange) maps. This indicates that locally rescaling the B'
 maps only in practice changes how deep the ``U" is.}
 
     \label{suppfig:rescale-effects}
@@ -1915,10 +1904,10 @@ maps only in practice changes how deep the ``U" is.}
 
 \clearpage
 
-\subsubsection{PhastCons Priority Locally-Rescaled Model Fit Results}
+\subsubsection{PhastCons Priority Locally Rescaled Model Fit Results}
 
-Below are the model fit results for locally-rescaled model runs, with the
-upper mutation rate boundary set to $\mu = 8 \times 10^{-8}$.
+Below are the model fit results for locally rescaled model runs, with the upper mutation rate boundary set to $\mu = 8 \times 10^{-8}$. Each model fit is the direct output from a
+\texttt{bgspy}. The \texttt{w grid} and \texttt{t grid} are the grids the B and B' maps are built on; note that the mutation grid \texttt{w} is an exponential that is inferred later, so optimization is done continuously over this. Each model output shows the maximum likelihood estimates, with uncertainty where available. 
 
 \subsubsection*{CHB}
 
@@ -1936,7 +1925,7 @@ SimplexModel (interpolated w): 6 x 7 x 3
   pi_0 = 0.00106289
   pi  = 0.000752601
   mut. rate  = 8e-08 
-  Ne = 26,572 (if μ=1e-8), Ne = 13,286 (if μ=2e-8)
+  Ne = 26,572 (if mu=1e-8), Ne = 13,286 (if mu=2e-8)
   R² = 60.8648% (in-sample)  59.1654% (out-sample)
   W = 
             CDS    gene    phastcons
@@ -1967,7 +1956,7 @@ SimplexModel (interpolated w): 6 x 7 x 3
   pi_0 = 0.001479
   pi  = 0.00106447
   mut. rate  = 8e-08 
-  Ne = 36,974 (if μ=1e-8), Ne = 18,487 (if μ=2e-8)
+  Ne = 36,974 (if mu=1e-8), Ne = 18,487 (if mu=2e-8)
   R² = 68.7046% (in-sample)  67.8854% (out-sample)
   W = 
             CDS    gene    phastcons
@@ -1998,7 +1987,7 @@ SimplexModel (interpolated w): 6 x 7 x 3
   pi_0 = 0.00111021
   pi  = 0.000801495
   mut. rate  = 8e-08 
-  Ne = 27,755 (if μ=1e-8), Ne = 13,877 (if μ=2e-8)
+  Ne = 27,755 (if mu=1e-8), Ne = 13,877 (if mu=2e-8)
   R² = 62.5591% (in-sample)  61.367% (out-sample)
   W = 
             CDS    gene    phastcons
@@ -2013,7 +2002,7 @@ SimplexModel (interpolated w): 6 x 7 x 3
 \end{verbatim}
 \end{footnotesize}\end{minipage}
 
-\subsubsection{CADD 6\% Locally-Rescaled Model Fit Results}
+\subsubsection{CADD 6\% Locally Rescaled Model Fit Results}
 
 \subsubsection*{CHB}
 
@@ -2031,7 +2020,7 @@ number of successful starts: 10000 (100.0% total)
 pi_0 = 0.00102026
 pi  = 0.000752601
 mut. rate  = 7.291e-08
-Ne = 25,506 (if μ=1e-8), Ne = 12,753 (if μ=2e-8)
+Ne = 25,506 (if mu=1e-8), Ne = 12,753 (if mu=2e-8)
 R² = 60.6057% (in-sample)
 W =
           cadd6
@@ -2063,7 +2052,7 @@ number of successful starts: 10000 (100.0% total)
 pi_0 = 0.00107426
 pi0  = 0.000801495
 mut. rate  = 5.991e-08
-Ne = 26,856 (if μ=1e-8), Ne = 13,428 (if μ=2e-8)
+Ne = 26,856 (if mu=1e-8), Ne = 13,428 (if mu=2e-8)
 R² = 62.0668% (in-sample)
 W =
           cadd6
@@ -2094,7 +2083,7 @@ number of successful starts: 10000 (100.0% total)
 pi0 = 0.0014366
 pi  = 0.00106447
 mut. rate  = 6.024e-08
-Ne = 35,914 (if μ=1e-8), Ne = 17,957 (if μ=2e-8)
+Ne = 35,914 (if mu=1e-8), Ne = 17,957 (if mu=2e-8)
 R² = 68.6747% (in-sample)
 W =
           cadd6
@@ -2138,7 +2127,7 @@ circles indicate estimates under the default grid (up to $s=10^{-2}$).}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.8\textwidth]{figures/supplementary/feature_priority_pop_dfe_strongselgrid.pdf}
+  \includegraphics[width=0.7\textwidth]{figures/supplementary/feature_priority_pop_dfe_strongselgrid.pdf}
 
   \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$)
   under the Feature Priority model, across populations.}
@@ -2148,13 +2137,14 @@ circles indicate estimates under the default grid (up to $s=10^{-2}$).}
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.8\textwidth]{figures/supplementary/phastcons_priority_pop_dfe_strongselgrid.pdf}
+  \includegraphics[width=0.7\textwidth]{figures/supplementary/phastcons_priority_pop_dfe_strongselgrid.pdf}
 
   \caption{The DFE estimates for the strong selection grid (up to $s=10^{-1}$)
   under the PhastCons Priority model, across populations.}
     \label{suppfig:strong-sel-dfe-pop-feature}
 \end{figure}
 
+\clearpage
 \subsection{Demographic Expansion and Recessive Simulation Tests}
 \label{supp:sim-assum}
 
@@ -2293,6 +2283,7 @@ selection signal is not dependent on the model used (PhastCons Priority versus C
 \begin{figure}[!htb]
   \centering
   \includegraphics[width=0.8\textwidth]{figures/supplementary/spatial_residual.pdf}
+  \caption{Blue lines represent the residual between predicted an observed diversity levels along chromosomes. The orange line is a lowess curve, with bandwidth chosen by cross-validation.}
   \label{suppfig:spatial-residuals}
 \end{figure}
 

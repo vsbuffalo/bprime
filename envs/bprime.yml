@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - anaconda
   - bioconda
+  - defaults
 dependencies:
   - gsl
   - msprime>=1.1.1
