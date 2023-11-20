@@ -115,6 +115,9 @@ class Lowess(BaseEstimator):
     def pairs(self):
         preds = self.predict(self.x_)
         return self.x_, preds
+    def bootstrap(self, *args, **kwargs):
+        straps, lb, ub = lowess_bootstrap(self.x_, self.y_, self.frac, *args, **kwargs)
+        return lb, ub
 
 def lowess_cv_frac(x, y, cv=20, fracs=np.linspace(0.05, 1, 60),
                    min_n=10):
@@ -138,6 +141,11 @@ def lowess_cv_frac(x, y, cv=20, fracs=np.linspace(0.05, 1, 60),
     return (fracs[idx], res[idx]), fracs, res
 
 def lowess_bootstrap(x, y, frac, nboot=200, alpha=0.05):
+    x = np.array(x)
+    y = np.array(y)
+    idx = np.argsort(x)
+    x = x[idx]
+    y = y[idx]
     n = len(x)
     res = []
     for i in range(nboot):
