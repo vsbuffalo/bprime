@@ -103,11 +103,18 @@ class Lowess(BaseEstimator):
     def __init__(self, frac):
         self.frac = frac
     def fit(self, x, y):
-        self.x_ = x
-        self.y_ = y
+        self.x_ = np.array(x)
+        idx = np.argsort(self.x_)
+        self.x_ = self.x_[idx]
+        self.y_ = np.array(y)[idx]
         return self
-    def predict(self, x):
+    def predict(self, x=None):
+        if x is None:
+            x = self.x_
         return lowess(self.y_, self.x_, xvals=x, frac=self.frac)
+    def pairs(self):
+        preds = self.predict(self.x_)
+        return self.x_, preds
 
 def lowess_cv_frac(x, y, cv=20, fracs=np.linspace(0.05, 1, 60),
                    min_n=10):

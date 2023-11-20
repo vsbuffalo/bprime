@@ -801,6 +801,17 @@ def readfile(filename):
         return gzip.open(filename, mode='rt')
     return open(filename, mode='r')
 
+def read_bedcov(file, keep_chroms=None):
+    """
+    Read a BED3 file.
+
+    file: the (possibly gzipped) BED file)
+    keep_chroms: only keep entries with these chromosomes
+    """
+    cov = pd.read_table(file, sep='\t',
+                   names=('chrom', 'start', 'end', "nfeature", "nbases", "length_a", "frac"))
+    return cov
+
 def read_bed3(file, keep_chroms=None):
     """
     Read a BED3 file.
