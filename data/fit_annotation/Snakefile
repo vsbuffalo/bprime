@@ -311,7 +311,7 @@ rule cadd_simple:
 
 cadd_annot = ["cadd_top2_percent.bed.gz", "cadd_top4_percent.bed.gz", "cadd_top6_percent.bed.gz", 
               "cadd_top7_percent.bed.gz", "cadd_top8_percent.bed.gz", "cadd_top10_percent.bed.gz", 
-              "cadd_top12_percent.bed.gz"]
+              "cadd_top12_percent.bed.gz", "cadd_top20_percent.bed.gz"]
 cadd_simple = ["cadd_top6_percent_simple100.bed.gz", "cadd_top6_percent_simple1000.bed.gz", "cadd_top6_percent_merged1.bed.gz",  
                "cadd_top6_percent_merged2.bed.gz"]
 cadd_annot += cadd_simple
