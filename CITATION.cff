@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite this software package and Buffalo and Kern (2024) PloS Genetics."
+authors:
+- family-names: "Buffalo"
+  given-names: "Vince"
+  orcid: "https://orcid.org/0000-0003-4510-1609"
+- family-names: "Kern"
+  given-names: "Andrew"
+  orcid: "https://orcid.org/0000-0003-4381-4680"
+title: "Methods and Analysis for "A Quantitative Genetic Model of Background Selection in Humans"
+version: 0.0.1
+doi: 10.5281/zenodo.10452251
+date-released: 2024-01-02
+url: "https://github.com/vsbuffalo/bprime"
