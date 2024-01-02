@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite this software package and Buffalo and Kern (2024) PloS Genetics."
+message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Buffalo"
   given-names: "Vince"
@@ -7,7 +7,7 @@ authors:
 - family-names: "Kern"
   given-names: "Andrew"
   orcid: "https://orcid.org/0000-0003-4381-4680"
-title: "Methods and Analysis for "A Quantitative Genetic Model of Background Selection in Humans"
+title: "Methods and Analysis for 'A Quantitative Genetic Model of Background Selection in Humans'"
 version: 0.0.1
 doi: 10.5281/zenodo.10452251
 date-released: 2024-01-02
